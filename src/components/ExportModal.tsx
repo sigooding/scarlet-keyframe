@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import type { Keyframe, ProjectState } from "../core/model";
 import { sceneLabel } from "../core/model";
 import { makeStudioPatchReport, writeStudioPatch, type StudioPatchResult } from "../core/patch";
-import { formatTime, keyframeDuration } from "../core/timing";
+import { clipFrames, FPS, formatTimecode } from "../core/timing";
 import { downloadText, slug } from "../core/helpers";
 
 export type ExportTab = "bundle" | "patch" | "mp4";
@@ -84,8 +84,8 @@ export function ExportModal({
     () => (frames.length ? frames.slice(sliceFrom, sliceTo + 1) : []),
     [frames, sliceFrom, sliceTo],
   );
-  const rangeSeconds = useMemo(
-    () => rangeFrames.reduce((sum, frame) => sum + keyframeDuration(frame), 0),
+  const rangeTotalFrames = useMemo(
+    () => rangeFrames.reduce((sum, frame) => sum + clipFrames(frame), 0),
     [rangeFrames],
   );
 
@@ -372,7 +372,7 @@ export function ExportModal({
                   <span>Burn in scene & beat marks</span>
                 </label>
                 <span className="asset-count">
-                  {rangeFrames.length.toLocaleString()} keyframes · {formatTime(rangeSeconds)}
+                  {rangeFrames.length.toLocaleString()} keyframes · {formatTimecode(rangeTotalFrames)} ({Math.round(rangeTotalFrames / FPS)}s)
                 </span>
               </div>
 

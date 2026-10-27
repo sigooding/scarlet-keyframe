@@ -1,5 +1,5 @@
 import type { ProjectState } from "../core/model";
-import { formatTime } from "../core/timing";
+import { FPS, formatTimecode } from "../core/timing";
 
 export interface TopbarProps {
   project: ProjectState;
@@ -22,12 +22,8 @@ export interface TopbarProps {
 }
 
 function formatTotalRuntime(seconds: number): string {
-  const safe = Math.max(0, Math.floor(Number.isFinite(seconds) ? seconds : 0));
-  if (safe < 3600) return formatTime(safe);
-  const hours = Math.floor(safe / 3600);
-  const minutes = Math.floor((safe % 3600) / 60);
-  const secs = safe % 60;
-  return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  const frames = Math.max(0, Math.round((Number.isFinite(seconds) ? seconds : 0) * FPS));
+  return formatTimecode(frames);
 }
 
 export function Topbar({

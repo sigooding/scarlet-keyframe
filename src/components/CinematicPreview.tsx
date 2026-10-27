@@ -4,9 +4,11 @@ import { DepthParallaxLayer } from "../../vendor/scarlet-reel/game/DepthParallax
 import { Particles, type ParticleKind } from "../../vendor/scarlet-reel/game/AmbientParticles";
 import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
 import type { Keyframe } from "../core/model";
+import { evaluate, hasAnimationKeyframes } from "../sequence/animate";
 
 interface CinematicPreviewProps {
   frame: Keyframe;
+  localFrame?: number;
   imageSrc?: string;
   imagePosition?: string;
   resolveMedia: (value: string | undefined) => string | undefined;
@@ -17,8 +19,21 @@ interface CinematicPreviewProps {
   setFocalPoint?: (value: string) => void;
 }
 
+export function storyboardGradient(picture: string): string {
+  if (!picture) return "gradient:linear-gradient(135deg,#111518,#07090b)";
+  let hash = 2166136261;
+  for (let i = 0; i < picture.length; i += 1) {
+    hash = Math.imul(hash ^ picture.charCodeAt(i), 16777619);
+  }
+  const hueA = Math.abs(hash) % 360;
+  const hueB = (hueA + 42) % 360;
+  const angle = 115 + (Math.abs(hash >> 8) % 50);
+  return `gradient:linear-gradient(${angle}deg, hsl(${hueA} 24% 18%) 0%, hsl(${hueB} 28% 10%) 58%, #07090d 100%)`;
+}
+
 export function CinematicPreview({
   frame,
+  localFrame = 0,
   imageSrc,
   imagePosition,
   resolveMedia,
@@ -29,21 +44,57 @@ export function CinematicPreview({
   setFocalPoint,
 }: CinematicPreviewProps) {
   const cinematic = (frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>;
+  const hasKeyframes = hasAnimationKeyframes(frame);
+  const pose = evaluate(frame, localFrame);
+
   const picture = frame.picture || "";
   const isGradient = picture.startsWith("gradient:");
   const videoValue = picture.startsWith("video:") ? picture.slice(6) : "";
   const videoSrc = videoValue ? resolveMedia(videoValue) : undefined;
-  const plateSrc = isGradient ? picture : imageSrc;
-  const layer = useMemo(() => cinematicLayer(cinematic, plateSrc || "gradient:linear-gradient(135deg,#111518,#07090b)"), [cinematic, plateSrc]);
-  const plateStyle = imagePosition ? { ...layer.style, backgroundPosition: imagePosition } : layer.style;
-  const resolvedCinematic = useMemo(() => ({
-    ...cinematic,
-    depthMap: resolveMedia(cinematic.depthMap),
-    depthPlate: resolveMedia(cinematic.depthPlate),
-    depthCutouts: Array.isArray(cinematic.depthCutouts)
-      ? cinematic.depthCutouts.map((cutout: Record<string, any>) => ({ ...cutout, image: resolveMedia(cutout.image) || cutout.image }))
-      : undefined,
-  }) as unknown as CinematicSettings, [cinematic, resolveMedia]);
+  const plateUrl = isGradient ? picture : imageSrc || storyboardGradient(picture);
+
+  const effectiveCinematic = useMemo(
+    () => (hasKeyframes ? { ...cinematic, mode: "static", shakeAmount: 0 } : cinematic),
+    [cinematic, hasKeyframes],
+  );
+  const layer = useMemo(
+    () => cinematicLayer(effectiveCinematic, plateUrl),
+    [effectiveCinematic, plateUrl],
+  );
+
+  const directTransform = hasKeyframes
+    ? `translate(${pose.x}%, ${pose.y}%) scale(${pose.zoom})`
+    : undefined;
+
+  const basePlateStyle = imagePosition
+    ? { ...layer.style, backgroundPosition: imagePosition }
+    : layer.style;
+
+  const plateStyle: CSSProperties = hasKeyframes
+    ? {
+        ...basePlateStyle,
+        transform: directTransform,
+        animation: "none",
+        transition: "none",
+      }
+    : basePlateStyle;
+
+  const resolvedCinematic = useMemo(
+    () =>
+      ({
+        ...effectiveCinematic,
+        depthMap: resolveMedia(cinematic.depthMap),
+        depthPlate: resolveMedia(cinematic.depthPlate),
+        depthCutouts: Array.isArray(cinematic.depthCutouts)
+          ? cinematic.depthCutouts.map((cutout: Record<string, any>) => ({
+              ...cutout,
+              image: resolveMedia(cutout.image) || cutout.image,
+            }))
+          : undefined,
+      }) as unknown as CinematicSettings,
+    [effectiveCinematic, cinematic.depthMap, cinematic.depthPlate, cinematic.depthCutouts, resolveMedia],
+  );
+
   const particleKind = (frame.beat.particles ?? frame.scene.particles ?? "none") as ParticleKind;
   const particleConfig = frame.beat.particleConfig ?? frame.scene.particleConfig;
   const extensionZoomStart = Number(cinematic.startZoom ?? cinematic.zoom ?? 1);
@@ -60,7 +111,14 @@ export function CinematicPreview({
     "--edit-easing": String(cinematic.easing || "ease-in-out"),
     "--edit-duration": `${Math.max(0.1, Number(cinematic.zoomDuration) || 8)}s`,
   } as CSSProperties;
-  const ownOverlay = [cinematic.vignette ? "fx-vignette" : "", cinematic.grain ? "fx-grain" : ""].filter(Boolean).join(" ");
+  const ownOverlay = [cinematic.vignette ? "fx-vignette" : "", cinematic.grain ? "fx-grain" : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  const cameraMoveActive =
+    !hasKeyframes && playing && Boolean(cinematic.startZoom || cinematic.endZoom || cinematic.easing);
+
+  const shotName = picture ? picture.split("/").pop() || picture : "No picture on this keyframe";
 
   return (
     <div
@@ -74,21 +132,51 @@ export function CinematicPreview({
         setFocalPoint(`${Math.round(x)}% ${Math.round(y)}%`);
       }}
     >
-      <div className={`cin-preview-camera ${playing && (cinematic.startZoom || cinematic.endZoom || cinematic.easing) ? "cin-preview-camera-active" : ""}`} style={extensionStyle}>
+      <div
+        className={`cin-preview-camera ${cameraMoveActive ? "cin-preview-camera-active" : ""}`}
+        style={hasKeyframes ? undefined : extensionStyle}
+      >
         {videoSrc ? (
-          <video className="cin-preview-video" src={videoSrc} autoPlay muted loop playsInline />
+          <video
+            className="cin-preview-video"
+            src={videoSrc}
+            style={
+              hasKeyframes
+                ? { transform: directTransform, animation: "none", transition: "none" }
+                : undefined
+            }
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
         ) : (
-          <div className={`cin-preview-plate ${layer.className}`} style={plateStyle} data-picture-ref={picture} />
+          <div
+            className={`cin-preview-plate ${layer.className}`}
+            style={plateStyle}
+            data-picture-ref={picture}
+            data-testid="cinematic-plate"
+          />
         )}
         {!videoSrc && !isGradient && !imageSrc && (
-          <div className="cin-preview-missing">
-            <span className="missing-cross">+</span>
-            <span>PICTURE NOT LINKED</span>
-            <small>{picture || "No picture on this keyframe"}</small>
+          <div
+            className="cin-preview-missing"
+            style={
+              hasKeyframes
+                ? { transform: directTransform, animation: "none", transition: "none" }
+                : undefined
+            }
+          >
+            <div className="cin-storyboard-card">
+              <span className="missing-cross">+</span>
+              <strong>{shotName}</strong>
+              <span>PICTURE NOT LINKED</span>
+              <small>{picture || "No picture on this keyframe"}</small>
+            </div>
           </div>
         )}
         {cinematic.depthMap && imageSrc && !videoSrc && (
-          <DepthParallaxLayer cinematic={resolvedCinematic} picture={plateSrc || imageSrc} />
+          <DepthParallaxLayer cinematic={resolvedCinematic} picture={plateUrl || imageSrc} />
         )}
         {cinematic.foregroundImage && (
           <img
@@ -104,43 +192,67 @@ export function CinematicPreview({
             }}
           />
         )}
-        {Array.isArray(cinematic.foregroundExtras) && cinematic.foregroundExtras.map((extra: Record<string, any>, index: number) => (
-          <img
-            key={`${extra.image}-${index}`}
-            className="cin-preview-foreground"
-            src={resolveMedia(extra.image)}
-            alt=""
-            style={{
-              left: `${Number(extra.x ?? 50)}%`,
-              top: `${Number(extra.y ?? 50)}%`,
-              opacity: Number(extra.opacity ?? 1),
-              mixBlendMode: extra.blendMode || "normal",
-              transform: `translate(-50%, -50%) scale(${Number(extra.scale ?? 1)})`,
-            }}
-          />
-        ))}
-        <CinematicOverlays cinematic={cinematic} />
-        <LightGlow cinematic={cinematic} />
-        <LensFlareLayer cinematic={cinematic} />
+        {Array.isArray(cinematic.foregroundExtras) &&
+          cinematic.foregroundExtras.map((extra: Record<string, any>, index: number) => (
+            <img
+              key={`${extra.image}-${index}`}
+              className="cin-preview-foreground"
+              src={resolveMedia(extra.image)}
+              alt=""
+              style={{
+                left: `${Number(extra.x ?? 50)}%`,
+                top: `${Number(extra.y ?? 50)}%`,
+                opacity: Number(extra.opacity ?? 1),
+                mixBlendMode: extra.blendMode || "normal",
+                transform: `translate(-50%, -50%) scale(${Number(extra.scale ?? 1)})`,
+              }}
+            />
+          ))}
+        <CinematicOverlays cinematic={effectiveCinematic} />
+        <LightGlow cinematic={effectiveCinematic} />
+        <LensFlareLayer cinematic={effectiveCinematic} />
         <Particles
           kind={particleKind}
           soundOn={soundOn}
-          cinematic={cinematic}
+          cinematic={effectiveCinematic}
           ambientAudio={frame.scene.ambientAudio}
           config={particleConfig}
         />
       </div>
-      {frame.scene.letterbox && <><div className="cin-letterbox cin-letterbox-top" /><div className="cin-letterbox cin-letterbox-bottom" /></>}
-      {showMark && <div className="cin-mark">SC {frame.mark} <span>·</span> BEAT {frame.number}</div>}
-      {showCaption && frame.text && <div className="cin-caption"><span>{frame.speaker}</span><p>{frame.text}</p></div>}
-      {frame.carried && <div className="cin-carried-mark">{frame.pictureSource === "scene" ? "SCENE PLATE" : "CARRIED PICTURE"}</div>}
-      <div className="cin-preview-crosshair" aria-hidden><i /><b /></div>
+      {frame.scene.letterbox && (
+        <>
+          <div className="cin-letterbox cin-letterbox-top" />
+          <div className="cin-letterbox cin-letterbox-bottom" />
+        </>
+      )}
+      {showMark && (
+        <div className="cin-mark">
+          SC {frame.mark} <span>·</span> BEAT {frame.number}
+        </div>
+      )}
+      {showCaption && frame.text && (
+        <div className="cin-caption">
+          <span>{frame.speaker}</span>
+          <p>{frame.text}</p>
+        </div>
+      )}
+      {frame.carried && (
+        <div className="cin-carried-mark">
+          {frame.pictureSource === "scene" ? "SCENE PLATE" : "CARRIED PICTURE"}
+        </div>
+      )}
+      <div className="cin-preview-crosshair" aria-hidden>
+        <i />
+        <b />
+      </div>
     </div>
   );
 }
 
 function parsePosition(value: unknown): { x: number; y: number } {
-  const [x, y] = String(value || "50% 50%").split(/\s+/).map((part) => Number.parseFloat(part));
+  const [x, y] = String(value || "50% 50%")
+    .split(/\s+/)
+    .map((part) => Number.parseFloat(part));
   return {
     x: Number.isFinite(x) ? x : 50,
     y: Number.isFinite(y) ? y : 50,

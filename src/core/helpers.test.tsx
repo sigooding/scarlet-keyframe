@@ -16,6 +16,7 @@ import edits from "../data/studio-edits.json";
 import { downloadText, measureAudioDuration, slug } from "./helpers";
 import { applyStudioMusicSync, buildKeyframes, createProjectState, parseImportPayload } from "./model";
 import { writeStudioPatch } from "./patch";
+import { buildTimelineClips } from "../sequence/animate";
 
 describe("helper functions", () => {
   it("slug turns titles into clean filenames", () => {
@@ -164,23 +165,33 @@ describe("App and studio windows", () => {
   });
 
   it("renders the full workspace (Timeline, CinematicPreview, Tracks, Inspector, AssetBrowser) on Scene 77", () => {
-    const startFrame = frames.find((frame) => frame.mark === "77") || frames[0];
+    const { clips, totalFrames } = buildTimelineClips(frames);
+    const startClip = clips.find((clip) => clip.keyframe.mark === "77") || clips[0];
+    const startFrame = startClip.keyframe;
     const resolveMedia = () => undefined;
     const workspaceHtml = renderToStaticMarkup(
       <div>
         <Timeline
-          frames={frames}
+          clips={clips}
+          totalFrames={totalFrames}
+          playheadFrame={startClip.startFrame}
           selectedFrameId={startFrame.id}
           selectedFrameIds={[startFrame.id]}
+          canSplit={false}
           resolveMedia={resolveMedia}
-          onSelect={noop}
-          onAddAfter={noop}
+          onScrub={noop}
+          onSelectClip={noop}
+          onDragStart={noop}
+          onDragEnd={noop}
+          onTrimPreview={noop}
+          onAnimationPreview={noop}
+          onSplit={noop}
+          onDelete={noop}
           onDropFile={noop}
-          onReorderDrop={noop}
-          onFoldScene={noop}
         />
         <CinematicPreview
           frame={startFrame}
+          localFrame={0}
           imageSrc={undefined}
           imagePosition={undefined}
           resolveMedia={resolveMedia}
@@ -192,6 +203,7 @@ describe("App and studio windows", () => {
         />
         <Tracks
           frames={frames}
+          playheadFrame={startClip.startFrame}
           selectedFrameId={startFrame.id}
           onSelect={noop}
           onMoveCue={noop}
@@ -199,12 +211,20 @@ describe("App and studio windows", () => {
         <Inspector
           project={project}
           frame={startFrame}
+          localFrame={0}
+          clipDurationFrames={startClip.durationFrames}
+          canSplit={false}
           pictureSrc={undefined}
           selectedCount={1}
           copied={false}
           onBrowse={noop}
           onUpload={noop}
           onSetPicture={noop}
+          onSetAnimation={noop}
+          onPreviewAnimation={noop}
+          onDragStart={noop}
+          onDragEnd={noop}
+          onJumpToLocalFrame={noop}
           onSetEffect={noop}
           onResetEffect={noop}
           onSetBeat={noop}
@@ -212,6 +232,7 @@ describe("App and studio windows", () => {
           onCopyEffects={noop}
           onPasteEffects={noop}
           onPlayVoice={noop}
+          onSplit={noop}
           onInsert={noop}
           onDuplicate={noop}
           onDelete={noop}
@@ -228,8 +249,60 @@ describe("App and studio windows", () => {
       </div>,
     );
     expect(workspaceHtml).toContain("SC 77");
-    expect(workspaceHtml).toContain("Keyframes");
-    expect(workspaceHtml).toContain("SHOT INSPECTOR");
+    expect(workspaceHtml).toContain("Animation");
+    expect(workspaceHtml).toContain("CLIP INSPECTOR");
+  });
+
+  it("applies direct translate/scale transform and disables Scarlet Reel camera preset only on clips with keyframes", () => {
+    const baseFrame = frames.find((frame) => frame.mark === "77") || frames[0];
+    const resolveMedia = () => undefined;
+
+    const presetFrame = {
+      ...baseFrame,
+      beat: { ...baseFrame.beat, cinematic: { ...baseFrame.beat.cinematic, mode: "pan" } },
+    };
+    const presetHtml = renderToStaticMarkup(
+      <CinematicPreview
+        frame={presetFrame}
+        localFrame={12}
+        resolveMedia={resolveMedia}
+        playing={true}
+        soundOn={false}
+        showCaption={false}
+        showMark={true}
+      />,
+    );
+    expect(presetHtml).toContain('class="cin-preview-plate cin-pan"');
+
+    const keyframedFrame = {
+      ...presetFrame,
+      beat: {
+        ...presetFrame.beat,
+        animation: {
+          zoom: [
+            { frame: 0, value: 1, easing: "linear" as const },
+            { frame: 24, value: 1.5, easing: "linear" as const },
+          ],
+          x: [{ frame: 0, value: -10, easing: "linear" as const }],
+        },
+      },
+    };
+    const keyframedHtml = renderToStaticMarkup(
+      <CinematicPreview
+        frame={keyframedFrame}
+        localFrame={12}
+        resolveMedia={resolveMedia}
+        playing={true}
+        soundOn={false}
+        showCaption={false}
+        showMark={true}
+      />,
+    );
+    expect(keyframedHtml).not.toContain('class="cin-preview-plate cin-pan"');
+    expect(keyframedHtml).toContain('class="cin-preview-plate cin-static"');
+    expect(keyframedHtml).toContain("translate(-10%, 0%) scale(1.25)");
+    expect(keyframedHtml).toContain("animation:none");
+    expect(keyframedHtml).toContain("transition:none");
   });
 
   it("renders Topbar with project title, missing media count, and actions", () => {
