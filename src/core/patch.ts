@@ -1,4 +1,4 @@
-import type { AnyRecord, ProjectState, SceneLike } from "./model";
+import type { AnyRecord, ProjectState, SceneLike, StoryLike } from "./model";
 import { buildKeyframes } from "./model";
 
 export interface StudioPatch {
@@ -137,3 +137,89 @@ export function makeStudioPatchReport(result: StudioPatchResult): string {
   if (result.unmatched.length) lines.push("", "Not represented by this patch:", ...result.unmatched.map((item) => `- ${item}`));
   return lines.join("\n");
 }
+
+export function isStudioPatchPayload(value: unknown): value is Partial<StudioPatch> & AnyRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const rec = value as AnyRecord;
+  if (Array.isArray(rec.scenes) || (rec.story && typeof rec.story === "object")) return false;
+  return Boolean(
+    (rec.scenes && typeof rec.scenes === "object" && !Array.isArray(rec.scenes)) ||
+      Array.isArray(rec.pictures) ||
+      (rec.pictureLook && typeof rec.pictureLook === "object") ||
+      Array.isArray(rec.sfx),
+  );
+}
+
+export function applyStudioPatchToStory(
+  baseStory: StoryLike,
+  patch: Partial<StudioPatch> & AnyRecord,
+): StoryLike {
+  const next = clone(baseStory);
+  const sceneById = new Map<string, SceneLike>(next.scenes.map((s) => [s.id, s]));
+
+  if (patch.scenes && typeof patch.scenes === "object" && !Array.isArray(patch.scenes)) {
+    for (const [sceneId, fields] of Object.entries(patch.scenes)) {
+      const scene = sceneById.get(sceneId);
+      if (!scene || !fields || typeof fields !== "object") continue;
+      for (const [key, val] of Object.entries(fields as AnyRecord)) {
+        if (val === null) {
+          delete scene[key];
+        } else {
+          scene[key] = clone(val);
+        }
+      }
+    }
+  }
+
+  if (Array.isArray(patch.pictures)) {
+    for (const entry of patch.pictures) {
+      if (!entry?.scene || !entry?.find || !entry?.file) continue;
+      const scene = sceneById.get(String(entry.scene));
+      if (!scene?.dialogueBeats) continue;
+      const beat = scene.dialogueBeats.find((b) => String(b.text || "").includes(String(entry.find)));
+      if (beat) {
+        const rawFile = String(entry.file);
+        beat.background = rawFile.startsWith("/") || rawFile.includes("://") ? rawFile : `/film/img/${rawFile}`;
+      }
+    }
+  }
+
+  if (Array.isArray(patch.sfx)) {
+    for (const entry of patch.sfx) {
+      if (!entry?.scene || !entry?.find || !entry?.file) continue;
+      const scene = sceneById.get(String(entry.scene));
+      if (!scene?.dialogueBeats) continue;
+      const beat = scene.dialogueBeats.find((b) => String(b.text || "").includes(String(entry.find)));
+      if (beat) {
+        let rawSfx = String(entry.file);
+        if (!/\.(?:mp3|wav|ogg|m4a|aac)$/i.test(rawSfx) && !rawSfx.startsWith("synth:")) {
+          rawSfx = `${rawSfx}.mp3`;
+        }
+        if (!rawSfx.startsWith("/") && !rawSfx.includes("://") && !rawSfx.startsWith("synth:")) {
+          rawSfx = `/film/sfx/${rawSfx}`;
+        }
+        beat.sfxUrl = rawSfx;
+        if (typeof entry.volume === "number") beat.sfxVolume = entry.volume;
+      }
+    }
+  }
+
+  if (patch.pictureLook && typeof patch.pictureLook === "object") {
+    const frames = buildKeyframes(next);
+    for (const frame of frames) {
+      const pic = frame.beat.background ?? frame.scene.background;
+      if (!pic) continue;
+      const stem = basenameWithoutExtension(String(pic));
+      const look = patch.pictureLook[stem] ?? patch.pictureLook[String(pic)];
+      if (look?.cinematic && typeof look.cinematic === "object") {
+        frame.beat.cinematic = {
+          ...(frame.beat.cinematic || {}),
+          ...clone(look.cinematic),
+        };
+      }
+    }
+  }
+
+  return next;
+}
+

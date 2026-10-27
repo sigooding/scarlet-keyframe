@@ -221,6 +221,36 @@ function mp4ExportDevPlugin(): Plugin {
           res.end(JSON.stringify(payload));
         };
 
+        if (pathname === "/__api/export/register-cli" && req.method === "POST") {
+          try {
+            const rawBody = await readRequestBody(req);
+            const body = JSON.parse(rawBody || "{}") as Record<string, any>;
+            const jobId = crypto.randomUUID();
+            exportJobs.set(jobId, {
+              id: jobId,
+              status: "running",
+              completedFrames: 0,
+              totalFrames: 1,
+              percent: 0,
+              phase: "CLI project registered",
+              mp4Path: null,
+              srtPath: null,
+              snapshot: {
+                cliProjectPayload: body.cliProjectPayload,
+                cliSourceName: body.cliSourceName || "cli-project.json",
+              },
+              child: null,
+              createdAt: Date.now(),
+            });
+            sendJson(200, { jobId });
+          } catch (err) {
+            sendJson(500, {
+              error: err instanceof Error ? err.message : "Could not register CLI project",
+            });
+          }
+          return;
+        }
+
         if (pathname === "/__api/export/start" && req.method === "POST") {
           try {
             const rawBody = await readRequestBody(req);
@@ -230,6 +260,9 @@ function mp4ExportDevPlugin(): Plugin {
             const captions = body.captions !== false;
             const srt = body.srt !== false;
             const marks = Boolean(body.marks);
+            const quality = body.quality === "draft" ? "draft" : "master";
+            const workers = Math.max(1, Math.min(8, Math.round(Number(body.workers) || 1)));
+            const normalize = Boolean(body.normalize);
             const baseName = String(body.baseName || "animatic").replace(/[^a-zA-Z0-9._-]+/g, "-");
 
             const jobId = crypto.randomUUID();
@@ -271,6 +304,11 @@ function mp4ExportDevPlugin(): Plugin {
               path.resolve(__dirname, "exports"),
               "--name",
               baseName,
+              "--quality",
+              quality,
+              "--workers",
+              String(workers),
+              normalize ? "--normalize" : "--no-normalize",
               captions ? "--captions" : "--no-captions",
               srt ? "--srt" : "--no-srt",
               marks ? "--marks" : "--no-marks",

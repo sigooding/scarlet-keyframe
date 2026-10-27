@@ -13,9 +13,24 @@ import {
   type MediaResolver,
   type TrackMixMap,
 } from "./previewAudio";
+import {
+  ingestDecodedBufferForWaveform,
+  registerWaveformDecoder,
+} from "./waveformPeaks";
 
 const SCHEDULER_INTERVAL_MS = 95;
 const LOOKAHEAD_MS = 300;
+const MAX_CACHED_BUFFERS = 48;
+const METER_FFT_SIZE = 1024;
+const CLIP_THRESHOLD_LINEAR = 0.9885; // ~ -0.1 dBFS
+
+export interface StereoMeterReading {
+  peakL: number;
+  peakR: number;
+  dbL: number;
+  dbR: number;
+  clipped: boolean;
+}
 
 const BASE_LANE_LEVEL: Record<AudioLaneId, number> = {
   voice: 0.95,
@@ -62,6 +77,11 @@ export class WebAudioPlaybackEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private duckGain: GainNode | null = null;
+  private analyserL: AnalyserNode | null = null;
+  private analyserR: AnalyserNode | null = null;
+  private meterBufL: Float32Array<ArrayBuffer> = new Float32Array(new ArrayBuffer(METER_FFT_SIZE * 4));
+  private meterBufR: Float32Array<ArrayBuffer> = new Float32Array(new ArrayBuffer(METER_FFT_SIZE * 4));
+  private stickyClipped = false;
   private laneBuses: Partial<Record<AudioLaneId, GainNode>> = {};
   private noiseBuffer: AudioBuffer | null = null;
 
@@ -114,6 +134,23 @@ export class WebAudioPlaybackEngine {
       master.gain.value = this.soundEnabled ? 1 : 0;
       master.connect(ctx.destination);
 
+      try {
+        const splitter = ctx.createChannelSplitter(2);
+        const anaL = ctx.createAnalyser();
+        const anaR = ctx.createAnalyser();
+        anaL.fftSize = METER_FFT_SIZE;
+        anaR.fftSize = METER_FFT_SIZE;
+        anaL.smoothingTimeConstant = 0;
+        anaR.smoothingTimeConstant = 0;
+        master.connect(splitter);
+        splitter.connect(anaL, 0);
+        splitter.connect(anaR, 1);
+        this.analyserL = anaL;
+        this.analyserR = anaR;
+      } catch {
+        // Fallback for minimal mock AudioContext environments in tests
+      }
+
       const duck = ctx.createGain();
       duck.gain.value = 1;
       duck.connect(master);
@@ -153,7 +190,51 @@ export class WebAudioPlaybackEngine {
 
   getCachedBuffer(resolvedUrl: string | undefined): AudioBuffer | undefined {
     if (!resolvedUrl) return undefined;
-    return this.bufferCache.get(resolvedUrl);
+    const hit = this.bufferCache.get(resolvedUrl);
+    if (hit) {
+      // Touch LRU order
+      this.bufferCache.delete(resolvedUrl);
+      this.bufferCache.set(resolvedUrl, hit);
+    }
+    return hit;
+  }
+
+  resetClipIndicator(): void {
+    this.stickyClipped = false;
+  }
+
+  readStereoMeter(): StereoMeterReading {
+    if (!this.ctx || this.ctx.state !== "running" || !this.analyserL || !this.analyserR || !this.soundEnabled) {
+      return {
+        peakL: 0,
+        peakR: 0,
+        dbL: -Infinity,
+        dbR: -Infinity,
+        clipped: this.stickyClipped,
+      };
+    }
+    this.analyserL.getFloatTimeDomainData(this.meterBufL);
+    this.analyserR.getFloatTimeDomainData(this.meterBufR);
+    let peakL = 0;
+    let peakR = 0;
+    for (let i = 0; i < METER_FFT_SIZE; i += 1) {
+      const aL = Math.abs(this.meterBufL[i]);
+      const aR = Math.abs(this.meterBufR[i]);
+      if (aL > peakL) peakL = aL;
+      if (aR > peakR) peakR = aR;
+    }
+    if (peakL >= CLIP_THRESHOLD_LINEAR || peakR >= CLIP_THRESHOLD_LINEAR) {
+      this.stickyClipped = true;
+    }
+    const dbL = peakL > 1e-6 ? 20 * Math.log10(peakL) : -Infinity;
+    const dbR = peakR > 1e-6 ? 20 * Math.log10(peakR) : -Infinity;
+    return {
+      peakL,
+      peakR,
+      dbL,
+      dbR,
+      clipped: this.stickyClipped,
+    };
   }
 
   getKnownDurationMs(src: string): number | undefined {
@@ -166,7 +247,7 @@ export class WebAudioPlaybackEngine {
    */
   async decodeUrlOnce(resolvedUrl: string, logicalSrc?: string): Promise<AudioBuffer | null> {
     if (!resolvedUrl || typeof window === "undefined") return null;
-    const cached = this.bufferCache.get(resolvedUrl);
+    const cached = this.getCachedBuffer(resolvedUrl);
     if (cached) {
       if (logicalSrc) this.fileDurationMsBySrc.set(logicalSrc, cached.duration * 1000);
       return cached;
@@ -188,6 +269,12 @@ export class WebAudioPlaybackEngine {
             : this.ensureContext());
         if (!decoder) return null;
         const audioBuf = await decoder.decodeAudioData(arrayBuf.slice(0));
+        // Extract & persist compact [min, max] waveform envelope before LRU eviction
+        ingestDecodedBufferForWaveform(resolvedUrl, audioBuf);
+        if (this.bufferCache.size >= MAX_CACHED_BUFFERS) {
+          const oldestKey = this.bufferCache.keys().next().value;
+          if (oldestKey) this.bufferCache.delete(oldestKey);
+        }
         this.bufferCache.set(resolvedUrl, audioBuf);
         if (logicalSrc) {
           this.fileDurationMsBySrc.set(logicalSrc, audioBuf.duration * 1000);
@@ -622,3 +709,5 @@ export class WebAudioPlaybackEngine {
 }
 
 export const webAudioEngine = new WebAudioPlaybackEngine();
+registerWaveformDecoder((url, logicalSrc) => webAudioEngine.decodeUrlOnce(url, logicalSrc));
+

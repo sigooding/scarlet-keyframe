@@ -32,6 +32,7 @@ export interface OfflineAudioMixOptions {
   toFrame: number;
   fps?: number;
   sampleRate?: number;
+  normalize?: boolean;
 }
 
 /**
@@ -394,7 +395,138 @@ export async function renderTimelineAudioOfflineWav(
     sampleCursor += chunkSamples;
   }
 
+  if (options.normalize) {
+    normalizeStereoLoudnessInPlace(outLeft, outRight, sampleRate);
+  }
+
   return encodeWav16BitStereo(outLeft, outRight, sampleRate);
+}
+
+/**
+ * ITU-R BS.1770 K-weighted integrated loudness normalization + smooth -1.0 dBTP peak ceiling.
+ */
+export function normalizeStereoLoudnessInPlace(
+  left: Float32Array,
+  right: Float32Array,
+  sampleRate: number,
+  options: { targetLufs?: number; ceilingDb?: number; maxBoostDb?: number } = {},
+): { measuredLufs: number; appliedGainDb: number; postPeakDb: number } {
+  const targetLufs = options.targetLufs ?? -14;
+  const ceilingDb = options.ceilingDb ?? -1.0;
+  const maxBoostDb = options.maxBoostDb ?? 12.0;
+  const n = Math.min(left.length, right.length);
+  if (n === 0) {
+    return { measuredLufs: -Infinity, appliedGainDb: 0, postPeakDb: -Infinity };
+  }
+
+  // 48 kHz ITU-R BS.1770-4 K-weighting stage 1 (high-shelf) + stage 2 (RLB high-pass)
+  const kFilterEnergy = (samples: Float32Array): Float32Array => {
+    const out = new Float32Array(n);
+    // Stage 1: pre-filter high shelf (48kHz reference coefficients; close approximation at 44.1kHz)
+    const b0 = 1.53512485958697;
+    const b1 = -2.69169618940638;
+    const b2 = 1.19839281085285;
+    const a1 = -1.69065929318241;
+    const a2 = 0.73248077421585;
+    // Stage 2: RLB high-pass
+    const hb0 = 1.0;
+    const hb1 = -2.0;
+    const hb2 = 1.0;
+    const ha1 = -1.99004745483398;
+    const ha2 = 0.99007225036621;
+
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    let hx1 = 0, hx2 = 0, hy1 = 0, hy2 = 0;
+    for (let i = 0; i < n; i += 1) {
+      const x0 = samples[i];
+      const y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+      x2 = x1;
+      x1 = x0;
+      y2 = y1;
+      y1 = y0;
+
+      const hy0 = hb0 * y0 + hb1 * hx1 + hb2 * hx2 - ha1 * hy1 - ha2 * hy2;
+      hx2 = hx1;
+      hx1 = y0;
+      hy2 = hy1;
+      hy1 = hy0;
+      out[i] = hy0 * hy0;
+    }
+    return out;
+  };
+
+  const sqL = kFilterEnergy(left);
+  const sqR = kFilterEnergy(right);
+
+  const blockLen = Math.max(1, Math.round(0.4 * sampleRate));
+  const hopLen = Math.max(1, Math.round(0.1 * sampleRate));
+  const blockPowers: number[] = [];
+
+  if (n >= blockLen) {
+    for (let start = 0; start + blockLen <= n; start += hopLen) {
+      let sum = 0;
+      for (let i = start; i < start + blockLen; i += 1) {
+        sum += sqL[i] + sqR[i];
+      }
+      blockPowers.push(sum / blockLen);
+    }
+  } else {
+    let sum = 0;
+    for (let i = 0; i < n; i += 1) sum += sqL[i] + sqR[i];
+    blockPowers.push(sum / n);
+  }
+
+  // Absolute gate (-70 LUFS)
+  const absGatePower = Math.pow(10, (-70 + 0.691) / 10);
+  const absGated = blockPowers.filter((p) => p > absGatePower);
+
+  let measuredLufs = -Infinity;
+  if (absGated.length > 0) {
+    const meanAbs = absGated.reduce((acc, v) => acc + v, 0) / absGated.length;
+    const relGateLufs = -0.691 + 10 * Math.log10(meanAbs) - 10;
+    const relGatePower = Math.pow(10, (relGateLufs + 0.691) / 10);
+    const relGated = absGated.filter((p) => p >= relGatePower);
+    const finalSet = relGated.length > 0 ? relGated : absGated;
+    const meanFinal = finalSet.reduce((acc, v) => acc + v, 0) / finalSet.length;
+    if (meanFinal > 0) {
+      measuredLufs = -0.691 + 10 * Math.log10(meanFinal);
+    }
+  }
+
+  let appliedGainDb = 0;
+  if (Number.isFinite(measuredLufs)) {
+    appliedGainDb = Math.max(-24, Math.min(maxBoostDb, targetLufs - measuredLufs));
+  }
+  const linearGain = Math.pow(10, appliedGainDb / 20);
+  const ceilingLinear = Math.pow(10, ceilingDb / 20);
+
+  // Apply gain first
+  for (let i = 0; i < n; i += 1) {
+    left[i] *= linearGain;
+    right[i] *= linearGain;
+  }
+
+  // Smooth envelope peak limiter to ceilingLinear (-1.0 dBTP)
+  const releaseCoeff = Math.exp(-1 / Math.max(1, 0.06 * sampleRate));
+  let envGain = 1.0;
+  let postPeak = 0;
+  for (let i = 0; i < n; i += 1) {
+    const absMax = Math.max(Math.abs(left[i]), Math.abs(right[i]));
+    const neededGain = absMax > ceilingLinear ? ceilingLinear / absMax : 1.0;
+    if (neededGain < envGain) {
+      envGain = neededGain; // instant attack so zero overshoot
+    } else {
+      envGain = releaseCoeff * envGain + (1 - releaseCoeff) * 1.0;
+      if (neededGain < envGain) envGain = neededGain;
+    }
+    left[i] *= envGain;
+    right[i] *= envGain;
+    const postAbs = Math.max(Math.abs(left[i]), Math.abs(right[i]));
+    if (postAbs > postPeak) postPeak = postAbs;
+  }
+
+  const postPeakDb = postPeak > 1e-9 ? 20 * Math.log10(postPeak) : -Infinity;
+  return { measuredLufs, appliedGainDb, postPeakDb };
 }
 
 export function encodeWav16BitStereo(

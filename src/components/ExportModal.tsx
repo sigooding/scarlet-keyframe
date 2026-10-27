@@ -8,6 +8,7 @@ import { downloadText, slug } from "../core/helpers";
 import type { TimelineClip } from "../sequence/animate";
 
 export type ExportTab = "bundle" | "patch" | "mp4";
+export type Mp4ExportQuality = "master" | "draft";
 
 export interface ExportModalProps {
   project: ProjectState;
@@ -16,6 +17,8 @@ export interface ExportModalProps {
   totalFrames?: number;
   playheadFrame?: number;
   selectedClip?: TimelineClip;
+  inPointFrame?: number | null;
+  outPointFrame?: number | null;
   tab: ExportTab;
   setTab: (tab: ExportTab) => void;
   progress: number;
@@ -35,9 +38,15 @@ export interface ExportModalProps {
   captions: boolean;
   srt?: boolean;
   marks: boolean;
+  quality?: Mp4ExportQuality;
+  workers?: number;
+  normalizeAudio?: boolean;
   setCaptions: (value: boolean) => void;
   setSrt?: (value: boolean) => void;
   setMarks: (value: boolean) => void;
+  setQuality?: (quality: Mp4ExportQuality) => void;
+  setWorkers?: (workers: number) => void;
+  setNormalizeAudio?: (value: boolean) => void;
   mp4Job?: Mp4ExportJobState | null;
   onBundle: () => void;
   onPatch: () => void;
@@ -56,6 +65,8 @@ export function ExportModal({
   totalFrames: totalFramesProp,
   playheadFrame = 0,
   selectedClip,
+  inPointFrame = null,
+  outPointFrame = null,
   tab,
   setTab,
   progress,
@@ -75,9 +86,15 @@ export function ExportModal({
   captions,
   srt = true,
   marks,
+  quality = "master",
+  workers = 1,
+  normalizeAudio = false,
   setCaptions,
   setSrt,
   setMarks,
+  setQuality,
+  setWorkers,
+  setNormalizeAudio,
   mp4Job = null,
   onBundle,
   onPatch,
@@ -183,11 +200,14 @@ export function ExportModal({
       "--media /path/to/scarlett-witness/public",
       "--out exports/",
     ];
+    if (quality === "draft") args.push("--draft");
+    if (workers > 1) args.push(`--workers ${workers}`);
+    if (normalizeAudio) args.push("--normalize");
     if (!captions) args.push("--no-captions");
     if (!srt) args.push("--no-srt");
     if (marks) args.push("--marks");
     return args.join(" ");
-  }, [effectiveFromFrame, effectiveToFrame, captions, srt, marks]);
+  }, [effectiveFromFrame, effectiveToFrame, quality, workers, normalizeAudio, captions, srt, marks]);
 
   const activeSceneBound = useMemo(() => {
     if (!selectedClip) return sceneFrameBounds[0];
@@ -442,6 +462,26 @@ export function ExportModal({
 
                 {!wholeFilm && (
                   <div className="export-quick-range-btns">
+                    {(inPointFrame !== null || outPointFrame !== null) && (
+                      <button
+                        type="button"
+                        className="field-reset"
+                        disabled={isRunningMp4}
+                        data-testid="export-quick-io"
+                        onClick={() => {
+                          const effIn =
+                            inPointFrame !== null ? Math.max(0, Math.min(maxFrameIdx, inPointFrame)) : 0;
+                          const effOut =
+                            outPointFrame !== null
+                              ? Math.max(effIn, Math.min(maxFrameIdx, outPointFrame))
+                              : maxFrameIdx;
+                          setFromFrame?.(effIn);
+                          setToFrame?.(effOut);
+                        }}
+                      >
+                        Timeline I/O ({inPointFrame ?? 0}..{outPointFrame ?? maxFrameIdx})
+                      </button>
+                    )}
                     {selectedClip && (
                       <button
                         type="button"
@@ -585,6 +625,64 @@ export function ExportModal({
                       ))}
                     </select>
                   </label>
+                </div>
+              )}
+
+              {setQuality && (
+                <div className="export-perf-row">
+                  <div className="cc-segmented" role="group" aria-label="Render quality">
+                    <button
+                      type="button"
+                      data-testid="export-quality-master"
+                      className={`cc-seg-btn ${quality === "master" ? "is-active" : ""}`}
+                      disabled={isRunningMp4}
+                      onClick={() => setQuality("master")}
+                      title="Lossless 1920×1080 PNG capture + CRF 18 H.264"
+                    >
+                      Master 1080p (PNG)
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="export-quality-draft"
+                      className={`cc-seg-btn ${quality === "draft" ? "is-active" : ""}`}
+                      disabled={isRunningMp4}
+                      onClick={() => setQuality("draft")}
+                      title="Fast 1280×720 JPEG (q=92) capture + veryfast CRF 21 H.264 (~5–8× faster)"
+                    >
+                      Draft 720p Fast
+                    </button>
+                  </div>
+
+                  {setWorkers && (
+                    <label className="export-inline-select">
+                      <span>Workers</span>
+                      <select
+                        data-testid="export-workers-select"
+                        disabled={isRunningMp4}
+                        value={workers}
+                        onChange={(event) => setWorkers(Math.max(1, Math.min(8, Number(event.target.value) || 1)))}
+                        title="Split frame range across parallel headless Chromium + ffmpeg segment workers"
+                      >
+                        <option value={1}>1 worker</option>
+                        <option value={2}>2 workers</option>
+                        <option value={3}>3 workers</option>
+                        <option value={4}>4 workers</option>
+                      </select>
+                    </label>
+                  )}
+
+                  {setNormalizeAudio && (
+                    <label className="checkbox-label" title="ITU-R BS.1770 −14 LUFS loudness normalization with −1.0 dBTP peak ceiling">
+                      <input
+                        type="checkbox"
+                        data-testid="export-opt-normalize"
+                        disabled={isRunningMp4}
+                        checked={normalizeAudio}
+                        onChange={(event) => setNormalizeAudio(event.target.checked)}
+                      />
+                      <span>Normalize (−14 LUFS / −1 dBTP)</span>
+                    </label>
+                  )}
                 </div>
               )}
 

@@ -6266,6 +6266,229 @@ kbd {
   padding-top: 2px;
 }
 
+.export-perf-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0 2px;
+}
+
+.export-inline-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.export-inline-select select {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+/* Transport loop toggle & master stereo dBFS peak meter */
+.transport-loop-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--bg-850, rgba(24, 24, 30, 0.85));
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.transport-loop-button:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.transport-loop-button.is-active {
+  border-color: var(--amber);
+  background: rgba(240, 179, 90, 0.18);
+  color: var(--amber);
+}
+
+.stereo-peak-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(12, 13, 18, 0.9);
+  border: 1px solid var(--line);
+  user-select: none;
+}
+
+.stereo-peak-meter.is-muted {
+  opacity: 0.45;
+}
+
+.stereo-meter-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 66px;
+}
+
+.stereo-meter-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.stereo-meter-ch {
+  font-family: var(--mono);
+  font-size: 8px;
+  line-height: 1;
+  color: var(--ink-muted);
+  width: 7px;
+}
+
+.stereo-meter-track {
+  position: relative;
+  flex: 1;
+  height: 5px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.stereo-meter-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    #3ad07c 0%,
+    #3ad07c 72%,
+    #f2ba49 87.5%,
+    #ff5449 97.5%,
+    #ff3028 100%
+  );
+  background-size: 56px 100%;
+}
+
+.stereo-meter-hold {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: #fff2d6;
+  pointer-events: none;
+}
+
+.stereo-meter-db {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  min-width: 30px;
+  text-align: right;
+  color: var(--ink-muted);
+}
+
+.stereo-meter-clip {
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.35);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.stereo-meter-clip.is-clipped {
+  background: #e53935;
+  border-color: #ff7961;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(229, 57, 53, 0.65);
+}
+
+/* Timeline In / Out range marks & brackets */
+.timeline-io-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ruler-io-range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(240, 179, 90, 0.16);
+  border-top: 2px solid rgba(240, 179, 90, 0.85);
+  border-bottom: 1px solid rgba(240, 179, 90, 0.45);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ruler-io-range.is-looping {
+  background: rgba(82, 214, 154, 0.18);
+  border-top-color: rgba(82, 214, 154, 0.92);
+  border-bottom-color: rgba(82, 214, 154, 0.5);
+}
+
+.ruler-io-handle {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 11px;
+  padding: 0;
+  border: 1px solid rgba(240, 179, 90, 0.95);
+  background: rgba(34, 26, 14, 0.94);
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ew-resize;
+  z-index: 6;
+}
+
+.ruler-io-handle.is-in {
+  border-radius: 3px 0 0 3px;
+  transform: translateX(0);
+}
+
+.ruler-io-handle.is-out {
+  border-radius: 0 3px 3px 0;
+  transform: translateX(-100%);
+}
+
+.ruler-io-handle:hover {
+  background: var(--amber);
+  color: #14110b;
+}
+
+.timeline-io-curtain {
+  position: absolute;
+  top: 26px;
+  bottom: 0;
+  border-left: 1px dashed rgba(240, 179, 90, 0.55);
+  border-right: 1px dashed rgba(240, 179, 90, 0.55);
+  background: rgba(240, 179, 90, 0.03);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.timeline-io-curtain.is-looping {
+  border-left-color: rgba(82, 214, 154, 0.65);
+  border-right-color: rgba(82, 214, 154, 0.65);
+  background: rgba(82, 214, 154, 0.035);
+}
+
+
 
 
 

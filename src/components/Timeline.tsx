@@ -182,6 +182,13 @@ export interface TimelineProps {
   onCancelFreeCaptionMove?: () => void;
   onMergeCaptions?: () => void;
   onDeleteCaptions?: () => void;
+  inPointFrame?: number | null;
+  outPointFrame?: number | null;
+  loopPlayback?: boolean;
+  onSetInPoint?: (frame: number | null) => void;
+  onSetOutPoint?: (frame: number | null) => void;
+  onClearInOut?: () => void;
+  onToggleLoop?: () => void;
 }
 
 const MIN_PX_PER_FRAME = 0.08;
@@ -272,8 +279,16 @@ export function Timeline({
   onCancelFreeCaptionMove,
   onMergeCaptions,
   onDeleteCaptions,
+  inPointFrame = null,
+  outPointFrame = null,
+  loopPlayback = false,
+  onSetInPoint,
+  onSetOutPoint,
+  onClearInOut,
+  onToggleLoop,
 }: TimelineProps) {
   const [pxPerFrame, setPxPerFrame] = useState(DEFAULT_PX_PER_FRAME);
+  const ioDragRef = useRef<{ which: "in" | "out"; pointerId: number; moved: boolean } | null>(null);
   const [trackHeaderWidth, setTrackHeaderWidth] = useState<number>(() => {
     try {
       const saved = Number(window.localStorage.getItem(TRACK_HEADER_STORAGE_KEY));
@@ -1037,6 +1052,72 @@ export function Timeline({
           >
             ⚑ Marker (M)
           </button>
+          {(onSetInPoint || onSetOutPoint) && (
+            <div className="timeline-io-toolbar-group" role="group" aria-label="In and Out range">
+              <button
+                type="button"
+                className={`button button-quiet ${inPointFrame !== null ? "is-active-tool" : ""}`}
+                data-testid="toolbar-mark-in-btn"
+                onClick={(event) => {
+                  if (event.shiftKey && inPointFrame !== null) {
+                    onScrub(inPointFrame);
+                  } else {
+                    onSetInPoint?.(Math.max(0, Math.floor(playheadFrame)));
+                  }
+                }}
+                title={
+                  inPointFrame !== null
+                    ? `In: f${inPointFrame} (${formatTimecode(inPointFrame)}) · Click or press I to set at playhead · Shift+click / Shift+I to jump`
+                    : "Mark In at playhead (I)"
+                }
+              >
+                [ I{inPointFrame !== null ? ` ${inPointFrame}` : ""}
+              </button>
+              <button
+                type="button"
+                className={`button button-quiet ${outPointFrame !== null ? "is-active-tool" : ""}`}
+                data-testid="toolbar-mark-out-btn"
+                onClick={(event) => {
+                  if (event.shiftKey && outPointFrame !== null) {
+                    onScrub(outPointFrame);
+                  } else {
+                    onSetOutPoint?.(Math.max(0, Math.floor(playheadFrame)));
+                  }
+                }}
+                title={
+                  outPointFrame !== null
+                    ? `Out: f${outPointFrame} (${formatTimecode(outPointFrame)}) · Click or press O to set at playhead · Shift+click / Shift+O to jump`
+                    : "Mark Out at playhead (O)"
+                }
+              >
+                O{outPointFrame !== null ? ` ${outPointFrame}` : ""} ]
+              </button>
+              {onToggleLoop && (
+                <button
+                  type="button"
+                  className={`button button-quiet ${loopPlayback ? "is-active-tool" : ""}`}
+                  data-testid="toolbar-loop-btn"
+                  aria-pressed={loopPlayback}
+                  onClick={onToggleLoop}
+                  title="Loop playback over In/Out range (Shift+Space)"
+                >
+                  ⟳ Loop
+                </button>
+              )}
+              {(inPointFrame !== null || outPointFrame !== null) && onClearInOut && (
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  data-testid="toolbar-clear-io-btn"
+                  onClick={onClearInOut}
+                  title="Clear In & Out marks (Alt+X)"
+                  aria-label="Clear In and Out marks"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          )}
           <button
             type="button"
             className="button button-quiet"
@@ -1446,7 +1527,140 @@ export function Timeline({
                 ⚑ {nm.name}
               </button>
             ))}
+
+            {(inPointFrame !== null || outPointFrame !== null) && (() => {
+              const maxIdx = Math.max(0, totalFrames - 1);
+              const effIn = inPointFrame !== null ? Math.max(0, Math.min(maxIdx, inPointFrame)) : 0;
+              const effOut =
+                outPointFrame !== null
+                  ? Math.max(effIn, Math.min(maxIdx, outPointFrame))
+                  : maxIdx;
+              const leftPx = effIn * pxPerFrame;
+              const widthPx = Math.max(2, (effOut - effIn + 1) * pxPerFrame);
+              return (
+                <>
+                  <div
+                    className={`ruler-io-range ${loopPlayback ? "is-looping" : ""}`}
+                    data-testid="timeline-io-range"
+                    data-in-frame={effIn}
+                    data-out-frame={effOut}
+                    style={{ left: leftPx, width: widthPx }}
+                  />
+                  {inPointFrame !== null && (
+                    <button
+                      type="button"
+                      className="ruler-io-handle is-in"
+                      data-testid="timeline-in-mark"
+                      style={{ left: effIn * pxPerFrame }}
+                      title={`In mark: frame ${effIn} (${formatTimecode(effIn)}) — drag to move, click to jump`}
+                      onPointerDown={(event) => {
+                        if (event.button !== 0) return;
+                        event.stopPropagation();
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        ioDragRef.current = { which: "in", pointerId: event.pointerId, moved: false };
+                      }}
+                      onPointerMove={(event) => {
+                        const drag = ioDragRef.current;
+                        if (!drag || drag.which !== "in" || drag.pointerId !== event.pointerId) return;
+                        drag.moved = true;
+                        const raw = frameFromClientX(event.clientX);
+                        const snapped = snapFrame(
+                          raw,
+                          getSnapTargetsForWindow(raw),
+                          pxPerFrame,
+                          snapEnabled && !(event.ctrlKey || event.metaKey),
+                        );
+                        setSnapGuideFrame(snapped.snapped ? snapped.frame : null);
+                        const clamped =
+                          outPointFrame !== null
+                            ? Math.max(0, Math.min(outPointFrame, Math.round(snapped.frame)))
+                            : Math.max(0, Math.min(maxIdx, Math.round(snapped.frame)));
+                        onSetInPoint?.(clamped);
+                      }}
+                      onPointerUp={(event) => {
+                        const drag = ioDragRef.current;
+                        if (!drag || drag.pointerId !== event.pointerId) return;
+                        ioDragRef.current = null;
+                        setSnapGuideFrame(null);
+                        if (!drag.moved) onScrub(effIn);
+                      }}
+                      onPointerCancel={() => {
+                        ioDragRef.current = null;
+                        setSnapGuideFrame(null);
+                      }}
+                    >
+                      [
+                    </button>
+                  )}
+                  {outPointFrame !== null && (
+                    <button
+                      type="button"
+                      className="ruler-io-handle is-out"
+                      data-testid="timeline-out-mark"
+                      style={{ left: (effOut + 1) * pxPerFrame }}
+                      title={`Out mark: frame ${effOut} (${formatTimecode(effOut)}) — drag to move, click to jump`}
+                      onPointerDown={(event) => {
+                        if (event.button !== 0) return;
+                        event.stopPropagation();
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        ioDragRef.current = { which: "out", pointerId: event.pointerId, moved: false };
+                      }}
+                      onPointerMove={(event) => {
+                        const drag = ioDragRef.current;
+                        if (!drag || drag.which !== "out" || drag.pointerId !== event.pointerId) return;
+                        drag.moved = true;
+                        // Subtract 1 because right edge of inclusive outFrame sits at (outFrame + 1) * pxPerFrame
+                        const rawRightEdge = Math.round(rawFrameFromClientX(event.clientX));
+                        const snappedEdge = snapFrame(
+                          rawRightEdge,
+                          getSnapTargetsForWindow(rawRightEdge),
+                          pxPerFrame,
+                          snapEnabled && !(event.ctrlKey || event.metaKey),
+                        );
+                        setSnapGuideFrame(snappedEdge.snapped ? snappedEdge.frame : null);
+                        const candidateOut = Math.max(0, Math.round(snappedEdge.frame) - 1);
+                        const minAllowed = inPointFrame !== null ? inPointFrame : 0;
+                        const clamped = Math.max(minAllowed, Math.min(maxIdx, candidateOut));
+                        onSetOutPoint?.(clamped);
+                      }}
+                      onPointerUp={(event) => {
+                        const drag = ioDragRef.current;
+                        if (!drag || drag.pointerId !== event.pointerId) return;
+                        ioDragRef.current = null;
+                        setSnapGuideFrame(null);
+                        if (!drag.moved) onScrub(effOut);
+                      }}
+                      onPointerCancel={() => {
+                        ioDragRef.current = null;
+                        setSnapGuideFrame(null);
+                      }}
+                    >
+                      ]
+                    </button>
+                  )}
+                </>
+              );
+            })()}
           </div>
+
+          {(inPointFrame !== null || outPointFrame !== null) && (() => {
+            const maxIdx = Math.max(0, totalFrames - 1);
+            const effIn = inPointFrame !== null ? Math.max(0, Math.min(maxIdx, inPointFrame)) : 0;
+            const effOut =
+              outPointFrame !== null
+                ? Math.max(effIn, Math.min(maxIdx, outPointFrame))
+                : maxIdx;
+            return (
+              <div
+                className={`timeline-io-curtain ${loopPlayback ? "is-looping" : ""}`}
+                style={{
+                  left: effIn * pxPerFrame,
+                  width: Math.max(2, (effOut - effIn + 1) * pxPerFrame),
+                }}
+                aria-hidden="true"
+              />
+            );
+          })()}
 
           <CaptionLane
             laneRef={(el) => {

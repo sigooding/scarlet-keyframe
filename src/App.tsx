@@ -5,7 +5,8 @@ import type { SelectedCaptionState } from "./components/CaptionLane";
 import { CinematicPreview } from "./components/CinematicPreview";
 import { CurveEditor } from "./components/CurveEditor";
 import { CropModal, type CropState } from "./components/CropModal";
-import { ExportModal, type ExportTab } from "./components/ExportModal";
+import { ExportModal, type ExportTab, type Mp4ExportQuality } from "./components/ExportModal";
+import { StereoPeakMeter } from "./components/StereoPeakMeter";
 import {
   Inspector,
   type BrowseMediaTarget,
@@ -120,7 +121,12 @@ import {
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, saveActiveProject } from "./core/storage";
 import { clipFrames, FPS, formatTimecode } from "./core/timing";
-import { writeStudioPatch, type StudioPatchResult } from "./core/patch";
+import {
+  applyStudioPatchToStory,
+  isStudioPatchPayload,
+  writeStudioPatch,
+  type StudioPatchResult,
+} from "./core/patch";
 import {
   createDefaultTrackMix,
   effectiveTrackLevel,
@@ -313,7 +319,12 @@ declare global {
       getFrame: () => number;
       setFrame: (n: number) => Promise<number>;
       setOptions: (opts: { captions?: boolean; marks?: boolean; timecode?: boolean }) => void;
-      renderAudioOffline: (fromFrame: number, toFrame: number, sampleRate?: number) => Promise<string>;
+      renderAudioOffline: (
+        fromFrame: number,
+        toFrame: number,
+        sampleRate?: number,
+        normalize?: boolean,
+      ) => Promise<string>;
       getSrt: (fromFrame: number, toFrame: number) => string;
       getAudioMixSpec: () => {
         resolvedAudioClips: ResolvedAudioClip[];
@@ -356,6 +367,9 @@ declare global {
       getCaptionStyle: () => CaptionStyle;
       getActiveCaption: () => BeatCaption | undefined;
       getTimelineCaptions: () => ResolvedTimelineCaption[];
+      getInOutMarks: () => { inFrame: number | null; outFrame: number | null; loop: boolean };
+      setInOutMarks: (inFrame: number | null, outFrame: number | null) => void;
+      setLoopPlayback: (loop: boolean) => void;
       exportSrtText: (sceneId?: string) => string;
       exportVttText: (sceneId?: string) => string;
     };
@@ -364,6 +378,38 @@ declare global {
 
 const history = new UndoHistory<ProjectState>(100);
 const audioController = new PreviewAudioController();
+const IO_MARKS_SESSION_KEY = "frame24-io-marks";
+
+function readStoredIoMarks(): { inFrame: number | null; outFrame: number | null } {
+  try {
+    const raw = sessionStorage.getItem(IO_MARKS_SESSION_KEY);
+    if (!raw) return { inFrame: null, outFrame: null };
+    const parsed = JSON.parse(raw) as { inFrame?: unknown; outFrame?: unknown };
+    const inFrame =
+      typeof parsed.inFrame === "number" && Number.isFinite(parsed.inFrame) && parsed.inFrame >= 0
+        ? Math.floor(parsed.inFrame)
+        : null;
+    const outFrame =
+      typeof parsed.outFrame === "number" && Number.isFinite(parsed.outFrame) && parsed.outFrame >= 0
+        ? Math.floor(parsed.outFrame)
+        : null;
+    return { inFrame, outFrame };
+  } catch {
+    return { inFrame: null, outFrame: null };
+  }
+}
+
+function writeStoredIoMarks(inFrame: number | null, outFrame: number | null): void {
+  try {
+    if (inFrame === null && outFrame === null) {
+      sessionStorage.removeItem(IO_MARKS_SESSION_KEY);
+    } else {
+      sessionStorage.setItem(IO_MARKS_SESSION_KEY, JSON.stringify({ inFrame, outFrame }));
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 function readStoredPlayhead(): number | null {
   try {
@@ -471,10 +517,63 @@ export default function App() {
     const tcParam = sp.get("tc");
     const marks = marksParam === null ? false : marksParam !== "0";
     const tc = tcParam === null ? marks : tcParam !== "0";
+    const rawW = Number(sp.get("w"));
+    const rawH = Number(sp.get("h"));
+    const width = Number.isFinite(rawW) && rawW >= 320 ? Math.round(rawW) : 1920;
+    const height = Number.isFinite(rawH) && rawH >= 180 ? Math.round(rawH) : 1080;
     const job = sp.get("job") || undefined;
-    return { from: parsedFrom, to: parsedTo, captions, marks, tc, job };
+    return { from: parsedFrom, to: parsedTo, captions, marks, tc, width, height, job };
   }, []);
   const isRenderMode = renderParams !== null;
+
+  const [inPointFrame, setInPointFrameState] = useState<number | null>(() =>
+    renderParams ? null : readStoredIoMarks().inFrame,
+  );
+  const [outPointFrame, setOutPointFrameState] = useState<number | null>(() =>
+    renderParams ? null : readStoredIoMarks().outFrame,
+  );
+  const inPointRef = useRef<number | null>(inPointFrame);
+  inPointRef.current = inPointFrame;
+  const outPointRef = useRef<number | null>(outPointFrame);
+  outPointRef.current = outPointFrame;
+
+  const [loopPlayback, setLoopPlayback] = useState(false);
+  const loopPlaybackRef = useRef(false);
+  loopPlaybackRef.current = loopPlayback;
+
+  const setInPoint = useCallback((frame: number | null) => {
+    const clean = frame === null ? null : Math.max(0, Math.floor(frame));
+    inPointRef.current = clean;
+    setInPointFrameState(clean);
+    if (clean !== null && outPointRef.current !== null && outPointRef.current < clean) {
+      outPointRef.current = null;
+      setOutPointFrameState(null);
+      writeStoredIoMarks(clean, null);
+    } else {
+      writeStoredIoMarks(clean, outPointRef.current);
+    }
+  }, []);
+
+  const setOutPoint = useCallback((frame: number | null) => {
+    const clean = frame === null ? null : Math.max(0, Math.floor(frame));
+    outPointRef.current = clean;
+    setOutPointFrameState(clean);
+    if (clean !== null && inPointRef.current !== null && inPointRef.current > clean) {
+      inPointRef.current = null;
+      setInPointFrameState(null);
+      writeStoredIoMarks(null, clean);
+    } else {
+      writeStoredIoMarks(inPointRef.current, clean);
+    }
+  }, []);
+
+  const clearInOutMarks = useCallback(() => {
+    inPointRef.current = null;
+    outPointRef.current = null;
+    setInPointFrameState(null);
+    setOutPointFrameState(null);
+    writeStoredIoMarks(null, null);
+  }, []);
 
   const [viewerZoom, setViewerZoom] = useState(1);
   const [showCaptions, setShowCaptions] = useState(() =>
@@ -516,6 +615,9 @@ export default function App() {
   const [captionsExport, setCaptionsExport] = useState(true);
   const [srtExport, setSrtExport] = useState(true);
   const [marksExport, setMarksExport] = useState(false);
+  const [exportQuality, setExportQuality] = useState<Mp4ExportQuality>("master");
+  const [exportWorkers, setExportWorkers] = useState(1);
+  const [exportNormalize, setExportNormalize] = useState(false);
   const [mp4Job, setMp4Job] = useState<Mp4ExportJobState | null>(null);
   const [snapshotName, setSnapshotName] = useState("");
   const [snapshotModal, setSnapshotModal] = useState(false);
@@ -629,6 +731,66 @@ export default function App() {
             setDuckDepth(jobSnapshot.duckDepth);
           }
           statusLabel = "RENDER JOB";
+        } else if (jobSnapshot?.cliProjectPayload !== undefined) {
+          const rawPayload = jobSnapshot.cliProjectPayload;
+          const sourceName = String(jobSnapshot.cliSourceName || "cli-project.json");
+          if (isStudioPatchPayload(rawPayload)) {
+            const baseImported = parseImportPayload(bundledFilm, "nobodys-witness-film.json", {
+              voiceDurations: initialVoiceDurations,
+            });
+            const patchedStory = applyStudioPatchToStory(
+              applyStudioMusicSync(baseImported.story, sourceEdits),
+              rawPayload,
+            );
+            initialProject = createProjectState(
+              { ...baseImported, story: patchedStory, sourceName },
+              [],
+              sourceEdits,
+            );
+          } else if (
+            rawPayload &&
+            typeof rawPayload === "object" &&
+            !Array.isArray(rawPayload) &&
+            (rawPayload as AnyRecord).story?.scenes?.length &&
+            (rawPayload as AnyRecord).originalStory?.scenes?.length
+          ) {
+            const snapProj = rawPayload as ProjectState;
+            initialProject = {
+              ...snapProj,
+              importedMissing: snapProj.importedMissing || [],
+              assets: snapProj.assets || [],
+              snapshots: snapProj.snapshots || [],
+            };
+          } else {
+            const imported = parseImportPayload(rawPayload, sourceName, {
+              voiceDurations: initialVoiceDurations,
+            });
+            const story =
+              imported.story.id === "nobodys-witness-film"
+                ? applyStudioMusicSync(imported.story, sourceEdits)
+                : imported.story;
+            const hydratedAssets: ProjectAsset[] = [];
+            for (const row of imported.assets) {
+              if (typeof row.id !== "string" || typeof row.dataUrl !== "string") continue;
+              const blob = dataUrlToBlob(row.dataUrl);
+              const type =
+                row.type === "image" || row.type === "audio" || row.type === "video"
+                  ? row.type
+                  : "other";
+              hydratedAssets.push({
+                id: row.id,
+                name: String(row.name || row.id),
+                type,
+                mime: String(row.mime || blob.type || "application/octet-stream"),
+                size: Number(row.size || blob.size),
+                uploadedAt: Number(row.uploadedAt || Date.now()),
+                source: "bundle",
+                blob,
+              });
+            }
+            initialProject = createProjectState({ ...imported, story }, hydratedAssets, sourceEdits);
+          }
+          statusLabel = "CLI PROJECT";
         } else if (saved?.story?.scenes?.length) {
           initialProject = {
             ...saved,
@@ -1953,29 +2115,49 @@ export default function App() {
     audioController.stopAll();
   }, []);
 
-  const startPlaybackFromCurrent = useCallback(() => {
-    if (!project || !clips.length) return;
-    webAudioEngine.unlock();
-    const startAt = playheadRef.current >= totalFrames - 1 ? 0 : playheadRef.current;
-    if (startAt !== playheadRef.current) setPlayheadFrame(startAt);
-    webAudioEngine.setClips(resolvedAudioClips, resolveMedia);
-    webAudioEngine.setSoundEnabled(soundOn);
-    webAudioEngine.setTrackMix(trackMix);
-    webAudioEngine.setDuckDepth(duckDepth);
-    webAudioEngine.startPlayback(frameToMs(startAt), 1);
-    setDirection(1);
-    setPlaySpeed(1);
-    setPlayback(true);
-  }, [
-    project,
-    clips.length,
-    totalFrames,
-    resolvedAudioClips,
-    resolveMedia,
-    soundOn,
-    trackMix,
-    duckDepth,
-  ]);
+  const startPlaybackFromCurrent = useCallback(
+    (forceLoop = false) => {
+      if (!project || !clips.length) return;
+      webAudioEngine.unlock();
+      const maxIdx = Math.max(0, totalFrames - 1);
+      const isLoop = forceLoop || loopPlaybackRef.current;
+      let startAt = playheadRef.current >= maxIdx ? 0 : playheadRef.current;
+      if (isLoop) {
+        const effIn = inPointRef.current !== null ? Math.max(0, Math.min(maxIdx, inPointRef.current)) : 0;
+        const effOut =
+          outPointRef.current !== null ? Math.max(effIn, Math.min(maxIdx, outPointRef.current)) : maxIdx;
+        if (
+          playheadRef.current < effIn ||
+          playheadRef.current > effOut ||
+          (effOut > effIn && playheadRef.current >= effOut)
+        ) {
+          startAt = effIn;
+        }
+      }
+      if (startAt !== playheadRef.current) {
+        playheadRef.current = startAt;
+        setPlayheadFrame(startAt);
+      }
+      webAudioEngine.setClips(resolvedAudioClips, resolveMedia);
+      webAudioEngine.setSoundEnabled(soundOn);
+      webAudioEngine.setTrackMix(trackMix);
+      webAudioEngine.setDuckDepth(duckDepth);
+      webAudioEngine.startPlayback(frameToMs(startAt), 1);
+      setDirection(1);
+      setPlaySpeed(1);
+      setPlayback(true);
+    },
+    [
+      project,
+      clips.length,
+      totalFrames,
+      resolvedAudioClips,
+      resolveMedia,
+      soundOn,
+      trackMix,
+      duckDepth,
+    ],
+  );
 
   const togglePlayback = useCallback(() => {
     if (!project || !clips.length) return;
@@ -1983,8 +2165,31 @@ export default function App() {
       stopPlaybackAndAudio();
       return;
     }
-    startPlaybackFromCurrent();
+    startPlaybackFromCurrent(false);
   }, [playback, project, clips.length, stopPlaybackAndAudio, startPlaybackFromCurrent]);
+
+  const toggleLoopShortcut = useCallback(() => {
+    if (!project || !clips.length) return;
+    if (playback && loopPlaybackRef.current) {
+      stopPlaybackAndAudio();
+      return;
+    }
+    loopPlaybackRef.current = true;
+    setLoopPlayback(true);
+    if (playback) {
+      const maxIdx = Math.max(0, totalFrames - 1);
+      const effIn = inPointRef.current !== null ? Math.max(0, Math.min(maxIdx, inPointRef.current)) : 0;
+      const effOut =
+        outPointRef.current !== null ? Math.max(effIn, Math.min(maxIdx, outPointRef.current)) : maxIdx;
+      if (playheadRef.current < effIn || playheadRef.current > effOut) {
+        playheadRef.current = effIn;
+        setPlayheadFrame(effIn);
+        webAudioEngine.seek(frameToMs(effIn), playSpeed);
+      }
+      return;
+    }
+    startPlaybackFromCurrent(true);
+  }, [project, clips.length, playback, totalFrames, playSpeed, stopPlaybackAndAudio, startPlaybackFromCurrent]);
 
   const nativeFsEnteredRef = useRef(false);
 
@@ -2054,11 +2259,28 @@ export default function App() {
         // Master clock: strictly derived from AudioContext.currentTime inside webAudioEngine.
         const currentMs = webAudioEngine.getCurrentPlayheadMs();
         const nextFrame = Math.floor((currentMs * FPS) / 1000);
+        const maxIdx = Math.max(0, totalFrames - 1);
 
-        if (nextFrame >= totalFrames - 1) {
-          const end = Math.max(0, totalFrames - 1);
-          setPlayheadFrame(end);
-          const endClip = clipAtFrame(clips, end);
+        if (loopPlaybackRef.current) {
+          const effIn =
+            inPointRef.current !== null ? Math.max(0, Math.min(maxIdx, inPointRef.current)) : 0;
+          const effOut =
+            outPointRef.current !== null ? Math.max(effIn, Math.min(maxIdx, outPointRef.current)) : maxIdx;
+          const loopEndExclusiveMs = frameToMs(effOut + 1);
+          if (currentMs >= loopEndExclusiveMs) {
+            webAudioEngine.seek(frameToMs(effIn), playSpeed);
+            playheadRef.current = effIn;
+            setPlayheadFrame(effIn);
+            const loopHit = clipAtFrame(clips, effIn);
+            if (loopHit) setSelectedFrameId(loopHit.keyframe.id);
+            rafId = requestAnimationFrame(tickForward);
+            return;
+          }
+        }
+
+        if (nextFrame >= maxIdx) {
+          setPlayheadFrame(maxIdx);
+          const endClip = clipAtFrame(clips, maxIdx);
           if (endClip) setSelectedFrameId(endClip.keyframe.id);
           stopPlaybackAndAudio();
           return;
@@ -3003,6 +3225,21 @@ export default function App() {
             }
           : undefined,
       getTimelineCaptions: () => resolvedTimelineCaptions,
+      getInOutMarks: () => ({
+        inFrame: inPointRef.current,
+        outFrame: outPointRef.current,
+        loop: loopPlaybackRef.current,
+      }),
+      setInOutMarks: (inF: number | null, outF: number | null) => {
+        inPointRef.current = inF;
+        outPointRef.current = outF;
+        setInPoint(inF);
+        setOutPoint(outF);
+      },
+      setLoopPlayback: (loop: boolean) => {
+        loopPlaybackRef.current = loop;
+        setLoopPlayback(loop);
+      },
       exportSrtText: (sceneId?: string) => {
         const subset = sceneId ? frames.filter((f) => f.sceneId === sceneId) : frames;
         const durs = subset.map((frame) =>
@@ -3087,7 +3324,7 @@ export default function App() {
           if (opts.timecode !== undefined) setShowTimecodeOverlay(opts.timecode);
         });
       },
-      renderAudioOffline: async (fromF: number, toF: number, sampleRate = 48000) => {
+      renderAudioOffline: async (fromF: number, toF: number, sampleRate = 48000, normalize = false) => {
         const wavBytes = await renderTimelineAudioOfflineWav({
           resolvedClips: resolvedAudioClips,
           resolveMedia,
@@ -3097,6 +3334,7 @@ export default function App() {
           toFrame: toF,
           fps: FPS,
           sampleRate,
+          normalize,
         });
         return uint8ArrayToBase64(wavBytes);
       },
@@ -3165,7 +3403,8 @@ export default function App() {
         return;
       }
 
-      // Space plays/stops from EVERYWHERE in the app except while typing inside an actual text field
+      // Space plays/stops from EVERYWHERE in the app except while typing inside an actual text field;
+      // Shift+Space triggers Loop In/Out playback!
       if (!typingSpaceText && !mod && !event.altKey && (event.code === "Space" || event.key === " ")) {
         event.preventDefault();
         event.stopPropagation();
@@ -3178,7 +3417,11 @@ export default function App() {
         ) {
           target.blur();
         }
-        togglePlayback();
+        if (event.shiftKey) {
+          toggleLoopShortcut();
+        } else {
+          togglePlayback();
+        }
         return;
       }
 
@@ -3223,6 +3466,34 @@ export default function App() {
       if (!mod && !event.altKey && event.key.toLowerCase() === "f") {
         event.preventDefault();
         toggleFullscreenPlayback();
+        return;
+      }
+      if (!mod && !event.altKey && event.key.toLowerCase() === "i") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          if (inPointRef.current !== null) scrubToFrame(inPointRef.current);
+        } else {
+          const f = Math.max(0, Math.floor(playheadRef.current));
+          setInPoint(f);
+          setEditLabel(`In mark set at frame ${f}`);
+        }
+        return;
+      }
+      if (!mod && !event.altKey && event.key.toLowerCase() === "o") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          if (outPointRef.current !== null) scrubToFrame(outPointRef.current);
+        } else {
+          const f = Math.max(0, Math.floor(playheadRef.current));
+          setOutPoint(f);
+          setEditLabel(`Out mark set at frame ${f}`);
+        }
+        return;
+      }
+      if (!mod && event.altKey && (event.code === "KeyX" || event.key.toLowerCase() === "x")) {
+        event.preventDefault();
+        clearInOutMarks();
+        setEditLabel("In/Out marks cleared");
         return;
       }
       if (event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
@@ -3340,6 +3611,7 @@ export default function App() {
     };
   }, [
     clearAllSelection,
+    clearInOutMarks,
     duckDepth,
     executeDelete,
     exitFullscreenPlayback,
@@ -3349,13 +3621,17 @@ export default function App() {
     handlePasteClips,
     kenBurnsDrawStep,
     toggleFullscreenPlayback,
+    toggleLoopShortcut,
     jumpNextKeyframe,
     jumpPrevKeyframe,
     playback,
     redo,
     resolveMedia,
     resolvedAudioClips,
+    scrubToFrame,
     selectRelativeClip,
+    setInPoint,
+    setOutPoint,
     soundOn,
     splitAtPlayhead,
     stepFrames,
@@ -3596,6 +3872,9 @@ export default function App() {
           captions: captionsExport,
           srt: srtExport,
           marks: marksExport,
+          quality: exportQuality,
+          workers: exportWorkers,
+          normalize: exportNormalize,
           baseName,
         }),
       });
@@ -3861,6 +4140,7 @@ export default function App() {
         data-testid="render-mode-shell"
         data-ready="1"
         data-frame={playheadFrame}
+        style={{ width: renderParams.width, height: renderParams.height }}
       >
         <CinematicPreview
           renderMode={true}
@@ -3966,6 +4246,18 @@ export default function App() {
         folderLabel={folderLabel}
         onSnapshot={() => setSnapshotModal(true)}
         onExport={() => {
+          if (inPointRef.current !== null || outPointRef.current !== null) {
+            const maxIdx = Math.max(0, totalFrames - 1);
+            const effIn =
+              inPointRef.current !== null ? Math.max(0, Math.min(maxIdx, inPointRef.current)) : 0;
+            const effOut =
+              outPointRef.current !== null
+                ? Math.max(effIn, Math.min(maxIdx, outPointRef.current))
+                : maxIdx;
+            setExportWholeFilm(false);
+            setExportFromFrame(effIn);
+            setExportToFrame(effOut);
+          }
           setExportOpen(true);
           setExportMessage("");
           setPatchReport(null);
@@ -4379,6 +4671,29 @@ export default function App() {
                 </button>
                 <span>{playSpeed}×</span>
                 <button
+                  type="button"
+                  className={`transport-loop-button ${loopPlayback ? "is-active" : ""}`}
+                  data-testid="transport-loop-btn"
+                  aria-pressed={loopPlayback}
+                  aria-label="Loop playback"
+                  title="Loop playback over In/Out range (Shift+Space)"
+                  onClick={() => {
+                    const next = !loopPlaybackRef.current;
+                    loopPlaybackRef.current = next;
+                    setLoopPlayback(next);
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M11.5 2.5L13.5 4.5L11.5 6.5M2.5 8V6.5C2.5 5.39543 3.39543 4.5 4.5 4.5H13.5M4.5 13.5L2.5 11.5L4.5 9.5M13.5 8V9.5C13.5 10.6046 12.6046 11.5 11.5 11.5H2.5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <button
                   className={`sound-button ${soundOn ? "" : "is-muted"}`}
                   onClick={() => {
                     setSoundOn((value) => {
@@ -4391,6 +4706,7 @@ export default function App() {
                 >
                   ♫
                 </button>
+                <StereoPeakMeter playing={playback && direction > 0} soundOn={soundOn} />
               </div>
               <div className="transport-counter">
                 SHOT <strong>{String(currentIndex + 1).padStart(4, "0")}</strong>
@@ -4788,6 +5104,26 @@ export default function App() {
             }
             onShiftSelectionPreview={handleShiftSelectionPreview}
             onCommitSelectionShift={handleCommitSelectionShift}
+            inPointFrame={inPointFrame}
+            outPointFrame={outPointFrame}
+            loopPlayback={loopPlayback}
+            onSetInPoint={(f) => {
+              setInPoint(f);
+              if (f !== null) setEditLabel(`In mark set at frame ${f}`);
+            }}
+            onSetOutPoint={(f) => {
+              setOutPoint(f);
+              if (f !== null) setEditLabel(`Out mark set at frame ${f}`);
+            }}
+            onClearInOut={() => {
+              clearInOutMarks();
+              setEditLabel("In/Out marks cleared");
+            }}
+            onToggleLoop={() => {
+              const next = !loopPlaybackRef.current;
+              loopPlaybackRef.current = next;
+              setLoopPlayback(next);
+            }}
           />
         </div>
       </div>
@@ -4801,7 +5137,7 @@ export default function App() {
             ? `${diagnostics.length} RUN-ORDER NOTE${diagnostics.length === 1 ? "" : "S"}`
             : "RUNNING ORDER VERIFIED"}
         </span>
-        <span>SPACE PLAY · N SNAP ({snapEnabled ? "ON" : "OFF"}) · M MARKER · ⌘C/⌘V COPY/PASTE · S SPLIT · ⌘Z UNDO</span>
+        <span>SPACE PLAY · ⇧SPACE LOOP · I/O IN/OUT · N SNAP ({snapEnabled ? "ON" : "OFF"}) · M MARKER · ⌘Z UNDO</span>
       </footer>
       {dragOver && (
         <div className="drop-overlay">
@@ -4855,6 +5191,8 @@ export default function App() {
           totalFrames={totalFrames}
           playheadFrame={playheadFrame}
           selectedClip={selectedClip}
+          inPointFrame={inPointFrame}
+          outPointFrame={outPointFrame}
           tab={exportTab}
           setTab={setExportTab}
           progress={exportProgress}
@@ -4874,9 +5212,15 @@ export default function App() {
           captions={captionsExport}
           srt={srtExport}
           marks={marksExport}
+          quality={exportQuality}
+          workers={exportWorkers}
+          normalizeAudio={exportNormalize}
           setCaptions={setCaptionsExport}
           setSrt={setSrtExport}
           setMarks={setMarksExport}
+          setQuality={setExportQuality}
+          setWorkers={setExportWorkers}
+          setNormalizeAudio={setExportNormalize}
           mp4Job={mp4Job}
           onBundle={() => void exportBundle()}
           onPatch={exportPatch}

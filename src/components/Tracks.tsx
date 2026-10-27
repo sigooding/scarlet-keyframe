@@ -25,6 +25,12 @@ import {
 import type { NoteMarker } from "../core/model";
 import { effectiveTrackLevel, type TrackMixMap } from "../core/previewAudio";
 import { FPS } from "../core/timing";
+import {
+  getCachedWaveformEnvelope,
+  onWaveformReady,
+  requestWaveformEnvelope,
+  sampleEnvelopeRange,
+} from "../core/waveformPeaks";
 import { extractPlayableUrlsFromSrc, webAudioEngine } from "../core/webAudioEngine";
 import type { TimelineClip } from "../sequence/animate";
 import type { InspectorTab } from "./Inspector";
@@ -100,9 +106,16 @@ export function Tracks({
 }: SyncedAudioLanesProps) {
   const [decodeTick, setDecodeTick] = useState(0);
   useEffect(() => {
-    return webAudioEngine.onBufferDecoded(() => {
+    const offBuf = webAudioEngine.onBufferDecoded(() => {
       setDecodeTick((n) => n + 1);
     });
+    const offWave = onWaveformReady(() => {
+      setDecodeTick((n) => n + 1);
+    });
+    return () => {
+      offBuf();
+      offWave();
+    };
   }, []);
 
   const selectedSet = useMemo(() => new Set(selectedAudioClipIds), [selectedAudioClipIds]);
@@ -249,14 +262,17 @@ function AudioClipItem({
   );
   const primaryUrl = urls[0];
 
-  // Kick off single WebAudio decode on first appearance so waveform + exact file duration populate
+  // Request IndexedDB-backed, concurrency-bounded [min, max] waveform envelope
   useEffect(() => {
     if (primaryUrl) {
-      void webAudioEngine.decodeUrlOnce(primaryUrl, clip.src);
+      requestWaveformEnvelope(primaryUrl, clip.src);
     }
   }, [primaryUrl, clip.src]);
 
+  const cachedEnvelope = getCachedWaveformEnvelope(primaryUrl);
+
   const fileDurationMs = useMemo(() => {
+    if (cachedEnvelope && cachedEnvelope.durationMs > 0) return cachedEnvelope.durationMs;
     const decoded = webAudioEngine.getKnownDurationMs(clip.src);
     if (decoded && decoded > 0) return decoded;
     const buf = webAudioEngine.getCachedBuffer(primaryUrl);
@@ -264,7 +280,7 @@ function AudioClipItem({
     const cleanRef = clip.src.startsWith("file:") ? clip.src.slice(5) : clip.src;
     const sec = audioDurations?.get(cleanRef) ?? audioDurations?.get(clip.src);
     return sec && sec > 0 ? sec * 1000 : undefined;
-  }, [clip.src, primaryUrl, audioDurations, decodeTick]);
+  }, [cachedEnvelope, clip.src, primaryUrl, audioDurations, decodeTick]);
 
   // Viewport-clipped canvas geometry so waveforms stay razor-sharp even at 160 px/frame!
   const overscan = 240;
@@ -290,55 +306,24 @@ function AudioClipItem({
     ctx.clearRect(0, 0, pixelW, pixelH);
 
     const colors = LANE_COLORS[clip.lane];
-    const buf = webAudioEngine.getCachedBuffer(primaryUrl);
+    const env = getCachedWaveformEnvelope(primaryUrl);
     const midY = pixelH / 2;
-    const gainScale = Math.max(0.05, Math.min(1.6, clip.gain));
+    const gainScale = Math.max(0.02, Math.min(2.0, clip.gain));
+    const maxRadius = Math.max(2, midY - 2);
 
-    if (buf && buf.length > 0) {
-      const ch0 = buf.getChannelData(0);
-      const ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
-      const sr = buf.sampleRate;
-      const totalSamples = buf.length;
+    // Subtle 0-axis baseline
+    ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.fillRect(0, Math.round(midY), pixelW, 1);
 
-      ctx.fillStyle = colors.fill;
-      ctx.strokeStyle = colors.stroke;
-      ctx.lineWidth = Math.max(1, dpr * 0.9);
-      ctx.beginPath();
-
+    if (env && env.bucketCount > 0) {
       for (let px = 0; px < pixelW; px += 1) {
         const localCssX0 = canvasCssLeft + px / dpr;
         const localCssX1 = canvasCssLeft + (px + 1) / dpr;
         const t0Ms = clip.inMs + localCssX0 / Math.max(1e-6, pxPerMs);
         const t1Ms = clip.inMs + localCssX1 / Math.max(1e-6, pxPerMs);
 
-        let s0 = Math.floor((t0Ms / 1000) * sr);
-        let s1 = Math.max(s0 + 1, Math.ceil((t1Ms / 1000) * sr));
+        const { min, max, peak } = sampleEnvelopeRange(env, t0Ms, t1Ms, Boolean(clip.loop));
 
-        let peak = 0;
-        if (clip.loop && totalSamples > 0) {
-          const span = Math.min(totalSamples, Math.max(1, s1 - s0));
-          const step = Math.max(1, Math.floor(span / 24));
-          for (let k = 0; k < span; k += step) {
-            const idx = (((s0 + k) % totalSamples) + totalSamples) % totalSamples;
-            const v0 = Math.abs(ch0[idx] || 0);
-            const v1 = ch1 ? Math.abs(ch1[idx] || 0) : v0;
-            const v = (v0 + v1) * 0.5;
-            if (v > peak) peak = v;
-          }
-        } else if (s0 < totalSamples && s1 > 0) {
-          s0 = Math.max(0, s0);
-          s1 = Math.min(totalSamples, s1);
-          const span = Math.max(1, s1 - s0);
-          const step = Math.max(1, Math.floor(span / 24));
-          for (let idx = s0; idx < s1; idx += step) {
-            const v0 = Math.abs(ch0[idx] || 0);
-            const v1 = ch1 ? Math.abs(ch1[idx] || 0) : v0;
-            const v = (v0 + v1) * 0.5;
-            if (v > peak) peak = v;
-          }
-        }
-
-        // Apply fade envelope visually to waveform height
         const offsetInClipMs = localCssX0 / Math.max(1e-6, pxPerMs);
         let fadeMul = 1;
         if (clip.fadeInMs > 0 && offsetInClipMs < clip.fadeInMs) {
@@ -348,9 +333,19 @@ function AudioClipItem({
           fadeMul *= Math.max(0, (clip.durationMs - offsetInClipMs) / clip.fadeOutMs);
         }
 
-        const amp = Math.min(midY - 2, peak * gainScale * fadeMul * (midY - 2));
-        if (amp > 0.4) {
-          ctx.fillRect(px, midY - amp, 1, amp * 2);
+        const effGain = gainScale * fadeMul;
+        const isClipping = peak * effGain >= 0.99;
+        const yTop = Math.max(1, midY - max * effGain * maxRadius);
+        const yBot = Math.min(pixelH - 1, midY - min * effGain * maxRadius);
+        const barH = yBot - yTop;
+        if (barH > 0.5) {
+          ctx.fillStyle = isClipping ? "rgba(255, 88, 76, 0.55)" : colors.fill;
+          ctx.fillRect(px, yTop, 1, Math.max(1, barH));
+          ctx.fillStyle = isClipping ? "rgba(255, 112, 96, 0.98)" : colors.stroke;
+          ctx.fillRect(px, yTop, 1, Math.min(1.5 * dpr, Math.max(1, barH)));
+          if (barH > 3 * dpr) {
+            ctx.fillRect(px, yBot - 1, 1, 1);
+          }
         }
       }
     } else {
@@ -558,6 +553,7 @@ function AudioClipItem({
         <canvas
           ref={canvasRef}
           className="audio-clip-waveform"
+          data-waveform-decoded={cachedEnvelope ? "true" : "false"}
           style={{ left: canvasCssLeft, width: canvasCssWidth, height: laneHeight }}
         />
       )}
