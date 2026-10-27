@@ -75,18 +75,27 @@ export function evaluateFilmGateWeaveTransform(timeSec: number, durSec = 3.4): s
   return `translate(${lerp(-0.5, 0.3, k).toFixed(3)}px, ${lerp(0.3, 0.4, k).toFixed(3)}px) scale(1.004)`;
 }
 
+export const TOKYO_NOIR_WASH = {
+  tint: "radial-gradient(ellipse at 50% 44%, rgba(255, 206, 148, 0.08) 0%, rgba(10, 18, 28, 0.34) 72%, rgba(4, 7, 13, 0.62) 100%), linear-gradient(180deg, rgba(10, 22, 34, 0.34) 0%, rgba(0, 0, 0, 0) 36%, rgba(5, 11, 20, 0.44) 100%)",
+  tintOpacity: 0.9,
+  tintBlend: "soft-light" as const,
+};
+
 /**
  * Frame-driven ambient grain overlay (replaces `.fx-grain::after`).
  */
 export function FrameGrainOverlay({
   active,
   timeSec,
+  opacity = 0.08,
 }: {
   active: boolean;
   timeSec: number;
+  opacity?: number;
 }) {
   if (!active) return null;
   const transform = evaluateGrainJitterTransform(timeSec);
+  const clampedOp = Math.max(0, Math.min(0.25, Number.isFinite(opacity) ? opacity : 0.08));
   return (
     <div
       className="frame-grain-overlay"
@@ -97,7 +106,7 @@ export function FrameGrainOverlay({
         inset: "-50%",
         pointerEvents: "none",
         zIndex: 40,
-        opacity: 0.08,
+        opacity: clampedOp,
         backgroundImage:
           "repeating-radial-gradient(circle at 17% 32%, rgba(255, 255, 255, 0.9) 0 0.6px, transparent 0.9px 2.2px)",
         transform,
@@ -116,12 +125,27 @@ export function FrameCinematicOverlays({
   cinematic,
   timeSec,
 }: {
-  cinematic?: CinematicSettings;
+  cinematic?: CinematicSettings & {
+    vignette?: boolean;
+    vignetteStrength?: number;
+  };
   timeSec: number;
 }) {
-  const grade = cinematic?.colorGrade ? GRADE_PRESETS[cinematic.colorGrade] : undefined;
+  const rawGradeId = String((cinematic as Record<string, unknown> | undefined)?.colorGrade || "");
+  const grade =
+    rawGradeId === "tokyo-noir"
+      ? TOKYO_NOIR_WASH
+      : cinematic?.colorGrade
+        ? GRADE_PRESETS[cinematic.colorGrade]
+        : undefined;
   const film = !!cinematic?.filmGrade;
-  if (!grade && !film) return null;
+  const hasVignette = Boolean((cinematic as Record<string, unknown> | undefined)?.vignette);
+  const rawVigStrength = Number((cinematic as Record<string, unknown> | undefined)?.vignetteStrength);
+  const vignetteStrength = Number.isFinite(rawVigStrength)
+    ? Math.max(0, Math.min(1, rawVigStrength))
+    : 0.36;
+
+  if (!grade && !film && !hasVignette) return null;
 
   const strength = Math.max(0, Math.min(1, cinematic?.filmGradeStrength ?? 0.7));
   const t = Number.isFinite(timeSec) ? timeSec : 0;
@@ -166,6 +190,24 @@ export function FrameCinematicOverlays({
               transition: "none",
             } as React.CSSProperties
           }
+        />
+      )}
+      {hasVignette && vignetteStrength > 0.001 && (
+        <div
+          className="frame-vignette-overlay"
+          data-testid="frame-vignette-overlay"
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            zIndex: 4,
+            opacity: vignetteStrength,
+            background:
+              "radial-gradient(ellipse at 50% 48%, rgba(0, 0, 0, 0) 46%, rgba(3, 6, 12, 0.55) 82%, rgba(1, 2, 6, 0.92) 100%)",
+            animation: "none",
+            transition: "none",
+          }}
         />
       )}
       {film && (

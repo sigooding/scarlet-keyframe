@@ -33,6 +33,7 @@ import {
   kenBurnsBoxFromDrag,
   minZoomForRotation,
   poseToKenBurnsBox,
+  remapLocalFrameWithSpeedRamp,
   zoomPoseAroundPointer,
   type EvaluatedPose,
 } from "../sequence/animate";
@@ -615,6 +616,7 @@ export function CinematicPreview({
                   style: { ...outgoingWrapperStyle, zIndex: 1 } as CSSProperties,
                   shotFrame: transition.outgoingClip.keyframe,
                   shotLocalFrame: transition.outLocalFrame,
+                  shotDurationFrames: transition.outgoingClip.durationFrames,
                   shotPresetFrame: outgoingPresetFrame ?? transition.outLocalFrame,
                   shotCarriedStartPose: transition.outgoingClip.carriedStartPose,
                   shotImageSrc: outgoingImageSrc,
@@ -630,6 +632,7 @@ export function CinematicPreview({
                   style: { ...incomingWrapperStyle, zIndex: 2 } as CSSProperties,
                   shotFrame: transition.incomingClip.keyframe,
                   shotLocalFrame: transition.inLocalFrame,
+                  shotDurationFrames: transition.incomingClip.durationFrames,
                   shotPresetFrame: incomingPresetFrame ?? transition.inLocalFrame,
                   shotCarriedStartPose: transition.incomingClip.carriedStartPose,
                   shotImageSrc: incomingImageSrc,
@@ -652,6 +655,7 @@ export function CinematicPreview({
                   } as CSSProperties,
                   shotFrame: frame,
                   shotLocalFrame: localFrame,
+                  shotDurationFrames: clipDurationFrames,
                   shotPresetFrame: presetFrame ?? localFrame,
                   shotCarriedStartPose: carriedStartPose,
                   shotImageSrc: imageSrc,
@@ -672,6 +676,7 @@ export function CinematicPreview({
                 frame={item.shotFrame}
                 seedId={item.keyId}
                 localFrame={item.shotLocalFrame}
+                shotDurationFrames={item.shotDurationFrames}
                 presetFrame={item.shotPresetFrame}
                 carriedStartPose={item.shotCarriedStartPose}
                 imageSrc={item.shotImageSrc}
@@ -685,7 +690,11 @@ export function CinematicPreview({
           ));
         })()}
       </div>
-      <FrameGrainOverlay active={!frame.beat.gap && Boolean(cinematic.grain)} timeSec={previewTimeSec} />
+      <FrameGrainOverlay
+        active={!frame.beat.gap && Boolean(cinematic.grain)}
+        timeSec={previewTimeSec}
+        opacity={typeof cinematic.grainOpacity === "number" ? cinematic.grainOpacity : 0.08}
+      />
 
       {/* Onion skin overlay: previous and next clips' pictures at 30% opacity */}
       {showOnionSkin && (prevOnionSrc || nextOnionSrc) && (
@@ -1326,14 +1335,44 @@ export function CinematicPreview({
         </div>
       )}
 
+      {(() => {
+        const tc = (frame.beat as Record<string, any>).titleCard as
+          | { kicker?: string; title?: string; subtitle?: string; align?: "center" | "lower-left" }
+          | undefined;
+        if (!tc || (!tc.title && !tc.kicker && !tc.subtitle)) return null;
+        const dur = Math.max(12, clipDurationFrames ?? clipFrames(frame));
+        const fadeFrames = Math.min(18, Math.max(6, Math.floor(dur * 0.16)));
+        const inOp = Math.min(1, (localFrame + 1) / fadeFrames);
+        const outOp = Math.min(1, Math.max(0, dur - localFrame) / fadeFrames);
+        const cardOpacity = Math.max(0, Math.min(1, Math.min(inOp, outOp)));
+        return (
+          <div
+            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"}`}
+            data-testid="viewer-title-card"
+            style={{
+              opacity: Number(cardOpacity.toFixed(4)),
+              transition: "none",
+              animation: "none",
+            }}
+          >
+            {tc.kicker && <span className="cin-title-card-kicker">{tc.kicker}</span>}
+            {tc.title && <strong className="cin-title-card-main">{tc.title}</strong>}
+            {tc.subtitle && <em className="cin-title-card-sub">{tc.subtitle}</em>}
+          </div>
+        );
+      })()}
+
       {showCaption && wrappedCaptionText && (
         <div
           className={[
             "cin-caption",
             style.position === "top" ? "pos-top" : "pos-bottom",
+            frame.scene.letterbox ? "has-letterbox" : "",
             `size-${style.size.toLowerCase()}`,
             style.backgroundBox ? "has-box" : "no-box",
-          ].join(" ")}
+          ]
+            .filter(Boolean)
+            .join(" ")}
           data-testid="viewer-caption"
           data-position={style.position}
           data-size={style.size}
@@ -1366,6 +1405,7 @@ function ShotLayer({
   frame,
   seedId,
   localFrame,
+  shotDurationFrames,
   presetFrame,
   carriedStartPose,
   imageSrc,
@@ -1378,6 +1418,7 @@ function ShotLayer({
   frame: Keyframe;
   seedId: string;
   localFrame: number;
+  shotDurationFrames?: number;
   presetFrame: number;
   carriedStartPose?: Partial<EvaluatedPose>;
   imageSrc?: string;
@@ -1389,7 +1430,9 @@ function ShotLayer({
 }) {
   const cinematic = (effectiveFrameCinematic(frame) || {}) as Record<string, any>;
   const anim = frame.beat.animation;
-  const rawPose = evaluate(frame, localFrame, carriedStartPose);
+  const speedRamp = typeof cinematic.speedRamp === "string" ? cinematic.speedRamp : undefined;
+  const remappedLocalFrame = remapLocalFrameWithSpeedRamp(localFrame, shotDurationFrames, speedRamp);
+  const rawPose = evaluate(frame, remappedLocalFrame, carriedStartPose);
   const clampedPose = clampPoseToPictureEdges(rawPose);
   const timeSec = presetFrame / FPS;
   const particleSeed = seedId || frame.id;
@@ -1404,13 +1447,13 @@ function ShotLayer({
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid || !videoSrc) return;
-    const targetSec = Math.max(0, localFrame / FPS);
+    const targetSec = Math.max(0, remappedLocalFrame / FPS);
     if (Number.isFinite(vid.duration) && vid.duration > 0) {
       vid.currentTime = targetSec % vid.duration;
     } else {
       vid.currentTime = targetSec;
     }
-  }, [localFrame, videoSrc]);
+  }, [remappedLocalFrame, videoSrc]);
 
   // Keyframes are the sole camera: Scarlet Reel presets & CSS film-grade animations never run on the plate.
   const effectiveCinematic = useMemo<Record<string, any>>(
@@ -1553,6 +1596,15 @@ function ShotLayer({
     effectiveCinematic.colorGrade !== "none"
       ? `cin-grade-${effectiveCinematic.colorGrade}`
       : "";
+  const gradedLayerClassName = [
+    layer.className,
+    gradeClass && !layer.className.includes(gradeClass) ? gradeClass : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const hasGradeSplitEffective =
+    (Boolean(anim?.gradeStrength?.length) || clampedGradeStrength < 1) &&
+    Boolean(effectiveCinematic.colorGrade || effectiveCinematic.filmGrade || cinematic.vignette);
 
   const particleKind = (frame.beat.particles ?? frame.scene.particles ?? "none") as ParticleKind;
   const particleConfig = frame.beat.particleConfig ?? frame.scene.particleConfig;
@@ -1607,7 +1659,7 @@ function ShotLayer({
           playsInline
           preload="auto"
         />
-      ) : hasGradeLayerSplit ? (
+      ) : hasGradeSplitEffective ? (
         <>
           <div
             className={`cin-preview-plate ${ungradedLayer.className}`}
@@ -1616,7 +1668,7 @@ function ShotLayer({
             data-testid={plateTestId}
           />
           <div
-            className={`cin-preview-plate cin-graded-plate ${layer.className}`}
+            className={`cin-preview-plate cin-graded-plate ${gradedLayerClassName}`}
             style={{ ...plateStyle, opacity: clampedGradeStrength }}
             data-picture-ref={picture}
             data-testid={`${plateTestId}-graded`}
@@ -1624,7 +1676,7 @@ function ShotLayer({
         </>
       ) : (
         <div
-          className={`cin-preview-plate ${layer.className}`}
+          className={`cin-preview-plate ${gradedLayerClassName}`}
           style={plateStyle}
           data-picture-ref={picture}
           data-testid={plateTestId}

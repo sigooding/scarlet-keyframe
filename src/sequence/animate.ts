@@ -1463,3 +1463,53 @@ export function visibleClipRange(
   }
   return [startIdx, endIdx];
 }
+
+export type SpeedRampKind = "none" | "slow-in" | "slow-out" | "ease-hold" | "impact-ramp";
+
+export const SPEED_RAMP_KINDS: readonly SpeedRampKind[] = [
+  "none",
+  "slow-in",
+  "slow-out",
+  "ease-hold",
+  "impact-ramp",
+];
+
+/**
+ * Deterministic monotonic time-remap curve `u -> u'` over `[0, 1]` for subtle speed ramps
+ * (pure function of frame progress; zero timers or CSS animations).
+ */
+export function remapSpeedRampProgress(u: number, ramp: string | undefined): number {
+  const t = Math.max(0, Math.min(1, Number.isFinite(u) ? u : 0));
+  if (!ramp || ramp === "none") return t;
+  if (ramp === "slow-in") {
+    return 1 - Math.pow(1 - t, 2.25);
+  }
+  if (ramp === "slow-out") {
+    return Math.pow(t, 2.25);
+  }
+  if (ramp === "ease-hold") {
+    return solveCubicBezier(0.36, 0, 0.2, 1, t);
+  }
+  if (ramp === "impact-ramp") {
+    // Crisp surge through the first 45% of time covering 78% of motion, then suspended slow-motion tail
+    if (t <= 0.45) {
+      const k = t / 0.45;
+      return 0.78 * solveCubicBezier(0.25, 0.1, 0.25, 1, k);
+    }
+    const k = (t - 0.45) / 0.55;
+    return 0.78 + 0.22 * (1 - Math.pow(1 - k, 1.6));
+  }
+  return t;
+}
+
+export function remapLocalFrameWithSpeedRamp(
+  localFrame: number,
+  durationFrames: number | undefined,
+  ramp: string | undefined,
+): number {
+  if (!ramp || ramp === "none") return localFrame;
+  const maxLocal = Math.max(1, (durationFrames ?? 24) - 1);
+  const u = Math.max(0, Math.min(1, localFrame / maxLocal));
+  return remapSpeedRampProgress(u, ramp) * maxLocal;
+}
+

@@ -106,6 +106,10 @@ import {
   type ReorderDestination,
 } from "./core/edits";
 import { buildPortableBundle } from "./core/exportBundle";
+import {
+  buildDirectorsCutProject,
+  DIRECTORS_CUT_VERSION,
+} from "./core/directorsCut";
 import { downloadText, measureAudioDuration, slug } from "./core/helpers";
 import {
   createUploadAsset,
@@ -792,20 +796,55 @@ export default function App() {
           }
           statusLabel = "CLI PROJECT";
         } else if (saved?.story?.scenes?.length) {
-          initialProject = {
+          const normalizedSaved: ProjectState = {
             ...saved,
             importedMissing: saved.importedMissing || [],
             assets: saved.assets || [],
             snapshots: saved.snapshots || [],
           };
-          statusLabel = "AUTOSAVED PROJECT";
+          if (
+            normalizedSaved.story.id === "nobodys-witness-film" &&
+            (normalizedSaved.directorsCutVersion ?? 0) < DIRECTORS_CUT_VERSION
+          ) {
+            const preCutSnapshot = {
+              id: "snapshot-pre-directors-cut",
+              name: "Pre-Director's Cut Autosave",
+              createdAt: normalizedSaved.updatedAt || Date.now(),
+              story: JSON.parse(JSON.stringify(normalizedSaved.story)),
+              ...(normalizedSaved.audioClips
+                ? { audioClips: JSON.parse(JSON.stringify(normalizedSaved.audioClips)) }
+                : {}),
+            };
+            const withPreSnap: ProjectState = {
+              ...normalizedSaved,
+              snapshots: [
+                preCutSnapshot,
+                ...normalizedSaved.snapshots.filter((s) => s.id !== preCutSnapshot.id),
+              ],
+            };
+            initialProject = buildDirectorsCutProject(
+              withPreSnap,
+              initialVoiceDurations,
+              initialMusicDurations,
+            );
+            void saveActiveProject(initialProject).catch(() => {});
+            statusLabel = "DIRECTOR’S CUT";
+          } else {
+            initialProject = normalizedSaved;
+            statusLabel = "AUTOSAVED PROJECT";
+          }
         } else {
           const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json", {
             voiceDurations: initialVoiceDurations,
           });
           const contextual = { ...imported, story: applyStudioMusicSync(imported.story, sourceEdits) };
-          initialProject = createProjectState(contextual, [], sourceEdits);
-          statusLabel = isRenderMode ? "RENDER MODE" : "FILM READY";
+          const baseBundledProject = createProjectState(contextual, [], sourceEdits);
+          initialProject = buildDirectorsCutProject(
+            baseBundledProject,
+            initialVoiceDurations,
+            initialMusicDurations,
+          );
+          statusLabel = isRenderMode ? "RENDER MODE" : "DIRECTOR’S CUT";
         }
 
         if (!Array.isArray(initialProject.audioClips)) {
@@ -829,13 +868,16 @@ export default function App() {
         );
         setExportToFrame(Math.max(0, builtTotal - 1));
         const storedFrame = isRenderMode ? null : readStoredPlayhead();
-        const s77Clip = builtClips.find((clip) => clip.keyframe.mark === "77") || builtClips[0];
+        const openingSceneClip =
+          builtClips.find((clip) => clip.keyframe.sceneId === "nw_s1") ||
+          builtClips.find((clip) => clip.keyframe.mark === "77") ||
+          builtClips[0];
         const startPlayhead = renderParams
           ? Math.max(0, Math.min(Math.max(0, builtTotal - 1), renderParams.from))
           : storedFrame !== null && storedFrame < builtTotal
             ? storedFrame
-            : s77Clip?.startFrame ?? 0;
-        const startClip = clipAtFrame(builtClips, startPlayhead) || s77Clip;
+            : openingSceneClip?.startFrame ?? 0;
+        const startClip = clipAtFrame(builtClips, startPlayhead) || openingSceneClip;
         playheadRef.current = startPlayhead;
         setPlayheadFrame(startPlayhead);
         setSelectedFrameId(startClip?.keyframe.id || "");
@@ -4272,6 +4314,15 @@ export default function App() {
             (current) => convertProjectCameraMovesToKeyframes(current, voiceDurations),
             "Converted all camera moves to keyframes",
           )
+        }
+        onApplyDirectorsCut={
+          project.story.id === "nobodys-witness-film"
+            ? () =>
+                editProject(
+                  (current) => buildDirectorsCutProject(current, voiceDurations, musicDurations),
+                  "Applied Neo-Noir Director’s Cut",
+                )
+            : undefined
         }
       />
 

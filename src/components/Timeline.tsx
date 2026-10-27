@@ -771,8 +771,19 @@ export function Timeline({
     };
   }, [expandedClipIds]);
 
-  const beginMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
+  // Empty-space drag-to-pan (left/middle drag on empty space pans scrollLeft; Shift/Ctrl/Cmd/Alt drag box-selects)
+  const [isPanningEmpty, setIsPanningEmpty] = useState(false);
+  const [marqueeToolActive, setMarqueeToolActive] = useState(false);
+  const panEmptySession = useRef<{
+    pointerId: number;
+    startClientX: number;
+    startClientY: number;
+    startScrollLeft: number;
+    moved: boolean;
+  } | null>(null);
+
+  const beginEmptySpacePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 && event.button !== 1) return;
     const targetEl = event.target as HTMLElement | null;
     if (
       targetEl?.closest(
@@ -785,6 +796,23 @@ export function Timeline({
     const scrollEl = scrollRef.current;
     const canvasEl = canvasRef.current;
     if (!scrollEl || !canvasEl) return;
+
+    const wantsMarquee =
+      event.button === 0 &&
+      (marqueeToolActive || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey);
+
+    if (!wantsMarquee) {
+      panEmptySession.current = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startScrollLeft: scrollEl.scrollLeft,
+        moved: false,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+      return;
+    }
+
     const canvasRect = canvasEl.getBoundingClientRect();
     const x = event.clientX - scrollEl.getBoundingClientRect().left + scrollEl.scrollLeft;
     const y = event.clientY - canvasRect.top;
@@ -807,7 +835,24 @@ export function Timeline({
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const moveMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const moveEmptySpacePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const pan = panEmptySession.current;
+    if (pan && pan.pointerId === event.pointerId) {
+      const scrollEl = scrollRef.current;
+      if (!scrollEl) return;
+      const dx = event.clientX - pan.startClientX;
+      const dy = event.clientY - pan.startClientY;
+      if (!pan.moved && Math.hypot(dx, dy) < 4) return;
+      if (!pan.moved) {
+        pan.moved = true;
+        setIsPanningEmpty(true);
+      }
+      const nextScroll = Math.max(0, pan.startScrollLeft - dx);
+      scrollEl.scrollLeft = nextScroll;
+      setScrollLeft(scrollEl.scrollLeft);
+      return;
+    }
+
     const session = marqueeSession.current;
     const scrollEl = scrollRef.current;
     const canvasEl = canvasRef.current;
@@ -845,7 +890,18 @@ export function Timeline({
     }
   };
 
-  const endMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const endEmptySpacePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const pan = panEmptySession.current;
+    if (pan && pan.pointerId === event.pointerId) {
+      panEmptySession.current = null;
+      setIsPanningEmpty(false);
+      if (!pan.moved && event.button === 0) {
+        onClearAllSelection?.();
+        onScrub(frameFromClientX(event.clientX));
+      }
+      return;
+    }
+
     const session = marqueeSession.current;
     marqueeSession.current = null;
     setMarquee(null);
@@ -1051,6 +1107,63 @@ export function Timeline({
             title="Add named note marker at playhead (M)"
           >
             ⚑ Marker (M)
+          </button>
+          <button
+            type="button"
+            className={`button button-quiet ${marqueeToolActive ? "is-active-tool" : ""}`}
+            data-testid="toolbar-marquee-btn"
+            aria-pressed={marqueeToolActive}
+            onClick={() => setMarqueeToolActive((v) => !v)}
+            title={
+              marqueeToolActive
+                ? "Box select active — click to switch back to empty-space hand drag"
+                : "Empty space drags timeline left/right · Hold Shift+drag or toggle this for marquee box select"
+            }
+          >
+            {marqueeToolActive ? (
+              <>
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  aria-hidden="true"
+                  style={{ display: "inline-block", verticalAlign: "-1px", marginRight: 5 }}
+                >
+                  <rect
+                    x="1.5"
+                    y="1.5"
+                    width="9"
+                    height="9"
+                    rx="1"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeDasharray="2.2 1.8"
+                  />
+                </svg>
+                Select
+              </>
+            ) : (
+              <>
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  aria-hidden="true"
+                  style={{ display: "inline-block", verticalAlign: "-1px", marginRight: 5 }}
+                >
+                  <path
+                    d="M1.5 6H10.5M1.5 6L3.8 3.7M1.5 6L3.8 8.3M10.5 6L8.2 3.7M10.5 6L8.2 8.3"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Pan
+              </>
+            )}
           </button>
           {(onSetInPoint || onSetOutPoint) && (
             <div className="timeline-io-toolbar-group" role="group" aria-label="In and Out range">
@@ -1443,21 +1556,23 @@ export function Timeline({
 
         <div
           ref={scrollRef}
-          className="timeline-scroll-area"
+          className={`timeline-scroll-area ${isPanningEmpty ? "is-panning-empty" : ""} ${marqueeToolActive ? "is-marquee-mode" : ""}`}
           data-testid="timeline-scroll"
           onScroll={(event) => setScrollLeft(event.currentTarget.scrollLeft)}
+          onPointerDown={beginEmptySpacePointer}
+          onPointerMove={moveEmptySpacePointer}
+          onPointerUp={endEmptySpacePointer}
+          onPointerCancel={() => {
+            panEmptySession.current = null;
+            setIsPanningEmpty(false);
+            marqueeSession.current = null;
+            setMarquee(null);
+          }}
         >
         <div
           ref={canvasRef}
           className="timeline-canvas"
           style={{ width: trackWidth }}
-          onPointerDown={beginMarquee}
-          onPointerMove={moveMarquee}
-          onPointerUp={endMarquee}
-          onPointerCancel={() => {
-            marqueeSession.current = null;
-            setMarquee(null);
-          }}
         >
           <div
             className="timeline-ruler"

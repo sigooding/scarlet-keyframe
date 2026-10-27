@@ -146,6 +146,7 @@ export interface ProjectState {
   importedMissing: string[];
   sourceEdits?: AnyRecord;
   snapshots: ProjectSnapshot[];
+  directorsCutVersion?: number;
   createdAt: number;
   updatedAt: number;
 }

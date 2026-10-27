@@ -38,6 +38,7 @@ export const CINEMATIC_GROUPS: CinematicGroup[] = [
       field("startFocalPoint", "Start framing", "text", { extension: true }),
       field("endFocalPoint", "End framing", "text", { extension: true }),
       field("easing", "Easing", "select", { options: ["linear", "ease", "ease-in", "ease-out", "ease-in-out", "cinematic"], extension: true }),
+      field("speedRamp", "Speed ramp", "select", { options: ["", "slow-in", "slow-out", "ease-hold", "impact-ramp"], extension: true }),
       field("panDistance", "Pan distance", "number", { min: 0, max: 35, step: 0.1 }),
       field("panDirection", "Pan direction", "select", { options: ["left", "right"] }),
       field("shakeAmount", "Shake intensity", "number", { min: 0, max: 1, step: 0.01 }),
@@ -87,12 +88,14 @@ export const CINEMATIC_GROUPS: CinematicGroup[] = [
     id: "look",
     label: "Grade & texture",
     fields: [
-      field("colorGrade", "Color grade", "select", { options: ["", "nolan-imax", "tarantino-35mm", "spielberg-golden", "noir-1940s", "neon-noir", "midnight-teal"] }),
+      field("colorGrade", "Color grade", "select", { options: ["", "tokyo-noir", "midnight-teal", "neon-noir", "noir-1940s", "nolan-imax", "tarantino-35mm", "spielberg-golden"] }),
       field("filmGrade", "Film stock", "boolean"),
       field("filmGradeStrength", "Film strength", "number", { min: 0, max: 1, step: 0.01 }),
       field("dimAmount", "Dim amount", "number", { min: 0, max: 1, step: 0.01 }),
       field("vignette", "Vignette", "boolean", { extension: true }),
+      field("vignetteStrength", "Vignette strength", "number", { min: 0, max: 1, step: 0.01, extension: true }),
       field("grain", "Grain", "boolean", { extension: true }),
+      field("grainOpacity", "Grain density", "number", { min: 0, max: 0.2, step: 0.005, extension: true }),
     ],
   },
   {

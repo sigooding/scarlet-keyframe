@@ -6488,6 +6488,89 @@ kbd {
   background: rgba(82, 214, 154, 0.035);
 }
 
+/* Empty-space timeline hand-pan & marquee cursors */
+.timeline-scroll-area {
+  cursor: grab;
+}
+
+.timeline-scroll-area.is-panning-empty,
+.timeline-scroll-area.is-panning-empty * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+.timeline-scroll-area.is-marquee-mode {
+  cursor: crosshair;
+}
+
+/* Signature Tokyo Neo-Noir optical color grade (strictly zero CSS transitions/animations) */
+.cin-grade-tokyo-noir {
+  filter: saturate(0.74) contrast(1.16) brightness(0.93) sepia(0.05) hue-rotate(-3deg);
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Criterion / Ozu theatrical intertitle & opening/closing credit overlays (frame-driven opacity) */
+.cin-title-card {
+  position: absolute;
+  inset: 0;
+  z-index: 49;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 6% 10%;
+  text-align: center;
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-title-card.is-lower-left {
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 0 7% 13.5% 7%;
+  text-align: left;
+}
+
+.cin-title-card-kicker {
+  display: block;
+  margin-bottom: 0.45em;
+  font-family: var(--mono);
+  font-size: clamp(9px, 1.05vw, 13px);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(232, 184, 109, 0.88);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.92);
+}
+
+.cin-title-card-main {
+  display: block;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-size: clamp(18px, 2.75vw, 38px);
+  letter-spacing: 0.14em;
+  line-height: 1.25;
+  color: #ede6d8;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.95);
+}
+
+.cin-title-card-sub {
+  display: block;
+  margin-top: 0.55em;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: clamp(12px, 1.35vw, 19px);
+  letter-spacing: 0.05em;
+  color: rgba(226, 219, 205, 0.84);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.92);
+}
+
+.cin-caption.pos-bottom.has-letterbox {
+  bottom: 10.6%;
+}
+
+
 
 
 

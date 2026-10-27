@@ -20,6 +20,7 @@ export interface TopbarProps {
   editLabel: string;
   totalDuration: number;
   onConvertAllToKeyframes?: () => void;
+  onApplyDirectorsCut?: () => void;
 }
 
 function formatTotalRuntime(seconds: number): string {
@@ -46,6 +47,7 @@ export function Topbar({
   editLabel,
   totalDuration,
   onConvertAllToKeyframes,
+  onApplyDirectorsCut,
 }: TopbarProps) {
   const statusTone = saveStatus.includes("FAILED")
     ? "is-danger"
@@ -109,6 +111,16 @@ export function Topbar({
       </div>
 
       <div className="topbar-actions">
+        {onApplyDirectorsCut && (
+          <button
+            className="button button-quiet"
+            data-testid="topbar-directors-cut-btn"
+            onClick={onApplyDirectorsCut}
+            title="Apply or re-apply the polished Neo-Noir / Tokyo Story Director's Cut (undoable; Uncut Import saved in Snapshots)"
+          >
+            Director’s Cut
+          </button>
+        )}
         {onConvertAllToKeyframes && (
           <button
             className="button button-quiet"
