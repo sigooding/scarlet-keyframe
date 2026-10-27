@@ -1,4 +1,4 @@
-import { buildTimelineClips, type AnimProp, type TimelineClip } from "../sequence/animate";
+import { ANIM_PROPS, buildTimelineClips, type AnimProp, type TimelineClip } from "../sequence/animate";
 import { SNAP_DISTANCE_PX } from "../sequence/snap";
 import { effectiveCaptionsForBeat } from "./captions";
 import { buildKeyframes, type NoteMarker, type ProjectState, type StoryLike } from "./model";
@@ -716,6 +716,8 @@ export interface LaneBand {
 export interface TimelineLaneBands {
   captions?: LaneBand;
   video?: LaneBand;
+  keyframeLanes?: Partial<Record<AnimProp, LaneBand>>;
+  expandedClipIds?: ReadonlySet<string>;
   voice?: LaneBand;
   sfx?: LaneBand;
   music?: LaneBand;
@@ -763,8 +765,25 @@ export function hitTestMarqueeBox(
 
   const hitCaptions = bandIntersects(bands.captions, minY, maxY);
   const hitVideo = bandIntersects(bands.video, minY, maxY);
+  const hitKfProps: AnimProp[] = [];
+  if (bands.keyframeLanes) {
+    for (const prop of ANIM_PROPS) {
+      if (bandIntersects(bands.keyframeLanes[prop], minY, maxY)) {
+        hitKfProps.push(prop);
+      }
+    }
+  }
 
-  if (hitCaptions || hitVideo) {
+  const seenKeyframes = new Set<string>();
+  const pushKf = (frameId: string, prop: AnimProp, frame: number) => {
+    const id = `${frameId}:${prop}:${frame}`;
+    if (!seenKeyframes.has(id)) {
+      seenKeyframes.add(id);
+      keyframes.push({ frameId, prop, frame });
+    }
+  };
+
+  if (hitCaptions || hitVideo || hitKfProps.length > 0) {
     for (const clip of timelineClips) {
       if (clip.endFrame < minFrame || clip.startFrame > maxFrame) continue;
 
@@ -772,15 +791,28 @@ export function hitTestMarqueeBox(
         pictureIds.push(clip.keyframe.id);
         const anim = clip.keyframe.beat.animation;
         if (anim) {
-          for (const prop of ["zoom", "x", "y"] as const) {
+          for (const prop of ANIM_PROPS) {
             for (const key of anim[prop] ?? []) {
               const globalKeyFrame = clip.startFrame + key.frame;
               if (globalKeyFrame >= minFrame && globalKeyFrame <= maxFrame) {
-                keyframes.push({
-                  frameId: clip.keyframe.id,
-                  prop,
-                  frame: key.frame,
-                });
+                pushKf(clip.keyframe.id, prop, key.frame);
+              }
+            }
+          }
+        }
+      }
+
+      if (
+        hitKfProps.length > 0 &&
+        (!bands.expandedClipIds || bands.expandedClipIds.has(clip.keyframe.id))
+      ) {
+        const anim = clip.keyframe.beat.animation;
+        if (anim) {
+          for (const prop of hitKfProps) {
+            for (const key of anim[prop] ?? []) {
+              const globalKeyFrame = clip.startFrame + key.frame;
+              if (globalKeyFrame >= minFrame && globalKeyFrame <= maxFrame) {
+                pushKf(clip.keyframe.id, prop, key.frame);
               }
             }
           }

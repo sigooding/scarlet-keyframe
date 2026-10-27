@@ -36,10 +36,18 @@ import type { InspectorTab } from "./Inspector";
 import { decodeDraggedAsset } from "./MediaBin";
 import { Tracks } from "./Tracks";
 import {
+  ANIM_PROP_META,
+  ANIM_PROPS,
+  animatedPropsOf,
   clipAtFrame,
+  copyKeyToFrame,
+  defaultValueForProp,
+  evaluateChannel,
   moveKeyToFrame,
+  setKeyEasingAtFrame,
   visibleClipRange,
   type AnimProp,
+  type KeyEasing,
   type TimelineClip,
 } from "../sequence/animate";
 import {
@@ -105,6 +113,12 @@ export interface TimelineProps {
     alignment?: TransitionAlignment,
   ) => void;
   onAnimationPreview: (frameId: string, animation: BeatAnimation | undefined) => void;
+  onCommitAnimation?: (
+    frameId: string,
+    animation: BeatAnimation | undefined,
+    label: string,
+  ) => void;
+  onOpenCurveEditor?: (frameId: string, prop: AnimProp) => void;
   onCopy: () => void;
   onPaste: () => void;
   onSplit: () => void;
@@ -198,6 +212,8 @@ export function Timeline({
   onMoveClips,
   onSetTransition,
   onAnimationPreview,
+  onCommitAnimation,
+  onOpenCurveEditor,
   onCopy,
   onPaste,
   onSplit,
@@ -255,11 +271,57 @@ export function Timeline({
     cutFrame: number;
     maxFrames: number;
   } | null>(null);
+  const [expandedClipIds, setExpandedClipIds] = useState<Set<string>>(() => new Set());
+  const [diamondMenu, setDiamondMenu] = useState<{
+    frameId: string;
+    prop: AnimProp;
+    frame: number;
+    currentEasing: KeyEasing;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
+
+  const toggleClipExpanded = useCallback((frameId: string) => {
+    setExpandedClipIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(frameId)) next.delete(frameId);
+      else next.add(frameId);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!diamondMenu) return;
+    const close = () => setDiamondMenu(null);
+    window.addEventListener("pointerdown", close);
+    return () => window.removeEventListener("pointerdown", close);
+  }, [diamondMenu]);
+
+  const openKeyframeProps = useMemo<AnimProp[]>(() => {
+    if (expandedClipIds.size === 0) return [];
+    const set = new Set<AnimProp>();
+    for (const clip of clips) {
+      if (!expandedClipIds.has(clip.keyframe.id)) continue;
+      for (const prop of animatedPropsOf(clip.keyframe.beat.animation)) {
+        set.add(prop);
+      }
+    }
+    return ANIM_PROPS.filter((p) => set.has(p));
+  }, [clips, expandedClipIds]);
+
+  const hasExpandedWithoutKeys = useMemo(() => {
+    if (expandedClipIds.size === 0 || openKeyframeProps.length > 0) return false;
+    for (const clip of clips) {
+      if (expandedClipIds.has(clip.keyframe.id)) return true;
+    }
+    return false;
+  }, [clips, expandedClipIds, openKeyframeProps.length]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const captionsLaneRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const kfLaneRefs = useRef<Partial<Record<AnimProp, HTMLDivElement | null>>>({});
   const audioLaneRefs = useRef<Partial<Record<AudioLaneId, HTMLDivElement | null>>>({});
   const audioLaneRefSetters = useMemo<
     Partial<Record<AudioLaneId, (el: HTMLDivElement | null) => void>>
@@ -595,24 +657,31 @@ export function Timeline({
     const bandOf = (el: HTMLElement | null | undefined) => {
       if (!el) return undefined;
       const r = el.getBoundingClientRect();
-      return { top: r.top - cRect.top + 3, bottom: r.bottom - cRect.top - 3 };
+      return { top: r.top - cRect.top + 2, bottom: r.bottom - cRect.top - 2 };
     };
+    const keyframeLanes: TimelineLaneBands["keyframeLanes"] = {};
+    for (const prop of ANIM_PROPS) {
+      const b = bandOf(kfLaneRefs.current[prop]);
+      if (b) keyframeLanes[prop] = b;
+    }
     return {
       captions: bandOf(captionsLaneRef.current),
       video: bandOf(trackRef.current),
+      keyframeLanes,
+      expandedClipIds,
       voice: bandOf(audioLaneRefs.current.voice),
       sfx: bandOf(audioLaneRefs.current.sfx),
       music: bandOf(audioLaneRefs.current.music),
       ambience: bandOf(audioLaneRefs.current.ambience),
     };
-  }, []);
+  }, [expandedClipIds]);
 
   const beginMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const targetEl = event.target as HTMLElement | null;
     if (
       targetEl?.closest(
-        ".timeline-ruler, .timeline-playhead, .timeline-clip, .caption-block, .audio-clip-box, .timeline-transition-box, .timeline-roll-handle, .transition-kind-popover, button, input, textarea, select",
+        ".timeline-ruler, .timeline-playhead, .timeline-clip, .caption-block, .audio-clip-box, .timeline-transition-box, .timeline-roll-handle, .transition-kind-popover, .kf-lane-diamond, .diamond-easing-menu, button, input, textarea, select",
       )
     ) {
       return;
@@ -1032,59 +1101,114 @@ export function Timeline({
             const state = effectiveMix[header.id];
             const effective = effectiveTrackLevel(effectiveMix, header.id);
             return (
-              <div
-                key={header.id}
-                className={`track-header-row is-${header.id} ${effective === 0 ? "is-silenced" : ""}`}
-                data-testid={`track-header-${header.id}`}
-              >
-                <div className="track-header-top">
-                  <button
-                    type="button"
-                    className="track-header-title"
-                    onClick={() => onFocusInspectorTab?.(header.id === "video" ? "clip" : header.id)}
-                    title={`Open ${header.label} settings in Inspector`}
-                  >
-                    <i aria-hidden>{header.icon}</i> {header.label}
-                  </button>
-                  <div className="track-header-btns">
+              <Fragment key={header.id}>
+                <div
+                  className={`track-header-row is-${header.id} ${effective === 0 ? "is-silenced" : ""}`}
+                  data-testid={`track-header-${header.id}`}
+                >
+                  <div className="track-header-top">
                     <button
                       type="button"
-                      className={`track-ms-btn is-mute ${state.mute ? "is-active" : ""}`}
-                      data-testid={`track-mute-${header.id}`}
-                      aria-label={`Mute ${header.label}`}
-                      aria-pressed={state.mute}
-                      title={`Mute ${header.label}`}
-                      onClick={() => onToggleTrackMute?.(header.id)}
+                      className="track-header-title"
+                      onClick={() => onFocusInspectorTab?.(header.id === "video" ? "clip" : header.id)}
+                      title={`Open ${header.label} settings in Inspector`}
                     >
-                      M
+                      <i aria-hidden>{header.icon}</i> {header.label}
                     </button>
-                    <button
-                      type="button"
-                      className={`track-ms-btn is-solo ${state.solo ? "is-active" : ""}`}
-                      data-testid={`track-solo-${header.id}`}
-                      aria-label={`Solo ${header.label}`}
-                      aria-pressed={state.solo}
-                      title={`Solo ${header.label}`}
-                      onClick={() => onToggleTrackSolo?.(header.id)}
-                    >
-                      S
-                    </button>
+                    <div className="track-header-btns">
+                      <button
+                        type="button"
+                        className={`track-ms-btn is-mute ${state.mute ? "is-active" : ""}`}
+                        data-testid={`track-mute-${header.id}`}
+                        aria-label={`Mute ${header.label}`}
+                        aria-pressed={state.mute}
+                        title={`Mute ${header.label}`}
+                        onClick={() => onToggleTrackMute?.(header.id)}
+                      >
+                        M
+                      </button>
+                      <button
+                        type="button"
+                        className={`track-ms-btn is-solo ${state.solo ? "is-active" : ""}`}
+                        data-testid={`track-solo-${header.id}`}
+                        aria-label={`Solo ${header.label}`}
+                        aria-pressed={state.solo}
+                        title={`Solo ${header.label}`}
+                        onClick={() => onToggleTrackSolo?.(header.id)}
+                      >
+                        S
+                      </button>
+                    </div>
                   </div>
+                  <label className="track-header-level">
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={state.level}
+                      aria-label={`${header.label} level`}
+                      data-testid={`track-level-${header.id}`}
+                      onChange={(event) => onSetTrackLevel?.(header.id, Number(event.target.value))}
+                    />
+                    <span>{Math.round(state.level * 100)}%</span>
+                  </label>
                 </div>
-                <label className="track-header-level">
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={state.level}
-                    aria-label={`${header.label} level`}
-                    data-testid={`track-level-${header.id}`}
-                    onChange={(event) => onSetTrackLevel?.(header.id, Number(event.target.value))}
-                  />
-                  <span>{Math.round(state.level * 100)}%</span>
-                </label>
-              </div>
+
+                {header.id === "video" &&
+                  openKeyframeProps.map((prop) => {
+                    const meta = ANIM_PROP_META[prop];
+                    const targetClip =
+                      clips.find(
+                        (c) =>
+                          c.keyframe.id === selectedFrameId &&
+                          expandedClipIds.has(c.keyframe.id) &&
+                          (c.keyframe.beat.animation?.[prop]?.length ?? 0) > 0,
+                      ) ||
+                      clips.find(
+                        (c) =>
+                          expandedClipIds.has(c.keyframe.id) &&
+                          (c.keyframe.beat.animation?.[prop]?.length ?? 0) > 0,
+                      );
+                    return (
+                      <div
+                        key={`kf-header-${prop}`}
+                        className="track-header-row is-kf-sublane"
+                        data-testid={`kf-lane-header-${prop}`}
+                      >
+                        <div className="kf-sublane-header-inner">
+                          <span className="kf-sublane-dot" style={{ background: meta.color }} />
+                          <span className="kf-sublane-title">{meta.label}</span>
+                          {targetClip && (
+                            <button
+                              type="button"
+                              className="kf-sublane-curve-btn"
+                              data-testid={`open-curve-editor-${prop}`}
+                              title={`Open Curve Editor for ${meta.label}`}
+                              onClick={() => onOpenCurveEditor?.(targetClip.keyframe.id, prop)}
+                            >
+                              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                                <path d="M1,8.5 C4,8.5 6,1.5 9,1.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                              <span>Curve</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                {header.id === "video" && hasExpandedWithoutKeys && (
+                  <div
+                    className="track-header-row is-kf-sublane is-empty"
+                    data-testid="kf-lane-header-empty"
+                  >
+                    <div className="kf-sublane-header-inner">
+                      <span className="kf-sublane-title">Keyframes</span>
+                    </div>
+                  </div>
+                )}
+              </Fragment>
             );
           })}
         </aside>
@@ -1254,6 +1378,18 @@ export function Timeline({
                     isMulti={
                       selectedFrameIds.includes(clip.keyframe.id) ||
                       multiSelection.pictureIds.includes(clip.keyframe.id)
+                    }
+                    isLanesOpen={expandedClipIds.has(clip.keyframe.id)}
+                    onToggleLanes={() => toggleClipExpanded(clip.keyframe.id)}
+                    onOpenDiamondMenu={(prop, frame, currentEasing, clientX, clientY) =>
+                      setDiamondMenu({
+                        frameId: clip.keyframe.id,
+                        prop,
+                        frame,
+                        currentEasing,
+                        clientX,
+                        clientY,
+                      })
                     }
                     selectedFrameIds={selectedFrameIds}
                     selectedDiamonds={multiSelection.keyframes}
@@ -1654,6 +1790,74 @@ export function Timeline({
 
           </div>
 
+          {openKeyframeProps.map((prop) => (
+            <div
+              key={`kf-lane-${prop}`}
+              ref={(el) => {
+                kfLaneRefs.current[prop] = el;
+              }}
+              className="timeline-kf-lane"
+              data-testid={`kf-lane-${prop}`}
+              data-prop={prop}
+            >
+              {visibleClips.map((clip) => {
+                if (!expandedClipIds.has(clip.keyframe.id)) return null;
+                const keys = clip.keyframe.beat.animation?.[prop];
+                if (!keys?.length) return null;
+                return (
+                  <KeyframePropertyStrip
+                    key={`kf-strip-${clip.keyframe.id}-${prop}`}
+                    clip={clip}
+                    prop={prop}
+                    pxPerFrame={pxPerFrame}
+                    snapEnabled={snapEnabled}
+                    selectedDiamonds={multiSelection.keyframes}
+                    getSnapTargetsForWindow={getSnapTargetsForWindow}
+                    onSetSnapGuide={setSnapGuideFrame}
+                    onScrub={onScrub}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
+                    onAnimationPreview={onAnimationPreview}
+                    onSelectKeyframeDiamond={onSelectKeyframeDiamond}
+                    onOpenCurveEditor={() => onOpenCurveEditor?.(clip.keyframe.id, prop)}
+                    onOpenDiamondMenu={(frame, currentEasing, clientX, clientY) =>
+                      setDiamondMenu({
+                        frameId: clip.keyframe.id,
+                        prop,
+                        frame,
+                        currentEasing,
+                        clientX,
+                        clientY,
+                      })
+                    }
+                  />
+                );
+              })}
+            </div>
+          ))}
+
+          {hasExpandedWithoutKeys && (
+            <div
+              className="timeline-kf-lane is-empty"
+              data-testid="kf-lane-empty"
+            >
+              {visibleClips
+                .filter((c) => expandedClipIds.has(c.keyframe.id))
+                .map((c) => (
+                  <div
+                    key={`empty-strip-${c.keyframe.id}`}
+                    className="kf-lane-empty-note"
+                    style={{
+                      left: c.startFrame * pxPerFrame,
+                      width: Math.max(80, c.durationFrames * pxPerFrame),
+                    }}
+                  >
+                    Add ◆ keyframes in Inspector to animate properties
+                  </div>
+                ))}
+            </div>
+          )}
+
           <Tracks
             clips={clips}
             resolvedAudioClips={resolvedAudioClips}
@@ -1736,6 +1940,90 @@ export function Timeline({
         </div>
         </div>
       </div>
+
+      {diamondMenu && (
+        <div
+          className="diamond-easing-menu"
+          data-testid="diamond-easing-menu"
+          role="menu"
+          style={{
+            left: Math.min(
+              typeof window !== "undefined" ? window.innerWidth - 190 : diamondMenu.clientX,
+              diamondMenu.clientX,
+            ),
+            top: Math.min(
+              typeof window !== "undefined" ? window.innerHeight - 240 : diamondMenu.clientY,
+              diamondMenu.clientY,
+            ),
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="diamond-menu-head">
+            <span>{ANIM_PROP_META[diamondMenu.prop].label}</span>
+            <small>+{diamondMenu.frame}f</small>
+          </div>
+          {(
+            [
+              { easing: "linear", label: "Linear" },
+              { easing: "ease-in", label: "Ease in" },
+              { easing: "ease-out", label: "Ease out" },
+              { easing: "ease-in-out", label: "Ease in-out" },
+              { easing: "bezier", label: "Bezier curve" },
+              { easing: "hold", label: "Hold" },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.easing}
+              type="button"
+              role="menuitemradio"
+              aria-checked={diamondMenu.currentEasing === opt.easing}
+              data-testid={`diamond-menu-easing-${opt.easing}`}
+              className={`diamond-menu-item ${diamondMenu.currentEasing === opt.easing ? "is-active" : ""}`}
+              onClick={() => {
+                const targetClip = clips.find((c) => c.keyframe.id === diamondMenu.frameId);
+                if (targetClip) {
+                  const updated = setKeyEasingAtFrame(
+                    targetClip.keyframe.beat.animation,
+                    diamondMenu.prop,
+                    diamondMenu.frame,
+                    opt.easing,
+                  );
+                  if (onCommitAnimation) {
+                    onCommitAnimation(
+                      diamondMenu.frameId,
+                      updated,
+                      `${ANIM_PROP_META[diamondMenu.prop].label} easing set to ${opt.easing}`,
+                    );
+                  } else {
+                    onDragStart();
+                    onAnimationPreview(diamondMenu.frameId, updated);
+                    onDragEnd(`${ANIM_PROP_META[diamondMenu.prop].label} easing set to ${opt.easing}`);
+                  }
+                  if (opt.easing === "bezier") {
+                    onOpenCurveEditor?.(diamondMenu.frameId, diamondMenu.prop);
+                  }
+                }
+                setDiamondMenu(null);
+              }}
+            >
+              <span>{opt.label}</span>
+              {diamondMenu.currentEasing === opt.easing && <i>✓</i>}
+            </button>
+          ))}
+          <hr className="diamond-menu-sep" />
+          <button
+            type="button"
+            className="diamond-menu-item is-curve-link"
+            data-testid="diamond-menu-open-curve"
+            onClick={() => {
+              onOpenCurveEditor?.(diamondMenu.frameId, diamondMenu.prop);
+              setDiamondMenu(null);
+            }}
+          >
+            <span>Open Curve Editor…</span>
+          </button>
+        </div>
+      )}
     </section>
   );
 }
@@ -1747,6 +2035,9 @@ function ClipItem({
   snapEnabled,
   isSelected,
   isMulti,
+  isLanesOpen = false,
+  onToggleLanes,
+  onOpenDiamondMenu,
   selectedFrameIds,
   selectedDiamonds = [],
   hasCoSelectedOtherLanes = false,
@@ -1775,6 +2066,15 @@ function ClipItem({
   snapEnabled: boolean;
   isSelected: boolean;
   isMulti: boolean;
+  isLanesOpen?: boolean;
+  onToggleLanes?: () => void;
+  onOpenDiamondMenu?: (
+    prop: AnimProp,
+    frame: number,
+    currentEasing: KeyEasing,
+    clientX: number,
+    clientY: number,
+  ) => void;
   selectedFrameIds: string[];
   selectedDiamonds?: ReadonlyArray<SelectedKeyframeDiamond>;
   hasCoSelectedOtherLanes?: boolean;
@@ -1846,6 +2146,8 @@ function ClipItem({
     prop: AnimProp;
     startX: number;
     initialFrame: number;
+    lastFrame: number;
+    copy: boolean;
     initialAnim: BeatAnimation | undefined;
     moved: boolean;
   } | null>(null);
@@ -1996,15 +2298,40 @@ function ClipItem({
           <span>Gap · drop a picture</span>
         </div>
       ) : (
-        width >= 18 && (
+        (width >= 18 || isSelected || Boolean(anim)) && (
           <div className="timeline-clip-overlay">
-            <span className="timeline-clip-mark">{kf.mark}</span>
-            {kf.beat.audioUrl && width >= 38 && (
+            <button
+              type="button"
+              className={`clip-lanes-toggle ${isLanesOpen ? "is-open" : ""} ${animatedPropsOf(anim).length > 0 ? "has-keys" : ""}`}
+              data-testid={`clip-lanes-toggle-${kf.id}`}
+              aria-expanded={isLanesOpen}
+              aria-label={isLanesOpen ? "Hide keyframe lanes" : "Show keyframe lanes"}
+              title={
+                isLanesOpen
+                  ? "Hide animated property lanes"
+                  : "Show animated property lanes under clip"
+              }
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleLanes?.();
+              }}
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
+                {isLanesOpen ? (
+                  <path d="M1,2.2 L7,2.2 L4,6.4 Z" fill="currentColor" />
+                ) : (
+                  <path d="M2.2,1 L6.4,4 L2.2,7 Z" fill="currentColor" />
+                )}
+              </svg>
+            </button>
+            {width >= 24 && <span className="timeline-clip-mark">{kf.mark}</span>}
+            {kf.beat.audioUrl && width >= 44 && (
               <span className="timeline-clip-vox-badge" title={`Voice: ${kf.beat.audioUrl}`}>
                 ◉
               </span>
             )}
-            {width >= 52 && (
+            {width >= 58 && (
               <span className="timeline-clip-label">
                 {pictureLabel(picture, true, kf.speaker || "No picture")}
               </span>
@@ -2015,7 +2342,7 @@ function ClipItem({
 
       {(isSelected || selectedDiamonds.some((d) => d.frameId === kf.id)) && anim && (
         <div className="timeline-clip-keyframes">
-          {(["zoom", "x", "y"] as const).map((prop) =>
+          {ANIM_PROPS.map((prop) =>
             (anim[prop] ?? []).map((key) => {
               const clampedFrame = Math.max(0, Math.min(clip.durationFrames - 1, key.frame));
               const keyLeftPx = Math.max(
@@ -2031,16 +2358,33 @@ function ClipItem({
                   key={`${prop}-${key.frame}`}
                   className={`clip-key-diamond prop-${prop} ${isDiamondSelected ? "is-selected" : ""}`}
                   data-testid={`clip-diamond-${prop}-${key.frame}`}
-                  style={{ left: keyLeftPx }}
-                  title={`${prop}: ${key.value} @ +${key.frame}f (${key.easing}) — click to select, Delete to remove`}
+                  style={{
+                    left: keyLeftPx,
+                    color: ANIM_PROP_META[prop].color,
+                  }}
+                  title={`${ANIM_PROP_META[prop].label}: ${key.value} @ +${key.frame}f (${key.easing}) — drag to move, Alt+drag to copy, right-click for easing`}
                   onClick={(event) => event.stopPropagation()}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onOpenDiamondMenu?.(
+                      prop,
+                      key.frame,
+                      key.easing,
+                      event.clientX,
+                      event.clientY,
+                    );
+                  }}
                   onPointerDown={(event) => {
+                    if (event.button !== 0) return;
                     event.stopPropagation();
                     event.currentTarget.setPointerCapture(event.pointerId);
                     keySession.current = {
                       prop,
                       startX: event.clientX,
                       initialFrame: key.frame,
+                      lastFrame: key.frame,
+                      copy: event.altKey,
                       initialAnim: JSON.parse(JSON.stringify(anim)) as BeatAnimation,
                       moved: false,
                     };
@@ -2050,7 +2394,9 @@ function ClipItem({
                     const session = keySession.current;
                     if (!session) return;
                     const dx = event.clientX - session.startX;
-                    if (Math.abs(dx) > 2) session.moved = true;
+                    if (!session.moved && Math.abs(dx) <= 2) return;
+                    session.moved = true;
+                    session.copy = event.altKey || session.copy;
                     const effectiveSnap = snapEnabled && !(event.ctrlKey || event.metaKey);
                     const rawAbsFrame = clip.startFrame + session.initialFrame + dx / pxPerFrame;
                     const targets = getSnapTargetsForWindow(rawAbsFrame, undefined, false, {
@@ -2064,16 +2410,25 @@ function ClipItem({
                       0,
                       Math.min(
                         Math.max(0, clip.durationFrames - 1),
-                        snapped.frame - clip.startFrame,
+                        Math.round(snapped.frame - clip.startFrame),
                       ),
                     );
-                    const updated = moveKeyToFrame(
-                      session.initialAnim,
-                      session.prop,
-                      session.initialFrame,
-                      nextLocal,
-                      Math.max(0, clip.durationFrames - 1),
-                    );
+                    session.lastFrame = nextLocal;
+                    const updated = session.copy
+                      ? copyKeyToFrame(
+                          session.initialAnim,
+                          session.prop,
+                          session.initialFrame,
+                          nextLocal,
+                          Math.max(0, clip.durationFrames - 1),
+                        )
+                      : moveKeyToFrame(
+                          session.initialAnim,
+                          session.prop,
+                          session.initialFrame,
+                          nextLocal,
+                          Math.max(0, clip.durationFrames - 1),
+                        );
                     onAnimationPreview(kf.id, updated);
                   }}
                   onPointerUp={(event) => {
@@ -2083,7 +2438,11 @@ function ClipItem({
                     onSetSnapGuide(null);
                     if (!session) return;
                     if (session.moved) {
-                      onDragEnd(`${session.prop} keyframe moved`);
+                      onDragEnd(
+                        session.copy
+                          ? `${ANIM_PROP_META[session.prop].label} keyframe copied`
+                          : `${ANIM_PROP_META[session.prop].label} keyframe moved`,
+                      );
                     } else {
                       onDragEnd("");
                       onSelectKeyframeDiamond?.(
@@ -2101,7 +2460,7 @@ function ClipItem({
                     onDragEnd("");
                   }}
                 >
-                  ◆
+                  <i className="diamond-shape" aria-hidden="true" />
                 </button>
               );
             }),
@@ -2155,3 +2514,254 @@ function ClipItem({
     </div>
   );
 }
+
+function KeyframePropertyStrip({
+  clip,
+  prop,
+  pxPerFrame,
+  snapEnabled,
+  selectedDiamonds,
+  getSnapTargetsForWindow,
+  onSetSnapGuide,
+  onScrub,
+  onDragStart,
+  onDragEnd,
+  onAnimationPreview,
+  onSelectKeyframeDiamond,
+  onOpenCurveEditor,
+  onOpenDiamondMenu,
+}: {
+  clip: TimelineClip;
+  prop: AnimProp;
+  pxPerFrame: number;
+  snapEnabled: boolean;
+  selectedDiamonds: ReadonlyArray<SelectedKeyframeDiamond>;
+  getSnapTargetsForWindow: (
+    centerFrame: number,
+    excludeClipIds?: Set<string>,
+    excludePlayhead?: boolean,
+    excludeKeyframe?: { clipId: string; prop: string; frame: number },
+  ) => ReturnType<typeof collectSnapTargets>;
+  onSetSnapGuide: (frame: number | null) => void;
+  onScrub: (frame: number) => void;
+  onDragStart: () => void;
+  onDragEnd: (label: string) => void;
+  onAnimationPreview: (frameId: string, animation: BeatAnimation | undefined) => void;
+  onSelectKeyframeDiamond?: (diamond: SelectedKeyframeDiamond, additive: boolean) => void;
+  onOpenCurveEditor: () => void;
+  onOpenDiamondMenu: (
+    frame: number,
+    currentEasing: KeyEasing,
+    clientX: number,
+    clientY: number,
+  ) => void;
+}) {
+  const kf = clip.keyframe;
+  const meta = ANIM_PROP_META[prop];
+  const anim = kf.beat.animation;
+  const keys = anim?.[prop] ?? [];
+  const left = clip.startFrame * pxPerFrame;
+  const width = Math.max(8, clip.durationFrames * pxPerFrame);
+  const maxLocal = Math.max(0, clip.durationFrames - 1);
+  const fallbackVal = defaultValueForProp(prop, clip);
+
+  const keySession = useRef<{
+    startX: number;
+    initialFrame: number;
+    lastFrame: number;
+    copy: boolean;
+    initialAnim: BeatAnimation | undefined;
+    moved: boolean;
+  } | null>(null);
+
+  const sparklinePoints = useMemo(() => {
+    const H = 26;
+    const padY = 4;
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const k of keys) {
+      if (k.value < lo) lo = k.value;
+      if (k.value > hi) hi = k.value;
+    }
+    const span = hi - lo;
+    const yMin = span > 1e-6 ? lo : meta.min;
+    const yMax = span > 1e-6 ? hi : meta.max;
+    const denom = yMax - yMin || 1;
+
+    const samples = Math.min(96, Math.max(12, Math.round(width / 3)));
+    const pts: string[] = [];
+    for (let i = 0; i <= samples; i += 1) {
+      const ratio = i / samples;
+      const f = ratio * maxLocal;
+      const val = evaluateChannel(keys, f, fallbackVal);
+      const norm = Math.max(0, Math.min(1, (val - yMin) / denom));
+      const x = ratio * width;
+      const y = padY + (1 - norm) * (H - padY * 2);
+      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+    }
+    return pts.join(" ");
+  }, [fallbackVal, keys, maxLocal, meta.max, meta.min, width]);
+
+  return (
+    <div
+      className="kf-lane-strip"
+      data-testid={`kf-lane-strip-${kf.id}-${prop}`}
+      style={{ left, width }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onOpenCurveEditor();
+      }}
+      title={`${meta.label} lane (SC ${kf.mark}/${kf.number}) — double-click to open Curve Editor`}
+    >
+      <svg
+        className="kf-lane-sparkline"
+        data-testid={`kf-lane-line-${kf.id}-${prop}`}
+        width={width}
+        height={26}
+        viewBox={`0 0 ${width} 26`}
+        preserveAspectRatio="none"
+      >
+        <polyline
+          points={sparklinePoints}
+          fill="none"
+          stroke={meta.color}
+          strokeWidth={1.6}
+          strokeOpacity={0.9}
+        />
+      </svg>
+
+      {width >= 44 && (
+        <button
+          type="button"
+          className="kf-strip-curve-btn"
+          data-testid={`strip-curve-btn-${kf.id}-${prop}`}
+          title={`Open ${meta.label} Curve Editor`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenCurveEditor();
+          }}
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M1,8.5 C4,8.5 6,1.5 9,1.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
+
+      {keys.map((key, idx) => {
+        const clampedFrame = Math.max(0, Math.min(maxLocal, key.frame));
+        const keyLeftPx = Math.max(
+          4,
+          Math.min(Math.max(4, width - 8), (clampedFrame + 0.5) * pxPerFrame),
+        );
+        const isDiamondSelected = selectedDiamonds.some(
+          (d) => d.frameId === kf.id && d.prop === prop && d.frame === key.frame,
+        );
+        return (
+          <button
+            type="button"
+            key={`${prop}-${key.frame}-${idx}`}
+            className={`kf-lane-diamond ${isDiamondSelected ? "is-selected" : ""}`}
+            data-testid={`lane-diamond-${kf.id}-${prop}-${key.frame}`}
+            style={{
+              left: keyLeftPx,
+              color: isDiamondSelected ? "#ffffff" : meta.color,
+            }}
+            title={`${meta.label}: ${key.value.toFixed(meta.decimals)}${meta.suffix} @ +${key.frame}f (${key.easing}) — drag to move, Alt+drag to copy, right-click for easing`}
+            onClick={(event) => event.stopPropagation()}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onOpenDiamondMenu(key.frame, key.easing, event.clientX, event.clientY);
+            }}
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              event.stopPropagation();
+              event.currentTarget.setPointerCapture(event.pointerId);
+              keySession.current = {
+                startX: event.clientX,
+                initialFrame: key.frame,
+                lastFrame: key.frame,
+                copy: event.altKey,
+                initialAnim: anim ? (JSON.parse(JSON.stringify(anim)) as BeatAnimation) : undefined,
+                moved: false,
+              };
+              onDragStart();
+            }}
+            onPointerMove={(event) => {
+              const session = keySession.current;
+              if (!session) return;
+              const dx = event.clientX - session.startX;
+              if (!session.moved && Math.abs(dx) <= 2) return;
+              session.moved = true;
+              session.copy = event.altKey || session.copy;
+              const effectiveSnap = snapEnabled && !(event.ctrlKey || event.metaKey);
+              const rawAbsFrame = clip.startFrame + session.initialFrame + dx / pxPerFrame;
+              const targets = getSnapTargetsForWindow(rawAbsFrame, undefined, false, {
+                clipId: kf.id,
+                prop,
+                frame: session.initialFrame,
+              });
+              const snapped = snapFrame(rawAbsFrame, targets, pxPerFrame, effectiveSnap);
+              onSetSnapGuide(snapped.snapped ? snapped.frame : null);
+              const nextLocal = Math.max(
+                0,
+                Math.min(maxLocal, Math.round(snapped.frame - clip.startFrame)),
+              );
+              session.lastFrame = nextLocal;
+              const updated = session.copy
+                ? copyKeyToFrame(
+                    session.initialAnim,
+                    prop,
+                    session.initialFrame,
+                    nextLocal,
+                    maxLocal,
+                  )
+                : moveKeyToFrame(
+                    session.initialAnim,
+                    prop,
+                    session.initialFrame,
+                    nextLocal,
+                    maxLocal,
+                  );
+              onAnimationPreview(kf.id, updated);
+            }}
+            onPointerUp={(event) => {
+              event.stopPropagation();
+              const session = keySession.current;
+              keySession.current = null;
+              onSetSnapGuide(null);
+              if (!session) return;
+              if (session.moved) {
+                onDragEnd(
+                  session.copy
+                    ? `${meta.label} keyframe copied`
+                    : `${meta.label} keyframe moved`,
+                );
+                onSelectKeyframeDiamond?.(
+                  { frameId: kf.id, prop, frame: session.lastFrame },
+                  false,
+                );
+              } else {
+                onDragEnd("");
+                onSelectKeyframeDiamond?.(
+                  { frameId: kf.id, prop, frame: session.initialFrame },
+                  event.shiftKey,
+                );
+                onScrub(clip.startFrame + Math.min(maxLocal, session.initialFrame));
+              }
+            }}
+            onPointerCancel={() => {
+              keySession.current = null;
+              onSetSnapGuide(null);
+              onDragEnd("");
+            }}
+          >
+            <i className="diamond-shape" aria-hidden="true" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, ty
 import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
 import type { SelectedCaptionState } from "./components/CaptionLane";
 import { CinematicPreview } from "./components/CinematicPreview";
+import { CurveEditor } from "./components/CurveEditor";
 import { CropModal, type CropState } from "./components/CropModal";
 import { ExportModal, type ExportTab } from "./components/ExportModal";
 import {
@@ -122,7 +123,19 @@ import {
 } from "./core/previewAudio";
 import { webAudioEngine } from "./core/webAudioEngine";
 import { preloadDepthParallaxAssets } from "./components/FrameDepthParallax";
-import { buildTimelineClips, clipAtFrame, evaluate, hasAnimationKeyframes } from "./sequence/animate";
+import {
+  buildTimelineClips,
+  clipAtFrame,
+  copySelectedKeyframes,
+  evaluate,
+  hasAnimationKeyframes,
+  nextKeyframeFrameOnClip,
+  pasteClipAnimationOnto,
+  pasteCopiedKeyframesAt,
+  prevKeyframeFrameOnClip,
+  type AnimProp,
+  type CopiedKeyframeItem,
+} from "./sequence/animate";
 import {
   activeTransitionAtFrame,
   readCutTransition,
@@ -254,6 +267,12 @@ export default function App() {
   copiedClipsRef.current = copiedClips;
 
   const [copiedEffects, setCopiedEffects] = useState<EffectBlock | null>(null);
+  const [copiedAnimation, setCopiedAnimation] = useState<BeatAnimation | null>(null);
+  const [copiedKeyframes, setCopiedKeyframes] = useState<CopiedKeyframeItem[]>([]);
+  const copiedKeyframesRef = useRef<CopiedKeyframeItem[]>([]);
+  copiedKeyframesRef.current = copiedKeyframes;
+  const lastCopyModeRef = useRef<"keyframes" | "clips">("clips");
+  const [curveEditor, setCurveEditor] = useState<{ frameId: string; prop: AnimProp } | null>(null);
   const [historyVersion, setHistoryVersion] = useState(0);
   const [saveStatus, setSaveStatus] = useState("LOADING");
   const [editLabel, setEditLabel] = useState("Ready");
@@ -1071,6 +1090,16 @@ export default function App() {
     const current = projectRef.current;
     if (!current) return;
     const sel = multiSelectionRef.current;
+    if (sel.keyframes.length > 0 && sel.pictureIds.length === 0 && sel.audioClipIds.length === 0 && sel.captions.length === 0) {
+      const items = copySelectedKeyframes(clips, sel.keyframes);
+      if (!items.length) return;
+      copiedKeyframesRef.current = items;
+      setCopiedKeyframes(items);
+      lastCopyModeRef.current = "keyframes";
+      setEditLabel(`Copied ${items.length} keyframe${items.length === 1 ? "" : "s"}`);
+      return;
+    }
+    lastCopyModeRef.current = "clips";
     if (
       sel.audioClipIds.length > 0 ||
       sel.captions.length > 0 ||
@@ -1099,11 +1128,56 @@ export default function App() {
     setMultiClipboard(null);
     setCopiedClips(beats);
     setEditLabel(`Copied ${beats.length} clip${beats.length === 1 ? "" : "s"}`);
-  }, [selectedFrameId, voiceDurations]);
+  }, [clips, selectedFrameId, voiceDurations]);
 
   const handlePasteClips = useCallback(() => {
     const current = projectRef.current;
     if (!current) return;
+    if (lastCopyModeRef.current === "keyframes" && copiedKeyframesRef.current.length > 0) {
+      const explicitSelected = clips.find((c) => c.keyframe.id === selectedFrameId);
+      const underPlayhead = clipAtFrame(clips, playheadRef.current);
+      const targetClip =
+        explicitSelected &&
+        playheadRef.current >= explicitSelected.startFrame &&
+        playheadRef.current < explicitSelected.endFrame
+          ? explicitSelected
+          : underPlayhead || explicitSelected;
+      if (!targetClip) return;
+      const inTarget =
+        playheadRef.current >= targetClip.startFrame && playheadRef.current < targetClip.endFrame;
+      const anchorLocal = inTarget ? playheadRef.current - targetClip.startFrame : 0;
+      const res = pasteCopiedKeyframesAt(
+        targetClip.keyframe.beat.animation,
+        copiedKeyframesRef.current,
+        anchorLocal,
+        targetClip.durationFrames,
+      );
+      const msg =
+        res.droppedCount > 0
+          ? `Pasted ${res.pastedCount} keyframe${res.pastedCount === 1 ? "" : "s"} (${res.droppedCount} dropped after clip end)`
+          : `Pasted ${res.pastedCount} keyframe${res.pastedCount === 1 ? "" : "s"}`;
+      if (res.pastedCount > 0) {
+        applyProject(
+          setBeatAnimation(current, targetClip.keyframe.id, res.animation),
+          msg,
+        );
+        const nextSel: MultiLaneSelection = {
+          pictureIds: [],
+          captions: [],
+          audioClipIds: [],
+          keyframes: res.pastedKeys.map((k) => ({
+            frameId: targetClip.keyframe.id,
+            prop: k.prop,
+            frame: k.frame,
+          })),
+        };
+        multiSelectionRef.current = nextSel;
+        setMultiSelection(nextSel);
+      } else {
+        setEditLabel(msg);
+      }
+      return;
+    }
     const mClip = multiClipboardRef.current;
     if (mClip && (mClip.audioClips.length > 0 || mClip.beats.length > 0 || mClip.standaloneCaptions.length > 0)) {
       const result = pasteMultiSelectionAt(current, mClip, playheadRef.current, voiceDurations);
@@ -1128,7 +1202,37 @@ export default function App() {
       audioClipIds: [],
       keyframes: [],
     });
-  }, [applyProject, handleSetMultiSelection, voiceDurations]);
+  }, [applyProject, clips, handleSetMultiSelection, selectedFrameId, voiceDurations]);
+
+  const jumpPrevKeyframe = useCallback(() => {
+    const targetClip = selectedClip || clipAtFrame(clips, playheadRef.current);
+    if (!targetClip) return;
+    const localCur = playheadRef.current - targetClip.startFrame;
+    const prevLocal = prevKeyframeFrameOnClip(
+      targetClip.keyframe.beat.animation,
+      localCur,
+      targetClip.durationFrames,
+    );
+    if (prevLocal !== undefined) {
+      scrubToFrame(targetClip.startFrame + prevLocal);
+      setEditLabel(`Keyframe +${prevLocal}f`);
+    }
+  }, [clips, scrubToFrame, selectedClip]);
+
+  const jumpNextKeyframe = useCallback(() => {
+    const targetClip = selectedClip || clipAtFrame(clips, playheadRef.current);
+    if (!targetClip) return;
+    const localCur = playheadRef.current - targetClip.startFrame;
+    const nextLocal = nextKeyframeFrameOnClip(
+      targetClip.keyframe.beat.animation,
+      localCur,
+      targetClip.durationFrames,
+    );
+    if (nextLocal !== undefined) {
+      scrubToFrame(targetClip.startFrame + nextLocal);
+      setEditLabel(`Keyframe +${nextLocal}f`);
+    }
+  }, [clips, scrubToFrame, selectedClip]);
 
   const handleAddMarkerAtPlayhead = useCallback(() => {
     const current = projectRef.current;
@@ -2457,6 +2561,12 @@ export default function App() {
       } else if (event.key === "ArrowDown") {
         event.preventDefault();
         selectRelativeClip(1);
+      } else if (!mod && !event.altKey && event.key === "[") {
+        event.preventDefault();
+        jumpPrevKeyframe();
+      } else if (!mod && !event.altKey && event.key === "]") {
+        event.preventDefault();
+        jumpNextKeyframe();
       } else if (!mod && event.key.toLowerCase() === "s") {
         event.preventDefault();
         splitAtPlayhead();
@@ -2554,6 +2664,8 @@ export default function App() {
     handleCopyClips,
     handleNudgeSelectedAudio,
     handlePasteClips,
+    jumpNextKeyframe,
+    jumpPrevKeyframe,
     playback,
     redo,
     resolveMedia,
@@ -2654,6 +2766,39 @@ export default function App() {
       (current) => pasteEffectBlock(current, targets, copiedEffects),
       `Effects pasted to ${targets.length} clips`,
     );
+  }
+
+  function copyAnimation(): void {
+    if (!selectedFrame?.beat.animation) return;
+    setCopiedAnimation(JSON.parse(JSON.stringify(selectedFrame.beat.animation)) as BeatAnimation);
+    setEditLabel("Animation copied");
+  }
+
+  function pasteAnimation(): void {
+    const current = projectRef.current;
+    if (!current || !copiedAnimation) return;
+    const targetIds = selectedFrameIds.length
+      ? selectedFrameIds
+      : selectedFrame
+        ? [selectedFrame.id]
+        : [];
+    if (!targetIds.length) return;
+    let next = current;
+    let totalPasted = 0;
+    let totalDropped = 0;
+    for (const id of targetIds) {
+      const targetClip = clips.find((c) => c.keyframe.id === id);
+      if (!targetClip) continue;
+      const res = pasteClipAnimationOnto(copiedAnimation, targetClip.durationFrames);
+      totalPasted += res.pastedCount;
+      totalDropped += res.droppedCount;
+      next = setBeatAnimation(next, id, res.animation);
+    }
+    const msg =
+      totalDropped > 0
+        ? `Animation pasted (${totalDropped} keyframe${totalDropped === 1 ? "" : "s"} dropped after clip end)`
+        : `Animation pasted (${totalPasted} keyframe${totalPasted === 1 ? "" : "s"})`;
+    applyProject(next, msg);
   }
 
   async function exportBundle(): Promise<void> {
@@ -2903,7 +3048,7 @@ export default function App() {
         totalDuration={totalSeconds}
       />
 
-      <div className="editor-body">
+      <div className={`editor-body ${curveEditor ? "has-curve-editor" : ""}`}>
         <div className={`upper-workspace ${mediaBinOpen ? "has-bin" : ""}`}>
           <MediaBin
             open={mediaBinOpen}
@@ -3288,6 +3433,14 @@ export default function App() {
             }
             onCopyEffects={copyEffects}
             onPasteEffects={pasteEffects}
+            copiedAnimation={copiedAnimation}
+            onCopyAnimation={copyAnimation}
+            onPasteAnimation={pasteAnimation}
+            onOpenCurveEditor={(prop) =>
+              setCurveEditor({ frameId: selectedFrame.id, prop })
+            }
+            onJumpPrevKeyframe={jumpPrevKeyframe}
+            onJumpNextKeyframe={jumpNextKeyframe}
             onPlayVoice={() => {
               if (activeAudioClip && activeAudioClip.lane === "voice") {
                 webAudioEngine.previewClip(activeAudioClip, resolveMedia);
@@ -3404,7 +3557,46 @@ export default function App() {
           />
         </div>
 
-        <div className="lower-timeline-dock">
+        <div className={`lower-timeline-dock ${curveEditor ? "has-curve-editor" : ""}`}>
+          {curveEditor && (() => {
+            const curveClip =
+              clips.find((c) => c.keyframe.id === curveEditor.frameId) || selectedClip;
+            const curveLocal = Math.max(
+              0,
+              Math.min(curveClip.durationFrames - 1, playheadFrame - curveClip.startFrame),
+            );
+            return (
+              <CurveEditor
+                clip={curveClip}
+                prop={curveEditor.prop}
+                localFrame={curveLocal}
+                onChangeProp={(nextProp) =>
+                  setCurveEditor({ frameId: curveClip.keyframe.id, prop: nextProp })
+                }
+                onClose={() => setCurveEditor(null)}
+                onScrubLocalFrame={(local) =>
+                  scrubToFrame(
+                    curveClip.startFrame +
+                      Math.max(0, Math.min(curveClip.durationFrames - 1, local)),
+                  )
+                }
+                onSetAnimation={(animation, label) =>
+                  editProject(
+                    (current) => setBeatAnimation(current, curveClip.keyframe.id, animation),
+                    label,
+                  )
+                }
+                onPreviewAnimation={(animation) =>
+                  previewProjectEdit((current) =>
+                    setBeatAnimation(current, curveClip.keyframe.id, animation),
+                  )
+                }
+                onDragStart={beginDragEdit}
+                onDragEnd={endDragEdit}
+              />
+            );
+          })()}
+
           <Timeline
             clips={clips}
             totalFrames={totalFrames}
@@ -3415,7 +3607,11 @@ export default function App() {
             noteMarkers={noteMarkers}
             editingMarkerId={editingMarkerId}
             canSplit={canSplit}
-            hasClipboard={copiedClips.length > 0 || Boolean(multiClipboard)}
+            hasClipboard={
+              copiedClips.length > 0 ||
+              Boolean(multiClipboard) ||
+              copiedKeyframes.length > 0
+            }
             musicDurations={musicDurations}
             trackMix={trackMix}
             resolveMedia={resolveMedia}
@@ -3448,6 +3644,17 @@ export default function App() {
             onAnimationPreview={(frameId, animation) =>
               previewProjectEdit((current) => setBeatAnimation(current, frameId, animation))
             }
+            onCommitAnimation={(frameId, animation, label) =>
+              editProject((current) => setBeatAnimation(current, frameId, animation), label)
+            }
+            onOpenCurveEditor={(frameId, prop) => {
+              const hit = clips.find((c) => c.keyframe.id === frameId);
+              if (hit && selectedFrameId !== frameId) {
+                setSelectedFrameId(frameId);
+                setSelectedFrameIds([frameId]);
+              }
+              setCurveEditor({ frameId, prop });
+            }}
             onCopy={handleCopyClips}
             onPaste={handlePasteClips}
             onSplit={splitAtPlayhead}

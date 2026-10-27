@@ -713,4 +713,116 @@ describe("App and studio windows", () => {
     expect(transitionHtml).toContain("translate(3%, 0%) scale(1.2)");
     expect(transitionHtml).toContain('class="depth-parallax"');
   });
+
+  it("applies animated opacity, blur, exposure, rotation, and gradeStrength directly to the viewer style", () => {
+    const project = createProjectState({
+      sourceName: "viewer-props-test.json",
+      story: {
+        id: "viewer-props-test",
+        title: "Viewer Props Test",
+        startSceneId: "s1",
+        characters: [],
+        scenes: [
+          {
+            id: "s1",
+            title: "Scene 1",
+            background: "/film/img/s1/shot.jpg",
+            cinematic: {
+              mode: "static",
+              colorGrade: "noir",
+              filmGrade: true,
+            },
+            dialogueBeats: [
+              {
+                id: "b1",
+                text: "Fading in from blur",
+                durationFrames: 24,
+                animation: {
+                  opacity: [
+                    { frame: 0, value: 0, easing: "linear" },
+                    { frame: 12, value: 1, easing: "linear" },
+                  ],
+                  blur: [
+                    { frame: 0, value: 16, easing: "linear" },
+                    { frame: 12, value: 0, easing: "linear" },
+                  ],
+                  exposure: [
+                    { frame: 0, value: -1, easing: "linear" },
+                    { frame: 12, value: 1, easing: "linear" },
+                  ],
+                  rotation: [
+                    { frame: 0, value: 0, easing: "linear" },
+                    { frame: 12, value: 3, easing: "linear" },
+                  ],
+                  gradeStrength: [
+                    { frame: 0, value: 0, easing: "linear" },
+                    { frame: 12, value: 0.5, easing: "linear" },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      assets: [],
+      missing: [],
+    });
+
+    const kf = buildKeyframes(project.story)[0];
+
+    // At localFrame = 0: opacity 0, blur 16px, exposure -1 -> brightness(0.5), rotation 0deg, gradeStrength 0
+    const html0 = renderToStaticMarkup(
+      <CinematicPreview
+        frame={kf}
+        localFrame={0}
+        imageSrc="/film/img/s1/shot.jpg"
+        resolveMedia={(r) => r}
+        playing={false}
+        soundOn={false}
+        showCaption={false}
+        showMark={false}
+        setFocalPoint={() => undefined}
+      />,
+    );
+    expect(html0).toContain("opacity:0");
+    expect(html0).toContain("filter:blur(16px) brightness(0.5)");
+    expect(html0).toContain("rotate(0deg)");
+    expect(html0).toContain('data-testid="cinematic-plate-graded"');
+
+    // At localFrame = 6 (halfway of 0..12): opacity 0.5, blur 8px, exposure 0 -> brightness(1), rotation 1.5deg, gradeStrength 0.25
+    const html6 = renderToStaticMarkup(
+      <CinematicPreview
+        frame={kf}
+        localFrame={6}
+        imageSrc="/film/img/s1/shot.jpg"
+        resolveMedia={(r) => r}
+        playing={false}
+        soundOn={false}
+        showCaption={false}
+        showMark={false}
+        setFocalPoint={() => undefined}
+      />,
+    );
+    expect(html6).toContain("opacity:0.5");
+    expect(html6).toContain("filter:blur(8px) brightness(1)");
+    expect(html6).toContain("rotate(1.5deg)");
+
+    // At localFrame = 12: opacity 1, blur 0px, exposure +1 -> brightness(2), rotation 3deg, gradeStrength 0.5
+    const html12 = renderToStaticMarkup(
+      <CinematicPreview
+        frame={kf}
+        localFrame={12}
+        imageSrc="/film/img/s1/shot.jpg"
+        resolveMedia={(r) => r}
+        playing={false}
+        soundOn={false}
+        showCaption={false}
+        showMark={false}
+        setFocalPoint={() => undefined}
+      />,
+    );
+    expect(html12).toContain("opacity:1");
+    expect(html12).toContain("filter:blur(0px) brightness(2)");
+    expect(html12).toContain("rotate(3deg)");
+  });
 });

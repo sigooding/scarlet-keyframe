@@ -30,18 +30,34 @@ export interface SceneLike extends AnyRecord {
   choices?: AnyRecord[];
 }
 
-export type KeyEasing = "linear" | "ease-in-out" | "hold";
+export type CubicBezierTuple = [number, number, number, number];
+
+export type KeyEasing =
+  | "linear"
+  | "ease-in"
+  | "ease-out"
+  | "ease-in-out"
+  | "hold"
+  | "bezier"
+  | `cubic-bezier(${string})`;
 
 export interface Key {
   frame: number;
   value: number;
   easing: KeyEasing;
+  bezier?: CubicBezierTuple;
 }
 
 export interface BeatAnimation {
   zoom?: Key[];
   x?: Key[];
   y?: Key[];
+  rotation?: Key[];
+  opacity?: Key[];
+  blur?: Key[];
+  exposure?: Key[];
+  gradeStrength?: Key[];
+  depthAmount?: Key[];
 }
 
 export interface BeatLike extends AnyRecord {

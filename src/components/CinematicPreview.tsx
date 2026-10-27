@@ -14,7 +14,7 @@ import {
 import type { Keyframe } from "../core/model";
 import { pictureLabel, storyboardGradient } from "../core/helpers";
 import { clipFrames, FPS } from "../core/timing";
-import { evaluate, hasAnimationKeyframes } from "../sequence/animate";
+import { evaluate, hasAnimationKeyframes, hasTransformKeyframes } from "../sequence/animate";
 import type { ActiveTransition } from "../sequence/transitions";
 
 export interface CinematicPreviewProps {
@@ -301,9 +301,14 @@ function ShotLayer({
   plateTestId: string;
 }) {
   const cinematic = (frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>;
+  const anim = frame.beat.animation;
   const hasKeyframes = hasAnimationKeyframes(frame);
+  const hasTransformKeys = hasTransformKeyframes(frame);
   const pose = evaluate(frame, localFrame);
-  const tSec = Math.max(0, hasKeyframes ? localFrame : presetFrame) / FPS;
+  const firstFrameDepthAmount = anim?.depthAmount?.length
+    ? evaluate(frame, 0).depthAmount
+    : undefined;
+  const tSec = Math.max(0, hasTransformKeys ? localFrame : presetFrame) / FPS;
 
   const picture = frame.picture || "";
   const isGradient = picture.startsWith("gradient:");
@@ -312,21 +317,32 @@ function ShotLayer({
   const plateUrl = isGradient ? picture : imageSrc || storyboardGradient(picture);
 
   const effectiveCinematic = useMemo(
-    () => (hasKeyframes ? { ...cinematic, mode: "static", shakeAmount: 0 } : cinematic),
-    [cinematic, hasKeyframes],
+    () => (hasTransformKeys ? { ...cinematic, mode: "static", shakeAmount: 0 } : cinematic),
+    [cinematic, hasTransformKeys],
+  );
+  const ungradedCinematic = useMemo(
+    () => ({ ...effectiveCinematic, colorGrade: undefined, filmGrade: false }),
+    [effectiveCinematic],
   );
   const layer = useMemo(
     () => cinematicLayer(effectiveCinematic, plateUrl),
     [effectiveCinematic, plateUrl],
+  );
+  const ungradedLayer = useMemo(
+    () => cinematicLayer(ungradedCinematic, plateUrl),
+    [ungradedCinematic, plateUrl],
   );
 
   const hasDepth = Boolean(
     cinematic.depthMap && imageSrc && !videoSrc && String(cinematic.mode ?? "pan") !== "dolly",
   );
 
+  const hasRotation = Boolean(anim?.rotation?.length) || pose.rotation !== 0;
   // Frame-deterministic plate transform: never flips mode across transitions and never relies on CSS @keyframes!
-  const keyframeTransform = `translate(${pose.x}%, ${pose.y}%) scale(${pose.zoom})`;
-  const plateTransform = hasKeyframes
+  const keyframeTransform = hasRotation
+    ? `translate(${pose.x}%, ${pose.y}%) scale(${pose.zoom}) rotate(${pose.rotation}deg)`
+    : `translate(${pose.x}%, ${pose.y}%) scale(${pose.zoom})`;
+  const plateTransform = hasTransformKeys
     ? keyframeTransform
     : hasDepth
       ? "scale(1)"
@@ -335,6 +351,9 @@ function ShotLayer({
   const basePlateStyle = imagePosition
     ? { ...layer.style, backgroundPosition: imagePosition }
     : layer.style;
+  const baseUngradedPlateStyle = imagePosition
+    ? { ...ungradedLayer.style, backgroundPosition: imagePosition }
+    : ungradedLayer.style;
 
   const plateStyle: CSSProperties = {
     ...basePlateStyle,
@@ -342,11 +361,40 @@ function ShotLayer({
     animation: "none",
     transition: "none",
   };
+  const ungradedPlateStyle: CSSProperties = {
+    ...baseUngradedPlateStyle,
+    transform: plateTransform,
+    animation: "none",
+    transition: "none",
+  };
+
+  const clampedOpacity = clamp01(pose.opacity);
+  const clampedBlur = Math.max(0, pose.blur);
+  const clampedGradeStrength = clamp01(pose.gradeStrength);
+  const hasGradeLayerSplit =
+    (Boolean(anim?.gradeStrength?.length) || clampedGradeStrength < 1) &&
+    Boolean(effectiveCinematic.colorGrade || effectiveCinematic.filmGrade);
+
+  const filterParts: string[] = [];
+  if (Boolean(anim?.blur?.length) || clampedBlur > 0) {
+    filterParts.push(`blur(${Number(clampedBlur.toFixed(4))}px)`);
+  }
+  if (Boolean(anim?.exposure?.length) || pose.exposure !== 0) {
+    const brightness = Number(Math.pow(2, pose.exposure).toFixed(6));
+    filterParts.push(`brightness(${brightness})`);
+  }
+  const cameraFilter = filterParts.length > 0 ? filterParts.join(" ") : undefined;
+  const cameraOpacity =
+    Boolean(anim?.opacity?.length) || clampedOpacity !== 1 ? clampedOpacity : undefined;
+
+  const effectiveDepthAmount =
+    firstFrameDepthAmount !== undefined ? clamp01(firstFrameDepthAmount) : cinematic.depthAmount;
 
   const resolvedCinematic = useMemo(
     () =>
       ({
         ...effectiveCinematic,
+        depthAmount: effectiveDepthAmount,
         depthMap: resolveMedia(cinematic.depthMap),
         depthPlate: resolveMedia(cinematic.depthPlate),
         depthCutouts: Array.isArray(cinematic.depthCutouts)
@@ -356,16 +404,24 @@ function ShotLayer({
             }))
           : undefined,
       }) as unknown as CinematicSettings,
-    [effectiveCinematic, cinematic.depthMap, cinematic.depthPlate, cinematic.depthCutouts, resolveMedia],
+    [
+      effectiveCinematic,
+      effectiveDepthAmount,
+      cinematic.depthMap,
+      cinematic.depthPlate,
+      cinematic.depthCutouts,
+      resolveMedia,
+    ],
   );
 
   const particleKind = (frame.beat.particles ?? frame.scene.particles ?? "none") as ParticleKind;
   const particleConfig = frame.beat.particleConfig ?? frame.scene.particleConfig;
-  const cameraWrapperTransform = hasKeyframes
+  const cameraWrapperTransform = hasTransformKeys
     ? hasDepth
       ? keyframeTransform
       : undefined
     : evaluateCameraWrapperTransform(cinematic, tSec);
+  void hasKeyframes;
 
   const shotName = pictureLabel(picture, false, "No picture on this keyframe");
 
@@ -395,8 +451,11 @@ function ShotLayer({
   return (
     <div
       className="cin-preview-camera"
+      data-testid={plateTestId === "cinematic-plate" ? "cinematic-camera" : "cinematic-camera-outgoing"}
       style={{
         transform: cameraWrapperTransform,
+        opacity: cameraOpacity,
+        filter: cameraFilter,
         transition: "none",
         animation: "none",
       }}
@@ -415,6 +474,21 @@ function ShotLayer({
           loop
           playsInline
         />
+      ) : hasGradeLayerSplit ? (
+        <>
+          <div
+            className={`cin-preview-plate ${ungradedLayer.className}`}
+            style={ungradedPlateStyle}
+            data-picture-ref={picture}
+            data-testid={plateTestId}
+          />
+          <div
+            className={`cin-preview-plate cin-graded-plate ${layer.className}`}
+            style={{ ...plateStyle, opacity: clampedGradeStrength }}
+            data-picture-ref={picture}
+            data-testid={`${plateTestId}-graded`}
+          />
+        </>
       ) : (
         <div
           className={`cin-preview-plate ${layer.className}`}
@@ -477,7 +551,21 @@ function ShotLayer({
             }}
           />
         ))}
-      <CinematicOverlays cinematic={effectiveCinematic} />
+      {hasGradeLayerSplit || clampedGradeStrength < 1 ? (
+        <div
+          className="cin-grade-overlays-wrap"
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            opacity: clampedGradeStrength,
+          }}
+        >
+          <CinematicOverlays cinematic={effectiveCinematic} />
+        </div>
+      ) : (
+        <CinematicOverlays cinematic={effectiveCinematic} />
+      )}
       <LightGlow cinematic={effectiveCinematic} />
       <LensFlareLayer cinematic={effectiveCinematic} />
       <Particles

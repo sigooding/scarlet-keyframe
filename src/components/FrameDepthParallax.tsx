@@ -186,6 +186,8 @@ export function FrameDepthParallaxLayer({
     .slice(0, MAX_CUTOUTS);
   const cutKey = cutouts.map((k) => `${k.image}@${k.depth}`).join(",");
   const amount = Math.max(0, Math.min(1, cinematic?.depthAmount ?? 0.4));
+  const amountRef = useRef(amount);
+  amountRef.current = amount;
   const motion = cinematic?.depthMotion ?? "truck";
   const seconds = Math.max(2, cinematic?.depthSeconds ?? 14);
   const direction = cinematic?.depthDirection === "left" ? -1 : 1;
@@ -291,21 +293,22 @@ export function FrameDepthParallaxLayer({
     const drawFrameAt = (timeSec: number) => {
       if (!alive || !images) return;
       prepare();
+      const curAmount = amountRef.current;
       const t = Math.max(0, timeSec);
       let zoomFar = 1;
       let zoomNear = 1;
       let slide = 0;
       if (motion === "push") {
         const p = settle(t, seconds);
-        zoomFar = 1 + amount * PUSH_FAR * p;
-        zoomNear = 1 + amount * PUSH_NEAR * p;
+        zoomFar = 1 + curAmount * PUSH_FAR * p;
+        zoomNear = 1 + curAmount * PUSH_NEAR * p;
       } else if (motion === "truck") {
-        slide = amount * TRUCK * settle(t, seconds) * direction;
+        slide = curAmount * TRUCK * settle(t, seconds) * direction;
         zoomFar = zoomNear = overscanFor(slide);
       } else {
         const grow = easeInOut(t / 2);
-        slide = amount * TRUCK * 0.5 * grow * Math.sin((2 * Math.PI * t) / seconds) * direction;
-        zoomFar = zoomNear = overscanFor(amount * TRUCK * 0.5 * grow);
+        slide = curAmount * TRUCK * 0.5 * grow * Math.sin((2 * Math.PI * t) / seconds) * direction;
+        zoomFar = zoomNear = overscanFor(curAmount * TRUCK * 0.5 * grow);
       }
       gl.uniform2f(uZoom, zoomFar, zoomNear);
       gl.uniform2f(uShift, slide, 0);
@@ -379,18 +382,18 @@ export function FrameDepthParallaxLayer({
       }, 0);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [on, picture, depthMap, plate, cutKey, amount, focus, motion, seconds, direction, focal]);
+  }, [on, picture, depthMap, plate, cutKey, focus, motion, seconds, direction, focal]);
 
   useIsomorphicLayoutEffect(() => {
     if (drawAtTimeRef.current) {
       drawAtTimeRef.current(tSec);
     }
-  }, [tSec]);
+  }, [tSec, amount]);
 
   if (!on) return null;
   return (
     <canvas
-      key={`${picture}|${depthMap}|${plate}|${cutKey}|${amount}|${focus}|${motion}|${seconds}|${direction}|${focal}`}
+      key={`${picture}|${depthMap}|${plate}|${cutKey}|${focus}|${motion}|${seconds}|${direction}|${focal}`}
       ref={canvasRef}
       className="depth-parallax"
       data-depth-ready={ready ? "1" : "0"}

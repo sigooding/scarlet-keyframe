@@ -25,6 +25,8 @@ import { pictureLabel } from "../core/helpers";
 import type { BeatAnimation, KeyEasing, Keyframe, ProjectState } from "../core/model";
 import { formatTimecode, sceneProseFrames } from "../core/timing";
 import {
+  ANIM_PROP_META,
+  ANIM_PROPS,
   evaluate,
   hasAnimationKeyframes,
   setKeyEasingAtFrame,
@@ -164,6 +166,12 @@ interface InspectorProps {
   ) => void;
   onResetCaptions?: () => void;
   onMergeCaptions?: () => void;
+  copiedAnimation?: BeatAnimation | null;
+  onCopyAnimation?: () => void;
+  onPasteAnimation?: () => void;
+  onOpenCurveEditor?: (prop: AnimProp) => void;
+  onJumpPrevKeyframe?: () => void;
+  onJumpNextKeyframe?: () => void;
 }
 
 const TRANSITIONS = ["cut", "dissolve", "dip-to-black", "wipe-left", "wipe-right"];
@@ -182,7 +190,14 @@ const PARTICLES = [
   "motes",
 ];
 const SYNTH_BEDS = ["none", "rain", "jazz", "drone", "tension"];
-const EASINGS: KeyEasing[] = ["linear", "ease-in-out", "hold"];
+const EASINGS: KeyEasing[] = [
+  "linear",
+  "ease-in",
+  "ease-out",
+  "ease-in-out",
+  "bezier",
+  "hold",
+];
 
 export function Inspector(props: InspectorProps) {
   const { project, frame, localFrame, clipDurationFrames } = props;
@@ -290,6 +305,26 @@ export function Inspector(props: InspectorProps) {
             title={`Paste effects to ${props.selectedCount} selected keyframes`}
           >
             ↳
+          </button>
+          <button
+            type="button"
+            className="button button-quiet inspector-head-anim-btn"
+            data-testid="copy-animation-btn"
+            disabled={!animated}
+            onClick={props.onCopyAnimation}
+            title="Copy all animation keyframes on this clip"
+          >
+            Copy animation
+          </button>
+          <button
+            type="button"
+            className={`button button-quiet inspector-head-anim-btn ${props.copiedAnimation ? "is-active" : ""}`}
+            data-testid="paste-animation-btn"
+            disabled={!props.copiedAnimation}
+            onClick={props.onPasteAnimation}
+            title="Paste copied animation keyframes onto selected clip(s)"
+          >
+            Paste animation
           </button>
         </div>
       </div>
@@ -946,6 +981,24 @@ export function Inspector(props: InspectorProps) {
                   <button
                     type="button"
                     className="field-reset"
+                    data-testid="anim-prev-key-btn"
+                    onClick={() => props.onJumpPrevKeyframe?.()}
+                    title="Previous keyframe on clip ([)"
+                  >
+                    [ Prev
+                  </button>
+                  <button
+                    type="button"
+                    className="field-reset"
+                    data-testid="anim-next-key-btn"
+                    onClick={() => props.onJumpNextKeyframe?.()}
+                    title="Next keyframe on clip (])"
+                  >
+                    Next ]
+                  </button>
+                  <button
+                    type="button"
+                    className="field-reset"
                     onClick={() => props.onJumpToLocalFrame(Math.max(0, clipDurationFrames - 1))}
                     title="Jump playhead to clip end"
                   >
@@ -964,58 +1017,33 @@ export function Inspector(props: InspectorProps) {
                 </div>
               </div>
 
-              <AnimationChannelControl
-                prop="zoom"
-                label="Zoom"
-                min={1}
-                max={3}
-                step={0.01}
-                decimals={2}
-                suffix="×"
-                value={pose.zoom}
-                localFrame={localFrame}
-                animation={animation}
-                onSetAnimation={props.onSetAnimation}
-                onPreviewAnimation={props.onPreviewAnimation}
-                onDragStart={props.onDragStart}
-                onDragEnd={props.onDragEnd}
-              />
-              <AnimationChannelControl
-                prop="x"
-                label="Position X"
-                min={-50}
-                max={50}
-                step={0.5}
-                decimals={1}
-                suffix="%"
-                value={pose.x}
-                localFrame={localFrame}
-                animation={animation}
-                onSetAnimation={props.onSetAnimation}
-                onPreviewAnimation={props.onPreviewAnimation}
-                onDragStart={props.onDragStart}
-                onDragEnd={props.onDragEnd}
-              />
-              <AnimationChannelControl
-                prop="y"
-                label="Position Y"
-                min={-50}
-                max={50}
-                step={0.5}
-                decimals={1}
-                suffix="%"
-                value={pose.y}
-                localFrame={localFrame}
-                animation={animation}
-                onSetAnimation={props.onSetAnimation}
-                onPreviewAnimation={props.onPreviewAnimation}
-                onDragStart={props.onDragStart}
-                onDragEnd={props.onDragEnd}
-              />
+              {ANIM_PROPS.map((prop) => {
+                const meta = ANIM_PROP_META[prop];
+                return (
+                  <AnimationChannelControl
+                    key={prop}
+                    prop={prop}
+                    label={meta.label}
+                    min={meta.min}
+                    max={meta.max}
+                    step={meta.step}
+                    decimals={meta.decimals}
+                    suffix={meta.suffix}
+                    value={pose[prop]}
+                    localFrame={localFrame}
+                    animation={animation}
+                    onSetAnimation={props.onSetAnimation}
+                    onPreviewAnimation={props.onPreviewAnimation}
+                    onOpenCurveEditor={() => props.onOpenCurveEditor?.(prop)}
+                    onDragStart={props.onDragStart}
+                    onDragEnd={props.onDragEnd}
+                  />
+                );
+              })}
               <p className="preview-only-note">
                 {animated
-                  ? "Keyframes active: replaces Scarlet Reel camera preset on this clip."
-                  : "Add ◆ keyframes on Zoom, X or Y to animate directly by frame."}
+                  ? "Keyframes active: evaluated directly by frame. Use ▸ on the clip or ∿ to open the Curve Editor."
+                  : "Add ◆ keyframes on any property to animate directly by frame."}
               </p>
             </section>
 
@@ -1143,9 +1171,34 @@ export function Inspector(props: InspectorProps) {
                   onChange={(value) => props.onSetBeat("backgroundRevert", value)}
                 />
               </div>
-              <button className="button button-wide button-quiet copy-effects" onClick={props.onCopyEffects}>
-                ⧉ Copy complete effects block
-              </button>
+              <div className="button-row copy-effects">
+                <button className="button button-quiet" onClick={props.onCopyEffects}>
+                  ⧉ Copy effects
+                </button>
+                <button
+                  className="button button-quiet"
+                  disabled={!props.copied}
+                  onClick={props.onPasteEffects}
+                >
+                  ↳ Paste effects
+                </button>
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  disabled={!animated}
+                  onClick={props.onCopyAnimation}
+                >
+                  Copy animation
+                </button>
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  disabled={!props.copiedAnimation}
+                  onClick={props.onPasteAnimation}
+                >
+                  Paste animation
+                </button>
+              </div>
               <p className="preview-only-note">
                 Framing extensions, vignette and grain controls are editor-side additions and are marked preview-only in the
                 export report.
@@ -1205,6 +1258,7 @@ function AnimationChannelControl({
   animation,
   onSetAnimation,
   onPreviewAnimation,
+  onOpenCurveEditor,
   onDragStart,
   onDragEnd,
 }: {
@@ -1220,6 +1274,7 @@ function AnimationChannelControl({
   animation: BeatAnimation | undefined;
   onSetAnimation: (animation: BeatAnimation | undefined, label: string) => void;
   onPreviewAnimation: (animation: BeatAnimation | undefined) => void;
+  onOpenCurveEditor?: () => void;
   onDragStart: () => void;
   onDragEnd: (label: string) => void;
 }) {
@@ -1251,7 +1306,7 @@ function AnimationChannelControl({
             )
           }
         >
-          {keyAtFrame ? "◆" : "◇"}
+          <i className={`diamond-shape ${keyAtFrame ? "is-filled" : "is-hollow"}`} aria-hidden="true" />
         </button>
         <span className="control-label">
           {label}
@@ -1268,12 +1323,16 @@ function AnimationChannelControl({
           disabled={!keyAtFrame}
           value={keyAtFrame?.easing ?? "linear"}
           title={keyAtFrame ? `${label} easing from +${localFrame}f` : "Place playhead on a keyframe to set easing"}
-          onChange={(event) =>
+          onChange={(event) => {
+            const nextEasing = event.target.value as KeyEasing;
             onSetAnimation(
-              setKeyEasingAtFrame(animation, prop, localFrame, event.target.value as KeyEasing),
-              `${label} easing set to ${event.target.value}`,
-            )
-          }
+              setKeyEasingAtFrame(animation, prop, localFrame, nextEasing),
+              `${label} easing set to ${nextEasing}`,
+            );
+            if (nextEasing === "bezier") {
+              onOpenCurveEditor?.();
+            }
+          }}
         >
           {EASINGS.map((easing) => (
             <option key={easing} value={easing}>
@@ -1281,6 +1340,17 @@ function AnimationChannelControl({
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          className="anim-curve-open-btn"
+          data-testid={`inspector-open-curve-${prop}`}
+          title={`Open ${label} in Curve Editor`}
+          onClick={() => onOpenCurveEditor?.()}
+        >
+          <svg width="11" height="11" viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M1,8.5 C4,8.5 6,1.5 9,1.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
       <input
         type="range"

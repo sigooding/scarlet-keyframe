@@ -3,7 +3,16 @@ import { setBeatAnimation, splitKeyframeAt, trimKeyframe } from "../core/edits";
 import { UndoHistory } from "../core/history";
 import { buildKeyframes, createProjectState, parseImportPayload, type ProjectState } from "../core/model";
 import { clipFrames, FPS, formatTimecode, keyframeDuration } from "../core/timing";
-import { buildTimelineClips, evaluate } from "./animate";
+import {
+  buildTimelineClips,
+  copySelectedKeyframes,
+  evaluate,
+  nextKeyframeFrameOnClip,
+  pasteClipAnimationOnto,
+  pasteCopiedKeyframesAt,
+  prevKeyframeFrameOnClip,
+  solveCubicBezier,
+} from "./animate";
 
 function makeTestProject(): ProjectState {
   const raw = {
@@ -75,8 +84,28 @@ describe("sequence time & animation", () => {
     };
 
     // Before the first keyframe -> first keyframe's value
-    expect(evaluate(clip, 0)).toEqual({ zoom: 1.0, x: -20, y: 0 });
-    expect(evaluate(clip, 10)).toEqual({ zoom: 1.0, x: -20, y: 0 });
+    expect(evaluate(clip, 0)).toEqual({
+      zoom: 1.0,
+      x: -20,
+      y: 0,
+      rotation: 0,
+      opacity: 1,
+      blur: 0,
+      exposure: 0,
+      gradeStrength: 1,
+      depthAmount: 0.4,
+    });
+    expect(evaluate(clip, 10)).toEqual({
+      zoom: 1.0,
+      x: -20,
+      y: 0,
+      rotation: 0,
+      opacity: 1,
+      blur: 0,
+      exposure: 0,
+      gradeStrength: 1,
+      depthAmount: 0.4,
+    });
 
     // Linear segment [10..30]: 1.0 -> 2.0
     expect(evaluate(clip, 15).zoom).toBeCloseTo(1.25, 6);
@@ -102,7 +131,17 @@ describe("sequence time & animation", () => {
     expect(evaluate(clip, 70).zoom).toBe(1.5);
 
     // After the last keyframe -> last keyframe's value
-    expect(evaluate(clip, 95)).toEqual({ zoom: 1.5, x: 10, y: 0 });
+    expect(evaluate(clip, 95)).toEqual({
+      zoom: 1.5,
+      x: 10,
+      y: 0,
+      rotation: 0,
+      opacity: 1,
+      blur: 0,
+      exposure: 0,
+      gradeStrength: 1,
+      depthAmount: 0.4,
+    });
   });
 
   it("clipFrames() uses durationFrames when set, otherwise keyframeDuration at 24 fps", () => {
@@ -210,5 +249,204 @@ describe("sequence time & animation", () => {
     expect(undone).toBe(initial);
     expect(clipFrames(buildKeyframes(undone!.story)[0])).toBe(72);
     expect(history.canUndo).toBe(false);
+  });
+
+  it("bezier values match CSS cubic-bezier at five points, for three curves", () => {
+    // Reference solver via 60-step binary search on parametric x(u) = t -> y(u)
+    const refCssCubicBezier = (
+      x1: number,
+      y1: number,
+      x2: number,
+      y2: number,
+      t: number,
+    ): number => {
+      const sampleX = (u: number) =>
+        3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u;
+      const sampleY = (u: number) =>
+        3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+      let lo = 0;
+      let hi = 1;
+      for (let i = 0; i < 64; i += 1) {
+        const mid = 0.5 * (lo + hi);
+        if (sampleX(mid) < t) lo = mid;
+        else hi = mid;
+      }
+      return sampleY(0.5 * (lo + hi));
+    };
+
+    const threeCurves: Array<[number, number, number, number]> = [
+      [0.25, 0.1, 0.25, 1.0], // CSS `ease`
+      [0.85, 0.0, 0.15, 1.0], // Steep dramatic S-curve
+      [0.34, 1.56, 0.64, 1.0], // Overshooting spring curve (y > 1)
+    ];
+    const fivePoints = [0.1, 0.25, 0.5, 0.75, 0.9];
+
+    for (const [x1, y1, x2, y2] of threeCurves) {
+      const clip = {
+        beat: {
+          animation: {
+            opacity: [
+              { frame: 0, value: 0, easing: "bezier" as const, bezier: [x1, y1, x2, y2] as [number, number, number, number] },
+              { frame: 100, value: 1, easing: "linear" as const },
+            ],
+          },
+        },
+      };
+      for (const t of fivePoints) {
+        const expected = refCssCubicBezier(x1, y1, x2, y2, t);
+        const solved = solveCubicBezier(x1, y1, x2, y2, t);
+        const evaluated = evaluate(clip, t * 100).opacity;
+        expect(solved).toBeCloseTo(expected, 7);
+        expect(evaluated).toBeCloseTo(expected, 7);
+      }
+    }
+
+    // Verify overshoot curve genuinely exceeds 1.0 mid-flight as CSS cubic-bezier does
+    expect(solveCubicBezier(0.34, 1.56, 0.64, 1.0, 0.5)).toBeGreaterThan(1.05);
+  });
+
+  it("evaluates ease-in and ease-out values at chosen frames", () => {
+    const clip = {
+      beat: {
+        animation: {
+          rotation: [
+            { frame: 0, value: 0, easing: "ease-in" as const },
+            { frame: 20, value: 10, easing: "linear" as const },
+          ],
+          blur: [
+            { frame: 0, value: 0, easing: "ease-out" as const },
+            { frame: 20, value: 10, easing: "linear" as const },
+          ],
+        },
+      },
+    };
+
+    // Endpoints match exactly
+    expect(evaluate(clip, 0).rotation).toBe(0);
+    expect(evaluate(clip, 20).rotation).toBe(10);
+    expect(evaluate(clip, 0).blur).toBe(0);
+    expect(evaluate(clip, 20).blur).toBe(10);
+
+    // Chosen interior frames: 5 (t=0.25), 10 (t=0.5), 15 (t=0.75)
+    // CSS ease-in = cubic-bezier(0.42, 0, 1, 1); CSS ease-out = cubic-bezier(0, 0, 0.58, 1)
+    const rot5 = evaluate(clip, 5).rotation;
+    const rot10 = evaluate(clip, 10).rotation;
+    const rot15 = evaluate(clip, 15).rotation;
+
+    const blur5 = evaluate(clip, 5).blur;
+    const blur10 = evaluate(clip, 10).blur;
+    const blur15 = evaluate(clip, 15).blur;
+
+    // ease-in starts slower than linear (rot < linear at all interior points)
+    expect(rot5).toBeCloseTo(10 * solveCubicBezier(0.42, 0, 1, 1, 0.25), 7);
+    expect(rot10).toBeCloseTo(10 * solveCubicBezier(0.42, 0, 1, 1, 0.5), 7);
+    expect(rot15).toBeCloseTo(10 * solveCubicBezier(0.42, 0, 1, 1, 0.75), 7);
+    expect(rot5).toBeLessThan(2.5);
+    expect(rot10).toBeCloseTo(3.153567, 4);
+    expect(rot15).toBeLessThan(7.5);
+
+    // ease-out starts faster than linear (blur > linear at all interior points, symmetric to ease-in)
+    expect(blur5).toBeCloseTo(10 * solveCubicBezier(0, 0, 0.58, 1, 0.25), 7);
+    expect(blur10).toBeCloseTo(10 * solveCubicBezier(0, 0, 0.58, 1, 0.5), 7);
+    expect(blur15).toBeCloseTo(10 * solveCubicBezier(0, 0, 0.58, 1, 0.75), 7);
+    expect(blur5).toBeGreaterThan(2.5);
+    expect(blur10).toBeCloseTo(6.846432, 4);
+    expect(blur15).toBeGreaterThan(7.5);
+  });
+
+  it("pasting selected keyframes at the playhead keeps their spacing", () => {
+    let project = makeTestProject();
+    project = setBeatAnimation(project, "b1", {
+      opacity: [
+        { frame: 4, value: 0, easing: "linear" },
+        { frame: 9, value: 0.6, easing: "ease-out" },
+        { frame: 17, value: 1, easing: "hold" },
+      ],
+      rotation: [{ frame: 9, value: 3, easing: "ease-out" }],
+    });
+    const clips = buildTimelineClips(buildKeyframes(project.story)).clips;
+    const copied = copySelectedKeyframes(clips, [
+      { frameId: "b1", prop: "opacity", frame: 4 },
+      { frameId: "b1", prop: "opacity", frame: 9 },
+      { frameId: "b1", prop: "opacity", frame: 17 },
+      { frameId: "b1", prop: "rotation", frame: 9 },
+    ]);
+    expect(copied).toHaveLength(4);
+    // Relative offsets from earliest keyframe (frame 4): 0, +5, +13, and rotation +5
+    expect(copied.map((c) => ({ prop: c.prop, offset: c.offsetFrames }))).toEqual([
+      { prop: "opacity", offset: 0 },
+      { prop: "opacity", offset: 5 },
+      { prop: "rotation", offset: 5 },
+      { prop: "opacity", offset: 13 },
+    ]);
+
+    // Paste onto clip b2 (duration 48 frames) at local playhead frame 12 -> lands at 12, 17, 25
+    const pasted = pasteCopiedKeyframesAt(undefined, copied, 12, 48);
+    expect(pasted.pastedCount).toBe(4);
+    expect(pasted.droppedCount).toBe(0);
+    expect(pasted.animation?.opacity?.map((k) => k.frame)).toEqual([12, 17, 25]);
+    expect(pasted.animation?.rotation?.map((k) => k.frame)).toEqual([17]);
+  });
+
+  it("pasting into a shorter clip drops extra keyframes after clip end and counts them", () => {
+    const sourceAnim = {
+      opacity: [
+        { frame: 0, value: 0, easing: "linear" as const },
+        { frame: 12, value: 1, easing: "ease-out" as const },
+        { frame: 30, value: 0.5, easing: "linear" as const },
+        { frame: 45, value: 0, easing: "linear" as const },
+      ],
+      blur: [
+        { frame: 6, value: 8, easing: "linear" as const },
+        { frame: 24, value: 0, easing: "linear" as const },
+      ],
+    };
+
+    // Whole-clip "Paste animation" onto a 20-frame clip (valid frames 0..19):
+    // Keeps opacity@0, opacity@12, blur@6 (3 kept); drops opacity@30, opacity@45, blur@24 (3 dropped)
+    const clipPaste = pasteClipAnimationOnto(sourceAnim, 20);
+    expect(clipPaste.pastedCount).toBe(3);
+    expect(clipPaste.droppedCount).toBe(3);
+    expect(clipPaste.animation?.opacity?.map((k) => k.frame)).toEqual([0, 12]);
+    expect(clipPaste.animation?.blur?.map((k) => k.frame)).toEqual([6]);
+
+    // Diamond Ctrl+V paste at playhead frame 10 on a 20-frame clip:
+    // Offsets 0, +12, +30 -> frames 10 (kept), 22 (dropped), 40 (dropped)
+    const diamondPaste = pasteCopiedKeyframesAt(
+      undefined,
+      [
+        { prop: "opacity", offsetFrames: 0, value: 0, easing: "linear" },
+        { prop: "opacity", offsetFrames: 12, value: 1, easing: "linear" },
+        { prop: "opacity", offsetFrames: 30, value: 0, easing: "linear" },
+      ],
+      10,
+      20,
+    );
+    expect(diamondPaste.pastedCount).toBe(1);
+    expect(diamondPaste.droppedCount).toBe(2);
+    expect(diamondPaste.animation?.opacity?.map((k) => k.frame)).toEqual([10]);
+  });
+
+  it("navigates previous and next keyframes on the selected clip with [ and ] helpers", () => {
+    let project = makeTestProject();
+    project = setBeatAnimation(project, "b2", {
+      opacity: [
+        { frame: 0, value: 0, easing: "linear" },
+        { frame: 12, value: 1, easing: "linear" },
+      ],
+      rotation: [{ frame: 24, value: 3, easing: "ease-out" }],
+    });
+    const clips = buildTimelineClips(buildKeyframes(project.story)).clips;
+    const clipB2 = clips[1];
+    const anim = clipB2.keyframe.beat.animation;
+    const dur = clipB2.durationFrames;
+
+    expect(nextKeyframeFrameOnClip(anim, 0, dur)).toBe(12);
+    expect(nextKeyframeFrameOnClip(anim, 12, dur)).toBe(24);
+    expect(nextKeyframeFrameOnClip(anim, 24, dur)).toBeUndefined();
+
+    expect(prevKeyframeFrameOnClip(anim, 24, dur)).toBe(12);
+    expect(prevKeyframeFrameOnClip(anim, 12, dur)).toBe(0);
+    expect(prevKeyframeFrameOnClip(anim, 0, dur)).toBeUndefined();
   });
 });

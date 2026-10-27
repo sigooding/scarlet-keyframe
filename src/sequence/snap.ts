@@ -1,5 +1,5 @@
 import type { NoteMarker } from "../core/model";
-import type { TimelineClip } from "./animate";
+import { ANIM_PROPS, type TimelineClip } from "./animate";
 
 export type SnapTargetKind = "clip-edge" | "playhead" | "keyframe" | "scene-marker" | "note-marker";
 
@@ -186,7 +186,7 @@ export function collectSnapTargets(opts: CollectSnapTargetsOptions): SnapTarget[
 
     const anim = clip.keyframe.beat.animation;
     if (anim && !excluded) {
-      for (const prop of ["zoom", "x", "y"] as const) {
+      for (const prop of ANIM_PROPS) {
         for (const key of anim[prop] ?? []) {
           if (
             excludeKeyframe &&
