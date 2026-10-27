@@ -8,7 +8,6 @@ import { MissingMediaModal } from "./components/MissingMediaModal";
 import { SnapshotModal } from "./components/SnapshotModal";
 import { Timeline } from "./components/Timeline";
 import { Topbar } from "./components/Topbar";
-import { Tracks } from "./components/Tracks";
 import {
   applyStudioMusicSync,
   buildKeyframes,
@@ -19,27 +18,36 @@ import {
   runningOrderDiagnostics,
   type AnyRecord,
   type BeatAnimation,
+  type BeatLike,
   type ProjectAsset,
   type ProjectState,
 } from "./core/model";
 import {
+  addNoteMarker,
   cloneStory as cloneProjectStory,
   copyEffectBlock,
-  deleteKeyframe,
+  copySelectedBeats,
+  deleteKeyframes,
+  deleteNoteMarker,
   duplicateKeyframe,
   insertKeyframeAfter,
   moveSfxCue,
   pasteEffectBlock,
-  reorderKeyframe,
+  pasteKeyframesAt,
+  reorderKeyframeWithResult,
   resetEffectField,
   setBeatAnimation,
   setBeatField,
+  setCutTransition,
   setEffectField,
   setPicture,
+  setRollDurations,
   setSceneField,
   splitKeyframeAt,
   trimKeyframe,
+  updateNoteMarker,
   type EffectBlock,
+  type ReorderDestination,
 } from "./core/edits";
 import { buildPortableBundle } from "./core/exportBundle";
 import { downloadText, measureAudioDuration, slug } from "./core/helpers";
@@ -50,6 +58,7 @@ import { clipFrames, FPS, formatTimecode, makeSrt } from "./core/timing";
 import { writeStudioPatch, type StudioPatchResult } from "./core/patch";
 import { PreviewAudioController } from "./core/previewAudio";
 import { buildTimelineClips, clipAtFrame, evaluate } from "./sequence/animate";
+import { activeTransitionAtFrame, readCutTransition, type TransitionKind } from "./sequence/transitions";
 import { audio } from "../vendor/scarlet-reel/audio";
 import bundledFilm from "./data/nobodys-witness-film.json";
 import bundledEdits from "./data/studio-edits.json";
@@ -65,11 +74,15 @@ declare global {
     __frame24?: {
       frameIds: string[];
       totalFrames: number;
+      snapEnabled: boolean;
       getPlayhead: () => number;
       setPlayhead: (frameNumber: number) => void;
       setFrame: (frameId: string) => void;
+      getSelectedIds: () => string[];
+      setSelectedIds: (ids: string[]) => void;
       getDuration: (frameId: string) => number;
       getFrame: (frameId: string) => AnyRecord | undefined;
+      getActiveTransition: () => AnyRecord | undefined;
       syncAnimations: (seconds: number) => void;
     };
   }
@@ -114,6 +127,15 @@ export default function App() {
 
   const [selectedFrameId, setSelectedFrameId] = useState("");
   const [selectedFrameIds, setSelectedFrameIds] = useState<string[]>([]);
+  const selectedIdsRef = useRef<string[]>([]);
+  selectedIdsRef.current = selectedFrameIds;
+
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const [editingMarkerId, setEditingMarkerId] = useState<string | null>(null);
+  const [copiedClips, setCopiedClips] = useState<BeatLike[]>([]);
+  const copiedClipsRef = useRef<BeatLike[]>([]);
+  copiedClipsRef.current = copiedClips;
+
   const [copiedEffects, setCopiedEffects] = useState<EffectBlock | null>(null);
   const [historyVersion, setHistoryVersion] = useState(0);
   const [saveStatus, setSaveStatus] = useState("LOADING");
@@ -236,8 +258,8 @@ export default function App() {
     () => buildTimelineClips(frames, voiceDurations),
     [frames, voiceDurations],
   );
+  const noteMarkers = useMemo(() => project?.story.markers ?? [], [project?.story.markers]);
 
-  // Clamp playhead if totalFrames shrinks after trim/delete
   useEffect(() => {
     if (totalFrames > 0 && playheadFrame >= totalFrames) {
       setPlayheadFrame(totalFrames - 1);
@@ -253,6 +275,11 @@ export default function App() {
     ? Math.max(0, Math.min(activeClip.durationFrames - 1, playheadFrame - activeClip.startFrame))
     : 0;
 
+  const activeTransition = useMemo(
+    () => activeTransitionAtFrame(clips, playheadFrame),
+    [clips, playheadFrame],
+  );
+
   const selectedClip = useMemo(
     () => clips.find((clip) => clip.keyframe.id === selectedFrameId) || activeClip,
     [clips, selectedFrameId, activeClip],
@@ -263,11 +290,16 @@ export default function App() {
     : 0;
   const currentIndex = activeClip?.index ?? 0;
 
-  const viewerAssetId = viewerFrame?.picture?.startsWith("asset:") ? viewerFrame.picture.slice(6) : "";
-  const viewerPictureAsset = project?.assets.find((asset) => asset.id === viewerAssetId);
-  const viewerImagePosition = viewerPictureAsset?.crop
-    ? `${viewerPictureAsset.crop.x}% ${viewerPictureAsset.crop.y}%`
-    : undefined;
+  const cropPositionForPicture = useCallback(
+    (pic?: string) => {
+      if (!pic?.startsWith("asset:")) return undefined;
+      const asset = project?.assets.find((item) => item.id === pic.slice(6));
+      return asset?.crop ? `${asset.crop.x}% ${asset.crop.y}%` : undefined;
+    },
+    [project?.assets],
+  );
+
+  const viewerImagePosition = cropPositionForPicture(viewerFrame?.picture);
 
   useEffect(() => {
     const next = new Map<string, string>();
@@ -300,7 +332,6 @@ export default function App() {
     [objectUrls, publicPaths],
   );
 
-  // Measure durations of any resolved voice takes so voice bars & clipFrames reflect real audio lengths
   useEffect(() => {
     let cancelled = false;
     const pending: Array<{ ref: string; src: string }> = [];
@@ -350,7 +381,6 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [project]);
 
-  // Ctrl/Cmd + wheel on the preview stage zooms the player viewer in/out
   useEffect(() => {
     const el = previewStageRef.current;
     if (!el) return;
@@ -413,6 +443,26 @@ export default function App() {
     }
   }, []);
 
+  const syncSelectionAfterProjectChange = useCallback(
+    (nextProject: ProjectState) => {
+      const nextFrames = buildKeyframes(nextProject.story);
+      const { clips: nextClips, totalFrames: nextTotal } = buildTimelineClips(nextFrames, voiceDurations);
+      const validIds = new Set(nextFrames.map((f) => f.id));
+      const kept = selectedIdsRef.current.filter((id) => validIds.has(id));
+      const clampedPlayhead = Math.max(0, Math.min(Math.max(0, nextTotal - 1), playheadRef.current));
+      setPlayheadFrame(clampedPlayhead);
+      if (kept.length > 0) {
+        setSelectedFrameIds(kept);
+        setSelectedFrameId((prev) => (kept.includes(prev) ? prev : kept[0]));
+      } else {
+        const hit = clipAtFrame(nextClips, clampedPlayhead) || nextClips[0];
+        setSelectedFrameId(hit?.keyframe.id || "");
+        setSelectedFrameIds(hit ? [hit.keyframe.id] : []);
+      }
+    },
+    [voiceDurations],
+  );
+
   const undo = useCallback(() => {
     const current = projectRef.current;
     if (!current) return;
@@ -423,7 +473,8 @@ export default function App() {
     setEditLabel("Undo");
     setSaveStatus("UNSAVED CHANGES");
     setHistoryVersion((value) => value + 1);
-  }, []);
+    syncSelectionAfterProjectChange(previous);
+  }, [syncSelectionAfterProjectChange]);
 
   const redo = useCallback(() => {
     const current = projectRef.current;
@@ -435,7 +486,8 @@ export default function App() {
     setEditLabel("Redo");
     setSaveStatus("UNSAVED CHANGES");
     setHistoryVersion((value) => value + 1);
-  }, []);
+    syncSelectionAfterProjectChange(next);
+  }, [syncSelectionAfterProjectChange]);
 
   const scrubToFrame = useCallback(
     (targetFrame: number) => {
@@ -448,7 +500,9 @@ export default function App() {
       const hit = clipAtFrame(clips, clamped);
       if (hit) {
         setSelectedFrameId(hit.keyframe.id);
-        setSelectedFrameIds((prev) => (prev.length > 1 && prev.includes(hit.keyframe.id) ? prev : [hit.keyframe.id]));
+        setSelectedFrameIds((prev) =>
+          prev.length > 1 && prev.includes(hit.keyframe.id) ? prev : [hit.keyframe.id],
+        );
       }
     },
     [clips, playback, totalFrames],
@@ -461,13 +515,11 @@ export default function App() {
     [scrubToFrame],
   );
 
-  const selectClip = useCallback(
-    (frameId: string, extend: boolean, targetFrame?: number) => {
-      setSelectedFrameId(frameId);
-      setSelectedFrameIds((current) => {
-        if (!extend) return [frameId];
-        return current.includes(frameId) ? current.filter((id) => id !== frameId) : [...current, frameId];
-      });
+  const setSelection = useCallback(
+    (ids: string[], primaryId: string, targetFrame?: number) => {
+      const cleanIds = ids.length ? ids : primaryId ? [primaryId] : [];
+      setSelectedFrameIds(cleanIds);
+      setSelectedFrameId(primaryId || cleanIds[0] || "");
       if (targetFrame !== undefined) {
         if (playback) {
           setPlayback(false);
@@ -484,9 +536,77 @@ export default function App() {
       if (!clips.length) return;
       const baseIndex = selectedClip?.index ?? 0;
       const next = clips[Math.max(0, Math.min(clips.length - 1, baseIndex + delta))];
-      if (next) selectClip(next.keyframe.id, false, next.startFrame);
+      if (next) setSelection([next.keyframe.id], next.keyframe.id, next.startFrame);
     },
-    [clips, selectedClip, selectClip],
+    [clips, selectedClip, setSelection],
+  );
+
+  const handleMoveClips = useCallback(
+    (frameIds: string[], destination: ReorderDestination) => {
+      const current = projectRef.current;
+      if (!current || !frameIds.length) return;
+      const result = reorderKeyframeWithResult(current, frameIds, destination);
+      if (result.project === current) return;
+      const label = destination.copy
+        ? `Copied ${result.resultIds.length} clip${result.resultIds.length === 1 ? "" : "s"}`
+        : `Moved ${result.resultIds.length} clip${result.resultIds.length === 1 ? "" : "s"}`;
+      applyProject(result.project, label);
+      if (result.resultIds.length > 0) {
+        const nextClips = buildTimelineClips(buildKeyframes(result.project.story), voiceDurations).clips;
+        const firstMoved = nextClips.find((c) => c.keyframe.id === result.resultIds[0]);
+        setSelectedFrameIds(result.resultIds);
+        setSelectedFrameId(result.resultIds[0]);
+        if (firstMoved) setPlayheadFrame(firstMoved.startFrame);
+      }
+    },
+    [applyProject, voiceDurations],
+  );
+
+  const handleCopyClips = useCallback(() => {
+    const current = projectRef.current;
+    const ids = selectedIdsRef.current.length ? selectedIdsRef.current : selectedFrameId ? [selectedFrameId] : [];
+    if (!current || !ids.length) return;
+    const beats = copySelectedBeats(current, ids);
+    if (!beats.length) return;
+    setCopiedClips(beats);
+    setEditLabel(`Copied ${beats.length} clip${beats.length === 1 ? "" : "s"}`);
+  }, [selectedFrameId]);
+
+  const handlePasteClips = useCallback(() => {
+    const current = projectRef.current;
+    const beats = copiedClipsRef.current;
+    if (!current || !beats.length) return;
+    const result = pasteKeyframesAt(current, beats, playheadRef.current, voiceDurations);
+    if (!result) return;
+    applyProject(
+      result.project,
+      `Pasted ${result.insertedIds.length} clip${result.insertedIds.length === 1 ? "" : "s"}`,
+    );
+    setSelectedFrameIds(result.insertedIds);
+    setSelectedFrameId(result.insertedIds[0] || "");
+  }, [applyProject, voiceDurations]);
+
+  const handleAddMarkerAtPlayhead = useCallback(() => {
+    const current = projectRef.current;
+    if (!current) return;
+    const defaultName = `Note ${(current.story.markers?.length ?? 0) + 1}`;
+    const { project: next, marker } = addNoteMarker(current, playheadRef.current, defaultName);
+    applyProject(next, `Marker "${marker.name}" added`);
+    setEditingMarkerId(marker.id);
+  }, [applyProject]);
+
+  const handleSetTransition = useCallback(
+    (incomingFrameId: string, kind: TransitionKind, durationFrames: number, previewOnly = false) => {
+      if (previewOnly) {
+        previewProjectEdit((current) => setCutTransition(current, incomingFrameId, kind, durationFrames));
+      } else {
+        editProject(
+          (current) => setCutTransition(current, incomingFrameId, kind, durationFrames),
+          `Transition: ${kind}${kind === "cut" ? "" : ` (${durationFrames}f)`}`,
+        );
+      }
+    },
+    [editProject, previewProjectEdit],
   );
 
   const setFocalPoint = useCallback(
@@ -767,7 +887,6 @@ export default function App() {
     setPlayback(true);
   }, [playback, project, clips, totalFrames, soundOn, resolveMedia]);
 
-  // Advance playhead at 24 fps while playing
   useEffect(() => {
     if (!playback || !totalFrames) return;
     let rafId = 0;
@@ -814,7 +933,6 @@ export default function App() {
     return () => cancelAnimationFrame(rafId);
   }, [playback, direction, playSpeed, totalFrames, clips]);
 
-  // Trigger scene music/ambience, beat SFX, and voice takes as playback crosses clips
   useEffect(() => {
     if (!playback || !activeClip || !project) return;
     if (lastPlayedClipRef.current === activeClip.keyframe.id) return;
@@ -899,9 +1017,10 @@ export default function App() {
 
   const deleteCurrent = useCallback(() => {
     const current = projectRef.current;
-    if (!selectedClip || !current) return;
-    const next = deleteKeyframe(current, selectedClip.keyframe.id);
-    applyProject(next, "Clip deleted");
+    const ids = selectedIdsRef.current.length ? selectedIdsRef.current : selectedClip ? [selectedClip.keyframe.id] : [];
+    if (!ids.length || !current) return;
+    const next = deleteKeyframes(current, ids);
+    applyProject(next, ids.length > 1 ? `Deleted ${ids.length} clips` : "Clip deleted");
     const nextFrames = buildKeyframes(next.story);
     const { clips: nextClips, totalFrames: nextTotal } = buildTimelineClips(nextFrames, voiceDurations);
     const nextPlayhead = Math.max(0, Math.min(Math.max(0, nextTotal - 1), playheadRef.current));
@@ -916,11 +1035,16 @@ export default function App() {
     window.__frame24 = {
       frameIds: frames.map((frame) => frame.id),
       totalFrames,
+      snapEnabled,
       getPlayhead: () => playheadRef.current,
       setPlayhead: (frameNumber) => scrubToFrame(frameNumber),
       setFrame: (frameId) => {
         const hit = clips.find((clip) => clip.keyframe.id === frameId);
-        if (hit) selectClip(frameId, false, hit.startFrame);
+        if (hit) setSelection([frameId], frameId, hit.startFrame);
+      },
+      getSelectedIds: () => [...selectedIdsRef.current],
+      setSelectedIds: (ids) => {
+        if (ids.length) setSelection(ids, ids[0]);
       },
       getDuration: (frameId) => {
         const hit = clips.find((clip) => clip.keyframe.id === frameId);
@@ -930,18 +1054,21 @@ export default function App() {
         const hit = clips.find((clip) => clip.keyframe.id === frameId);
         if (!hit) return undefined;
         const frame = hit.keyframe;
+        const trans = readCutTransition(frame);
         return {
           id: frame.id,
           sceneId: frame.sceneId,
           mark: frame.mark,
           number: frame.number,
           startFrame: hit.startFrame,
+          endFrame: hit.endFrame,
           durationFrames: hit.durationFrames,
           duration: hit.durationFrames / FPS,
           text: frame.text,
           speaker: frame.speaker,
           picture: frame.picture,
           animation: frame.beat.animation,
+          transition: trans,
           poseAtStart: evaluate(frame, 0),
           audioUrl: frame.beat.audioUrl,
           sfxUrl: frame.beat.sfxUrl,
@@ -949,6 +1076,18 @@ export default function App() {
           ambientAudio: frame.scene.ambientAudio,
         };
       },
+      getActiveTransition: () =>
+        activeTransition
+          ? {
+              kind: activeTransition.kind,
+              progress: activeTransition.progress,
+              startFrame: activeTransition.startFrame,
+              endFrame: activeTransition.endFrame,
+              durationFrames: activeTransition.durationFrames,
+              outgoingId: activeTransition.outgoingClip.keyframe.id,
+              incomingId: activeTransition.incomingClip.keyframe.id,
+            }
+          : undefined,
       syncAnimations: (seconds) => {
         const now = seconds * 1000;
         for (const animation of document.getAnimations()) {
@@ -965,7 +1104,7 @@ export default function App() {
     return () => {
       delete window.__frame24;
     };
-  }, [clips, frames, selectClip, scrubToFrame, totalFrames, viewerFrame]);
+  }, [activeTransition, clips, frames, scrubToFrame, setSelection, snapEnabled, totalFrames, viewerFrame]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -981,6 +1120,16 @@ export default function App() {
       if (mod && event.key.toLowerCase() === "z") {
         event.preventDefault();
         event.shiftKey ? redo() : undo();
+        return;
+      }
+      if (!typing && mod && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        handleCopyClips();
+        return;
+      }
+      if (!typing && mod && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        handlePasteClips();
         return;
       }
       if (typing) return;
@@ -1002,6 +1151,12 @@ export default function App() {
       } else if (!mod && event.key.toLowerCase() === "s") {
         event.preventDefault();
         splitAtPlayhead();
+      } else if (!mod && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        setSnapEnabled((prev) => !prev);
+      } else if (!mod && event.key.toLowerCase() === "m") {
+        event.preventDefault();
+        handleAddMarkerAtPlayhead();
       } else if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
         deleteCurrent();
@@ -1022,7 +1177,18 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [deleteCurrent, redo, selectRelativeClip, splitAtPlayhead, stepFrames, togglePlayback, undo]);
+  }, [
+    deleteCurrent,
+    handleAddMarkerAtPlayhead,
+    handleCopyClips,
+    handlePasteClips,
+    redo,
+    selectRelativeClip,
+    splitAtPlayhead,
+    stepFrames,
+    togglePlayback,
+    undo,
+  ]);
 
   function saveNow(): void {
     const current = projectRef.current;
@@ -1062,7 +1228,7 @@ export default function App() {
     );
     const restoredFrames = buildKeyframes(snapshot.story);
     const restoredClips = buildTimelineClips(restoredFrames, voiceDurations).clips;
-    if (restoredClips[0]) selectClip(restoredClips[0].keyframe.id, false, restoredClips[0].startFrame);
+    if (restoredClips[0]) setSelection([restoredClips[0].keyframe.id], restoredClips[0].keyframe.id, restoredClips[0].startFrame);
   }
 
   function addKeyframe(afterFrameId = selectedFrame?.id): void {
@@ -1135,7 +1301,9 @@ export default function App() {
       rangeEnd === null ? frames : frames.slice(Math.min(rangeStart, rangeEnd), Math.max(rangeStart, rangeEnd) + 1);
     const text = makeSrt(
       selectedRange,
-      selectedRange.map((frame) => clipFrames(frame, frame.beat.audioUrl ? voiceDurations.get(frame.beat.audioUrl) : undefined) / FPS),
+      selectedRange.map(
+        (frame) => clipFrames(frame, frame.beat.audioUrl ? voiceDurations.get(frame.beat.audioUrl) : undefined) / FPS,
+      ),
     );
     downloadText(text, `${slug(project?.title || "animatic")}.srt`, "text/plain");
     setExportMessage(`SRT written for ${selectedRange.length} clips.`);
@@ -1158,6 +1326,19 @@ export default function App() {
 
   const viewerImageSrc = viewerFrame ? resolveMedia(viewerFrame.picture) : undefined;
   const selectedImageSrc = selectedFrame ? resolveMedia(selectedFrame.picture) : undefined;
+  const outgoingImageSrc = activeTransition
+    ? resolveMedia(activeTransition.outgoingClip.keyframe.picture)
+    : undefined;
+  const incomingImageSrc = activeTransition
+    ? resolveMedia(activeTransition.incomingClip.keyframe.picture)
+    : undefined;
+  const outgoingImagePosition = activeTransition
+    ? cropPositionForPicture(activeTransition.outgoingClip.keyframe.picture)
+    : undefined;
+  const incomingImagePosition = activeTransition
+    ? cropPositionForPicture(activeTransition.incomingClip.keyframe.picture)
+    : undefined;
+
   const diagnostics = project ? runningOrderDiagnostics(project.story) : [];
   const totalSeconds = totalFrames / FPS;
   const clipProgress = activeClip ? (viewerLocalFrame + 1) / Math.max(1, activeClip.durationFrames) : 0;
@@ -1325,11 +1506,16 @@ export default function App() {
                 style={viewerZoom !== 1 ? { transform: `scale(${viewerZoom})` } : undefined}
               >
                 <CinematicPreview
-                  key={viewerFrame.id}
+                  key={activeTransition ? `trans-${activeTransition.incomingClip.keyframe.id}` : viewerFrame.id}
                   frame={viewerFrame}
                   localFrame={viewerLocalFrame}
                   imageSrc={viewerImageSrc}
                   imagePosition={viewerImagePosition}
+                  transition={activeTransition}
+                  outgoingImageSrc={outgoingImageSrc}
+                  outgoingImagePosition={outgoingImagePosition}
+                  incomingImageSrc={incomingImageSrc}
+                  incomingImagePosition={incomingImagePosition}
                   resolveMedia={resolveMedia}
                   playing={playback}
                   soundOn={soundOn}
@@ -1378,7 +1564,14 @@ export default function App() {
                 </span>
               </div>
               <div className="transport-secondary">
-                <button onClick={() => { setDirection(-1); setPlayback(true); }}>J</button>
+                <button
+                  onClick={() => {
+                    setDirection(-1);
+                    setPlayback(true);
+                  }}
+                >
+                  J
+                </button>
                 <button
                   onClick={() => {
                     setPlayback(false);
@@ -1471,12 +1664,19 @@ export default function App() {
             onInsert={() => addKeyframe(selectedFrame.id)}
             onDuplicate={duplicateCurrent}
             onDelete={deleteCurrent}
-            onMove={(delta) =>
-              editProject(
-                (current) => reorderKeyframe(current, selectedFrame.id, delta),
-                delta < 0 ? "Clip moved earlier" : "Clip moved later",
-              )
-            }
+            onMove={(delta) => {
+              const ids = selectedIdsRef.current.length ? selectedIdsRef.current : [selectedFrame.id];
+              const current = projectRef.current;
+              if (!current) return;
+              const res = reorderKeyframeWithResult(current, ids, delta);
+              if (res.project !== current) {
+                applyProject(res.project, delta < 0 ? "Clip moved earlier" : "Clip moved later");
+                if (res.resultIds.length) {
+                  setSelectedFrameIds(res.resultIds);
+                  setSelectedFrameId(res.resultIds[0]);
+                }
+              }
+            }}
             onPreviewSfx={() =>
               audioController.playSfx(selectedFrame.beat.sfxUrl, selectedFrame.beat.sfxVolume, resolveMedia)
             }
@@ -1490,31 +1690,43 @@ export default function App() {
             playheadFrame={playheadFrame}
             selectedFrameId={selectedFrame.id}
             selectedFrameIds={selectedFrameIds}
+            snapEnabled={snapEnabled}
+            noteMarkers={noteMarkers}
+            editingMarkerId={editingMarkerId}
             canSplit={canSplit}
+            hasClipboard={copiedClips.length > 0}
             resolveMedia={resolveMedia}
+            onToggleSnap={() => setSnapEnabled((prev) => !prev)}
+            onAddNoteMarker={handleAddMarkerAtPlayhead}
+            onUpdateNoteMarker={(markerId, name) =>
+              editProject((current) => updateNoteMarker(current, markerId, { name }), `Marker renamed to "${name}"`)
+            }
+            onDeleteNoteMarker={(markerId) =>
+              editProject((current) => deleteNoteMarker(current, markerId), "Marker deleted")
+            }
+            onCloseMarkerEditor={() => setEditingMarkerId(null)}
+            onEditMarker={(markerId) => setEditingMarkerId(markerId)}
             onScrub={scrubToFrame}
-            onSelectClip={selectClip}
+            onSetSelection={setSelection}
             onDragStart={beginDragEdit}
             onDragEnd={endDragEdit}
             onTrimPreview={(frameId, durationFrames) =>
               previewProjectEdit((current) => trimKeyframe(current, frameId, durationFrames))
             }
+            onRollPreview={(leftId, rightId, leftDur, rightDur) =>
+              previewProjectEdit((current) => setRollDurations(current, leftId, rightId, leftDur, rightDur))
+            }
+            onMoveClips={handleMoveClips}
+            onSetTransition={handleSetTransition}
             onAnimationPreview={(frameId, animation) =>
               previewProjectEdit((current) => setBeatAnimation(current, frameId, animation))
             }
+            onCopy={handleCopyClips}
+            onPaste={handlePasteClips}
             onSplit={splitAtPlayhead}
             onDelete={deleteCurrent}
-            onDropFile={handleTimelineDrop}
-          />
-          <Tracks
-            frames={frames}
-            playheadFrame={playheadFrame}
-            selectedFrameId={selectedFrame.id}
-            onSelect={(id) => {
-              const hit = clips.find((clip) => clip.keyframe.id === id);
-              selectClip(id, false, hit?.startFrame);
-            }}
             onMoveCue={moveCue}
+            onDropFile={handleTimelineDrop}
           />
         </div>
       </div>
@@ -1528,7 +1740,7 @@ export default function App() {
             ? `${diagnostics.length} RUN-ORDER NOTE${diagnostics.length === 1 ? "" : "S"}`
             : "RUNNING ORDER VERIFIED"}
         </span>
-        <span>SPACE PLAY · ← / → 1F · ⇧← / ⇧→ 1S · S SPLIT · ⌘Z UNDO</span>
+        <span>SPACE PLAY · N SNAP ({snapEnabled ? "ON" : "OFF"}) · M MARKER · ⌘C/⌘V COPY/PASTE · S SPLIT · ⌘Z UNDO</span>
       </footer>
       {dragOver && (
         <div className="drop-overlay">

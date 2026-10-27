@@ -11,6 +11,7 @@ import {
   toggleKeyAtFrame,
   type AnimProp,
 } from "../sequence/animate";
+import { mapTransitionKind } from "../sequence/transitions";
 
 interface InspectorProps {
   project: ProjectState;
@@ -49,20 +50,10 @@ interface InspectorProps {
 
 const TRANSITIONS = [
   "cut",
-  "fade",
-  "crossfade",
-  "fade-black",
-  "slide-left",
-  "slide-right",
-  "iris-in",
-  "iris",
+  "dissolve",
+  "dip-to-black",
   "wipe-left",
   "wipe-right",
-  "wipe-up",
-  "wipe-down",
-  "zoom",
-  "glitch",
-  "burn",
 ];
 const PARTICLES = [
   "none",
@@ -352,7 +343,7 @@ export function Inspector(props: InspectorProps) {
             </div>
             <FieldSelect
               label="Transition"
-              value={String(beat.backgroundTransition ?? "cut")}
+              value={mapTransitionKind(beat.backgroundTransition)}
               options={TRANSITIONS}
               onChange={(value) => props.onSetBeat("backgroundTransition", value)}
             />

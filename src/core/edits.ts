@@ -169,6 +169,23 @@ export function rollKeyframeCut(
   return { ...project, story, updatedAt: Date.now() };
 }
 
+export function setRollDurations(
+  project: ProjectState,
+  leftFrameId: string,
+  rightFrameId: string,
+  leftDuration: number,
+  rightDuration: number,
+): ProjectState {
+  if (leftFrameId === rightFrameId) return project;
+  const story = cloneStory(project.story);
+  const leftLoc = locateBeat(story, leftFrameId);
+  const rightLoc = locateBeat(story, rightFrameId);
+  if (!leftLoc || !rightLoc) return project;
+  leftLoc.beat.durationFrames = Math.max(MIN_CLIP_FRAMES, Math.round(leftDuration));
+  rightLoc.beat.durationFrames = Math.max(MIN_CLIP_FRAMES, Math.round(rightDuration));
+  return { ...project, story, updatedAt: Date.now() };
+}
+
 export function setCutTransition(
   project: ProjectState,
   incomingFrameId: string,

@@ -177,16 +177,32 @@ describe("App and studio windows", () => {
           playheadFrame={startClip.startFrame}
           selectedFrameId={startFrame.id}
           selectedFrameIds={[startFrame.id]}
+          snapEnabled={true}
+          noteMarkers={[]}
+          editingMarkerId={null}
           canSplit={false}
+          hasClipboard={false}
           resolveMedia={resolveMedia}
+          onToggleSnap={noop}
+          onAddNoteMarker={noop}
+          onUpdateNoteMarker={noop}
+          onDeleteNoteMarker={noop}
+          onCloseMarkerEditor={noop}
+          onEditMarker={noop}
           onScrub={noop}
-          onSelectClip={noop}
+          onSetSelection={noop}
           onDragStart={noop}
           onDragEnd={noop}
           onTrimPreview={noop}
+          onRollPreview={noop}
+          onMoveClips={noop}
+          onSetTransition={noop}
           onAnimationPreview={noop}
+          onCopy={noop}
+          onPaste={noop}
           onSplit={noop}
           onDelete={noop}
+          onMoveCue={noop}
           onDropFile={noop}
         />
         <CinematicPreview
@@ -202,8 +218,11 @@ describe("App and studio windows", () => {
           setFocalPoint={noop}
         />
         <Tracks
-          frames={frames}
-          playheadFrame={startClip.startFrame}
+          clips={clips}
+          totalFrames={totalFrames}
+          pxPerFrame={3}
+          minVisibleFrame={Math.max(0, startClip.startFrame - 240)}
+          maxVisibleFrame={startClip.startFrame + 480}
           selectedFrameId={startFrame.id}
           onSelect={noop}
           onMoveCue={noop}
