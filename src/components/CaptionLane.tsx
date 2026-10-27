@@ -189,7 +189,6 @@ export function CaptionLane({
                 e: ReactPointerEvent<HTMLSpanElement>,
                 side: "in" | "out",
               ) => {
-                e.preventDefault();
                 e.stopPropagation();
                 e.currentTarget.setPointerCapture(e.pointerId);
                 onSelectCaption(kf.id, capIdx, false);

@@ -636,4 +636,81 @@ describe("App and studio windows", () => {
     expect(tDuring).toBe(tSteady);
     expect(tDuring).toContain("scale(1.12");
   });
+
+  it("keeps depth-map shots at 1.00x fallback and applies keyframe camera moves to the camera wrapper across transitions", () => {
+    const { clips } = buildTimelineClips(frames);
+    const outgoingClip = {
+      ...clips[0],
+      keyframe: {
+        ...clips[0].keyframe,
+        picture: "/film/img/s1/shot-a.jpg",
+        beat: {
+          ...clips[0].keyframe.beat,
+          cinematic: {
+            mode: "zoom-hold",
+            depthMap: "/film/depth/s1/shot-a/depth.png",
+            depthMotion: "push",
+          },
+          animation: {
+            zoom: [
+              { frame: 0, value: 1, easing: "linear" as const },
+              { frame: 48, value: 1.4, easing: "linear" as const },
+            ],
+            x: [
+              { frame: 0, value: 0, easing: "linear" as const },
+              { frame: 48, value: 6, easing: "linear" as const },
+            ],
+          },
+        },
+      },
+    };
+    const incomingClip = clips[1];
+    const resolveMedia = (v: string | undefined) => v;
+
+    const steadyHtml = renderToStaticMarkup(
+      <CinematicPreview
+        frame={outgoingClip.keyframe}
+        localFrame={24}
+        imageSrc="/film/img/s1/shot-a.jpg"
+        resolveMedia={resolveMedia}
+        playing={false}
+        soundOn={false}
+        showCaption={false}
+        showMark={true}
+      />,
+    );
+
+    const transitionHtml = renderToStaticMarkup(
+      <CinematicPreview
+        frame={incomingClip.keyframe}
+        localFrame={0}
+        imageSrc="/film/img/s1/shot-b.jpg"
+        outgoingImageSrc="/film/img/s1/shot-a.jpg"
+        incomingImageSrc="/film/img/s1/shot-b.jpg"
+        resolveMedia={resolveMedia}
+        playing={true}
+        soundOn={false}
+        showCaption={false}
+        showMark={true}
+        transition={{
+          kind: "dissolve",
+          alignment: "at-cut",
+          progress: 0,
+          cutFrame: incomingClip.startFrame,
+          startFrame: incomingClip.startFrame,
+          endFrame: incomingClip.startFrame + 12,
+          durationFrames: 12,
+          outgoingClip,
+          outLocalFrame: 24,
+          incomingClip,
+          inLocalFrame: 0,
+        }}
+      />,
+    );
+
+    // Keyframe pose at frame 24/48 -> zoom 1.2, x 3% wraps the depth camera identically in steady & outgoing transition states
+    expect(steadyHtml).toContain("translate(3%, 0%) scale(1.2)");
+    expect(transitionHtml).toContain("translate(3%, 0%) scale(1.2)");
+    expect(transitionHtml).toContain('class="depth-parallax"');
+  });
 });

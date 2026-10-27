@@ -121,7 +121,8 @@ import {
   type TrackMixMap,
 } from "./core/previewAudio";
 import { webAudioEngine } from "./core/webAudioEngine";
-import { buildTimelineClips, clipAtFrame, evaluate } from "./sequence/animate";
+import { preloadDepthParallaxAssets } from "./components/FrameDepthParallax";
+import { buildTimelineClips, clipAtFrame, evaluate, hasAnimationKeyframes } from "./sequence/animate";
 import {
   activeTransitionAtFrame,
   readCutTransition,
@@ -204,6 +205,7 @@ function writeStoredPlayhead(frame: number): void {
 }
 
 export default function App() {
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const [project, setProject] = useState<ProjectState | null>(null);
   const projectRef = useRef<ProjectState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -430,6 +432,39 @@ export default function App() {
     }
   }, [totalFrames, playheadFrame]);
 
+  const pictureRuns = useMemo(() => {
+    const runs: Array<{ runKeyId: string; runStartFrame: number }> = [];
+    for (let i = 0; i < clips.length; i += 1) {
+      const clip = clips[i];
+      const kf = clip.keyframe;
+      const prev = i > 0 ? clips[i - 1] : undefined;
+      const cin = (kf.beat.cinematic || kf.scene.cinematic || {}) as Record<string, any>;
+      const prevCin = prev
+        ? ((prev.keyframe.beat.cinematic || prev.keyframe.scene.cinematic || {}) as Record<
+            string,
+            any
+          >)
+        : undefined;
+      const canContinueRun =
+        Boolean(prev) &&
+        !kf.beat.gap &&
+        !prev!.keyframe.beat.gap &&
+        Boolean(kf.carried) &&
+        kf.picture === prev!.keyframe.picture &&
+        !hasAnimationKeyframes(kf) &&
+        !hasAnimationKeyframes(prev!.keyframe) &&
+        String(cin.mode ?? "pan") === String(prevCin?.mode ?? "pan") &&
+        String(cin.depthMap ?? "") === String(prevCin?.depthMap ?? "") &&
+        String(cin.depthMotion ?? "") === String(prevCin?.depthMotion ?? "");
+      if (canContinueRun) {
+        runs.push(runs[i - 1]);
+      } else {
+        runs.push({ runKeyId: kf.id, runStartFrame: clip.startFrame });
+      }
+    }
+    return runs;
+  }, [clips]);
+
   const activeClip = useMemo(
     () => clipAtFrame(clips, playheadFrame) || clips[0],
     [clips, playheadFrame],
@@ -438,11 +473,34 @@ export default function App() {
   const viewerLocalFrame = activeClip
     ? Math.max(0, Math.min(activeClip.durationFrames - 1, playheadFrame - activeClip.startFrame))
     : 0;
+  const activeRun = activeClip ? pictureRuns[activeClip.index] : undefined;
+  const viewerPresetFrame = activeRun
+    ? Math.max(0, playheadFrame - activeRun.runStartFrame)
+    : viewerLocalFrame;
+  const viewerShotKeyId = activeRun?.runKeyId ?? viewerFrame?.id;
 
   const activeTransition = useMemo(
     () => activeTransitionAtFrame(clips, playheadFrame),
     [clips, playheadFrame],
   );
+  const outgoingRun = activeTransition ? pictureRuns[activeTransition.outgoingClip.index] : undefined;
+  const incomingRun = activeTransition ? pictureRuns[activeTransition.incomingClip.index] : undefined;
+  const outgoingPresetFrame = activeTransition
+    ? outgoingRun
+      ? Math.max(0, playheadFrame - outgoingRun.runStartFrame)
+      : activeTransition.outLocalFrame
+    : undefined;
+  const incomingPresetFrame = activeTransition
+    ? incomingRun
+      ? Math.max(0, playheadFrame - incomingRun.runStartFrame)
+      : activeTransition.inLocalFrame
+    : undefined;
+  const outgoingShotKeyId = activeTransition
+    ? outgoingRun?.runKeyId ?? activeTransition.outgoingClip.keyframe.id
+    : undefined;
+  const incomingShotKeyId = activeTransition
+    ? incomingRun?.runKeyId ?? activeTransition.incomingClip.keyframe.id
+    : undefined;
 
   const selectedClip = useMemo(
     () => clips.find((clip) => clip.keyframe.id === selectedFrameId) || activeClip,
@@ -2454,9 +2512,37 @@ export default function App() {
       }
     };
 
+    const focusEditorShellIfNeeded = (target: HTMLElement | null) => {
+      const interactiveFormControl = target?.closest(
+        "input, textarea, select, [contenteditable='true']",
+      ) as HTMLElement | null;
+      if (interactiveFormControl) {
+        return;
+      }
+      const active = document.activeElement as HTMLElement | null;
+      const isNativeFocusableTrigger = Boolean(target?.closest("button, summary, a[href]"));
+      if (active && active !== shellRef.current && active !== document.body && active !== target && !isNativeFocusableTrigger) {
+        active.blur();
+      }
+      if (!isNativeFocusableTrigger) {
+        shellRef.current?.focus({ preventScroll: true });
+      }
+    };
+
+    const onPointerDownCapture = (event: PointerEvent) => {
+      focusEditorShellIfNeeded(event.target as HTMLElement | null);
+    };
+    const onPointerUpCapture = (event: PointerEvent) => {
+      focusEditorShellIfNeeded(event.target as HTMLElement | null);
+    };
+
+    window.addEventListener("pointerdown", onPointerDownCapture, true);
+    window.addEventListener("pointerup", onPointerUpCapture, true);
     window.addEventListener("keydown", onKey, true);
     window.addEventListener("keyup", onKeyUp, true);
     return () => {
+      window.removeEventListener("pointerdown", onPointerDownCapture, true);
+      window.removeEventListener("pointerup", onPointerUpCapture, true);
       window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("keyup", onKeyUp, true);
     };
@@ -2632,6 +2718,31 @@ export default function App() {
     setCropState(null);
   }
 
+  useEffect(() => {
+    if (!clips.length) return;
+    const center = activeClip?.index ?? 0;
+    const start = Math.max(0, center - 2);
+    const end = Math.min(clips.length - 1, center + 3);
+    for (let i = start; i <= end; i += 1) {
+      const kf = clips[i].keyframe;
+      if (!kf || kf.beat.gap) continue;
+      const pic = resolveMedia(kf.picture);
+      const rawCin = (kf.beat.cinematic || kf.scene.cinematic || {}) as Record<string, any>;
+      const resolvedCin = {
+        ...rawCin,
+        depthMap: resolveMedia(rawCin.depthMap),
+        depthPlate: resolveMedia(rawCin.depthPlate),
+        depthCutouts: Array.isArray(rawCin.depthCutouts)
+          ? rawCin.depthCutouts.map((c: Record<string, any>) => ({
+              ...c,
+              image: resolveMedia(c.image) || c.image,
+            }))
+          : undefined,
+      } as any;
+      preloadDepthParallaxAssets(resolvedCin, pic);
+    }
+  }, [activeClip?.index, clips, resolveMedia]);
+
   const viewerImageSrc = viewerFrame ? resolveMedia(viewerFrame.picture) : undefined;
   const selectedImageSrc = selectedFrame ? resolveMedia(selectedFrame.picture) : undefined;
   const outgoingImageSrc = activeTransition
@@ -2727,6 +2838,9 @@ export default function App() {
 
   return (
     <div
+      ref={shellRef}
+      tabIndex={-1}
+      style={{ outline: "none" }}
       className={`frame24-shell ${dragOver ? "is-drag-over" : ""}`}
       onDragOver={(event) => {
         if ([...event.dataTransfer.types].includes("Files")) {
@@ -2998,6 +3112,8 @@ export default function App() {
                 <CinematicPreview
                   frame={viewerFrame}
                   localFrame={viewerLocalFrame}
+                  presetFrame={viewerPresetFrame}
+                  shotKeyId={viewerShotKeyId}
                   clipDurationFrames={activeClip?.durationFrames}
                   captionStyle={captionStyle}
                   imageSrc={viewerImageSrc}
@@ -3005,8 +3121,12 @@ export default function App() {
                   transition={activeTransition}
                   outgoingImageSrc={outgoingImageSrc}
                   outgoingImagePosition={outgoingImagePosition}
+                  outgoingPresetFrame={outgoingPresetFrame}
+                  outgoingShotKeyId={outgoingShotKeyId}
                   incomingImageSrc={incomingImageSrc}
                   incomingImagePosition={incomingImagePosition}
+                  incomingPresetFrame={incomingPresetFrame}
+                  incomingShotKeyId={incomingShotKeyId}
                   videoLevel={effectiveTrackLevel(trackMix, "video")}
                   resolveMedia={resolveMedia}
                   playing={playback}

@@ -515,7 +515,6 @@ export function Timeline({
   );
 
   const beginScrub = (event: ReactPointerEvent<HTMLElement>) => {
-    event.preventDefault();
     event.stopPropagation();
     setTransitionPopover(null);
     scrubbingRef.current = true;
@@ -618,7 +617,6 @@ export function Timeline({
     ) {
       return;
     }
-    event.preventDefault();
     setTransitionPopover(null);
     const scrollEl = scrollRef.current;
     const canvasEl = canvasRef.current;
@@ -1334,7 +1332,6 @@ export function Timeline({
                                 className="transition-edge edge-left"
                                 data-testid={`transition-edge-left-${clip.keyframe.id}`}
                                 onPointerDown={(e) => {
-                                  e.preventDefault();
                                   e.stopPropagation();
                                   e.currentTarget.setPointerCapture(e.pointerId);
                                   transResizeSession.current = {
@@ -1388,7 +1385,6 @@ export function Timeline({
                                 className="transition-edge edge-right"
                                 data-testid={`transition-edge-right-${clip.keyframe.id}`}
                                 onPointerDown={(e) => {
-                                  e.preventDefault();
                                   e.stopPropagation();
                                   e.currentTarget.setPointerCapture(e.pointerId);
                                   transResizeSession.current = {
@@ -1452,7 +1448,6 @@ export function Timeline({
                         title="Drag cut to roll edit (lengthens one clip and shortens the other)"
                         onClick={(e) => e.stopPropagation()}
                         onPointerDown={(e) => {
-                          e.preventDefault();
                           e.stopPropagation();
                           e.currentTarget.setPointerCapture(e.pointerId);
                           rollSession.current = {
@@ -2040,7 +2035,6 @@ function ClipItem({
                   title={`${prop}: ${key.value} @ +${key.frame}f (${key.easing}) — click to select, Delete to remove`}
                   onClick={(event) => event.stopPropagation()}
                   onPointerDown={(event) => {
-                    event.preventDefault();
                     event.stopPropagation();
                     event.currentTarget.setPointerCapture(event.pointerId);
                     keySession.current = {
@@ -2122,7 +2116,6 @@ function ClipItem({
         aria-label={`Trim clip ${kf.mark}/${kf.number}`}
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => {
-          event.preventDefault();
           event.stopPropagation();
           event.currentTarget.setPointerCapture(event.pointerId);
           const downstreamIds = new Set(clips.slice(clip.index).map((c) => c.keyframe.id));

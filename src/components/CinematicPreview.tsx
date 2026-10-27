@@ -1,8 +1,8 @@
 import { useMemo, type CSSProperties } from "react";
 import { CinematicOverlays, LightGlow, LensFlareLayer, cinematicLayer } from "../../vendor/scarlet-reel/cinematicRenderer";
-import { DepthParallaxLayer } from "../../vendor/scarlet-reel/game/DepthParallax";
 import { Particles, type ParticleKind } from "../../vendor/scarlet-reel/game/AmbientParticles";
 import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
+import { FrameDepthParallaxLayer } from "./FrameDepthParallax";
 import {
   activeCaptionAtLocalFrame,
   DEFAULT_CAPTION_STYLE,
@@ -20,6 +20,8 @@ import type { ActiveTransition } from "../sequence/transitions";
 export interface CinematicPreviewProps {
   frame: Keyframe;
   localFrame?: number;
+  presetFrame?: number;
+  shotKeyId?: string;
   clipDurationFrames?: number;
   captionStyle?: CaptionStyle;
   imageSrc?: string;
@@ -27,8 +29,12 @@ export interface CinematicPreviewProps {
   transition?: ActiveTransition;
   outgoingImageSrc?: string;
   outgoingImagePosition?: string;
+  outgoingPresetFrame?: number;
+  outgoingShotKeyId?: string;
   incomingImageSrc?: string;
   incomingImagePosition?: string;
+  incomingPresetFrame?: number;
+  incomingShotKeyId?: string;
   videoLevel?: number;
   resolveMedia: (value: string | undefined) => string | undefined;
   playing: boolean;
@@ -41,6 +47,8 @@ export interface CinematicPreviewProps {
 export function CinematicPreview({
   frame,
   localFrame = 0,
+  presetFrame,
+  shotKeyId,
   clipDurationFrames,
   captionStyle,
   imageSrc,
@@ -48,8 +56,12 @@ export function CinematicPreview({
   transition,
   outgoingImageSrc,
   outgoingImagePosition,
+  outgoingPresetFrame,
+  outgoingShotKeyId,
   incomingImageSrc,
   incomingImagePosition,
+  incomingPresetFrame,
+  incomingShotKeyId,
   videoLevel = 1,
   resolveMedia,
   playing: _playing,
@@ -134,44 +146,88 @@ export function CinematicPreview({
         data-testid="cinematic-video-bus"
         style={{ opacity: clampedVideoLevel, transition: "none", animation: "none" }}
       >
-        {transition && (
-          <div
-            key={`shot-${transition.outgoingClip.keyframe.id}`}
-            className="cin-transition-layer cin-transition-outgoing"
-            data-testid="transition-outgoing"
-            style={{ ...outgoingWrapperStyle, zIndex: 1 }}
-          >
-            <ShotLayer
-              frame={transition.outgoingClip.keyframe}
-              localFrame={transition.outLocalFrame}
-              imageSrc={outgoingImageSrc}
-              imagePosition={outgoingImagePosition}
-              resolveMedia={resolveMedia}
-              soundOn={soundOn}
-              plateTestId="cinematic-plate-outgoing"
-            />
-          </div>
-        )}
-        <div
-          key={`shot-${(transition ? transition.incomingClip.keyframe : frame).id}`}
-          className={`cin-transition-layer ${transition ? "cin-transition-incoming" : "cin-transition-steady"}`}
-          data-testid={transition ? "transition-incoming" : undefined}
-          style={
-            transition
-              ? { ...incomingWrapperStyle, zIndex: 2 }
-              : { opacity: 1, zIndex: 2, transition: "none", animation: "none" }
-          }
-        >
-          <ShotLayer
-            frame={transition ? transition.incomingClip.keyframe : frame}
-            localFrame={transition ? transition.inLocalFrame : localFrame}
-            imageSrc={transition ? incomingImageSrc : imageSrc}
-            imagePosition={transition ? incomingImagePosition : imagePosition}
-            resolveMedia={resolveMedia}
-            soundOn={transition ? false : soundOn}
-            plateTestId="cinematic-plate"
-          />
-        </div>
+        {(() => {
+          const outKey = transition
+            ? outgoingShotKeyId || transition.outgoingClip.keyframe.id
+            : undefined;
+          const rawInKey = transition
+            ? incomingShotKeyId || transition.incomingClip.keyframe.id
+            : shotKeyId || frame.id;
+          const inKey =
+            transition && rawInKey === outKey
+              ? transition.incomingClip.keyframe.id
+              : rawInKey;
+
+          const items = transition
+            ? [
+                {
+                  keyId: outKey!,
+                  role: "outgoing" as const,
+                  testId: "transition-outgoing" as string | undefined,
+                  plateTestId: "cinematic-plate-outgoing",
+                  style: { ...outgoingWrapperStyle, zIndex: 1 } as CSSProperties,
+                  shotFrame: transition.outgoingClip.keyframe,
+                  shotLocalFrame: transition.outLocalFrame,
+                  shotPresetFrame: outgoingPresetFrame ?? transition.outLocalFrame,
+                  shotImageSrc: outgoingImageSrc,
+                  shotImagePosition: outgoingImagePosition,
+                  shotSoundOn: soundOn,
+                },
+                {
+                  keyId: inKey,
+                  role: "incoming" as const,
+                  testId: "transition-incoming" as string | undefined,
+                  plateTestId: "cinematic-plate",
+                  style: { ...incomingWrapperStyle, zIndex: 2 } as CSSProperties,
+                  shotFrame: transition.incomingClip.keyframe,
+                  shotLocalFrame: transition.inLocalFrame,
+                  shotPresetFrame: incomingPresetFrame ?? transition.inLocalFrame,
+                  shotImageSrc: incomingImageSrc,
+                  shotImagePosition: incomingImagePosition,
+                  shotSoundOn: false,
+                },
+              ]
+            : [
+                {
+                  keyId: inKey,
+                  role: "steady" as const,
+                  testId: undefined,
+                  plateTestId: "cinematic-plate",
+                  style: {
+                    opacity: 1,
+                    zIndex: 2,
+                    transition: "none",
+                    animation: "none",
+                  } as CSSProperties,
+                  shotFrame: frame,
+                  shotLocalFrame: localFrame,
+                  shotPresetFrame: presetFrame ?? localFrame,
+                  shotImageSrc: imageSrc,
+                  shotImagePosition: imagePosition,
+                  shotSoundOn: soundOn,
+                },
+              ];
+
+          return items.map((item) => (
+            <div
+              key={`shot-${item.keyId}`}
+              className={`cin-transition-layer cin-transition-${item.role}`}
+              data-testid={item.testId}
+              style={item.style}
+            >
+              <ShotLayer
+                frame={item.shotFrame}
+                localFrame={item.shotLocalFrame}
+                presetFrame={item.shotPresetFrame}
+                imageSrc={item.shotImageSrc}
+                imagePosition={item.shotImagePosition}
+                resolveMedia={resolveMedia}
+                soundOn={item.shotSoundOn}
+                plateTestId={item.plateTestId}
+              />
+            </div>
+          ));
+        })()}
       </div>
 
       {frame.scene.letterbox && (
@@ -228,6 +284,7 @@ export function CinematicPreview({
 function ShotLayer({
   frame,
   localFrame,
+  presetFrame,
   imageSrc,
   imagePosition,
   resolveMedia,
@@ -236,6 +293,7 @@ function ShotLayer({
 }: {
   frame: Keyframe;
   localFrame: number;
+  presetFrame: number;
   imageSrc?: string;
   imagePosition?: string;
   resolveMedia: (value: string | undefined) => string | undefined;
@@ -245,7 +303,7 @@ function ShotLayer({
   const cinematic = (frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>;
   const hasKeyframes = hasAnimationKeyframes(frame);
   const pose = evaluate(frame, localFrame);
-  const tSec = Math.max(0, localFrame) / FPS;
+  const tSec = Math.max(0, hasKeyframes ? localFrame : presetFrame) / FPS;
 
   const picture = frame.picture || "";
   const isGradient = picture.startsWith("gradient:");
@@ -262,10 +320,17 @@ function ShotLayer({
     [effectiveCinematic, plateUrl],
   );
 
+  const hasDepth = Boolean(
+    cinematic.depthMap && imageSrc && !videoSrc && String(cinematic.mode ?? "pan") !== "dolly",
+  );
+
   // Frame-deterministic plate transform: never flips mode across transitions and never relies on CSS @keyframes!
+  const keyframeTransform = `translate(${pose.x}%, ${pose.y}%) scale(${pose.zoom})`;
   const plateTransform = hasKeyframes
-    ? `translate(${pose.x}%, ${pose.y}%) scale(${pose.zoom})`
-    : evaluatePresetPlateTransform(cinematic, tSec);
+    ? keyframeTransform
+    : hasDepth
+      ? "scale(1)"
+      : evaluatePresetPlateTransform(cinematic, tSec);
 
   const basePlateStyle = imagePosition
     ? { ...layer.style, backgroundPosition: imagePosition }
@@ -297,7 +362,9 @@ function ShotLayer({
   const particleKind = (frame.beat.particles ?? frame.scene.particles ?? "none") as ParticleKind;
   const particleConfig = frame.beat.particleConfig ?? frame.scene.particleConfig;
   const cameraWrapperTransform = hasKeyframes
-    ? undefined
+    ? hasDepth
+      ? keyframeTransform
+      : undefined
     : evaluateCameraWrapperTransform(cinematic, tSec);
 
   const shotName = pictureLabel(picture, false, "No picture on this keyframe");
@@ -374,7 +441,11 @@ function ShotLayer({
         </div>
       )}
       {cinematic.depthMap && imageSrc && !videoSrc && (
-        <DepthParallaxLayer cinematic={resolvedCinematic} picture={plateUrl || imageSrc} />
+        <FrameDepthParallaxLayer
+          cinematic={resolvedCinematic}
+          picture={plateUrl || imageSrc}
+          tSec={tSec}
+        />
       )}
       {cinematic.foregroundImage && (
         <img

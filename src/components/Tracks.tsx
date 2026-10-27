@@ -478,7 +478,6 @@ function AudioClipItem({
         if (target.closest(".audio-edge-handle, .audio-fade-handle, .audio-gain-line")) {
           return;
         }
-        e.preventDefault();
         e.stopPropagation();
         const additive = e.shiftKey;
         if (!isSelected && !additive) {
@@ -619,7 +618,6 @@ function AudioClipItem({
         title={`Clip gain: ${Math.round(clip.gain * 100)}% — drag vertically to adjust`}
         onPointerDown={(e: ReactPointerEvent<HTMLDivElement>) => {
           if (e.button !== 0) return;
-          e.preventDefault();
           e.stopPropagation();
           const additive = e.shiftKey;
           if (!isSelected && !additive) {
@@ -717,7 +715,6 @@ function AudioClipItem({
         style={{ width: edgeHandlePx }}
         title="Drag left edge to trim file in-point (inMs)"
         onPointerDown={(e) => {
-          e.preventDefault();
           e.stopPropagation();
           e.currentTarget.setPointerCapture(e.pointerId);
           dragSession.current = {
@@ -770,7 +767,6 @@ function AudioClipItem({
         style={{ width: edgeHandlePx }}
         title="Drag right edge to trim duration (durationMs)"
         onPointerDown={(e) => {
-          e.preventDefault();
           e.stopPropagation();
           e.currentTarget.setPointerCapture(e.pointerId);
           dragSession.current = {
@@ -823,7 +819,6 @@ function AudioClipItem({
         style={{ left: Math.max(0, Math.min(widthPx - 8, fadeInPx)) }}
         title={`Fade in: ${Math.round(clip.fadeInMs)} ms — drag horizontally`}
         onPointerDown={(e) => {
-          e.preventDefault();
           e.stopPropagation();
           e.currentTarget.setPointerCapture(e.pointerId);
           dragSession.current = {
@@ -864,7 +859,6 @@ function AudioClipItem({
         style={{ right: Math.max(0, Math.min(widthPx - 8, fadeOutPx)) }}
         title={`Fade out: ${Math.round(clip.fadeOutMs)} ms — drag horizontally`}
         onPointerDown={(e) => {
-          e.preventDefault();
           e.stopPropagation();
           e.currentTarget.setPointerCapture(e.pointerId);
           dragSession.current = {
