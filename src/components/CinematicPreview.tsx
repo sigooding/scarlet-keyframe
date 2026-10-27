@@ -13,7 +13,7 @@ import {
 } from "../core/captions";
 import type { Keyframe } from "../core/model";
 import { pictureLabel, storyboardGradient } from "../core/helpers";
-import { clipFrames } from "../core/timing";
+import { clipFrames, FPS } from "../core/timing";
 import { evaluate, hasAnimationKeyframes } from "../sequence/animate";
 import type { ActiveTransition } from "../sequence/transitions";
 
@@ -52,7 +52,7 @@ export function CinematicPreview({
   incomingImagePosition,
   videoLevel = 1,
   resolveMedia,
-  playing,
+  playing: _playing,
   soundOn,
   showCaption,
   showMark,
@@ -134,56 +134,44 @@ export function CinematicPreview({
         data-testid="cinematic-video-bus"
         style={{ opacity: clampedVideoLevel, transition: "none", animation: "none" }}
       >
-        {transition ? (
-          <>
-            <div
-              className="cin-transition-layer cin-transition-outgoing"
-              data-testid="transition-outgoing"
-              style={outgoingWrapperStyle}
-            >
-              <ShotLayer
-                frame={transition.outgoingClip.keyframe}
-                localFrame={transition.outLocalFrame}
-                imageSrc={outgoingImageSrc}
-                imagePosition={outgoingImagePosition}
-                resolveMedia={resolveMedia}
-                playing={playing}
-                soundOn={soundOn}
-                plateTestId="cinematic-plate-outgoing"
-                inTransition
-              />
-            </div>
-            <div
-              className="cin-transition-layer cin-transition-incoming"
-              data-testid="transition-incoming"
-              style={incomingWrapperStyle}
-            >
-              <ShotLayer
-                frame={transition.incomingClip.keyframe}
-                localFrame={transition.inLocalFrame}
-                imageSrc={incomingImageSrc}
-                imagePosition={incomingImagePosition}
-                resolveMedia={resolveMedia}
-                playing={playing}
-                soundOn={false}
-                plateTestId="cinematic-plate"
-                inTransition
-              />
-            </div>
-          </>
-        ) : (
-          <ShotLayer
-            frame={frame}
-            localFrame={localFrame}
-            imageSrc={imageSrc}
-            imagePosition={imagePosition}
-            resolveMedia={resolveMedia}
-            playing={playing}
-            soundOn={soundOn}
-            plateTestId="cinematic-plate"
-            inTransition={false}
-          />
+        {transition && (
+          <div
+            key={`shot-${transition.outgoingClip.keyframe.id}`}
+            className="cin-transition-layer cin-transition-outgoing"
+            data-testid="transition-outgoing"
+            style={{ ...outgoingWrapperStyle, zIndex: 1 }}
+          >
+            <ShotLayer
+              frame={transition.outgoingClip.keyframe}
+              localFrame={transition.outLocalFrame}
+              imageSrc={outgoingImageSrc}
+              imagePosition={outgoingImagePosition}
+              resolveMedia={resolveMedia}
+              soundOn={soundOn}
+              plateTestId="cinematic-plate-outgoing"
+            />
+          </div>
         )}
+        <div
+          key={`shot-${(transition ? transition.incomingClip.keyframe : frame).id}`}
+          className={`cin-transition-layer ${transition ? "cin-transition-incoming" : "cin-transition-steady"}`}
+          data-testid={transition ? "transition-incoming" : undefined}
+          style={
+            transition
+              ? { ...incomingWrapperStyle, zIndex: 2 }
+              : { opacity: 1, zIndex: 2, transition: "none", animation: "none" }
+          }
+        >
+          <ShotLayer
+            frame={transition ? transition.incomingClip.keyframe : frame}
+            localFrame={transition ? transition.inLocalFrame : localFrame}
+            imageSrc={transition ? incomingImageSrc : imageSrc}
+            imagePosition={transition ? incomingImagePosition : imagePosition}
+            resolveMedia={resolveMedia}
+            soundOn={transition ? false : soundOn}
+            plateTestId="cinematic-plate"
+          />
+        </div>
       </div>
 
       {frame.scene.letterbox && (
@@ -243,25 +231,21 @@ function ShotLayer({
   imageSrc,
   imagePosition,
   resolveMedia,
-  playing,
   soundOn,
   plateTestId,
-  inTransition,
 }: {
   frame: Keyframe;
   localFrame: number;
   imageSrc?: string;
   imagePosition?: string;
   resolveMedia: (value: string | undefined) => string | undefined;
-  playing: boolean;
   soundOn: boolean;
   plateTestId: string;
-  inTransition: boolean;
 }) {
   const cinematic = (frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>;
   const hasKeyframes = hasAnimationKeyframes(frame);
   const pose = evaluate(frame, localFrame);
-  const useDirectPose = hasKeyframes || inTransition;
+  const tSec = Math.max(0, localFrame) / FPS;
 
   const picture = frame.picture || "";
   const isGradient = picture.startsWith("gradient:");
@@ -270,30 +254,29 @@ function ShotLayer({
   const plateUrl = isGradient ? picture : imageSrc || storyboardGradient(picture);
 
   const effectiveCinematic = useMemo(
-    () => (useDirectPose ? { ...cinematic, mode: "static", shakeAmount: 0 } : cinematic),
-    [cinematic, useDirectPose],
+    () => (hasKeyframes ? { ...cinematic, mode: "static", shakeAmount: 0 } : cinematic),
+    [cinematic, hasKeyframes],
   );
   const layer = useMemo(
     () => cinematicLayer(effectiveCinematic, plateUrl),
     [effectiveCinematic, plateUrl],
   );
 
-  const directTransform = useDirectPose
+  // Frame-deterministic plate transform: never flips mode across transitions and never relies on CSS @keyframes!
+  const plateTransform = hasKeyframes
     ? `translate(${pose.x}%, ${pose.y}%) scale(${pose.zoom})`
-    : undefined;
+    : evaluatePresetPlateTransform(cinematic, tSec);
 
   const basePlateStyle = imagePosition
     ? { ...layer.style, backgroundPosition: imagePosition }
     : layer.style;
 
-  const plateStyle: CSSProperties = useDirectPose
-    ? {
-        ...basePlateStyle,
-        transform: directTransform,
-        animation: "none",
-        transition: "none",
-      }
-    : basePlateStyle;
+  const plateStyle: CSSProperties = {
+    ...basePlateStyle,
+    transform: plateTransform,
+    animation: "none",
+    transition: "none",
+  };
 
   const resolvedCinematic = useMemo(
     () =>
@@ -313,23 +296,9 @@ function ShotLayer({
 
   const particleKind = (frame.beat.particles ?? frame.scene.particles ?? "none") as ParticleKind;
   const particleConfig = frame.beat.particleConfig ?? frame.scene.particleConfig;
-  const extensionZoomStart = Number(cinematic.startZoom ?? cinematic.zoom ?? 1);
-  const extensionZoomEnd = Number(cinematic.endZoom ?? cinematic.zoom ?? 1);
-  const startPoint = parsePosition(cinematic.startFocalPoint || cinematic.focalPoint);
-  const endPoint = parsePosition(cinematic.endFocalPoint || cinematic.focalPoint);
-  const extensionStyle = {
-    "--edit-start-scale": String(Number.isFinite(extensionZoomStart) ? extensionZoomStart : 1),
-    "--edit-end-scale": String(Number.isFinite(extensionZoomEnd) ? extensionZoomEnd : 1),
-    "--edit-start-x": `${(50 - startPoint.x) * 0.14}%`,
-    "--edit-start-y": `${(50 - startPoint.y) * 0.14}%`,
-    "--edit-end-x": `${(50 - endPoint.x) * 0.14}%`,
-    "--edit-end-y": `${(50 - endPoint.y) * 0.14}%`,
-    "--edit-easing": String(cinematic.easing || "ease-in-out"),
-    "--edit-duration": `${Math.max(0.1, Number(cinematic.zoomDuration) || 8)}s`,
-  } as CSSProperties;
-
-  const cameraMoveActive =
-    !useDirectPose && playing && Boolean(cinematic.startZoom || cinematic.endZoom || cinematic.easing);
+  const cameraWrapperTransform = hasKeyframes
+    ? undefined
+    : evaluateCameraWrapperTransform(cinematic, tSec);
 
   const shotName = pictureLabel(picture, false, "No picture on this keyframe");
 
@@ -358,18 +327,22 @@ function ShotLayer({
 
   return (
     <div
-      className={`cin-preview-camera ${cameraMoveActive ? "cin-preview-camera-active" : ""}`}
-      style={useDirectPose ? { transition: "none", animation: "none" } : extensionStyle}
+      className="cin-preview-camera"
+      style={{
+        transform: cameraWrapperTransform,
+        transition: "none",
+        animation: "none",
+      }}
     >
       {videoSrc ? (
         <video
           className="cin-preview-video"
           src={videoSrc}
-          style={
-            useDirectPose
-              ? { transform: directTransform, animation: "none", transition: "none" }
-              : undefined
-          }
+          style={{
+            transform: plateTransform,
+            animation: "none",
+            transition: "none",
+          }}
           autoPlay
           muted
           loop
@@ -386,11 +359,11 @@ function ShotLayer({
       {!videoSrc && !isGradient && !imageSrc && (
         <div
           className="cin-preview-missing"
-          style={
-            useDirectPose
-              ? { transform: directTransform, animation: "none", transition: "none" }
-              : undefined
-          }
+          style={{
+            transform: plateTransform,
+            animation: "none",
+            transition: "none",
+          }}
         >
           <div className="cin-storyboard-card">
             <span className="missing-cross">+</span>
@@ -456,3 +429,159 @@ function parsePosition(value: unknown): { x: number; y: number } {
     y: Number.isFinite(y) ? y : 50,
   };
 }
+
+function clamp01(v: number): number {
+  return Math.max(0, Math.min(1, v));
+}
+
+function easeInOutQuad(t: number): number {
+  const u = clamp01(t);
+  return u * u * (3 - 2 * u);
+}
+
+function easeOutCubic(t: number): number {
+  const u = clamp01(t);
+  return 1 - Math.pow(1 - u, 3);
+}
+
+function pingPong01(cycles: number): number {
+  const mod = ((cycles % 2) + 2) % 2;
+  return mod <= 1 ? mod : 2 - mod;
+}
+
+const SHAKE_STOPS: ReadonlyArray<{ p: number; x: number; y: number; r: number }> = [
+  { p: 0.0, x: 0, y: 0, r: 0 },
+  { p: 0.1, x: 1, y: -0.6, r: 1 },
+  { p: 0.24, x: -0.9, y: 0.4, r: -0.7 },
+  { p: 0.38, x: 0.5, y: 1, r: 0.5 },
+  { p: 0.52, x: -0.6, y: -0.8, r: -0.4 },
+  { p: 0.66, x: 0.7, y: 0.3, r: 0.8 },
+  { p: 0.8, x: -0.4, y: 0.5, r: -0.6 },
+  { p: 0.92, x: 0.2, y: -0.3, r: 1 },
+  { p: 1.0, x: 0, y: 0, r: 0 },
+];
+
+/**
+ * Deterministic 24 fps frame evaluation of Scarlet Reel preset camera modes (`pan`, `zoom-hold`,
+ * `dolly`, `dolly-zoom`, `shake`, `static`) so transitions never reset or snap CSS `@keyframes`.
+ */
+function evaluatePresetPlateTransform(cinematic: Record<string, any>, tSec: number): string {
+  const mode = String(cinematic.mode ?? "pan");
+  const zoomDur = Math.max(0.1, Number(cinematic.zoomDuration) || 8);
+
+  if (mode === "static") {
+    return "scale(1)";
+  }
+
+  if (mode === "zoom-hold") {
+    const focal = parsePosition(cinematic.focalPoint);
+    const endX = (50 - focal.x) * 0.14;
+    const endY = (50 - focal.y) * 0.14;
+    const u = easeOutCubic(tSec / (0.8 * zoomDur));
+    const scale = 1 + 0.22 * u;
+    const tx = endX * u;
+    const ty = endY * u;
+    return `scale(${scale.toFixed(4)}) translate(${tx.toFixed(3)}%, ${ty.toFixed(3)}%)`;
+  }
+
+  if (mode === "dolly") {
+    const dollyDur = Math.max(1, Number(cinematic.dollyDuration) || 10);
+    const dist = Math.max(0, Number(cinematic.dollyDistance ?? 8));
+    const dir = cinematic.dollyDirection === "left" ? -1 : 1;
+    const vert = Math.max(0, Math.min(8, Number(cinematic.dollyVertical ?? 0)));
+    const u = easeInOutQuad(pingPong01(tSec / dollyDur));
+    const tx = (-dist * dir) + 2 * dist * dir * u;
+    const ty = -vert + 2 * vert * u;
+    return `translateX(${tx.toFixed(3)}%) translateY(${ty.toFixed(3)}%)`;
+  }
+
+  if (mode === "dolly-zoom") {
+    const dzDur = Math.max(1, Number(cinematic.dollyZoomDuration) || 8);
+    const amount = Math.max(1, Number(cinematic.dollyZoomAmount) || 1.35);
+    const dir = String(cinematic.dollyZoomDirection ?? "both");
+    const fromScale = dir === "pull" ? amount : 1;
+    const toScale = dir === "pull" ? 1 : amount;
+    const u =
+      dir === "push" || dir === "pull"
+        ? easeInOutQuad(tSec / dzDur)
+        : easeInOutQuad(pingPong01(tSec / dzDur));
+    const scale = fromScale + (toScale - fromScale) * u;
+    return `scale(${scale.toFixed(4)})`;
+  }
+
+  if (mode === "shake") {
+    const shake = Math.max(0, Math.min(1, Number(cinematic.shakeAmount ?? 0.5)));
+    const shakeAmtPx = shake * 6;
+    const shakeRotDeg = Number(cinematic.shakeRotation ?? shake * 0.7);
+    const shakeDur = Math.max(0.1, Number(cinematic.shakeDuration) || 0.5);
+    const phase = ((tSec / shakeDur) % 1 + 1) % 1;
+    let sx = 0;
+    let sy = 0;
+    let sr = 0;
+    for (let i = 0; i < SHAKE_STOPS.length - 1; i += 1) {
+      const a = SHAKE_STOPS[i];
+      const b = SHAKE_STOPS[i + 1];
+      if (phase >= a.p && phase <= b.p) {
+        const w = b.p > a.p ? (phase - a.p) / (b.p - a.p) : 0;
+        sx = (a.x + (b.x - a.x) * w) * shakeAmtPx;
+        sy = (a.y + (b.y - a.y) * w) * shakeAmtPx;
+        sr = (a.r + (b.r - a.r) * w) * shakeRotDeg;
+        break;
+      }
+    }
+    return `translate(${sx.toFixed(2)}px, ${sy.toFixed(2)}px) scale(1.06) rotate(${sr.toFixed(3)}deg)`;
+  }
+
+  // Default mode === "pan": 0% scale(1.12) translate(-0.5*panX, 0) -> 100% scale(1.16) translate(panX, 0)
+  const panDur = Math.max(0.1, Number(cinematic.zoomDuration) || 14);
+  const panDist = Math.max(0, Number(cinematic.panDistance ?? 0));
+  const panX = cinematic.panDirection === "left" ? -panDist : panDist;
+  const u = easeInOutQuad(tSec / panDur);
+  const scale = 1.12 + 0.04 * u;
+  const tx = -0.5 * panX + 1.5 * panX * u;
+  return `scale(${scale.toFixed(4)}) translate(${tx.toFixed(3)}%, 0%)`;
+}
+
+function evaluateCameraWrapperTransform(
+  cinematic: Record<string, any>,
+  tSec: number,
+): string | undefined {
+  const hasEditMove = Boolean(
+    cinematic.startZoom !== undefined ||
+      cinematic.endZoom !== undefined ||
+      cinematic.zoom !== undefined ||
+      cinematic.startFocalPoint ||
+      cinematic.endFocalPoint,
+  );
+  if (!hasEditMove) return undefined;
+
+  const startScaleRaw = Number(cinematic.startZoom ?? cinematic.zoom ?? 1);
+  const endScaleRaw = Number(cinematic.endZoom ?? cinematic.zoom ?? 1);
+  const startScale = Number.isFinite(startScaleRaw) && startScaleRaw > 0 ? startScaleRaw : 1;
+  const endScale = Number.isFinite(endScaleRaw) && endScaleRaw > 0 ? endScaleRaw : 1;
+  const startPoint = parsePosition(cinematic.startFocalPoint || cinematic.focalPoint);
+  const endPoint = parsePosition(cinematic.endFocalPoint || cinematic.focalPoint);
+  const startX = (50 - startPoint.x) * 0.14;
+  const startY = (50 - startPoint.y) * 0.14;
+  const endX = (50 - endPoint.x) * 0.14;
+  const endY = (50 - endPoint.y) * 0.14;
+
+  const dur = Math.max(0.1, Number(cinematic.zoomDuration) || 8);
+  const easingName = String(cinematic.easing || "ease-in-out");
+  const rawT = clamp01(tSec / dur);
+  const u =
+    easingName === "linear"
+      ? rawT
+      : easingName === "ease-out"
+        ? easeOutCubic(rawT)
+        : easeInOutQuad(rawT);
+
+  const scale = startScale + (endScale - startScale) * u;
+  const tx = startX + (endX - startX) * u;
+  const ty = startY + (endY - startY) * u;
+  if (Math.abs(scale - 1) < 1e-4 && Math.abs(tx) < 1e-4 && Math.abs(ty) < 1e-4) {
+    return undefined;
+  }
+  return `scale(${scale.toFixed(4)}) translate(${tx.toFixed(3)}%, ${ty.toFixed(3)}%)`;
+}
+

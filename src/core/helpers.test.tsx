@@ -565,4 +565,75 @@ describe("App and studio windows", () => {
       expect(html).toContain(`data-testid="${testId}"`);
     }
   });
+
+  it("keeps camera movement transforms continuous across transitions without snapping to scale(1)", () => {
+    const { clips } = buildTimelineClips(frames);
+    const resolveMedia = () => undefined;
+    const outgoingClip = clips[0];
+    const incomingClip = {
+      ...clips[1],
+      keyframe: {
+        ...clips[1].keyframe,
+        beat: {
+          ...clips[1].keyframe.beat,
+          cinematic: { mode: "pan", panDistance: 6, zoomDuration: 10 },
+        },
+      },
+    };
+
+    const duringTransitionHtml = renderToStaticMarkup(
+      <CinematicPreview
+        frame={incomingClip.keyframe}
+        localFrame={11}
+        resolveMedia={resolveMedia}
+        playing={true}
+        soundOn={false}
+        showCaption={false}
+        showMark={true}
+        transition={{
+          kind: "dissolve",
+          alignment: "at-cut",
+          progress: 11 / 12,
+          cutFrame: incomingClip.startFrame,
+          startFrame: incomingClip.startFrame,
+          endFrame: incomingClip.startFrame + 12,
+          durationFrames: 12,
+          outgoingClip,
+          outLocalFrame: outgoingClip.durationFrames - 1,
+          incomingClip,
+          inLocalFrame: 11,
+        }}
+      />,
+    );
+
+    const sameFrameNoTransitionHtml = renderToStaticMarkup(
+      <CinematicPreview
+        frame={incomingClip.keyframe}
+        localFrame={11}
+        resolveMedia={resolveMedia}
+        playing={true}
+        soundOn={false}
+        showCaption={false}
+        showMark={true}
+      />,
+    );
+
+    const extractIncomingTransform = (markup: string): string => {
+      const plateIdx = markup.indexOf('data-testid="cinematic-plate"');
+      expect(plateIdx).toBeGreaterThan(0);
+      const tagStart = markup.lastIndexOf("<div", plateIdx);
+      const tagEnd = markup.indexOf(">", plateIdx);
+      const tag = markup.slice(tagStart, tagEnd);
+      const match = tag.match(/transform:([^;"]+)/);
+      return match ? match[1] : "";
+    };
+
+    const tDuring = extractIncomingTransform(duringTransitionHtml);
+    const tSteady = extractIncomingTransform(sameFrameNoTransitionHtml);
+
+    // Transform during transition and without transition at the same localFrame must match identically (never snap to scale(1))
+    expect(tDuring).toBeTruthy();
+    expect(tDuring).toBe(tSteady);
+    expect(tDuring).toContain("scale(1.12");
+  });
 });

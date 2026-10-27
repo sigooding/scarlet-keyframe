@@ -628,6 +628,15 @@ export default function App() {
     [project?.audioClips, clips],
   );
 
+  // Ensure any pre-existing/HMR-preserved project without `audioClips` builds them immediately
+  useEffect(() => {
+    if (!project || Array.isArray(project.audioClips)) return;
+    const built = buildAudioClipsFromFilm(project.story, voiceDurations, musicDurations);
+    const upgraded: ProjectState = { ...project, audioClips: built };
+    projectRef.current = upgraded;
+    setProject(upgraded);
+  }, [project, voiceDurations, musicDurations]);
+
   useEffect(() => {
     audioController.setTimeline(clips, totalFrames, musicDurations);
   }, [clips, totalFrames, musicDurations]);
@@ -2296,11 +2305,35 @@ export default function App() {
   ]);
 
   useEffect(() => {
+    const NON_TEXT_INPUT_TYPES = new Set([
+      "range",
+      "checkbox",
+      "radio",
+      "button",
+      "submit",
+      "reset",
+      "color",
+      "file",
+    ]);
+
+    const isTextTypingTarget = (el: HTMLElement | null, allowNumberForSpace = false): boolean => {
+      if (!el) return false;
+      if (el.isContentEditable || el.tagName === "TEXTAREA") return true;
+      if (el.tagName === "INPUT") {
+        const inputType = ((el as HTMLInputElement).type || "text").toLowerCase();
+        if (NON_TEXT_INPUT_TYPES.has(inputType)) return false;
+        if (allowNumberForSpace && inputType === "number") return false;
+        return true;
+      }
+      return false;
+    };
+
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      const typing =
-        target && (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable);
+      const typingText = isTextTypingTarget(target, false);
+      const typingSpaceText = isTextTypingTarget(target, true);
       const mod = event.ctrlKey || event.metaKey;
+
       if (mod && event.key.toLowerCase() === "s") {
         event.preventDefault();
         saveNow();
@@ -2311,17 +2344,38 @@ export default function App() {
         event.shiftKey ? redo() : undo();
         return;
       }
-      if (!typing && mod && event.key.toLowerCase() === "c") {
+
+      // Space plays/stops from EVERYWHERE in the app except while typing inside an actual text field
+      if (!typingSpaceText && !mod && !event.altKey && (event.code === "Space" || event.key === " ")) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.repeat) return;
+        if (
+          target &&
+          (target.tagName === "BUTTON" ||
+            target.tagName === "SELECT" ||
+            (target.tagName === "INPUT" && (target as HTMLInputElement).type === "checkbox"))
+        ) {
+          target.blur();
+        }
+        togglePlayback();
+        return;
+      }
+
+      if (!typingText && mod && event.key.toLowerCase() === "c") {
         event.preventDefault();
         handleCopyClips();
         return;
       }
-      if (!typing && mod && event.key.toLowerCase() === "v") {
+      if (!typingText && mod && event.key.toLowerCase() === "v") {
         event.preventDefault();
         handlePasteClips();
         return;
       }
-      if (typing) return;
+      if (typingText) return;
+      if (target?.tagName === "SELECT" && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+        return;
+      }
       if (event.key === "Escape") {
         event.preventDefault();
         clearAllSelection();
@@ -2333,10 +2387,7 @@ export default function App() {
         handleNudgeSelectedAudio(event.key === "ArrowLeft" ? -stepMs : stepMs);
         return;
       }
-      if (event.code === "Space") {
-        event.preventDefault();
-        togglePlayback();
-      } else if (event.key === "ArrowLeft") {
+      if (event.key === "ArrowLeft") {
         event.preventDefault();
         stepFrames(event.shiftKey ? -FPS : -1);
       } else if (event.key === "ArrowRight") {
@@ -2388,8 +2439,27 @@ export default function App() {
         setPlayback(true);
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        !isTextTypingTarget(target, true) &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        (event.code === "Space" || event.key === " ")
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("keyup", onKeyUp, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("keyup", onKeyUp, true);
+    };
   }, [
     clearAllSelection,
     duckDepth,
@@ -2926,7 +2996,6 @@ export default function App() {
                 style={viewerZoom !== 1 ? { transform: `scale(${viewerZoom})` } : undefined}
               >
                 <CinematicPreview
-                  key={activeTransition ? `trans-${activeTransition.incomingClip.keyframe.id}` : viewerFrame.id}
                   frame={viewerFrame}
                   localFrame={viewerLocalFrame}
                   clipDurationFrames={activeClip?.durationFrames}
