@@ -76,14 +76,19 @@ export function MissingMediaModal({ items, folderLabel, onClose, onLink }: Missi
         <div className="modal-body">
           <div className="modal-callout">
             <p>
-              Pictures, voice takes, and sound effects stay in Scarlet Reel’s <code>public</code> folder rather than
-              being duplicated in this repository. Click <strong>Link folder</strong> and select{" "}
-              <code>scarlett-witness/public</code> to preview and bundle them in this session.
+              Pictures, voice takes, music, and sound effects are sourced from{" "}
+              <a href="https://github.com/sigooding/scarlett-witness" target="_blank" rel="noreferrer">
+                <code>sigooding/scarlett-witness</code>
+              </a>{" "}
+              (<code>public/</code>). You can also click <strong>Link folder</strong> and select a local{" "}
+              <code>scarlett-witness/public</code> checkout to override or bundle local files.
             </p>
             <small>
               {folderLabel
                 ? `Currently linked folder: ${folderLabel}`
-                : "No public folder is linked in this browser tab yet."}
+                : items.length === 0
+                  ? "Resolved from sigooding/scarlett-witness"
+                  : "No local public folder is linked in this browser tab yet."}
             </small>
           </div>
 

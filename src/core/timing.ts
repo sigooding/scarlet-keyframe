@@ -11,7 +11,12 @@ export function keyframeDuration(frame: Keyframe, voiceSeconds?: number, pace = 
   const explicit = Number(beat.holdSeconds ?? beat.holdDuration ?? beat.durationSeconds ?? beat.hold);
   if (Number.isFinite(explicit) && explicit > 0) return explicit;
   const beats = frame.scene.dialogueBeats ?? [];
+  const isFirstBeat = frame.beatIndex === 0;
   const isLastBeat = frame.beatIndex === beats.length - 1;
+  const prose = isFirstBeat ? String(frame.scene.prose ?? "").trim() : "";
+  const proseSec = prose
+    ? (/^(INT|EXT|I\/E)[./\s]/i.test(prose) ? 1.6 * pace : readingSeconds(prose, pace))
+    : 0;
   const rawDelay = Number(beat.afterBeatDelaySeconds);
   const hasAutoDelay =
     isLastBeat &&
@@ -26,23 +31,28 @@ export function keyframeDuration(frame: Keyframe, voiceSeconds?: number, pace = 
     frame.scene.transition !== "cut"
       ? Math.min(2.4, Math.max(0, Number(frame.scene.transitionSpeed) || 0))
       : 0;
+  const nodeOverhead = hasAutoDelay ? 0.28 : 0;
   const text = String(beat.text || "")
     .replace(/\s+/g, " ")
     .trim();
   if (beat.audioUrl) {
     const estVoice =
       voiceSeconds ?? (text ? Math.min(10, Math.max(3, 0.8 + text.length / 13)) : 3);
-    const post = hasAutoDelay ? rawDelay : AFTER_VOICE_SECONDS;
-    return Math.max(0.5, estVoice + post + sceneTrans);
+    const post = hasAutoDelay
+      ? 0.4 + rawDelay + 0.18
+      : isLastBeat
+        ? (Number.isFinite(rawDelay) && rawDelay > 0 ? rawDelay : 1) + 0.1
+        : AFTER_VOICE_SECONDS + 0.1;
+    return Math.max(0.5, proseSec + estVoice + post + sceneTrans);
   }
   if (hasAutoDelay) {
-    return Math.max(0.5, rawDelay + sceneTrans);
+    return Math.max(0.5, proseSec + rawDelay + nodeOverhead + sceneTrans);
   }
   if (text && text !== "·") {
-    return readingSeconds(text, pace, Number(frame.scene.animaticReadPace) || 1) + sceneTrans;
+    return proseSec + readingSeconds(text, pace, Number(frame.scene.animaticReadPace) || 1) + sceneTrans;
   }
   const delay = Number(beat.afterBeatDelaySeconds ?? frame.scene.autoAdvanceDelaySeconds);
-  return (Number.isFinite(delay) && delay > 0 ? delay : 1.5) + sceneTrans;
+  return proseSec + (Number.isFinite(delay) && delay > 0 ? delay : 1.5) + sceneTrans;
 }
 
 export function clipFrames(frame: Keyframe, voiceSeconds?: number, pace = 1): number {

@@ -59,6 +59,32 @@ export async function blobToDataUrl(blob: Blob): Promise<string> {
   return `data:${blob.type || "application/octet-stream"};base64,${btoa(binary)}`;
 }
 
+export const SCARLETT_WITNESS_REPO_URL = "https://github.com/sigooding/scarlett-witness";
+export const SCARLETT_WITNESS_RAW_BASE =
+  "https://raw.githubusercontent.com/sigooding/scarlett-witness/main/public";
+
+export function safeDecodeMediaPath(path: string): string {
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return path;
+  }
+}
+
+export function encodeMediaPath(path: string): string {
+  const clean = normalizeMediaPath(path);
+  return clean
+    .split("/")
+    .map((segment) => encodeURIComponent(safeDecodeMediaPath(segment)))
+    .join("/");
+}
+
+export function hasPublicMediaPath(publicPaths: Set<string>, path: string): boolean {
+  if (publicPaths.has(path)) return true;
+  const decoded = safeDecodeMediaPath(path);
+  return decoded !== path && publicPaths.has(decoded);
+}
+
 export function normalizeMediaPath(value: string): string {
   let path = value;
   if (/^https?:\/\//i.test(path)) {
@@ -83,6 +109,7 @@ export function referencedPath(value: string): string | undefined {
   const raw = unwrapMediaReference(value);
   if (!raw || /^(?:asset:|data:|blob:|gradient:|emoji:)/i.test(raw)) return undefined;
   if (/^https?:\/\//i.test(raw)) return undefined;
+  if (/^(?:none|rain|jazz|drone|tension)$/i.test(raw.trim())) return undefined;
   return normalizeMediaPath(raw);
 }
 
@@ -101,13 +128,13 @@ export function evaluateMissingMedia(
       continue;
     }
     const path = referencedPath(ref);
-    if (path && !folderFiles.has(path) && !publicPaths.has(path)) missing.add(ref);
+    if (path && !folderFiles.has(path) && !hasPublicMediaPath(publicPaths, path)) missing.add(ref);
   }
   for (const item of project.importedMissing) {
     const id = assetIdFromReference(item);
     const path = referencedPath(item);
     if (id && !availableAssetIds.has(id)) missing.add(item);
-    else if (path && !folderFiles.has(path) && !publicPaths.has(path)) missing.add(item);
+    else if (path && !folderFiles.has(path) && !hasPublicMediaPath(publicPaths, path)) missing.add(item);
   }
   return [...missing].sort((a, b) => a.localeCompare(b));
 }

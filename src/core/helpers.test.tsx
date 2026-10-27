@@ -5,15 +5,17 @@ import { AssetBrowser } from "../components/AssetBrowser";
 import { CinematicPreview } from "../components/CinematicPreview";
 import { CropModal } from "../components/CropModal";
 import { ExportModal } from "../components/ExportModal";
-import { Inspector } from "../components/Inspector";
+import { Inspector, parseAmbienceSpec, serializeAmbienceSpec } from "../components/Inspector";
 import { MissingMediaModal } from "../components/MissingMediaModal";
 import { SnapshotModal } from "../components/SnapshotModal";
 import { Timeline } from "../components/Timeline";
 import { Topbar } from "../components/Topbar";
 import { Tracks } from "../components/Tracks";
+import mediaIndex from "../data/media-index.json";
 import film from "../data/nobodys-witness-film.json";
 import edits from "../data/studio-edits.json";
 import { downloadText, measureAudioDuration, pictureLabel, slug } from "./helpers";
+import { evaluateMissingMedia, normalizeMediaPath } from "./media";
 import { applyStudioMusicSync, buildKeyframes, createProjectState, parseImportPayload } from "./model";
 import { writeStudioPatch } from "./patch";
 import { extractKnownMusicDurations } from "./previewAudio";
@@ -482,6 +484,73 @@ describe("App and studio windows", () => {
       );
       expect(exportHtml).toContain("Export");
       expect(exportHtml).toContain("Ready to export");
+    }
+  });
+
+  it("resolves all film media references against sigooding/scarlett-witness media-index with zero unlinked files", () => {
+    const cleanProject = createProjectState(
+      { ...imported, story: applyStudioMusicSync(imported.story, edits) },
+      [],
+      edits,
+    );
+    const paths = new Set((mediaIndex as string[]).map(normalizeMediaPath));
+    const missing = evaluateMissingMedia(cleanProject, new Map(), paths);
+    expect(missing).toEqual([]);
+  });
+
+  it("renders dedicated Voice, SFX, Music, and Ambience file selection settings tabs in Inspector", () => {
+    expect(parseAmbienceSpec("rain+file:/film/sfx/amb-city-traffic.mp3")).toEqual({
+      mode: "layers",
+      synth: "rain",
+      files: ["/film/sfx/amb-city-traffic.mp3"],
+    });
+    expect(serializeAmbienceSpec("rain", ["/film/sfx/amb-city-traffic.mp3"])).toBe(
+      "rain+file:/film/sfx/amb-city-traffic.mp3",
+    );
+
+    const sampleFrame = frames.find((f) => f.beat.audioUrl || f.beat.sfxUrl) || frames[0];
+    for (const [tab, testId] of [
+      ["voice", "choose-voice-btn"],
+      ["sfx", "choose-sfx-btn"],
+      ["music", "choose-music-btn"],
+      ["ambience", "choose-ambience-btn"],
+    ] as const) {
+      const html = renderToStaticMarkup(
+        <Inspector
+          project={project}
+          frame={sampleFrame}
+          localFrame={0}
+          clipDurationFrames={48}
+          canSplit={false}
+          pictureSrc={undefined}
+          selectedCount={1}
+          copied={false}
+          activeTab={tab}
+          onBrowse={noop}
+          onUpload={noop}
+          onSetPicture={noop}
+          onSetAnimation={noop}
+          onPreviewAnimation={noop}
+          onDragStart={noop}
+          onDragEnd={noop}
+          onJumpToLocalFrame={noop}
+          onSetEffect={noop}
+          onResetEffect={noop}
+          onSetBeat={noop}
+          onSetScene={noop}
+          onCopyEffects={noop}
+          onPasteEffects={noop}
+          onPlayVoice={noop}
+          onPreviewSfx={noop}
+          onSplit={noop}
+          onInsert={noop}
+          onDuplicate={noop}
+          onDelete={noop}
+          onMove={noop}
+        />,
+      );
+      expect(html).toContain(`data-testid="inspector-panel-${tab}"`);
+      expect(html).toContain(`data-testid="${testId}"`);
     }
   });
 });

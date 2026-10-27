@@ -1,6 +1,13 @@
 import type { AnyRecord, ProjectAsset, ProjectState, StoryLike } from "./model";
 import { assetIdFromReference, unwrapMediaReference } from "./model";
-import { blobToDataUrl, evaluateMissingMedia, normalizeMediaPath, referencedPath } from "./media";
+import {
+  blobToDataUrl,
+  encodeMediaPath,
+  evaluateMissingMedia,
+  hasPublicMediaPath,
+  referencedPath,
+  SCARLETT_WITNESS_RAW_BASE,
+} from "./media";
 
 export interface PortableStoryBundle {
   story: StoryLike;
@@ -77,28 +84,39 @@ export async function buildPortableBundle(
       continue;
     }
 
-    if (publicPaths.has(path)) {
-      try {
-        const response = await fetch(`/${normalizeMediaPath(path)}`);
-        if (response.ok) {
-          const blob = await response.blob();
-          const id = fileAssetIds.get(path) || nextId();
-          fileAssetIds.set(path, id);
-          assets.set(id, {
-            id,
-            name: path.split("/").pop() || "media",
-            type: assetTypeForPath(path, blob.type),
-            mime: blob.type || undefined,
-            size: blob.size,
-            uploadedAt: project.createdAt,
-            dataUrl: await blobToDataUrl(blob),
-          });
-          ref.set(rewrapAsset(ref.value, id));
-          continue;
+    if (hasPublicMediaPath(publicPaths, path)) {
+      const encoded = encodeMediaPath(path);
+      const urls =
+        typeof window !== "undefined" && window.location.protocol === "file:"
+          ? [`${SCARLETT_WITNESS_RAW_BASE}/${encoded}`]
+          : [`/${encoded}`, `${SCARLETT_WITNESS_RAW_BASE}/${encoded}`];
+      let embedded = false;
+      for (const candidateUrl of urls) {
+        try {
+          const response = await fetch(candidateUrl);
+          const contentType = response.headers.get("content-type") || "";
+          if (response.ok && !contentType.includes("text/html")) {
+            const blob = await response.blob();
+            const id = fileAssetIds.get(path) || nextId();
+            fileAssetIds.set(path, id);
+            assets.set(id, {
+              id,
+              name: path.split("/").pop() || "media",
+              type: assetTypeForPath(path, blob.type),
+              mime: blob.type || undefined,
+              size: blob.size,
+              uploadedAt: project.createdAt,
+              dataUrl: await blobToDataUrl(blob),
+            });
+            ref.set(rewrapAsset(ref.value, id));
+            embedded = true;
+            break;
+          }
+        } catch {
+          // Try next fallback URL.
         }
-      } catch {
-        // Keep the authored path and report it as missing below.
       }
+      if (embedded) continue;
     }
     missing.add(ref.value);
   }

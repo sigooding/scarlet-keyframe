@@ -40,6 +40,7 @@ import {
   type TransitionAlignment,
   type TransitionKind,
 } from "../sequence/transitions";
+import type { InspectorTab } from "./Inspector";
 import { Tracks } from "./Tracks";
 
 const TRACK_HEADERS: ReadonlyArray<{ id: TrackId; label: string; icon: string }> = [
@@ -67,6 +68,7 @@ export interface TimelineProps {
   onToggleTrackMute?: (track: TrackId) => void;
   onToggleTrackSolo?: (track: TrackId) => void;
   onSetTrackLevel?: (track: TrackId, level: number) => void;
+  onFocusInspectorTab?: (tab: InspectorTab) => void;
   onToggleSnap: () => void;
   onAddNoteMarker: () => void;
   onUpdateNoteMarker: (markerId: string, name: string) => void;
@@ -125,6 +127,7 @@ export function Timeline({
   onToggleTrackMute,
   onToggleTrackSolo,
   onSetTrackLevel,
+  onFocusInspectorTab,
   onToggleSnap,
   onAddNoteMarker,
   onUpdateNoteMarker,
@@ -436,8 +439,9 @@ export function Timeline({
       }
 
       onSetSelection([id], id, clickedFrame);
+      onFocusInspectorTab?.("clip");
     },
-    [clips, frameFromClientX, onSetSelection, selectedFrameId, selectedFrameIds],
+    [clips, frameFromClientX, onFocusInspectorTab, onSetSelection, selectedFrameId, selectedFrameIds],
   );
 
   // Marquee drag over empty track space
@@ -778,9 +782,14 @@ export function Timeline({
                 data-testid={`track-header-${header.id}`}
               >
                 <div className="track-header-top">
-                  <span className="track-header-title">
+                  <button
+                    type="button"
+                    className="track-header-title"
+                    onClick={() => onFocusInspectorTab?.(header.id === "video" ? "clip" : header.id)}
+                    title={`Open ${header.label} settings in Inspector`}
+                  >
                     <i aria-hidden>{header.icon}</i> {header.label}
-                  </span>
+                  </button>
                   <div className="track-header-btns">
                     <button
                       type="button"
@@ -1342,7 +1351,10 @@ export function Timeline({
             selectedFrameId={selectedFrameId}
             musicDurations={musicDurations}
             trackMix={effectiveMix}
-            onSelect={(id, startFrame) => onSetSelection([id], id, startFrame)}
+            onSelect={(id, startFrame, audioTab) => {
+              onSetSelection([id], id, startFrame);
+              if (audioTab) onFocusInspectorTab?.(audioTab);
+            }}
             onMoveCue={onMoveCue}
           />
 

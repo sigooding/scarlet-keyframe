@@ -1,11 +1,66 @@
 import { useMemo } from "react";
+import type { InspectorTab } from "./Inspector";
 import {
   effectiveTrackLevel,
   resolveMusicSpans,
   type MusicSpan,
   type TrackMixMap,
 } from "../core/previewAudio";
-import type { TimelineClip } from "../sequence/animate";
+import { clipAtFrame, type TimelineClip } from "../sequence/animate";
+
+export type AudioInspectorTab = Exclude<InspectorTab, "clip">;
+
+export interface AmbienceSpan {
+  id: string;
+  sceneId: string;
+  mark: string;
+  label: string;
+  title: string;
+  startFrame: number;
+  endFrame: number;
+}
+
+export function resolveAmbienceSpans(clips: TimelineClip[], totalFrames: number): AmbienceSpan[] {
+  const spans: AmbienceSpan[] = [];
+  const seen = new Set<string>();
+  let active: AmbienceSpan | null = null;
+  for (const clip of clips) {
+    const scene = clip.keyframe.scene;
+    if (seen.has(scene.id)) continue;
+    seen.add(scene.id);
+    const raw = scene.ambientAudio;
+    if (raw === undefined) continue;
+    const amb = String(raw).trim();
+    if (!amb || amb === "none") {
+      if (active) {
+        active.endFrame = clip.startFrame;
+        if (active.endFrame > active.startFrame) spans.push(active);
+        active = null;
+      }
+      continue;
+    }
+    if (!active || active.title !== amb) {
+      if (active) {
+        active.endFrame = clip.startFrame;
+        if (active.endFrame > active.startFrame) spans.push(active);
+      }
+      active = {
+        id: clip.keyframe.id,
+        sceneId: scene.id,
+        mark: String(clip.keyframe.mark),
+        label: amb.replace(/file:/g, "").replace(/\/film\/sfx\//g, ""),
+        title: amb,
+        startFrame: clip.startFrame,
+        endFrame: totalFrames,
+      };
+    }
+  }
+  if (active) {
+    active.endFrame = totalFrames;
+    if (active.endFrame > active.startFrame) spans.push(active);
+  }
+  return spans;
+}
 
 export interface SyncedAudioLanesProps {
   clips: TimelineClip[];
@@ -16,17 +71,8 @@ export interface SyncedAudioLanesProps {
   selectedFrameId: string;
   musicDurations?: ReadonlyMap<string, number>;
   trackMix?: TrackMixMap;
-  onSelect: (id: string, startFrame: number) => void;
+  onSelect: (id: string, startFrame: number, audioTab?: AudioInspectorTab) => void;
   onMoveCue: (kind: "music" | "ambience" | "sfx", sourceId: string, targetId: string) => void;
-}
-
-interface AmbienceSpan {
-  id: string;
-  sceneId: string;
-  label: string;
-  title: string;
-  startFrame: number;
-  endFrame: number;
 }
 
 export function Tracks({
@@ -46,46 +92,10 @@ export function Tracks({
     [clips, totalFrames, musicDurations],
   );
 
-  const ambienceSpans = useMemo<AmbienceSpan[]>(() => {
-    const spans: AmbienceSpan[] = [];
-    const seen = new Set<string>();
-    let active: AmbienceSpan | null = null;
-    for (const clip of clips) {
-      const scene = clip.keyframe.scene;
-      if (seen.has(scene.id)) continue;
-      seen.add(scene.id);
-      const raw = scene.ambientAudio;
-      if (raw === undefined) continue;
-      const amb = String(raw).trim();
-      if (!amb || amb === "none") {
-        if (active) {
-          active.endFrame = clip.startFrame;
-          if (active.endFrame > active.startFrame) spans.push(active);
-          active = null;
-        }
-        continue;
-      }
-      if (!active || active.title !== amb) {
-        if (active) {
-          active.endFrame = clip.startFrame;
-          if (active.endFrame > active.startFrame) spans.push(active);
-        }
-        active = {
-          id: clip.keyframe.id,
-          sceneId: scene.id,
-          label: amb.replace(/file:/g, "").replace(/\/film\/sfx\//g, ""),
-          title: amb,
-          startFrame: clip.startFrame,
-          endFrame: totalFrames,
-        };
-      }
-    }
-    if (active) {
-      active.endFrame = totalFrames;
-      if (active.endFrame > active.startFrame) spans.push(active);
-    }
-    return spans;
-  }, [clips, totalFrames]);
+  const ambienceSpans = useMemo<AmbienceSpan[]>(
+    () => resolveAmbienceSpans(clips, totalFrames),
+    [clips, totalFrames],
+  );
 
   const visibleVoice = useMemo(
     () =>
@@ -119,6 +129,25 @@ export function Tracks({
     [ambienceSpans, minVisibleFrame, maxVisibleFrame],
   );
 
+  function frameFromLaneClick(event: React.MouseEvent<HTMLElement>, fallbackFrame: number): number {
+    const lane = event.currentTarget.closest(".synced-audio-lane") as HTMLElement | null;
+    if (!lane || event.clientX === 0) return fallbackFrame;
+    const rect = lane.getBoundingClientRect();
+    if (rect.width <= 0) return fallbackFrame;
+    return Math.max(0, Math.min(Math.max(0, totalFrames - 1), Math.round((event.clientX - rect.left) / pxPerFrame)));
+  }
+
+  function handleEmptyLaneClick(event: React.MouseEvent<HTMLDivElement>, tab: AudioInspectorTab): void {
+    if (event.target !== event.currentTarget || !clips.length) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const clickedFrame = Math.max(
+      0,
+      Math.min(Math.max(0, totalFrames - 1), Math.round((event.clientX - rect.left) / pxPerFrame)),
+    );
+    const hit = clipAtFrame(clips, clickedFrame) || clips[0];
+    if (hit) onSelect(hit.keyframe.id, clickedFrame, tab);
+  }
+
   function dropCue(event: React.DragEvent<HTMLDivElement>): void {
     event.preventDefault();
     const payload = event.dataTransfer.getData("application/x-frame24-cue");
@@ -147,6 +176,7 @@ export function Tracks({
       <div
         className={`synced-audio-lane voice-lane ${voiceSilenced ? "is-silenced" : ""}`}
         data-testid="lane-voice"
+        onClick={(e) => handleEmptyLaneClick(e, "voice")}
       >
         {visibleVoice.map((clip) => {
           const kf = clip.keyframe;
@@ -164,8 +194,11 @@ export function Tracks({
                 left,
                 width: Math.max(12, Math.min(clip.durationFrames, voiceSpanFrames) * pxPerFrame),
               }}
-              onClick={() => onSelect(kf.id, clip.startFrame)}
-              title={`Voice (${kf.mark}/${kf.number}): ${kf.beat.audioUrl}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(kf.id, clip.startFrame, "voice");
+              }}
+              title={`Voice (${kf.mark}/${kf.number}): ${kf.beat.audioUrl} — click to change file`}
             >
               <span>◉ {basename(String(kf.beat.audioUrl))}</span>
             </button>
@@ -179,6 +212,7 @@ export function Tracks({
         data-testid="lane-sfx"
         onDragOver={(e) => e.preventDefault()}
         onDrop={dropCue}
+        onClick={(e) => handleEmptyLaneClick(e, "sfx")}
       >
         {visibleSfx.map((clip) => {
           const kf = clip.keyframe;
@@ -199,8 +233,11 @@ export function Tracks({
                 e.dataTransfer.setData("application/x-frame24-cue", `sfx|${kf.id}`);
                 e.dataTransfer.effectAllowed = "move";
               }}
-              onClick={() => onSelect(kf.id, clip.startFrame)}
-              title={`SFX (${kf.mark}/${kf.number}): ${kf.beat.sfxUrl}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(kf.id, clip.startFrame, "sfx");
+              }}
+              title={`SFX (${kf.mark}/${kf.number}): ${kf.beat.sfxUrl} — click to change file`}
             >
               <i />
               {basename(String(kf.beat.sfxUrl))}
@@ -215,6 +252,7 @@ export function Tracks({
         data-testid="lane-music"
         onDragOver={(e) => e.preventDefault()}
         onDrop={dropCue}
+        onClick={(e) => handleEmptyLaneClick(e, "music")}
       >
         {visibleMusic.map((cue) => {
           const left = cue.startFrame * pxPerFrame;
@@ -225,6 +263,8 @@ export function Tracks({
           return (
             <div
               key={`music-${cue.sceneId}-${cue.startFrame}`}
+              role="button"
+              tabIndex={0}
               className={`music-segment ${selectedFrameId === cue.id ? "is-selected" : ""}`}
               data-testid={`music-span-${cue.sceneId}`}
               data-track-url={cue.url}
@@ -236,8 +276,19 @@ export function Tracks({
                 e.dataTransfer.setData("application/x-frame24-cue", `music|${cue.id}`);
                 e.dataTransfer.effectAllowed = "move";
               }}
-              onClick={() => onSelect(cue.id, cue.startFrame)}
-              title={`${cue.url} · ${cue.loop ? "loop" : "once"} · fade in ${s.musicFadeSeconds ?? 1.4}s · level ${s.musicLevel ?? 1}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const clicked = frameFromLaneClick(e, cue.startFrame);
+                const clamped = Math.max(cue.startFrame, Math.min(Math.max(cue.startFrame, cue.endFrame - 1), clicked));
+                onSelect(cue.id, clamped, "music");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(cue.id, cue.startFrame, "music");
+                }
+              }}
+              title={`${cue.url} · ${cue.loop ? "loop" : "once"} · fade in ${s.musicFadeSeconds ?? 1.4}s · level ${s.musicLevel ?? 1} — click to change file`}
             >
               <span>{cue.label}</span>
               {fadeIn && <i className="fade-in-wedge" />}
@@ -253,6 +304,7 @@ export function Tracks({
         data-testid="lane-ambience"
         onDragOver={(e) => e.preventDefault()}
         onDrop={dropCue}
+        onClick={(e) => handleEmptyLaneClick(e, "ambience")}
       >
         {visibleAmbience.map((cue) => {
           const left = cue.startFrame * pxPerFrame;
@@ -260,6 +312,8 @@ export function Tracks({
           return (
             <div
               key={`amb-${cue.sceneId}-${cue.startFrame}`}
+              role="button"
+              tabIndex={0}
               className={`ambience-segment ${selectedFrameId === cue.id ? "is-selected" : ""}`}
               data-testid={`ambience-span-${cue.sceneId}`}
               style={{ left, width }}
@@ -268,8 +322,19 @@ export function Tracks({
                 e.dataTransfer.setData("application/x-frame24-cue", `ambience|${cue.id}`);
                 e.dataTransfer.effectAllowed = "move";
               }}
-              onClick={() => onSelect(cue.id, cue.startFrame)}
-              title={cue.title}
+              onClick={(e) => {
+                e.stopPropagation();
+                const clicked = frameFromLaneClick(e, cue.startFrame);
+                const clamped = Math.max(cue.startFrame, Math.min(Math.max(cue.startFrame, cue.endFrame - 1), clicked));
+                onSelect(cue.id, clamped, "ambience");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(cue.id, cue.startFrame, "ambience");
+                }
+              }}
+              title={`${cue.title} — click to change ambience file`}
             >
               <span>{cue.label}</span>
             </div>

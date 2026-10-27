@@ -14,6 +14,77 @@ import {
 } from "../sequence/animate";
 import { mapTransitionKind } from "../sequence/transitions";
 
+export type InspectorTab = "clip" | "voice" | "sfx" | "music" | "ambience";
+
+export type BrowseMediaTarget =
+  | "picture"
+  | "scenePicture"
+  | "depthMap"
+  | "foregroundImage"
+  | "voice"
+  | "sfx"
+  | "music"
+  | "ambience"
+  | `ambience:${number}`;
+
+export type UploadMediaTarget = "picture" | "voice" | "sfx" | "music" | "ambience";
+
+export interface InheritedMusicInfo {
+  sceneId: string;
+  frameId: string;
+  mark: string;
+  url: string;
+  label: string;
+}
+
+export interface InheritedAmbienceInfo {
+  sceneId: string;
+  frameId: string;
+  mark: string;
+  raw: string;
+  label: string;
+}
+
+export function parseAmbienceSpec(raw: unknown): {
+  mode: "inherit" | "none" | "layers";
+  synth: string;
+  files: string[];
+} {
+  if (raw === undefined || raw === null) {
+    return { mode: "inherit", synth: "none", files: [] };
+  }
+  const trimmed = String(raw).trim();
+  if (!trimmed) {
+    return { mode: "inherit", synth: "none", files: [] };
+  }
+  if (trimmed === "none") {
+    return { mode: "none", synth: "none", files: [] };
+  }
+  let synth = "none";
+  const files: string[] = [];
+  for (const token of trimmed.split("+")) {
+    const part = token.trim();
+    if (!part || part === "none") continue;
+    if (part.startsWith("file:")) {
+      const fileRef = part.slice(5).trim();
+      if (fileRef) files.push(fileRef);
+    } else if (synth === "none") {
+      synth = part;
+    }
+  }
+  return { mode: "layers", synth, files };
+}
+
+export function serializeAmbienceSpec(synth: string, files: string[]): string {
+  const parts: string[] = [];
+  if (synth && synth !== "none") parts.push(synth);
+  for (const file of files) {
+    const clean = file.trim();
+    if (clean) parts.push(clean.startsWith("file:") ? clean : `file:${clean}`);
+  }
+  return parts.length > 0 ? parts.join("+") : "none";
+}
+
 interface InspectorProps {
   project: ProjectState;
   frame: Keyframe;
@@ -23,11 +94,13 @@ interface InspectorProps {
   pictureSrc?: string;
   selectedCount: number;
   copied: boolean;
-  onBrowse: (
-    kind: "image" | "audio",
-    target: "picture" | "scenePicture" | "depthMap" | "foregroundImage" | "voice" | "sfx" | "music",
-  ) => void;
-  onUpload: (kind: "image" | "audio", target: "picture" | "voice" | "sfx" | "music") => void;
+  activeTab?: InspectorTab;
+  onChangeTab?: (tab: InspectorTab) => void;
+  inheritedMusic?: InheritedMusicInfo;
+  inheritedAmbience?: InheritedAmbienceInfo;
+  onSelectFrameId?: (frameId: string) => void;
+  onBrowse: (kind: "image" | "audio", target: BrowseMediaTarget) => void;
+  onUpload: (kind: "image" | "audio", target: UploadMediaTarget) => void;
   onSetPicture: (picture?: string) => void;
   onSetAnimation: (animation: BeatAnimation | undefined, label: string) => void;
   onPreviewAnimation: (animation: BeatAnimation | undefined) => void;
@@ -41,21 +114,17 @@ interface InspectorProps {
   onCopyEffects: () => void;
   onPasteEffects: () => void;
   onPlayVoice: () => void;
+  onPreviewSfx: () => void;
+  onPreviewMusic?: () => void;
+  onPreviewAmbience?: (fileUrl?: string) => void;
   onSplit: () => void;
   onInsert: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onMove: (delta: -1 | 1) => void;
-  onPreviewSfx: () => void;
 }
 
-const TRANSITIONS = [
-  "cut",
-  "dissolve",
-  "dip-to-black",
-  "wipe-left",
-  "wipe-right",
-];
+const TRANSITIONS = ["cut", "dissolve", "dip-to-black", "wipe-left", "wipe-right"];
 const PARTICLES = [
   "none",
   "rain",
@@ -70,11 +139,20 @@ const PARTICLES = [
   "fireflies",
   "motes",
 ];
+const SYNTH_BEDS = ["none", "rain", "jazz", "drone", "tension"];
 const EASINGS: KeyEasing[] = ["linear", "ease-in-out", "hold"];
 
 export function Inspector(props: InspectorProps) {
   const { project, frame, localFrame, clipDurationFrames } = props;
+  const [fallbackTab, setFallbackTab] = useState<InspectorTab>("clip");
   const [jsonError, setJsonError] = useState("");
+
+  const currentTab = props.activeTab ?? fallbackTab;
+  const selectTab = (tab: InspectorTab) => {
+    if (props.onChangeTab) props.onChangeTab(tab);
+    else setFallbackTab(tab);
+  };
+
   const soundSources = project.assets.filter((asset) => asset.type === "audio");
   const beat = frame.beat;
   const scene = frame.scene;
@@ -82,11 +160,51 @@ export function Inspector(props: InspectorProps) {
   const pose = evaluate(frame, localFrame);
   const animated = hasAnimationKeyframes(frame);
 
+  const musicUrl = String(scene.musicUrl || scene.sceneAudioUrl || "");
+  const ambParsed = parseAmbienceSpec(scene.ambientAudio);
+
+  const tabs: ReadonlyArray<{ id: InspectorTab; label: string; icon: string; hasItem: boolean }> = [
+    {
+      id: "clip",
+      label: "Clip",
+      icon: "▣",
+      hasItem: Boolean(frame.picture && !frame.picture.startsWith("gradient:")),
+    },
+    {
+      id: "voice",
+      label: "Voice",
+      icon: "◉",
+      hasItem: Boolean(beat.audioUrl),
+    },
+    {
+      id: "sfx",
+      label: "SFX",
+      icon: "✦",
+      hasItem: Boolean(beat.sfxUrl),
+    },
+    {
+      id: "music",
+      label: "Music",
+      icon: "♪",
+      hasItem: Boolean(musicUrl || props.inheritedMusic),
+    },
+    {
+      id: "ambience",
+      label: "Ambience",
+      icon: "≈",
+      hasItem: Boolean(
+        (scene.ambientAudio && String(scene.ambientAudio) !== "none") || props.inheritedAmbience,
+      ),
+    },
+  ];
+
   return (
-    <aside className="inspector-panel">
+    <aside className="inspector-panel" data-active-tab={currentTab}>
       <div className="inspector-head">
         <div>
-          <span className="eyebrow">CLIP INSPECTOR · {formatTimecode(clipDurationFrames)} ({clipDurationFrames}f)</span>
+          <span className="eyebrow">
+            CLIP INSPECTOR · {formatTimecode(clipDurationFrames)} ({clipDurationFrames}f)
+          </span>
           <h2>
             {frame.mark}
             <span className="inspector-slash">/</span>
@@ -107,351 +225,165 @@ export function Inspector(props: InspectorProps) {
           </button>
         </div>
       </div>
+
+      <div className="inspector-tabs" role="tablist" aria-label="Inspector settings tabs" data-testid="inspector-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={currentTab === tab.id}
+            className={`inspector-tab-btn ${currentTab === tab.id ? "is-active" : ""}`}
+            data-testid={`inspector-tab-${tab.id}`}
+            onClick={() => selectTab(tab.id)}
+          >
+            <span className="inspector-tab-icon">{tab.icon}</span>
+            <span>{tab.label}</span>
+            {tab.hasItem && <i className="inspector-tab-dot" aria-hidden />}
+          </button>
+        ))}
+      </div>
+
       <div className="inspector-scroll">
-        <section className="inspector-section picture-section">
-          <SectionTitle number="01" title="Picture" status={frame.carried ? "CARRIED" : "OWN FRAME"} />
-          <div className="picture-current">
-            {props.pictureSrc && !props.pictureSrc.startsWith("gradient:") && !props.pictureSrc.startsWith("emoji:") ? (
-              <img src={props.pictureSrc} alt="Current keyframe picture" />
-            ) : frame.picture?.startsWith("gradient:") ? (
-              <div className="picture-empty" style={{ background: frame.picture.slice(9) }}>
-                <span>NO PICTURE</span>
-              </div>
-            ) : (
-              <div className="picture-empty">
-                <span>NO LINKED PICTURE</span>
-              </div>
-            )}
-            <div className="picture-current-meta">
-              <strong>{pictureLabel(frame.picture, false, "No picture")}</strong>
-              <small>
-                {frame.pictureSource === "scene"
-                  ? "Scene plate"
-                  : frame.carried
-                    ? "Inherited from previous clip"
-                    : "Clip picture"}
-              </small>
-            </div>
-          </div>
-          <div className="picture-actions">
-            <button className="button button-primary" onClick={() => props.onBrowse("image", "picture")}>
-              Choose…
-            </button>
-            <button className="button button-quiet" onClick={() => props.onUpload("image", "picture")}>
-              Upload…
-            </button>
-            <button
-              className="button button-text"
-              onClick={() => props.onSetPicture(undefined)}
-              disabled={!beat.background}
-            >
-              Remove picture
-            </button>
-          </div>
-        </section>
-
-        <section className="inspector-section action-section">
-          <SectionTitle number="02" title="Clip" status={`+${localFrame}f / ${clipDurationFrames}f`} />
-          <div className="keyframe-actions">
-            <button
-              className="button button-quiet"
-              onClick={props.onSplit}
-              disabled={!props.canSplit}
-              title="Split clip at playhead (S)"
-            >
-              ✂ Split (S)
-            </button>
-            <button className="button button-quiet" onClick={props.onInsert}>
-              ＋ Add after
-            </button>
-            <button className="button button-quiet" onClick={props.onDuplicate}>
-              Duplicate
-            </button>
-            <button className="button button-quiet danger-quiet" onClick={props.onDelete}>
-              Delete
-            </button>
-          </div>
-          <div className="move-actions">
-            <button onClick={() => props.onMove(-1)}>↑ Move earlier</button>
-            <button onClick={() => props.onMove(1)}>↓ Move later</button>
-          </div>
-        </section>
-
-        <section className="inspector-section animation-section" data-testid="inspector-animation">
-          <SectionTitle
-            number="03"
-            title="Animation"
-            status={animated ? "KEYFRAMED" : "PRESET"}
-          />
-          <div className="anim-section-bar">
-            <span>
-              Clip frame <strong>+{localFrame}f</strong> / {Math.max(0, clipDurationFrames - 1)}f
-            </span>
-            <div className="anim-jump-btns">
-              <button
-                type="button"
-                className="field-reset"
-                onClick={() => props.onJumpToLocalFrame(0)}
-                title="Jump playhead to clip start (frame 0)"
-              >
-                ∣◀ Start
-              </button>
-              <button
-                type="button"
-                className="field-reset"
-                onClick={() => props.onJumpToLocalFrame(Math.max(0, clipDurationFrames - 1))}
-                title="Jump playhead to clip end"
-              >
-                End ▶∣
-              </button>
-              {animated && (
+        {currentTab === "voice" && (
+          <div className="inspector-audio-tab" data-testid="inspector-panel-voice">
+            <section className="inspector-section">
+              <SectionTitle
+                number="01"
+                title="Voice file"
+                status={beat.audioUrl ? "ASSIGNED" : "NO VOICE"}
+              />
+              <div className="audio-file-card">
+                <div className="audio-file-card-meta">
+                  <strong>{beat.audioUrl ? fileNameOnly(beat.audioUrl) : "No voice file selected"}</strong>
+                  <small>{beat.audioUrl || "Select a recorded dialogue take or upload an audio file"}</small>
+                </div>
                 <button
                   type="button"
-                  className="field-reset"
-                  onClick={() => props.onSetAnimation(undefined, "Animation keyframes cleared")}
-                  title="Clear all animation keyframes on this clip"
+                  className="audio-preview-btn"
+                  onClick={props.onPlayVoice}
+                  disabled={!beat.audioUrl}
+                  aria-label="Preview voice take"
+                  title="Preview voice take"
                 >
-                  CLEAR
+                  ▶
                 </button>
-              )}
-            </div>
-          </div>
-
-          <AnimationChannelControl
-            prop="zoom"
-            label="Zoom"
-            min={1}
-            max={3}
-            step={0.01}
-            decimals={2}
-            suffix="×"
-            value={pose.zoom}
-            localFrame={localFrame}
-            animation={animation}
-            onSetAnimation={props.onSetAnimation}
-            onPreviewAnimation={props.onPreviewAnimation}
-            onDragStart={props.onDragStart}
-            onDragEnd={props.onDragEnd}
-          />
-          <AnimationChannelControl
-            prop="x"
-            label="Position X"
-            min={-50}
-            max={50}
-            step={0.5}
-            decimals={1}
-            suffix="%"
-            value={pose.x}
-            localFrame={localFrame}
-            animation={animation}
-            onSetAnimation={props.onSetAnimation}
-            onPreviewAnimation={props.onPreviewAnimation}
-            onDragStart={props.onDragStart}
-            onDragEnd={props.onDragEnd}
-          />
-          <AnimationChannelControl
-            prop="y"
-            label="Position Y"
-            min={-50}
-            max={50}
-            step={0.5}
-            decimals={1}
-            suffix="%"
-            value={pose.y}
-            localFrame={localFrame}
-            animation={animation}
-            onSetAnimation={props.onSetAnimation}
-            onPreviewAnimation={props.onPreviewAnimation}
-            onDragStart={props.onDragStart}
-            onDragEnd={props.onDragEnd}
-          />
-          <p className="preview-only-note">
-            {animated
-              ? "Keyframes active: replaces Scarlet Reel camera preset on this clip."
-              : "Add ◆ keyframes on Zoom, X or Y to animate directly by frame."}
-          </p>
-        </section>
-
-        <details className="inspector-details">
-          <summary>
-            <SectionTitle number="04" title="Camera & effects" status="SCARLET REEL" />
-          </summary>
-          <div className="effect-intro">
-            Controls mirror the vendored Scarlet Reel cinematic settings. Click the preview to place the focal point.
-          </div>
-          {CINEMATIC_GROUPS.map((group) => (
-            <details className="effect-group" key={group.id} open={group.id === "camera" || group.id === "depth"}>
-              <summary>
-                {group.label}
-                <span>{group.fields.length} fields</span>
-              </summary>
-              <div className="effect-fields">
-                {group.fields.map((field) => (
-                  <EffectField
-                    key={field.key}
-                    field={field}
-                    value={getEffectValue(frame, `cinematic.${field.key}`)}
-                    onChange={(value) => props.onSetEffect(`cinematic.${field.key}`, value)}
-                    onReset={() => props.onResetEffect(`cinematic.${field.key}`)}
-                    onBrowse={() => props.onBrowse("image", field.key === "depthMap" ? "depthMap" : "foregroundImage")}
-                    jsonError={jsonError}
-                    setJsonError={setJsonError}
-                  />
-                ))}
               </div>
-            </details>
-          ))}
-          <div className="effect-group particle-group">
-            <div className="particle-group-head">
-              <span>Particles</span>
-              <small>Beat override</small>
-            </div>
-            <FieldSelect
-              label="Kind"
-              value={String(beat.particles ?? scene.particles ?? "none")}
-              options={PARTICLES}
-              onChange={(value) => props.onSetBeat("particles", value)}
-            />
-            <FieldNumber
-              label="Density"
-              value={Number((beat.particleConfig ?? scene.particleConfig)?.density ?? 1)}
-              min={0}
-              max={2}
-              step={0.05}
-              onChange={(value) => props.onSetBeat("particleConfig.density", value)}
-            />
-            <FieldNumber
-              label="Opacity"
-              value={Number((beat.particleConfig ?? scene.particleConfig)?.opacity ?? 1)}
-              min={0}
-              max={1}
-              step={0.01}
-              onChange={(value) => props.onSetBeat("particleConfig.opacity", value)}
-            />
-            <FieldNumber
-              label="Wind"
-              value={Number((beat.particleConfig ?? scene.particleConfig)?.wind ?? 1)}
-              min={0}
-              max={3}
-              step={0.05}
-              onChange={(value) => props.onSetBeat("particleConfig.wind", value)}
-            />
-          </div>
-          <div className="effect-group particle-group">
-            <div className="particle-group-head">
-              <span>Transition & hold</span>
-              <small>Beat timing</small>
-            </div>
-            <FieldSelect
-              label="Transition"
-              value={mapTransitionKind(beat.backgroundTransition)}
-              options={TRANSITIONS}
-              onChange={(value) => {
-                const wasCut = mapTransitionKind(beat.backgroundTransition) === "cut";
-                props.onSetBeat("backgroundTransition", value);
-                if (value === "cut") {
-                  props.onSetBeat("transitionUserAdded", undefined);
-                  props.onSetBeat("backgroundTransitionAlign", undefined);
-                } else if (wasCut) {
-                  props.onSetBeat("transitionUserAdded", true);
-                }
-              }}
-            />
-            {Boolean(beat.transitionUserAdded) && mapTransitionKind(beat.backgroundTransition) !== "cut" && (
-              <FieldSelect
-                label="Placement"
-                value={beat.backgroundTransitionAlign === "centred" ? "centred" : "at-cut"}
-                options={["at-cut", "centred"]}
-                onChange={(value) =>
-                  props.onSetBeat("backgroundTransitionAlign", value === "centred" ? "centred" : undefined)
-                }
+              <div className="picture-actions">
+                <button
+                  type="button"
+                  className="button button-primary"
+                  data-testid="choose-voice-btn"
+                  onClick={() => props.onBrowse("audio", "voice")}
+                >
+                  Choose voice…
+                </button>
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  onClick={() => props.onUpload("audio", "voice")}
+                >
+                  Upload…
+                </button>
+                <button
+                  type="button"
+                  className="button button-text"
+                  onClick={() => props.onSetBeat("audioUrl", undefined)}
+                  disabled={!beat.audioUrl}
+                >
+                  Remove
+                </button>
+              </div>
+              <label className="control-label">File path</label>
+              <input
+                className="text-control"
+                aria-label="Voice file path"
+                value={String(beat.audioUrl || "")}
+                placeholder="/film/voice/..."
+                onChange={(event) => props.onSetBeat("audioUrl", event.target.value || undefined)}
               />
-            )}
-            <FieldNumber
-              label="Transition speed"
-              value={Number(beat.backgroundTransitionSpeed ?? 0.5)}
-              min={0}
-              max={5}
-              step={0.05}
-              onChange={(value) => props.onSetBeat("backgroundTransitionSpeed", value)}
-              suffix="s"
-            />
-            <FieldNumber
-              label="Hold time"
-              value={Number(beat.holdSeconds ?? 0)}
-              min={0}
-              max={90}
-              step={0.1}
-              onChange={(value) => props.onSetBeat("holdSeconds", value)}
-              suffix="s"
-            />
-            <FieldToggle
-              label="Hold this picture"
-              checked={beat.backgroundHold !== false}
-              onChange={(value) => props.onSetBeat("backgroundHold", value)}
-            />
-            <FieldToggle
-              label="Revert to scene plate"
-              checked={Boolean(beat.backgroundRevert)}
-              onChange={(value) => props.onSetBeat("backgroundRevert", value)}
-            />
-          </div>
-          <button className="button button-wide button-quiet copy-effects" onClick={props.onCopyEffects}>
-            ⧉ Copy complete effects block
-          </button>
-          <p className="preview-only-note">
-            Framing extensions, vignette and grain controls are editor-side additions and are marked preview-only in the
-            export report.
-          </p>
-        </details>
+            </section>
 
-        <details className="inspector-details">
-          <summary>
-            <SectionTitle number="05" title="Sound" status={beat.audioUrl ? "VOICE" : "SILENT"} />
-          </summary>
-          <div className="sound-control">
-            <label className="control-label">Voice take</label>
-            <div className="audio-ref-row">
-              <span>{beat.audioUrl?.split("/").pop() || "No voice take"}</span>
-              <button onClick={props.onPlayVoice} disabled={!beat.audioUrl}>
-                ▶
-              </button>
-            </div>
-            <div className="button-row">
-              <button className="button button-quiet" onClick={() => props.onBrowse("audio", "voice")}>
-                Choose take…
-              </button>
-              <button className="button button-text" onClick={() => props.onUpload("audio", "voice")}>
-                Upload
-              </button>
-            </div>
-            <FieldNumber
-              label="Trim offset"
-              value={Number(beat.audioOffsetSeconds ?? 0)}
-              min={0}
-              max={30}
-              step={0.05}
-              onChange={(value) => props.onSetBeat("audioOffsetSeconds", value)}
-              suffix="s"
-            />
+            <section className="inspector-section">
+              <SectionTitle number="02" title="Timing & dialogue" status={frame.speaker || "LINE"} />
+              <FieldNumber
+                label="Trim offset"
+                value={Number(beat.audioOffsetSeconds ?? 0)}
+                min={0}
+                max={30}
+                step={0.05}
+                onChange={(value) => props.onSetBeat("audioOffsetSeconds", value)}
+                suffix="s"
+              />
+              <div className="audio-dialogue-box">
+                <span className="eyebrow">{frame.speaker || "NARRATOR"}</span>
+                <p>{frame.text || "No dialogue line on this clip."}</p>
+              </div>
+            </section>
           </div>
-          <div className="sound-control">
-            <label className="control-label">Sound effect</label>
-            <div className="audio-ref-row">
-              <span>{beat.sfxUrl?.split("/").pop() || "No effect"}</span>
-              <button onClick={props.onPreviewSfx} disabled={!beat.sfxUrl}>
-                ▶
-              </button>
-            </div>
-            <div className="button-row">
-              <button className="button button-quiet" onClick={() => props.onBrowse("audio", "sfx")}>
-                Choose sound…
-              </button>
-              <button className="button button-text" onClick={() => props.onUpload("audio", "sfx")}>
-                Upload
-              </button>
-            </div>
-            {beat.sfxUrl && (
+        )}
+
+        {currentTab === "sfx" && (
+          <div className="inspector-audio-tab" data-testid="inspector-panel-sfx">
+            <section className="inspector-section">
+              <SectionTitle
+                number="01"
+                title="Sound effect file"
+                status={beat.sfxUrl ? "ASSIGNED" : "NO SFX"}
+              />
+              <div className="audio-file-card">
+                <div className="audio-file-card-meta">
+                  <strong>{beat.sfxUrl ? fileNameOnly(beat.sfxUrl) : "No sound effect selected"}</strong>
+                  <small>{beat.sfxUrl || "Select a foley or sound effect cue from the library"}</small>
+                </div>
+                <button
+                  type="button"
+                  className="audio-preview-btn"
+                  onClick={props.onPreviewSfx}
+                  disabled={!beat.sfxUrl}
+                  aria-label="Preview sound effect"
+                  title="Preview sound effect"
+                >
+                  ▶
+                </button>
+              </div>
+              <div className="picture-actions">
+                <button
+                  type="button"
+                  className="button button-primary"
+                  data-testid="choose-sfx-btn"
+                  onClick={() => props.onBrowse("audio", "sfx")}
+                >
+                  Choose sound…
+                </button>
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  onClick={() => props.onUpload("audio", "sfx")}
+                >
+                  Upload…
+                </button>
+                <button
+                  type="button"
+                  className="button button-text"
+                  onClick={() => props.onSetBeat("sfxUrl", undefined)}
+                  disabled={!beat.sfxUrl}
+                >
+                  Remove
+                </button>
+              </div>
+              <label className="control-label">File path</label>
+              <input
+                className="text-control"
+                aria-label="Sound effect file path"
+                value={String(beat.sfxUrl || "")}
+                placeholder="/film/sfx/..."
+                onChange={(event) => props.onSetBeat("sfxUrl", event.target.value || undefined)}
+              />
+            </section>
+
+            <section className="inspector-section">
+              <SectionTitle number="02" title="Effect level" status={`${Math.round(Number(beat.sfxVolume ?? 1) * 100)}%`} />
               <FieldNumber
                 label="Effect level"
                 value={Number(beat.sfxVolume ?? 1)}
@@ -460,51 +392,671 @@ export function Inspector(props: InspectorProps) {
                 step={0.01}
                 onChange={(value) => props.onSetBeat("sfxVolume", value)}
               />
-            )}
-            {beat.sfxUrl && (
-              <button
-                className="button button-text remove-sound"
-                onClick={() => props.onSetBeat("sfxUrl", undefined)}
-              >
-                Remove sound effect
-              </button>
-            )}
+            </section>
           </div>
-          {soundSources.length > 0 && (
-            <p className="inspector-note">
-              {soundSources.length} imported/uploaded sound files in the project library.
-            </p>
-          )}
-        </details>
+        )}
 
-        <details className="inspector-details">
-          <summary>
-            <SectionTitle number="06" title="Scene group" status={frame.mark} />
-          </summary>
-          <label className="control-label">Scene heading</label>
-          <textarea
-            className="inspector-textarea"
-            value={String(scene.prose || "")}
-            onChange={(event) => props.onSetScene("prose", event.target.value)}
-            rows={3}
-          />
-          <div className="control-row">
-            <span className="control-label">Scene plate</span>
-            <button className="button button-text" onClick={() => props.onBrowse("image", "scenePicture")}>
-              Choose
-            </button>
+        {currentTab === "music" && (
+          <div className="inspector-audio-tab" data-testid="inspector-panel-music">
+            <section className="inspector-section">
+              <SectionTitle
+                number="01"
+                title="Music file"
+                status={String(scene.musicMode || "inherit").toUpperCase()}
+              />
+              {!musicUrl &&
+                scene.musicMode !== "none" &&
+                props.inheritedMusic &&
+                props.inheritedMusic.sceneId !== scene.id && (
+                  <div className="audio-inherited-banner">
+                    <div>
+                      <span className="eyebrow">INHERITED FROM SC {props.inheritedMusic.mark}</span>
+                      <strong>{fileNameOnly(props.inheritedMusic.url)}</strong>
+                    </div>
+                    {props.onSelectFrameId && (
+                      <button
+                        type="button"
+                        className="button button-quiet"
+                        onClick={() => props.onSelectFrameId?.(props.inheritedMusic!.frameId)}
+                      >
+                        Edit source
+                      </button>
+                    )}
+                  </div>
+                )}
+
+              <div className="audio-file-card">
+                <div className="audio-file-card-meta">
+                  <strong>
+                    {musicUrl
+                      ? fileNameOnly(musicUrl)
+                      : scene.musicMode === "none"
+                        ? "Music silenced (none)"
+                        : props.inheritedMusic
+                          ? `${fileNameOnly(props.inheritedMusic.url)} (inherited)`
+                          : "No music track selected"}
+                  </strong>
+                  <small>
+                    {musicUrl ||
+                      (props.inheritedMusic
+                        ? `Playing from SC ${props.inheritedMusic.mark} · ${props.inheritedMusic.url}`
+                        : `Choose a music file to start at SC ${frame.mark}`)}
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  className="audio-preview-btn"
+                  onClick={() => props.onPreviewMusic?.()}
+                  disabled={!musicUrl && !props.inheritedMusic}
+                  aria-label="Preview music track"
+                  title="Preview music track"
+                >
+                  ▶
+                </button>
+              </div>
+
+              <div className="picture-actions">
+                <button
+                  type="button"
+                  className="button button-primary"
+                  data-testid="choose-music-btn"
+                  onClick={() => props.onBrowse("audio", "music")}
+                >
+                  Choose music…
+                </button>
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  onClick={() => props.onUpload("audio", "music")}
+                >
+                  Upload…
+                </button>
+                <button
+                  type="button"
+                  className="button button-text"
+                  onClick={() => {
+                    props.onSetScene("musicMode", "none");
+                    props.onSetScene("musicUrl", undefined);
+                  }}
+                >
+                  Silence
+                </button>
+              </div>
+
+              <label className="control-label">File path</label>
+              <input
+                className="text-control"
+                value={musicUrl}
+                onChange={(event) => {
+                  const val = event.target.value || undefined;
+                  props.onSetScene("musicUrl", val);
+                  if (val && scene.musicMode !== "track") {
+                    props.onSetScene("musicMode", "track");
+                  }
+                }}
+                placeholder="Inherit previous cue"
+                aria-label="Scene music path"
+              />
+            </section>
+
+            <section className="inspector-section">
+              <SectionTitle number="02" title="Cue & beat sync" status={`SC ${frame.mark}`} />
+              <FieldSelect
+                label="Mode"
+                value={String(scene.musicMode || "inherit")}
+                options={["inherit", "track", "none"]}
+                onChange={(value) => props.onSetScene("musicMode", value)}
+              />
+              <FieldToggle
+                label="Loop track"
+                checked={scene.musicLoop !== false}
+                onChange={(value) => props.onSetScene("musicLoop", value)}
+              />
+              <FieldNumber
+                label="Level"
+                value={Number(scene.musicLevel ?? 1)}
+                min={0}
+                max={1.5}
+                step={0.01}
+                onChange={(value) => props.onSetScene("musicLevel", value)}
+              />
+              <FieldNumber
+                label="Fade in"
+                value={Number(scene.musicFadeSeconds ?? 1.4)}
+                min={0}
+                max={20}
+                step={0.1}
+                onChange={(value) => props.onSetScene("musicFadeSeconds", value)}
+                suffix="s"
+              />
+              <FieldNumber
+                label="Fade out"
+                value={Number(scene.musicFadeOutSeconds ?? scene.musicFadeSeconds ?? 1.4)}
+                min={0}
+                max={30}
+                step={0.1}
+                onChange={(value) => props.onSetScene("musicFadeOutSeconds", value)}
+                suffix="s"
+              />
+              <FieldNumber
+                label="Beat sync BPM"
+                value={Number(scene.musicSync?.bpm ?? 0)}
+                min={0}
+                max={220}
+                step={0.01}
+                onChange={(value) => props.onSetScene("musicSync.bpm", value || undefined)}
+              />
+              <FieldNumber
+                label="First beat"
+                value={Number(scene.musicSync?.firstBeat ?? 0)}
+                min={0}
+                max={8}
+                step={0.01}
+                onChange={(value) => props.onSetScene("musicSync.firstBeat", value)}
+                suffix="s"
+              />
+            </section>
           </div>
-          <input
-            className="text-control"
-            aria-label="Scene background path"
-            value={String(scene.background || "")}
-            onChange={(event) => props.onSetScene("background", event.target.value)}
-          />
-          <SceneMusic project={project} frame={frame} onBrowse={props.onBrowse} onSetScene={props.onSetScene} />
-        </details>
+        )}
+
+        {currentTab === "ambience" && (
+          <div className="inspector-audio-tab" data-testid="inspector-panel-ambience">
+            <section className="inspector-section">
+              <SectionTitle
+                number="01"
+                title="Ambience file"
+                status={ambParsed.mode.toUpperCase()}
+              />
+              {ambParsed.mode === "inherit" &&
+                props.inheritedAmbience &&
+                props.inheritedAmbience.sceneId !== scene.id && (
+                  <div className="audio-inherited-banner">
+                    <div>
+                      <span className="eyebrow">INHERITED FROM SC {props.inheritedAmbience.mark}</span>
+                      <strong>{props.inheritedAmbience.label}</strong>
+                    </div>
+                    {props.onSelectFrameId && (
+                      <button
+                        type="button"
+                        className="button button-quiet"
+                        onClick={() => props.onSelectFrameId?.(props.inheritedAmbience!.frameId)}
+                      >
+                        Edit source
+                      </button>
+                    )}
+                  </div>
+                )}
+
+              <div className="picture-actions">
+                <button
+                  type="button"
+                  className="button button-primary"
+                  data-testid="choose-ambience-btn"
+                  onClick={() =>
+                    props.onBrowse("audio", ambParsed.files.length > 0 ? "ambience:0" : "ambience")
+                  }
+                >
+                  Choose ambience…
+                </button>
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  onClick={() => props.onBrowse("audio", `ambience:${ambParsed.files.length}`)}
+                  title="Add another layered ambience audio loop"
+                >
+                  ＋ Layer…
+                </button>
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  onClick={() => props.onUpload("audio", "ambience")}
+                >
+                  Upload…
+                </button>
+                <button
+                  type="button"
+                  className="button button-text"
+                  onClick={() => props.onSetScene("ambientAudio", "none")}
+                >
+                  Silence
+                </button>
+              </div>
+
+              {ambParsed.files.length > 0 ? (
+                <div className="ambience-file-list">
+                  {ambParsed.files.map((fileRef, idx) => (
+                    <div className="audio-file-card" key={`${fileRef}-${idx}`}>
+                      <div className="audio-file-card-meta">
+                        <strong>{fileNameOnly(fileRef)}</strong>
+                        <small>{fileRef}</small>
+                      </div>
+                      <div className="audio-card-actions">
+                        <button
+                          type="button"
+                          className="audio-preview-btn"
+                          onClick={() => props.onPreviewAmbience?.(fileRef)}
+                          aria-label={`Preview ${fileNameOnly(fileRef)}`}
+                          title="Preview ambience file"
+                        >
+                          ▶
+                        </button>
+                        <button
+                          type="button"
+                          className="field-reset"
+                          onClick={() => props.onBrowse("audio", `ambience:${idx}`)}
+                        >
+                          CHANGE
+                        </button>
+                        <button
+                          type="button"
+                          className="field-reset"
+                          onClick={() => {
+                            const nextFiles = ambParsed.files.filter((_, i) => i !== idx);
+                            props.onSetScene(
+                              "ambientAudio",
+                              serializeAmbienceSpec(ambParsed.synth, nextFiles),
+                            );
+                          }}
+                          title="Remove this ambience file layer"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="audio-file-card">
+                  <div className="audio-file-card-meta">
+                    <strong>
+                      {ambParsed.mode === "none"
+                        ? "Ambience silenced (none)"
+                        : ambParsed.synth !== "none"
+                          ? `Synth preset only (${ambParsed.synth})`
+                          : props.inheritedAmbience
+                            ? `${props.inheritedAmbience.label} (inherited)`
+                            : "No recorded ambience file"}
+                    </strong>
+                    <small>Choose an ambience loop from the library or layer multiple rooms/weather</small>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="inspector-section">
+              <SectionTitle number="02" title="Synth bed & raw layers" status={`SC ${frame.mark}`} />
+              <FieldSelect
+                label="Synth bed"
+                value={ambParsed.synth}
+                options={SYNTH_BEDS}
+                onChange={(nextSynth) =>
+                  props.onSetScene(
+                    "ambientAudio",
+                    serializeAmbienceSpec(nextSynth, ambParsed.files),
+                  )
+                }
+              />
+              <label className="control-label ambience-label">Ambience layers</label>
+              <input
+                className="text-control"
+                value={String(scene.ambientAudio || "")}
+                placeholder="Inherit previous scene (or none)"
+                onChange={(event) =>
+                  props.onSetScene("ambientAudio", event.target.value || undefined)
+                }
+                aria-label="Ambience layers"
+              />
+              <div className="button-row" style={{ marginTop: 6 }}>
+                <button
+                  type="button"
+                  className="button button-text"
+                  disabled={scene.ambientAudio === undefined}
+                  onClick={() => props.onSetScene("ambientAudio", undefined)}
+                >
+                  Inherit from previous scene
+                </button>
+              </div>
+              <small className="inspector-note">
+                Combine a synth preset and recorded loops with <code>+</code> (e.g.{" "}
+                <code>rain+file:/film/sfx/amb-city-traffic.mp3</code>).
+              </small>
+            </section>
+          </div>
+        )}
+
+        {currentTab === "clip" && (
+          <>
+            <section className="inspector-section picture-section">
+              <SectionTitle number="01" title="Picture" status={frame.carried ? "CARRIED" : "OWN FRAME"} />
+              <div className="picture-current">
+                {props.pictureSrc && !props.pictureSrc.startsWith("gradient:") && !props.pictureSrc.startsWith("emoji:") ? (
+                  <img src={props.pictureSrc} alt="Current keyframe picture" />
+                ) : frame.picture?.startsWith("gradient:") ? (
+                  <div className="picture-empty" style={{ background: frame.picture.slice(9) }}>
+                    <span>NO PICTURE</span>
+                  </div>
+                ) : (
+                  <div className="picture-empty">
+                    <span>NO LINKED PICTURE</span>
+                  </div>
+                )}
+                <div className="picture-current-meta">
+                  <strong>{pictureLabel(frame.picture, false, "No picture")}</strong>
+                  <small>
+                    {frame.pictureSource === "scene"
+                      ? "Scene plate"
+                      : frame.carried
+                        ? "Inherited from previous clip"
+                        : "Clip picture"}
+                  </small>
+                </div>
+              </div>
+              <div className="picture-actions">
+                <button className="button button-primary" onClick={() => props.onBrowse("image", "picture")}>
+                  Choose…
+                </button>
+                <button className="button button-quiet" onClick={() => props.onUpload("image", "picture")}>
+                  Upload…
+                </button>
+                <button
+                  className="button button-text"
+                  onClick={() => props.onSetPicture(undefined)}
+                  disabled={!beat.background}
+                >
+                  Remove picture
+                </button>
+              </div>
+            </section>
+
+            <section className="inspector-section action-section">
+              <SectionTitle number="02" title="Clip" status={`+${localFrame}f / ${clipDurationFrames}f`} />
+              <div className="keyframe-actions">
+                <button
+                  className="button button-quiet"
+                  onClick={props.onSplit}
+                  disabled={!props.canSplit}
+                  title="Split clip at playhead (S)"
+                >
+                  ✂ Split (S)
+                </button>
+                <button className="button button-quiet" onClick={props.onInsert}>
+                  ＋ Add after
+                </button>
+                <button className="button button-quiet" onClick={props.onDuplicate}>
+                  Duplicate
+                </button>
+                <button className="button button-quiet danger-quiet" onClick={props.onDelete}>
+                  Delete
+                </button>
+              </div>
+              <div className="move-actions">
+                <button onClick={() => props.onMove(-1)}>↑ Move earlier</button>
+                <button onClick={() => props.onMove(1)}>↓ Move later</button>
+              </div>
+            </section>
+
+            <section className="inspector-section animation-section" data-testid="inspector-animation">
+              <SectionTitle number="03" title="Animation" status={animated ? "KEYFRAMED" : "PRESET"} />
+              <div className="anim-section-bar">
+                <span>
+                  Clip frame <strong>+{localFrame}f</strong> / {Math.max(0, clipDurationFrames - 1)}f
+                </span>
+                <div className="anim-jump-btns">
+                  <button
+                    type="button"
+                    className="field-reset"
+                    onClick={() => props.onJumpToLocalFrame(0)}
+                    title="Jump playhead to clip start (frame 0)"
+                  >
+                    ∣◀ Start
+                  </button>
+                  <button
+                    type="button"
+                    className="field-reset"
+                    onClick={() => props.onJumpToLocalFrame(Math.max(0, clipDurationFrames - 1))}
+                    title="Jump playhead to clip end"
+                  >
+                    End ▶∣
+                  </button>
+                  {animated && (
+                    <button
+                      type="button"
+                      className="field-reset"
+                      onClick={() => props.onSetAnimation(undefined, "Animation keyframes cleared")}
+                      title="Clear all animation keyframes on this clip"
+                    >
+                      CLEAR
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <AnimationChannelControl
+                prop="zoom"
+                label="Zoom"
+                min={1}
+                max={3}
+                step={0.01}
+                decimals={2}
+                suffix="×"
+                value={pose.zoom}
+                localFrame={localFrame}
+                animation={animation}
+                onSetAnimation={props.onSetAnimation}
+                onPreviewAnimation={props.onPreviewAnimation}
+                onDragStart={props.onDragStart}
+                onDragEnd={props.onDragEnd}
+              />
+              <AnimationChannelControl
+                prop="x"
+                label="Position X"
+                min={-50}
+                max={50}
+                step={0.5}
+                decimals={1}
+                suffix="%"
+                value={pose.x}
+                localFrame={localFrame}
+                animation={animation}
+                onSetAnimation={props.onSetAnimation}
+                onPreviewAnimation={props.onPreviewAnimation}
+                onDragStart={props.onDragStart}
+                onDragEnd={props.onDragEnd}
+              />
+              <AnimationChannelControl
+                prop="y"
+                label="Position Y"
+                min={-50}
+                max={50}
+                step={0.5}
+                decimals={1}
+                suffix="%"
+                value={pose.y}
+                localFrame={localFrame}
+                animation={animation}
+                onSetAnimation={props.onSetAnimation}
+                onPreviewAnimation={props.onPreviewAnimation}
+                onDragStart={props.onDragStart}
+                onDragEnd={props.onDragEnd}
+              />
+              <p className="preview-only-note">
+                {animated
+                  ? "Keyframes active: replaces Scarlet Reel camera preset on this clip."
+                  : "Add ◆ keyframes on Zoom, X or Y to animate directly by frame."}
+              </p>
+            </section>
+
+            <details className="inspector-details">
+              <summary>
+                <SectionTitle number="04" title="Camera & effects" status="SCARLET REEL" />
+              </summary>
+              <div className="effect-intro">
+                Controls mirror the vendored Scarlet Reel cinematic settings. Click the preview to place the focal point.
+              </div>
+              {CINEMATIC_GROUPS.map((group) => (
+                <details className="effect-group" key={group.id} open={group.id === "camera" || group.id === "depth"}>
+                  <summary>
+                    {group.label}
+                    <span>{group.fields.length} fields</span>
+                  </summary>
+                  <div className="effect-fields">
+                    {group.fields.map((field) => (
+                      <EffectField
+                        key={field.key}
+                        field={field}
+                        value={getEffectValue(frame, `cinematic.${field.key}`)}
+                        onChange={(value) => props.onSetEffect(`cinematic.${field.key}`, value)}
+                        onReset={() => props.onResetEffect(`cinematic.${field.key}`)}
+                        onBrowse={() => props.onBrowse("image", field.key === "depthMap" ? "depthMap" : "foregroundImage")}
+                        jsonError={jsonError}
+                        setJsonError={setJsonError}
+                      />
+                    ))}
+                  </div>
+                </details>
+              ))}
+              <div className="effect-group particle-group">
+                <div className="particle-group-head">
+                  <span>Particles</span>
+                  <small>Beat override</small>
+                </div>
+                <FieldSelect
+                  label="Kind"
+                  value={String(beat.particles ?? scene.particles ?? "none")}
+                  options={PARTICLES}
+                  onChange={(value) => props.onSetBeat("particles", value)}
+                />
+                <FieldNumber
+                  label="Density"
+                  value={Number((beat.particleConfig ?? scene.particleConfig)?.density ?? 1)}
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  onChange={(value) => props.onSetBeat("particleConfig.density", value)}
+                />
+                <FieldNumber
+                  label="Opacity"
+                  value={Number((beat.particleConfig ?? scene.particleConfig)?.opacity ?? 1)}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={(value) => props.onSetBeat("particleConfig.opacity", value)}
+                />
+                <FieldNumber
+                  label="Wind"
+                  value={Number((beat.particleConfig ?? scene.particleConfig)?.wind ?? 1)}
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  onChange={(value) => props.onSetBeat("particleConfig.wind", value)}
+                />
+              </div>
+              <div className="effect-group particle-group">
+                <div className="particle-group-head">
+                  <span>Transition & hold</span>
+                  <small>Beat timing</small>
+                </div>
+                <FieldSelect
+                  label="Transition"
+                  value={mapTransitionKind(beat.backgroundTransition)}
+                  options={TRANSITIONS}
+                  onChange={(value) => {
+                    const wasCut = mapTransitionKind(beat.backgroundTransition) === "cut";
+                    props.onSetBeat("backgroundTransition", value);
+                    if (value === "cut") {
+                      props.onSetBeat("transitionUserAdded", undefined);
+                      props.onSetBeat("backgroundTransitionAlign", undefined);
+                    } else if (wasCut) {
+                      props.onSetBeat("transitionUserAdded", true);
+                    }
+                  }}
+                />
+                {Boolean(beat.transitionUserAdded) && mapTransitionKind(beat.backgroundTransition) !== "cut" && (
+                  <FieldSelect
+                    label="Placement"
+                    value={beat.backgroundTransitionAlign === "centred" ? "centred" : "at-cut"}
+                    options={["at-cut", "centred"]}
+                    onChange={(value) =>
+                      props.onSetBeat("backgroundTransitionAlign", value === "centred" ? "centred" : undefined)
+                    }
+                  />
+                )}
+                <FieldNumber
+                  label="Transition speed"
+                  value={Number(beat.backgroundTransitionSpeed ?? 0.5)}
+                  min={0}
+                  max={5}
+                  step={0.05}
+                  onChange={(value) => props.onSetBeat("backgroundTransitionSpeed", value)}
+                  suffix="s"
+                />
+                <FieldNumber
+                  label="Hold time"
+                  value={Number(beat.holdSeconds ?? 0)}
+                  min={0}
+                  max={90}
+                  step={0.1}
+                  onChange={(value) => props.onSetBeat("holdSeconds", value)}
+                  suffix="s"
+                />
+                <FieldToggle
+                  label="Hold this picture"
+                  checked={beat.backgroundHold !== false}
+                  onChange={(value) => props.onSetBeat("backgroundHold", value)}
+                />
+                <FieldToggle
+                  label="Revert to scene plate"
+                  checked={Boolean(beat.backgroundRevert)}
+                  onChange={(value) => props.onSetBeat("backgroundRevert", value)}
+                />
+              </div>
+              <button className="button button-wide button-quiet copy-effects" onClick={props.onCopyEffects}>
+                ⧉ Copy complete effects block
+              </button>
+              <p className="preview-only-note">
+                Framing extensions, vignette and grain controls are editor-side additions and are marked preview-only in the
+                export report.
+              </p>
+            </details>
+
+            <details className="inspector-details">
+              <summary>
+                <SectionTitle number="05" title="Scene group" status={frame.mark} />
+              </summary>
+              <label className="control-label">Scene heading</label>
+              <textarea
+                className="inspector-textarea"
+                value={String(scene.prose || "")}
+                onChange={(event) => props.onSetScene("prose", event.target.value)}
+                rows={3}
+              />
+              <div className="control-row">
+                <span className="control-label">Scene plate</span>
+                <button className="button button-text" onClick={() => props.onBrowse("image", "scenePicture")}>
+                  Choose
+                </button>
+              </div>
+              <input
+                className="text-control"
+                aria-label="Scene background path"
+                value={String(scene.background || "")}
+                onChange={(event) => props.onSetScene("background", event.target.value)}
+              />
+              {soundSources.length > 0 && (
+                <p className="inspector-note">
+                  {soundSources.length} imported/uploaded sound files in the project library.
+                </p>
+              )}
+            </details>
+          </>
+        )}
       </div>
     </aside>
   );
+}
+
+function fileNameOnly(ref: string): string {
+  return ref.split(/[\\/]/).pop() || ref;
 }
 
 function AnimationChannelControl({
@@ -904,105 +1456,6 @@ function FieldToggle({
         onClick={() => onChange(!checked)}
         aria-label={label}
       />
-    </div>
-  );
-}
-
-function SceneMusic({
-  project,
-  frame,
-  onBrowse,
-  onSetScene,
-}: {
-  project: ProjectState;
-  frame: Keyframe;
-  onBrowse: InspectorProps["onBrowse"];
-  onSetScene: InspectorProps["onSetScene"];
-}) {
-  const scene = frame.scene;
-  const musicUrl = String(scene.musicUrl || scene.sceneAudioUrl || "");
-  const sync = scene.musicSync || {};
-  return (
-    <div className="scene-music-editor">
-      <div className="particle-group-head">
-        <span>Music cue</span>
-        <small>{scene.musicMode || "inherit"}</small>
-      </div>
-      <FieldSelect
-        label="Mode"
-        value={String(scene.musicMode || "inherit")}
-        options={["inherit", "track", "none"]}
-        onChange={(value) => onSetScene("musicMode", value)}
-      />
-      <div className="media-field">
-        <input
-          value={musicUrl}
-          onChange={(event) => onSetScene("musicUrl", event.target.value || undefined)}
-          placeholder="Inherit previous cue"
-          aria-label="Scene music path"
-        />
-        <button onClick={() => onBrowse("audio", "music")}>Choose</button>
-      </div>
-      <FieldNumber
-        label="Level"
-        value={Number(scene.musicLevel ?? 1)}
-        min={0}
-        max={1.5}
-        step={0.01}
-        onChange={(value) => onSetScene("musicLevel", value)}
-      />
-      <FieldNumber
-        label="Fade in"
-        value={Number(scene.musicFadeSeconds ?? 1.4)}
-        min={0}
-        max={20}
-        step={0.1}
-        onChange={(value) => onSetScene("musicFadeSeconds", value)}
-        suffix="s"
-      />
-      <FieldNumber
-        label="Fade out"
-        value={Number(scene.musicFadeOutSeconds ?? scene.musicFadeSeconds ?? 1.4)}
-        min={0}
-        max={30}
-        step={0.1}
-        onChange={(value) => onSetScene("musicFadeOutSeconds", value)}
-        suffix="s"
-      />
-      <FieldToggle
-        label="Loop track"
-        checked={scene.musicLoop !== false}
-        onChange={(value) => onSetScene("musicLoop", value)}
-      />
-      <FieldNumber
-        label="Beat sync BPM"
-        value={Number(sync.bpm ?? 0)}
-        min={0}
-        max={220}
-        step={0.01}
-        onChange={(value) => onSetScene("musicSync.bpm", value || undefined)}
-      />
-      <FieldNumber
-        label="First beat"
-        value={Number(sync.firstBeat ?? 0)}
-        min={0}
-        max={8}
-        step={0.01}
-        onChange={(value) => onSetScene("musicSync.firstBeat", value)}
-        suffix="s"
-      />
-      <label className="control-label ambience-label">
-        Ambience layers <small>{project.assets.filter((asset) => asset.type === "audio").length} sounds</small>
-      </label>
-      <input
-        className="text-control"
-        value={String(scene.ambientAudio || "none")}
-        onChange={(event) => onSetScene("ambientAudio", event.target.value)}
-        aria-label="Ambience layers"
-      />
-      <small className="inspector-note">
-        Use <code>rain+file:/film/sfx/loop.mp3</code> for a preset and recorded layer.
-      </small>
     </div>
   );
 }

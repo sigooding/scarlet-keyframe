@@ -3,11 +3,21 @@ import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
 import { CinematicPreview } from "./components/CinematicPreview";
 import { CropModal, type CropState } from "./components/CropModal";
 import { ExportModal, type ExportTab } from "./components/ExportModal";
-import { Inspector } from "./components/Inspector";
+import {
+  Inspector,
+  parseAmbienceSpec,
+  serializeAmbienceSpec,
+  type BrowseMediaTarget,
+  type InheritedAmbienceInfo,
+  type InheritedMusicInfo,
+  type InspectorTab,
+  type UploadMediaTarget,
+} from "./components/Inspector";
 import { MissingMediaModal } from "./components/MissingMediaModal";
 import { SnapshotModal } from "./components/SnapshotModal";
 import { Timeline } from "./components/Timeline";
 import { Topbar } from "./components/Topbar";
+import { resolveAmbienceSpans } from "./components/Tracks";
 import {
   applyStudioMusicSync,
   buildKeyframes,
@@ -51,7 +61,17 @@ import {
 } from "./core/edits";
 import { buildPortableBundle } from "./core/exportBundle";
 import { downloadText, measureAudioDuration, slug } from "./core/helpers";
-import { createUploadAsset, dataUrlToBlob, evaluateMissingMedia, folderFilePath, normalizeMediaPath, referencedPath } from "./core/media";
+import {
+  createUploadAsset,
+  dataUrlToBlob,
+  encodeMediaPath,
+  evaluateMissingMedia,
+  folderFilePath,
+  hasPublicMediaPath,
+  normalizeMediaPath,
+  referencedPath,
+  SCARLETT_WITNESS_RAW_BASE,
+} from "./core/media";
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, saveActiveProject } from "./core/storage";
 import { clipFrames, FPS, formatTimecode, makeSrt } from "./core/timing";
@@ -73,12 +93,14 @@ import {
   type TransitionKind,
 } from "./sequence/transitions";
 import { audio } from "../vendor/scarlet-reel/audio";
+import bundledAudioDurations from "./data/audio-durations.json";
+import bundledMediaIndex from "./data/media-index.json";
 import bundledFilm from "./data/nobodys-witness-film.json";
 import bundledEdits from "./data/studio-edits.json";
 
-type BrowseTarget = "picture" | "scenePicture" | "depthMap" | "foregroundImage" | "voice" | "sfx" | "music";
+type BrowseTarget = BrowseMediaTarget;
 type BrowserState = { kind: "image" | "audio"; target: BrowseTarget };
-type UploadIntent = { kind: "image" | "audio"; target: "picture" | "voice" | "sfx" | "music"; frameId: string };
+type UploadIntent = { kind: "image" | "audio"; target: UploadMediaTarget; frameId: string };
 
 const PLAYHEAD_SESSION_KEY = "frame24-playhead";
 
@@ -100,6 +122,10 @@ declare global {
       getTrackMix: () => TrackMixMap;
       getEffectiveTrackLevel: (track: TrackId) => number;
       getAudioVolumes: () => AnyRecord;
+      getInspectorTab: () => InspectorTab;
+      setInspectorTab: (tab: InspectorTab) => void;
+      getMissingCount: () => number;
+      resolveMedia: (ref: string | undefined) => string | undefined;
       syncAnimations: (seconds: number) => void;
     };
   }
@@ -132,13 +158,22 @@ export default function App() {
   const projectRef = useRef<ProjectState | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [publicPaths, setPublicPaths] = useState<Set<string>>(new Set());
+  const [publicPaths, setPublicPaths] = useState<Set<string>>(
+    () => new Set((bundledMediaIndex as string[]).map(normalizeMediaPath)),
+  );
   const [folderFiles, setFolderFiles] = useState<Map<string, File>>(new Map());
   const [folderLabel, setFolderLabel] = useState("");
   const [objectUrls, setObjectUrls] = useState<Map<string, string>>(new Map());
-  const [voiceDurations, setVoiceDurations] = useState<Map<string, number>>(new Map());
-  const [measuredMusicDurations, setMeasuredMusicDurations] = useState<Map<string, number>>(new Map());
+  const [voiceDurations, setVoiceDurations] = useState<Map<string, number>>(
+    () => new Map(Object.entries(bundledAudioDurations as Record<string, number>)),
+  );
+  const [measuredMusicDurations, setMeasuredMusicDurations] = useState<Map<string, number>>(
+    () => new Map(Object.entries(bundledAudioDurations as Record<string, number>)),
+  );
   const [trackMix, setTrackMix] = useState<TrackMixMap>(() => createDefaultTrackMix());
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("clip");
+  const inspectorTabRef = useRef<InspectorTab>("clip");
+  inspectorTabRef.current = inspectorTab;
 
   const [playheadFrame, setPlayheadFrame] = useState(0);
   const playheadRef = useRef(0);
@@ -190,6 +225,9 @@ export default function App() {
   const folderInputRef = useRef<HTMLInputElement>(null);
   const previewStageRef = useRef<HTMLDivElement>(null);
   const voiceDurationCache = useRef(new Map<string, number>());
+  const attemptedVoiceRefs = useRef(new Set<string>(Object.keys(bundledAudioDurations as Record<string, number>)));
+  const attemptedMusicRefs = useRef(new Set<string>(Object.keys(bundledAudioDurations as Record<string, number>)));
+  const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayedClipRef = useRef("");
   const lastPlayedSceneRef = useRef("");
   const animationClockRef = useRef(new WeakMap<Animation, number>());
@@ -218,9 +256,15 @@ export default function App() {
                 .catch(() => [] as string[]),
         ]);
         const sourceEdits = bundledEdits as AnyRecord;
-        const paths = new Set(mediaIndex.map(normalizeMediaPath));
+        const paths = new Set<string>([
+          ...(bundledMediaIndex as string[]).map(normalizeMediaPath),
+          ...mediaIndex.map(normalizeMediaPath),
+        ]);
         if (!alive) return;
         setPublicPaths(paths);
+        const initialVoiceDurations = new Map<string, number>(
+          Object.entries(bundledAudioDurations as Record<string, number>),
+        );
 
         let initialProject: ProjectState;
         let statusLabel: string;
@@ -244,7 +288,10 @@ export default function App() {
         projectRef.current = initialProject;
         setProject(initialProject);
         const builtFrames = buildKeyframes(initialProject.story);
-        const { clips: builtClips, totalFrames: builtTotal } = buildTimelineClips(builtFrames);
+        const { clips: builtClips, totalFrames: builtTotal } = buildTimelineClips(
+          builtFrames,
+          initialVoiceDurations,
+        );
         const storedFrame = readStoredPlayhead();
         const s77Clip = builtClips.find((clip) => clip.keyframe.mark === "77") || builtClips[0];
         const startPlayhead =
@@ -345,7 +392,14 @@ export default function App() {
       if (!path) return undefined;
       const linked = objectUrls.get(path);
       if (linked) return linked;
-      if (publicPaths.has(path)) return `/${path}`;
+      if (hasPublicMediaPath(publicPaths, path)) {
+        const encoded = encodeMediaPath(path);
+        const isDev = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
+        if (isDev && typeof window !== "undefined" && window.location.protocol !== "file:") {
+          return `/${encoded}`;
+        }
+        return `${SCARLETT_WITNESS_RAW_BASE}/${encoded}`;
+      }
       return undefined;
     },
     [objectUrls, publicPaths],
@@ -357,10 +411,13 @@ export default function App() {
     const pending: Array<{ ref: string; src: string }> = [];
     for (const frame of frames) {
       const ref = frame.beat.audioUrl;
-      if (!ref || seen.has(ref) || voiceDurations.has(ref)) continue;
+      if (!ref || seen.has(ref) || voiceDurations.has(ref) || attemptedVoiceRefs.current.has(ref)) continue;
       seen.add(ref);
       const src = resolveMedia(ref);
-      if (src) pending.push({ ref, src });
+      if (src) {
+        attemptedVoiceRefs.current.add(ref);
+        pending.push({ ref, src });
+      }
     }
     if (!pending.length) return;
     void (async () => {
@@ -399,10 +456,13 @@ export default function App() {
     const pending: Array<{ ref: string; src: string }> = [];
     for (const scene of project.story.scenes) {
       const ref = scene.musicUrl || scene.sceneAudioUrl;
-      if (!ref || seen.has(ref) || measuredMusicDurations.has(ref)) continue;
+      if (!ref || seen.has(ref) || measuredMusicDurations.has(ref) || attemptedMusicRefs.current.has(ref)) continue;
       seen.add(ref);
       const src = resolveMedia(ref);
-      if (src) pending.push({ ref, src });
+      if (src) {
+        attemptedMusicRefs.current.add(ref);
+        pending.push({ ref, src });
+      }
     }
     if (!pending.length) return;
     void (async () => {
@@ -768,6 +828,27 @@ export default function App() {
           next = setSceneField(next, selectedFrame.sceneId, "musicMode", "track");
           return next;
         }, "Music cue changed");
+      else if (target === "ambience" || target.startsWith("ambience:")) {
+        const layerIndex = target.startsWith("ambience:")
+          ? Number.parseInt(target.slice("ambience:".length), 10)
+          : 0;
+        editProject((current) => {
+          const scene = current.story.scenes.find((s) => s.id === selectedFrame.sceneId);
+          const parsed = parseAmbienceSpec(scene?.ambientAudio);
+          const nextFiles = [...parsed.files];
+          if (Number.isFinite(layerIndex) && layerIndex >= 0 && layerIndex < nextFiles.length) {
+            nextFiles[layerIndex] = asset.ref;
+          } else {
+            nextFiles.push(asset.ref);
+          }
+          return setSceneField(
+            current,
+            selectedFrame.sceneId,
+            "ambientAudio",
+            serializeAmbienceSpec(parsed.synth, nextFiles),
+          );
+        }, "Ambience file changed");
+      }
       setBrowser(null);
     },
     [browser, editProject, project, selectedFrame, setFramePicture],
@@ -797,6 +878,19 @@ export default function App() {
       if (targetFrame) {
         next = setSceneField(next, targetFrame.sceneId, "musicUrl", `asset:${asset.id}`);
         next = setSceneField(next, targetFrame.sceneId, "musicMode", "track");
+      }
+    } else if (intent.target === "ambience") {
+      const targetFrame = buildKeyframes(next.story).find((frame) => frame.id === intent.frameId);
+      if (targetFrame) {
+        const scene = next.story.scenes.find((s) => s.id === targetFrame.sceneId);
+        const parsed = parseAmbienceSpec(scene?.ambientAudio);
+        const nextFiles = parsed.files.length > 0 ? [`asset:${asset.id}`, ...parsed.files.slice(1)] : [`asset:${asset.id}`];
+        next = setSceneField(
+          next,
+          targetFrame.sceneId,
+          "ambientAudio",
+          serializeAmbienceSpec(parsed.synth, nextFiles),
+        );
       }
     }
     applyProject(next, `${intent.kind === "image" ? "Picture" : "Sound"} uploaded`);
@@ -929,8 +1023,22 @@ export default function App() {
         });
       }
     }
+    for (const path of publicPaths) {
+      if (!/\.(?:jpe?g|png|webp|gif|avif|bmp|svg)$/i.test(path)) continue;
+      const ref = `/${path}`;
+      if (!output.has(ref)) {
+        output.set(ref, {
+          id: ref,
+          ref,
+          name: path.split("/").pop() || path,
+          folder: path.split("/").slice(0, -1).join("/"),
+          src: resolveMedia(ref),
+          source: "scarlett-witness",
+        });
+      }
+    }
     return [...output.values()].sort((a, b) => a.folder.localeCompare(b.folder) || a.name.localeCompare(b.name));
-  }, [project, resolveMedia, folderFiles]);
+  }, [project, resolveMedia, folderFiles, publicPaths]);
 
   const audioBrowserItems = useMemo<BrowserAsset[]>(() => {
     if (!project) return [];
@@ -973,8 +1081,55 @@ export default function App() {
         });
       }
     }
-    return [...output.values()].sort((a, b) => a.folder.localeCompare(b.folder) || a.name.localeCompare(b.name));
-  }, [project, resolveMedia, folderFiles]);
+    for (const path of publicPaths) {
+      if (!/\.(?:mp3|wav|ogg|m4a|aac|flac)$/i.test(path)) continue;
+      const ref = `/${path}`;
+      if (!output.has(ref)) {
+        output.set(ref, {
+          id: ref,
+          ref,
+          name: path.split("/").pop() || path,
+          folder: path.split("/").slice(0, -1).join("/"),
+          src: resolveMedia(ref),
+          source: "scarlett-witness",
+        });
+      }
+    }
+
+    const target = browser?.target || "";
+    const sceneVoiceFolder = selectedFrame ? `film/voice/s${String(selectedFrame.mark).toLowerCase()}` : "";
+    const scoreItem = (item: BrowserAsset): number => {
+      if (item.folder === "Uploads") return 0;
+      if (target === "voice") {
+        if (sceneVoiceFolder && item.folder.toLowerCase() === sceneVoiceFolder) return 1;
+        if (item.folder.startsWith("film/voice")) return 2;
+        return 5;
+      }
+      if (target === "sfx") {
+        const lower = item.name.toLowerCase();
+        if (item.folder.includes("sfx") && !lower.startsWith("amb-") && !lower.startsWith("loop-")) return 1;
+        if (item.folder.includes("sfx")) return 2;
+        return 5;
+      }
+      if (target === "music") {
+        if (item.folder === "film/audio" || item.folder.startsWith("audio")) return 1;
+        return 5;
+      }
+      if (target === "ambience" || target.startsWith("ambience:")) {
+        const lower = item.name.toLowerCase();
+        if (lower.startsWith("amb-") || lower.startsWith("loop-") || lower.includes("rain") || lower.includes("room-tone")) {
+          return 1;
+        }
+        if (item.folder.includes("sfx")) return 2;
+        return 5;
+      }
+      return 3;
+    };
+
+    return [...output.values()].sort(
+      (a, b) => scoreItem(a) - scoreItem(b) || a.folder.localeCompare(b.folder) || a.name.localeCompare(b.name),
+    );
+  }, [project, resolveMedia, folderFiles, publicPaths, browser?.target, selectedFrame]);
 
   const togglePlayback = useCallback(() => {
     if (!project || !clips.length) return;
@@ -1231,6 +1386,10 @@ export default function App() {
       getTrackMix: () => trackMix,
       getEffectiveTrackLevel: (track: TrackId) => effectiveTrackLevel(trackMix, track),
       getAudioVolumes: () => ({ ...audio.volumes, currentMusicUrl: audioController.currentMusicUrl }),
+      getInspectorTab: () => inspectorTabRef.current,
+      setInspectorTab: (tab: InspectorTab) => setInspectorTab(tab),
+      getMissingCount: () => project?.missing.length ?? 0,
+      resolveMedia: (ref: string | undefined) => resolveMedia(ref),
       syncAnimations: (seconds) => {
         const now = seconds * 1000;
         for (const animation of document.getAnimations()) {
@@ -1252,6 +1411,8 @@ export default function App() {
     clips,
     frames,
     musicDurations,
+    project?.missing.length,
+    resolveMedia,
     scrubToFrame,
     setSelection,
     snapEnabled,
@@ -1496,6 +1657,53 @@ export default function App() {
   const diagnostics = project ? runningOrderDiagnostics(project.story) : [];
   const totalSeconds = totalFrames / FPS;
   const clipProgress = activeClip ? (viewerLocalFrame + 1) / Math.max(1, activeClip.durationFrames) : 0;
+
+  const inheritedMusic = useMemo<InheritedMusicInfo | undefined>(() => {
+    if (!selectedClip) return undefined;
+    const spans = resolveMusicSpans(clips, totalFrames, musicDurations);
+    const active = spans.find(
+      (span) => span.startFrame <= selectedClip.startFrame && span.endFrame > selectedClip.startFrame,
+    );
+    if (!active) return undefined;
+    const ownerClip = clips.find((c) => c.keyframe.id === active.id);
+    return {
+      sceneId: active.sceneId,
+      frameId: active.id,
+      mark: String(ownerClip?.keyframe.mark ?? active.scene.sceneNumber ?? active.sceneId),
+      url: active.url,
+      label: active.label,
+    };
+  }, [clips, musicDurations, selectedClip, totalFrames]);
+
+  const inheritedAmbience = useMemo<InheritedAmbienceInfo | undefined>(() => {
+    if (!selectedClip) return undefined;
+    const spans = resolveAmbienceSpans(clips, totalFrames);
+    const active = spans.find(
+      (span) => span.startFrame <= selectedClip.startFrame && span.endFrame > selectedClip.startFrame,
+    );
+    if (!active) return undefined;
+    return {
+      sceneId: active.sceneId,
+      frameId: active.id,
+      mark: active.mark,
+      raw: active.title,
+      label: active.label,
+    };
+  }, [clips, selectedClip, totalFrames]);
+
+  const previewSingleAudio = useCallback(
+    (refUrl: string | undefined, volume = 0.65) => {
+      if (!refUrl) return;
+      const src = resolveMedia(refUrl);
+      if (!src) return;
+      previewPlayerRef.current?.pause();
+      const player = new Audio(src);
+      player.volume = Math.max(0, Math.min(1, volume));
+      previewPlayerRef.current = player;
+      void player.play().catch(() => undefined);
+    },
+    [resolveMedia],
+  );
 
   if (loading) {
     return (
@@ -1772,6 +1980,14 @@ export default function App() {
             pictureSrc={selectedImageSrc}
             selectedCount={selectedFrameIds.length}
             copied={!!copiedEffects}
+            activeTab={inspectorTab}
+            onChangeTab={setInspectorTab}
+            inheritedMusic={inheritedMusic}
+            inheritedAmbience={inheritedAmbience}
+            onSelectFrameId={(fid) => {
+              const hit = clips.find((c) => c.keyframe.id === fid);
+              if (hit) setSelection([fid], fid, hit.startFrame);
+            }}
             onBrowse={openBrowser}
             onUpload={imageInputRefTarget}
             onSetPicture={setFramePicture}
@@ -1808,6 +2024,7 @@ export default function App() {
             onPasteEffects={pasteEffects}
             onPlayVoice={() => {
               if (!selectedFrame.beat.audioUrl) return;
+              previewPlayerRef.current?.pause();
               audioController.unlock();
               audioController.playVoice(
                 selectedFrame.beat.audioUrl,
@@ -1832,9 +2049,21 @@ export default function App() {
                 }
               }
             }}
-            onPreviewSfx={() =>
-              audioController.playSfx(selectedFrame.beat.sfxUrl, selectedFrame.beat.sfxVolume, resolveMedia)
-            }
+            onPreviewSfx={() => {
+              previewPlayerRef.current?.pause();
+              audioController.unlock();
+              audioController.playSfx(selectedFrame.beat.sfxUrl, selectedFrame.beat.sfxVolume, resolveMedia);
+            }}
+            onPreviewMusic={() => {
+              const url = String(
+                selectedFrame.scene.musicUrl ||
+                  selectedFrame.scene.sceneAudioUrl ||
+                  inheritedMusic?.url ||
+                  "",
+              );
+              previewSingleAudio(url, Number(selectedFrame.scene.musicLevel ?? 0.7));
+            }}
+            onPreviewAmbience={(fileUrl) => previewSingleAudio(fileUrl, 0.6)}
           />
         </div>
 
@@ -1856,6 +2085,7 @@ export default function App() {
             onToggleTrackMute={handleToggleTrackMute}
             onToggleTrackSolo={handleToggleTrackSolo}
             onSetTrackLevel={handleSetTrackLevel}
+            onFocusInspectorTab={setInspectorTab}
             onToggleSnap={() => setSnapEnabled((prev) => !prev)}
             onAddNoteMarker={handleAddMarkerAtPlayhead}
             onUpdateNoteMarker={(markerId, name) =>
@@ -1924,7 +2154,9 @@ export default function App() {
                 ? "Choose a voice take"
                 : browser.target === "sfx"
                   ? "Choose a sound effect"
-                  : "Choose a music cue"
+                  : browser.target === "music"
+                    ? "Choose a music cue"
+                    : "Choose an ambience file"
           }
           kind={browser.kind}
           items={browser.kind === "image" ? imageBrowserItems : audioBrowserItems}

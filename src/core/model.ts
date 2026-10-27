@@ -346,7 +346,10 @@ export function collectMediaReferences(story: StoryLike): string[] {
     add(scene.sceneAudioUrl);
     add(scene.narrationAudioUrl);
     const ambient = String(scene.ambientAudio || "");
-    for (const part of ambient.split("+")) add(part.startsWith("file:") ? part.slice(5) : part);
+    for (const part of ambient.split("+")) {
+      const trimmed = part.trim();
+      if (trimmed.startsWith("file:")) add(trimmed.slice(5));
+    }
     visitCinematic(scene.cinematic);
     for (const beat of scene.dialogueBeats ?? []) {
       add(beat.background);
