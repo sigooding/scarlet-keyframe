@@ -9,6 +9,7 @@ import {
   TRANSITION_KINDS,
   TRANSITION_LABELS,
   transitionAtCut,
+  transitionKindOf,
   type TransitionKind,
 } from "../sequence/transitions";
 
@@ -650,6 +651,12 @@ export function Timeline(props: TimelineProps) {
                   onPointerMove={(event) => moveClipDrag(event)}
                   onPointerUp={(event) => endDrag(event)}
                   onPointerCancel={endDrag}
+                  onDoubleClick={(event) => {
+                    // Double-click a clip to edit (or add) the transition on the cut into it.
+                    if (clip.index < 1) return;
+                    event.stopPropagation();
+                    setPicker({ frameId: clip.frame.id, x: clip.start * pxPerFrame, kind: transitionKindOf(clip.frame.beat.backgroundTransition) });
+                  }}
                   title={`SC ${clip.frame.mark} · ${clip.duration} frames · ${timecode(clip.start)}\n${clip.frame.speaker}: ${clip.frame.text || "no caption"}\nDrag to move · Alt+drag to copy`}
                 >
                   <span className="tl-clip-thumb">

@@ -65,7 +65,8 @@ The keyframe list is a small video editor over one Picture track, cut in whole f
 - **Copy / paste.** Ctrl/Cmd+C copies the selected clips, Ctrl/Cmd+V inserts them at the playhead — splitting the clip
   under the playhead first when it lands inside one.
 - **Transitions.** Each cut with a transition shows a box centred on the cut, as long as the transition; drag its
-  edges to change the length in frames, double-click to pick cut, dissolve, dip to black, wipe left or wipe right.
+  edges to change the length in frames, double-click it (or the clip that starts on the cut) to pick cut, dissolve,
+  dip to black, wipe left or wipe right — so a plain cut can get a transition too.
   `src/sequence/transitions.ts` maps the film's own values (`crossfade`/`dissolve` → dissolve, `zoom` → dissolve,
   scene `fade` → dip to black, `cut` → cut) and its `backgroundTransitionSpeed` seconds into frames. The viewer draws
   both pictures on two layers and computes opacity/clip-path from the frame number (`p = (frame − start) / length`),
