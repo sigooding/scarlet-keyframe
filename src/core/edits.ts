@@ -1,5 +1,7 @@
-import type { AnyRecord, BeatLike, Keyframe, ProjectState, StoryLike } from "./model";
+import type { AnyRecord, BeatAnimation, BeatLike, Keyframe, ProjectState, StoryLike } from "./model";
 import { buildKeyframes } from "./model";
+import { clipFrames, MIN_CLIP_FRAMES } from "./timing";
+import { normalizeAnimation, splitAnimation } from "../sequence/animate";
 
 export interface EffectBlock {
   cinematic?: AnyRecord;
@@ -10,6 +12,7 @@ export interface EffectBlock {
   backgroundHold?: boolean;
   backgroundRevert?: boolean;
   holdSeconds?: number;
+  animation?: BeatAnimation;
 }
 
 export function cloneStory<T extends StoryLike>(story: T): T {
@@ -84,6 +87,7 @@ export function copyEffectBlock(frame: Keyframe): EffectBlock {
   for (const key of ["backgroundTransition", "backgroundTransitionSpeed", "backgroundHold", "backgroundRevert", "holdSeconds"] as const) {
     if (beat[key] !== undefined) block[key] = beat[key];
   }
+  if (beat.animation !== undefined) block.animation = JSON.parse(JSON.stringify(beat.animation));
   return block;
 }
 
@@ -96,12 +100,86 @@ export function pasteEffectBlock(project: ProjectState, frameIds: string[], bloc
     const target = frames.find((frame) => frame.id === frameId);
     if (!target) continue;
     location.beat.cinematic = block.cinematic ? JSON.parse(JSON.stringify(block.cinematic)) : undefined;
-    for (const key of ["particles", "particleConfig", "backgroundTransition", "backgroundTransitionSpeed", "backgroundHold", "backgroundRevert", "holdSeconds"]) {
+    for (const key of ["particles", "particleConfig", "backgroundTransition", "backgroundTransitionSpeed", "backgroundHold", "backgroundRevert", "holdSeconds", "animation"]) {
       if (block[key as keyof EffectBlock] === undefined) delete location.beat[key];
       else location.beat[key] = JSON.parse(JSON.stringify(block[key as keyof EffectBlock]));
     }
   }
   return { ...project, story, updatedAt: Date.now() };
+}
+
+export function trimKeyframe(project: ProjectState, frameId: string, durationFrames: number): ProjectState {
+  const clamped = Math.max(MIN_CLIP_FRAMES, Math.round(durationFrames));
+  return updateBeat(project, frameId, (beat) => {
+    beat.durationFrames = clamped;
+  });
+}
+
+export function setBeatAnimation(
+  project: ProjectState,
+  frameId: string,
+  animation: BeatAnimation | undefined,
+): ProjectState {
+  const cleaned = normalizeAnimation(animation);
+  return updateBeat(project, frameId, (beat) => {
+    if (cleaned) beat.animation = cleaned;
+    else delete beat.animation;
+  });
+}
+
+export function splitKeyframeAt(
+  project: ProjectState,
+  frameId: string,
+  splitOffsetFrames: number,
+  voiceSeconds?: number,
+): { project: ProjectState; leftId: string; rightId: string } | undefined {
+  const story = cloneStory(project.story);
+  const keyframes = buildKeyframes(story);
+  const keyframe = keyframes.find((item) => item.id === frameId);
+  const location = locateBeat(story, frameId);
+  if (!keyframe || !location) return undefined;
+
+  const total = clipFrames(keyframe, voiceSeconds);
+  const cut = Math.round(splitOffsetFrames);
+  if (cut <= 0 || cut >= total) return undefined;
+
+  const leftBeat = location.beat;
+  const rightBeat: BeatLike = JSON.parse(JSON.stringify(leftBeat));
+  rightBeat.id = uniqueBeatId(story, location.scene.id);
+  rightBeat.text = "";
+
+  const effectivePicture = leftBeat.background || keyframe.picture;
+  if (effectivePicture) {
+    rightBeat.background = effectivePicture;
+    rightBeat.backgroundRevert = false;
+    rightBeat.backgroundHold = true;
+  }
+
+  delete rightBeat.audioUrl;
+  delete rightBeat.audioOffsetSeconds;
+  delete rightBeat.sfxUrl;
+  delete rightBeat.sfxVolume;
+
+  // Keep any outgoing scene link on whichever half comes second so the scene chain stays intact.
+  delete leftBeat.afterBeatTargetSceneId;
+  delete leftBeat.afterBeatDelaySeconds;
+  delete leftBeat.afterBeatMode;
+
+  leftBeat.durationFrames = cut;
+  rightBeat.durationFrames = total - cut;
+
+  const [leftAnim, rightAnim] = splitAnimation(leftBeat.animation, cut);
+  if (leftAnim) leftBeat.animation = leftAnim;
+  else delete leftBeat.animation;
+  if (rightAnim) rightBeat.animation = rightAnim;
+  else delete rightBeat.animation;
+
+  location.scene.dialogueBeats!.splice(location.index + 1, 0, rightBeat);
+  return {
+    project: { ...project, story, updatedAt: Date.now() },
+    leftId: frameId,
+    rightId: rightBeat.id!,
+  };
 }
 
 export function insertKeyframeAfter(project: ProjectState, frameId: string): { project: ProjectState; insertedId: string } | undefined {
@@ -117,8 +195,9 @@ export function insertKeyframeAfter(project: ProjectState, frameId: string): { p
   delete nextBeat.backgroundRevert;
   delete nextBeat.audioUrl;
   delete nextBeat.sfxUrl;
-  delete nextBeat.afterBeatTargetSceneId;
-  delete nextBeat.afterBeatDelaySeconds;
+  delete location.beat.afterBeatTargetSceneId;
+  delete location.beat.afterBeatDelaySeconds;
+  delete location.beat.afterBeatMode;
   location.beat.text = left;
   location.scene.dialogueBeats!.splice(location.index + 1, 0, nextBeat);
   return { project: { ...project, story, updatedAt: Date.now() }, insertedId: nextBeat.id! };
@@ -130,6 +209,9 @@ export function duplicateKeyframe(project: ProjectState, frameId: string): { pro
   if (!location) return undefined;
   const duplicate = JSON.parse(JSON.stringify(location.beat)) as BeatLike;
   duplicate.id = uniqueBeatId(story, location.scene.id);
+  delete location.beat.afterBeatTargetSceneId;
+  delete location.beat.afterBeatDelaySeconds;
+  delete location.beat.afterBeatMode;
   location.scene.dialogueBeats!.splice(location.index + 1, 0, duplicate);
   return { project: { ...project, story, updatedAt: Date.now() }, insertedId: duplicate.id! };
 }
@@ -138,7 +220,24 @@ export function deleteKeyframe(project: ProjectState, frameId: string): ProjectS
   const story = cloneStory(project.story);
   const location = locateBeat(story, frameId);
   if (!location) return project;
-  location.scene.dialogueBeats!.splice(location.index, 1);
+  const beats = location.scene.dialogueBeats!;
+  const wasLast = location.index === beats.length - 1;
+  const outgoingTarget = location.beat.afterBeatTargetSceneId;
+  const outgoingDelay = location.beat.afterBeatDelaySeconds;
+  const outgoingMode = location.beat.afterBeatMode;
+  beats.splice(location.index, 1);
+  if (wasLast && outgoingTarget) {
+    if (beats.length > 0) {
+      const newLast = beats[beats.length - 1];
+      if (!newLast.afterBeatTargetSceneId) {
+        newLast.afterBeatTargetSceneId = outgoingTarget;
+        if (outgoingDelay !== undefined) newLast.afterBeatDelaySeconds = outgoingDelay;
+        if (outgoingMode !== undefined) newLast.afterBeatMode = outgoingMode;
+      }
+    } else if (!location.scene.autoAdvanceTargetSceneId) {
+      location.scene.autoAdvanceTargetSceneId = outgoingTarget;
+    }
+  }
   return { ...project, story, updatedAt: Date.now() };
 }
 

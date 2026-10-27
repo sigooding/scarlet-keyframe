@@ -18,6 +18,20 @@ export interface SceneLike extends AnyRecord {
   choices?: AnyRecord[];
 }
 
+export type KeyEasing = "linear" | "ease-in-out" | "hold";
+
+export interface Key {
+  frame: number;
+  value: number;
+  easing: KeyEasing;
+}
+
+export interface BeatAnimation {
+  zoom?: Key[];
+  x?: Key[];
+  y?: Key[];
+}
+
 export interface BeatLike extends AnyRecord {
   id?: string;
   characterId?: string;
@@ -26,6 +40,8 @@ export interface BeatLike extends AnyRecord {
   cinematic?: AnyRecord;
   audioUrl?: string;
   sfxUrl?: string;
+  durationFrames?: number;
+  animation?: BeatAnimation;
 }
 
 export interface ProjectAsset {
