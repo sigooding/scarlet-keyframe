@@ -15,6 +15,8 @@ import { writeStudioPatch } from "./core/patch";
 import { PreviewAudioController } from "./core/previewAudio";
 import type { StudioPatchResult } from "./core/patch";
 import { audio } from "../vendor/scarlet-reel/audio";
+import bundledFilm from "./data/nobodys-witness-film.json";
+import bundledEdits from "./data/studio-edits.json";
 
 type BrowseTarget = "picture" | "scenePicture" | "depthMap" | "foregroundImage" | "voice" | "sfx" | "music";
 type BrowserState = { kind: "image" | "audio"; target: BrowseTarget };
@@ -99,14 +101,17 @@ export default function App() {
     let alive = true;
     async function boot() {
       try {
-        const [saved, storyResponse, editsResponse, mediaResponse] = await Promise.all([
-          loadActiveProject(),
-          fetch("/examples/nobodys-witness-film.json"),
-          fetch("/examples/studio-edits.json"),
-          fetch("/examples/media-index.json"),
+        // The film is built into the app (npm run import:film), so it opens with no server and from any folder; the
+        // saved project and the media index are optional, so an unreachable one (a page opened from disk) is empty.
+        const [saved, mediaIndex] = await Promise.all([
+          loadActiveProject().catch(() => undefined),
+          window.location.protocol === "file:"
+            ? Promise.resolve([] as string[])
+            : fetch("examples/media-index.json")
+              .then((response) => (response.ok ? response.json() as Promise<string[]> : []))
+              .catch(() => [] as string[]),
         ]);
-        const sourceEdits = editsResponse.ok ? await editsResponse.json() as AnyRecord : {};
-        const mediaIndex = mediaResponse.ok ? await mediaResponse.json() as string[] : [];
+        const sourceEdits = bundledEdits as AnyRecord;
         const paths = new Set(mediaIndex.map(normalizeMediaPath));
         if (!alive) return;
         setPublicPaths(paths);
@@ -124,9 +129,8 @@ export default function App() {
           setSelectedFrameId(start?.id || "");
           setSelectedFrameIds(start ? [start.id] : []);
           setSaveStatus("AUTOSAVED PROJECT");
-        } else if (storyResponse.ok) {
-          const storyData = await storyResponse.json();
-          const imported = parseImportPayload(storyData, "nobodys-witness-film.json");
+        } else {
+          const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json");
           const contextual = { ...imported, story: applyStudioMusicSync(imported.story, sourceEdits) };
           const next = createProjectState(contextual, [], sourceEdits);
           next.missing = evaluateMissingMedia(next, new Map(), paths);
@@ -135,9 +139,7 @@ export default function App() {
           const start = frames.find((frame) => frame.mark === "77") || frames[0];
           setSelectedFrameId(start?.id || "");
           setSelectedFrameIds(start ? [start.id] : []);
-          setSaveStatus("DEMO FILM READY");
-        } else {
-          throw new Error("The local sample film could not be loaded.");
+          setSaveStatus("FILM READY");
         }
       } catch (error) {
         if (alive) setLoadError(error instanceof Error ? error.message : "Unable to open this project.");
