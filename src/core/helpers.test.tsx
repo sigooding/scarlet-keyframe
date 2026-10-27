@@ -825,4 +825,127 @@ describe("App and studio windows", () => {
     expect(html12).toContain("filter:blur(0px) brightness(2)");
     expect(html12).toContain("rotate(3deg)");
   });
+
+  it("renders plain non-keyframed transforms, safe guides, 30% onion skin, timecode, and Ken Burns boxes", () => {
+    const project = createProjectState({
+      sourceName: "turn11-viewer.json",
+      story: {
+        id: "turn11-viewer",
+        title: "Turn 11 Viewer",
+        startSceneId: "s1",
+        characters: [],
+        scenes: [
+          {
+            id: "s1",
+            animaticMark: "77",
+            background: "/film/img/s77/85-the-desk-lamp.jpg",
+            dialogueBeats: [
+              {
+                id: "b1",
+                text: "Plain framed shot",
+                durationFrames: 48,
+                animation: {
+                  values: { zoom: 1.5, x: -10, y: 8, rotation: 2 },
+                },
+              },
+              {
+                id: "b2",
+                text: "Ken Burns shot",
+                durationFrames: 48,
+                animation: {
+                  kenBurns: {
+                    start: { x: 0, y: 0, width: 1 },
+                    end: { x: 0.25, y: 0.15, width: 0.5 },
+                  },
+                  zoom: [
+                    { frame: 0, value: 1, easing: "ease-in-out" },
+                    { frame: 47, value: 2, easing: "ease-in-out" },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      assets: [],
+      missing: [],
+    });
+
+    const [plainKf, kbKf] = buildKeyframes(project.story);
+
+    const plainHtml = renderToStaticMarkup(
+      <CinematicPreview
+        frame={plainKf}
+        localFrame={20}
+        playheadFrame={144}
+        totalFrames={480}
+        imageSrc="/film/img/s77/85-the-desk-lamp.jpg"
+        prevOnionSrc="/film/img/prev.jpg"
+        nextOnionSrc="/film/img/next.jpg"
+        resolveMedia={(r) => r}
+        playing={false}
+        soundOn={false}
+        showCaption={false}
+        showMark={true}
+        showTimecodeOverlay={true}
+        showSafeGuides={true}
+        showOnionSkin={true}
+        interactiveFraming={true}
+        onPreviewAnimation={() => undefined}
+        onToggleSafeGuides={() => undefined}
+        onToggleOnionSkin={() => undefined}
+        onToggleTimecodeOverlay={() => undefined}
+        onToggleMarkOverlay={() => undefined}
+        onToggleFullscreen={() => undefined}
+        onToggleKenBurns={() => undefined}
+      />,
+    );
+
+    expect(plainHtml).toContain("translate(-10%, 8%) scale(1.5) rotate(2deg)");
+    expect(plainHtml).toContain('data-testid="viewer-rotation-handle"');
+    expect(plainHtml).toContain('data-testid="viewer-action-safe"');
+    expect(plainHtml).toContain('data-testid="viewer-title-safe"');
+    expect(plainHtml).toContain('data-testid="viewer-onion-prev"');
+    expect(plainHtml).toContain('data-testid="viewer-onion-next"');
+    expect(plainHtml).toContain("opacity:0.3");
+    expect(plainHtml).toContain('data-testid="viewer-timecode-overlay"');
+    expect(plainHtml).toContain("00:06:00");
+    expect(plainHtml).toContain("SC 77");
+
+    // When a Ken Burns clip is selected while paused, both START and END boxes reappear
+    const kbPausedHtml = renderToStaticMarkup(
+      <CinematicPreview
+        frame={kbKf}
+        localFrame={0}
+        imageSrc="/film/img/s77/85-the-desk-lamp.jpg"
+        resolveMedia={(r) => r}
+        playing={false}
+        soundOn={false}
+        showCaption={false}
+        showMark={true}
+        interactiveFraming={true}
+        onPreviewAnimation={() => undefined}
+      />,
+    );
+    expect(kbPausedHtml).toContain('data-testid="ken-burns-start-box"');
+    expect(kbPausedHtml).toContain('data-testid="ken-burns-end-box"');
+
+    // During playback, boxes hide and the live camera move plays
+    const kbPlayingHtml = renderToStaticMarkup(
+      <CinematicPreview
+        frame={kbKf}
+        localFrame={47}
+        imageSrc="/film/img/s77/85-the-desk-lamp.jpg"
+        resolveMedia={(r) => r}
+        playing={true}
+        soundOn={false}
+        showCaption={false}
+        showMark={true}
+        interactiveFraming={true}
+        onPreviewAnimation={() => undefined}
+      />,
+    );
+    expect(kbPlayingHtml).not.toContain('data-testid="ken-burns-start-box"');
+    expect(kbPlayingHtml).toContain("scale(2)");
+  });
 });

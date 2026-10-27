@@ -430,7 +430,7 @@ export function deleteKeyframe(project: ProjectState, frameId: string): ProjectS
 export function deleteKeyframes(project: ProjectState, frameIds: string[]): ProjectState {
   if (!frameIds.length) return project;
   const story = cloneStory(project.story);
-  const chain = captureSceneChain(story);
+  ensureAllBeatIds(story);
   const idSet = new Set(frameIds);
   const frames = buildKeyframes(story);
   const toDelete = new Set<BeatLike>();
@@ -439,6 +439,7 @@ export function deleteKeyframes(project: ProjectState, frameIds: string[]): Proj
   }
   if (!toDelete.size) return project;
 
+  const chain = captureSceneChain(story);
   for (const scene of story.scenes) {
     if (!scene.dialogueBeats?.length) continue;
     scene.dialogueBeats = scene.dialogueBeats.filter((beat) => !toDelete.has(beat));
@@ -1036,10 +1037,147 @@ export function liftKeyframes(
   return { ...project, story, updatedAt: Date.now() };
 }
 
+export interface MergeKeyframesResult {
+  project: ProjectState;
+  mergedId: string;
+  removedCount: number;
+}
+
+export function canMergeKeyframes(
+  project: ProjectState,
+  selectedFrameIds: readonly string[],
+): boolean {
+  const frames = buildKeyframes(project.story);
+  if (frames.length < 2) return false;
+  if (selectedFrameIds.length >= 2) {
+    const idSet = new Set(selectedFrameIds);
+    const matching = frames.filter((f) => idSet.has(f.id));
+    return matching.length >= 2;
+  }
+  const primaryId = selectedFrameIds[0];
+  if (!primaryId) return false;
+  const idx = frames.findIndex((f) => f.id === primaryId);
+  return idx >= 0 && idx + 1 < frames.length;
+}
+
 /**
- * Closes one or more gap beats (`Delete` on a gap). Any surviving sound clip that happened
- * to be anchored to a closed gap beat is re-anchored to the clip now occupying that cut
- * so no orphan `anchorId` is left behind.
+ * Merges two (or more selected) clips into a single clip:
+ * - Keeps the first clip's image (`picture`), removes the second clip's image and beat(s),
+ *   and sums `durationFrames` into one combined clip.
+ * - Preserves downstream carried pictures, scene-chain routing, captions (in `beat.captions`,
+ *   never mutating `beat.text`), and millisecond-accurate `audioClips`.
+ */
+export function mergeKeyframes(
+  project: ProjectState,
+  selectedFrameIds: readonly string[],
+  voiceDurationByRef?: ReadonlyMap<string, number>,
+): MergeKeyframesResult | undefined {
+  const story = cloneStory(project.story);
+  ensureAllBeatIds(story);
+  const preFrames = buildKeyframes(story);
+  if (preFrames.length < 2) return undefined;
+
+  const { clips: preClips } = buildTimelineClips(preFrames, voiceDurationByRef);
+  let targetClips: TimelineClip[] = [];
+
+  if (selectedFrameIds.length >= 2) {
+    const idSet = new Set(selectedFrameIds);
+    targetClips = preClips.filter((c) => idSet.has(c.keyframe.id));
+  } else if (selectedFrameIds.length === 1) {
+    const idx = preClips.findIndex((c) => c.keyframe.id === selectedFrameIds[0]);
+    if (idx >= 0 && idx + 1 < preClips.length) {
+      targetClips = [preClips[idx], preClips[idx + 1]];
+    }
+  }
+
+  if (targetClips.length < 2) return undefined;
+
+  const firstClip = targetClips[0];
+  const restClips = targetClips.slice(1);
+  const removedIdSet = new Set(restClips.map((c) => c.keyframe.id));
+  const removedBeatSet = new Set(restClips.map((c) => c.keyframe.beat));
+
+  // Preserve carried picture on surviving beats outside the merge set so downstream shots keep their own picture
+  for (const kf of preFrames) {
+    if (removedIdSet.has(kf.id) || kf.id === firstClip.keyframe.id) continue;
+    if (!kf.beat.gap && !kf.beat.background && kf.picture) {
+      kf.beat.background = kf.picture;
+    }
+  }
+
+  // Ensure the kept first clip explicitly holds the first image (unless the first clip itself was a gap)
+  const firstBeat = firstClip.keyframe.beat;
+  if (!firstBeat.gap && !firstBeat.background && firstClip.keyframe.picture) {
+    firstBeat.background = firstClip.keyframe.picture;
+  }
+
+  // Sum durations into a single clip
+  const combinedDurationFrames = targetClips.reduce((sum, c) => sum + c.durationFrames, 0);
+  firstBeat.durationFrames = Math.max(MIN_CLIP_FRAMES, combinedDurationFrames);
+
+  // Combine captions into firstBeat.captions (never mutating firstBeat.text) if any secondary clip has captions
+  // or firstBeat already uses custom beat.captions
+  const restHaveCaptions = restClips.some(
+    (c) => effectiveCaptionsForBeat(c.keyframe.beat, c.durationFrames).length > 0,
+  );
+  if (restHaveCaptions || Array.isArray(firstBeat.captions)) {
+    const mergedCaptions: BeatCaption[] = [];
+    let runningOffset = 0;
+    for (const c of targetClips) {
+      const caps = effectiveCaptionsForBeat(c.keyframe.beat, c.durationFrames);
+      for (const cap of caps) {
+        mergedCaptions.push({
+          ...cap,
+          inFrame: runningOffset + cap.inFrame,
+          outFrame: runningOffset + cap.outFrame,
+        });
+      }
+      runningOffset += c.durationFrames;
+    }
+    firstBeat.captions = normalizeCaptions(mergedCaptions, firstBeat.durationFrames);
+  }
+
+  // Capture pre-merge audio start times in milliseconds before removing secondary beats
+  const preResolvedAudio = project.audioClips?.length
+    ? resolveAudioClips(project.audioClips, preClips)
+    : [];
+  const preAudioStartMs = new Map(preResolvedAudio.map((rc) => [rc.id, rc.startMs]));
+
+  const chain = captureSceneChain(story);
+  for (const scene of story.scenes) {
+    if (!scene.dialogueBeats?.length) continue;
+    scene.dialogueBeats = scene.dialogueBeats.filter((b) => !removedBeatSet.has(b));
+  }
+  restoreSceneChain(story, chain);
+
+  let nextAudioClips = project.audioClips;
+  if (project.audioClips?.length) {
+    const postFrames = buildKeyframes(story);
+    const { clips: postClips } = buildTimelineClips(postFrames, voiceDurationByRef);
+    nextAudioClips = project.audioClips.map((ac) => {
+      if (!removedIdSet.has(ac.anchorId)) return ac;
+      const targetMs = Math.max(0, preAudioStartMs.get(ac.id) ?? 0);
+      return reanchorAudioClipToMs(ac, targetMs, postClips);
+    });
+  }
+
+  return {
+    project: {
+      ...project,
+      story,
+      ...(nextAudioClips ? { audioClips: nextAudioClips } : {}),
+      updatedAt: Date.now(),
+    },
+    mergedId: firstClip.keyframe.id,
+    removedCount: restClips.length,
+  };
+}
+
+/**
+ * Closes one or more gap beats completely (`Delete` on a gap):
+ * - Removes the gap beat(s) from the story (closing the timeline gap and removing any gap captions).
+ * - Removes beat-level `voice` / `sfx` cues that belonged to the deleted gap beat(s), while
+ *   re-anchoring any scene-level `music` / `ambience` cue cleanly to the clip now occupying that cut.
  */
 export function closeGapKeyframes(
   project: ProjectState,
@@ -1048,31 +1186,49 @@ export function closeGapKeyframes(
 ): ProjectState {
   if (!gapFrameIds.length) return project;
   const idSet = new Set(gapFrameIds);
-  const preFrames = buildKeyframes(project.story);
+
+  const storyWithPreservedCarry = cloneStory(project.story);
+  const preFrames = buildKeyframes(storyWithPreservedCarry);
   const actualGapIds = preFrames.filter((kf) => idSet.has(kf.id) && kf.beat.gap).map((kf) => kf.id);
   if (!actualGapIds.length) return project;
+  const removedGapSet = new Set(actualGapIds);
+
+  for (const kf of preFrames) {
+    if (removedGapSet.has(kf.id)) continue;
+    if (!kf.beat.gap && !kf.beat.background && kf.picture) {
+      kf.beat.background = kf.picture;
+    }
+  }
 
   const { clips: preClips } = buildTimelineClips(preFrames, voiceDurationByRef);
   const preStartByGapId = new Map<string, number>();
   for (const c of preClips) {
-    if (idSet.has(c.keyframe.id)) {
+    if (removedGapSet.has(c.keyframe.id)) {
       preStartByGapId.set(c.keyframe.id, (c.startFrame * 1000) / FPS);
     }
   }
 
-  const nextProject = deleteKeyframes(project, actualGapIds);
+  const nextProject = deleteKeyframes(
+    { ...project, story: storyWithPreservedCarry },
+    actualGapIds,
+  );
   if (!nextProject.audioClips?.length) return nextProject;
 
   const postFrames = buildKeyframes(nextProject.story);
   const { clips: postClips } = buildTimelineClips(postFrames, voiceDurationByRef);
-  const removedGapSet = new Set(actualGapIds);
 
-  const nextAudioClips = nextProject.audioClips.map((ac) => {
-    if (!removedGapSet.has(ac.anchorId)) return ac;
-    const gapCutMs = preStartByGapId.get(ac.anchorId) ?? 0;
-    const targetMs = Math.max(0, gapCutMs + ac.offsetMs);
-    return reanchorAudioClipToMs(ac, targetMs, postClips);
-  });
+  const nextAudioClips = nextProject.audioClips
+    .filter((ac) => {
+      if (!removedGapSet.has(ac.anchorId)) return true;
+      // Remove beat-level dialogue/SFX cues belonging to the deleted gap; keep scene-spanning music/ambience
+      return ac.lane === "music" || ac.lane === "ambience";
+    })
+    .map((ac) => {
+      if (!removedGapSet.has(ac.anchorId)) return ac;
+      const gapCutMs = preStartByGapId.get(ac.anchorId) ?? 0;
+      const targetMs = Math.max(0, gapCutMs + ac.offsetMs);
+      return reanchorAudioClipToMs(ac, targetMs, postClips);
+    });
 
   return { ...nextProject, audioClips: nextAudioClips, updatedAt: Date.now() };
 }
@@ -1287,7 +1443,7 @@ export function executeDeleteSelection(
 function ensureAllBeatIds(story: StoryLike): void {
   const frames = buildKeyframes(story);
   for (const kf of frames) {
-    if (!kf.beat.id) kf.beat.id = kf.id;
+    kf.beat.id = kf.id;
   }
 }
 
@@ -1390,12 +1546,26 @@ export function shiftMultiLaneSelection(
     let actualFrames = requestedFrames;
 
     if (requestedFrames > 0) {
-      const chain = captureSceneChain(story);
       if (prevClip && prevClip.keyframe.beat.gap && prevClip.keyframe.sceneId === firstSelected.keyframe.sceneId) {
+        const chain = captureSceneChain(story);
         prevClip.keyframe.beat.durationFrames = prevClip.durationFrames + requestedFrames;
+        if (nextClip && nextClip.keyframe.beat.gap) {
+          const absorb = Math.min(requestedFrames, nextClip.durationFrames);
+          const remaining = nextClip.durationFrames - absorb;
+          if (remaining <= 0) {
+            for (const sc of story.scenes) {
+              if (!sc.dialogueBeats?.length) continue;
+              sc.dialogueBeats = sc.dialogueBeats.filter((b) => b !== nextClip.keyframe.beat);
+            }
+          } else {
+            nextClip.keyframe.beat.durationFrames = remaining;
+          }
+        }
+        restoreSceneChain(story, chain);
       } else {
         const loc = locateBeat(story, firstSelected.keyframe.id);
         if (!loc) return { project, selection };
+        const chain = captureSceneChain(story);
         const gapBeat: BeatLike = {
           id: uniqueBeatId(story, loc.scene.id),
           gap: true,
@@ -1403,21 +1573,20 @@ export function shiftMultiLaneSelection(
           text: "",
         };
         loc.scene.dialogueBeats!.splice(loc.index, 0, gapBeat);
-      }
-
-      if (nextClip && nextClip.keyframe.beat.gap) {
-        const absorb = Math.min(requestedFrames, nextClip.durationFrames);
-        const remaining = nextClip.durationFrames - absorb;
-        if (remaining <= 0) {
-          for (const sc of story.scenes) {
-            if (!sc.dialogueBeats?.length) continue;
-            sc.dialogueBeats = sc.dialogueBeats.filter((b) => b !== nextClip.keyframe.beat);
+        if (nextClip && nextClip.keyframe.beat.gap) {
+          const absorb = Math.min(requestedFrames, nextClip.durationFrames);
+          const remaining = nextClip.durationFrames - absorb;
+          if (remaining <= 0) {
+            for (const sc of story.scenes) {
+              if (!sc.dialogueBeats?.length) continue;
+              sc.dialogueBeats = sc.dialogueBeats.filter((b) => b !== nextClip.keyframe.beat);
+            }
+          } else {
+            nextClip.keyframe.beat.durationFrames = remaining;
           }
-        } else {
-          nextClip.keyframe.beat.durationFrames = remaining;
         }
+        restoreSceneChain(story, chain);
       }
-      restoreSceneChain(story, chain);
     } else {
       if (!prevClip) return { project, selection };
       const wantConsume = -requestedFrames;

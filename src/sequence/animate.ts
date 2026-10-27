@@ -1,14 +1,16 @@
 import type {
   BeatAnimation,
+  BeatAnimValues,
   BeatLike,
   CubicBezierTuple,
+  KenBurnsBox,
   Key,
   KeyEasing,
   Keyframe,
 } from "../core/model";
 import { clipFrames, FPS, formatTimecode, MIN_CLIP_FRAMES, sceneProseFrames } from "../core/timing";
 
-export type { BeatAnimation, CubicBezierTuple, Key, KeyEasing };
+export type { BeatAnimation, BeatAnimValues, CubicBezierTuple, KenBurnsBox, Key, KeyEasing };
 export { clipFrames, FPS, formatTimecode, MIN_CLIP_FRAMES };
 
 export const ANIM_PROPS = [
@@ -44,7 +46,7 @@ export const ANIM_PROP_META: Record<AnimProp, AnimPropMeta> = {
     label: "Zoom",
     shortLabel: "Zoom",
     min: 1,
-    max: 3,
+    max: 5,
     defaultValue: 1,
     step: 0.01,
     decimals: 2,
@@ -55,8 +57,8 @@ export const ANIM_PROP_META: Record<AnimProp, AnimPropMeta> = {
     prop: "x",
     label: "Position X",
     shortLabel: "Pos X",
-    min: -50,
-    max: 50,
+    min: -200,
+    max: 200,
     defaultValue: 0,
     step: 0.5,
     decimals: 1,
@@ -67,8 +69,8 @@ export const ANIM_PROP_META: Record<AnimProp, AnimPropMeta> = {
     prop: "y",
     label: "Position Y",
     shortLabel: "Pos Y",
-    min: -50,
-    max: 50,
+    min: -200,
+    max: 200,
     defaultValue: 0,
     step: 0.5,
     decimals: 1,
@@ -224,12 +226,39 @@ export function hasAnimationKeyframes(clip: AnimatableClip): boolean {
   return ANIM_PROPS.some((prop) => Boolean(anim[prop]?.length));
 }
 
+export function hasPropKeyframes(clip: AnimatableClip, prop: AnimProp): boolean {
+  const anim = extractAnimation(clip);
+  return Boolean(anim?.[prop]?.length);
+}
+
+export function hasPlainValues(clip: AnimatableClip): boolean {
+  const anim = extractAnimation(clip);
+  if (!anim?.values) return false;
+  return ANIM_PROPS.some((prop) => typeof anim.values?.[prop] === "number" && Number.isFinite(anim.values[prop]));
+}
+
+export function hasPlainTransform(clip: AnimatableClip): boolean {
+  const anim = extractAnimation(clip);
+  const v = anim?.values;
+  if (!v) return false;
+  return (
+    (typeof v.zoom === "number" && v.zoom !== 1) ||
+    (typeof v.x === "number" && v.x !== 0) ||
+    (typeof v.y === "number" && v.y !== 0) ||
+    (typeof v.rotation === "number" && v.rotation !== 0)
+  );
+}
+
 export function hasTransformKeyframes(clip: AnimatableClip): boolean {
   const anim = extractAnimation(clip);
   if (!anim) return false;
   return Boolean(
     anim.zoom?.length || anim.x?.length || anim.y?.length || anim.rotation?.length,
   );
+}
+
+export function hasCustomTransform(clip: AnimatableClip): boolean {
+  return hasTransformKeyframes(clip) || hasPlainTransform(clip);
 }
 
 export function animatedPropsOf(animation: BeatAnimation | undefined): AnimProp[] {
@@ -420,29 +449,314 @@ export function evaluateChannel(keys: Key[] | undefined, localFrame: number, fal
   return last.value;
 }
 
+function fallbackForProp(anim: BeatAnimation | undefined, prop: AnimProp, clip: AnimatableClip): number {
+  const plain = anim?.values?.[prop];
+  if (typeof plain === "number" && Number.isFinite(plain)) {
+    return clampPropValue(prop, plain);
+  }
+  return defaultValueForProp(prop, clip);
+}
+
 export function evaluate(clip: AnimatableClip, localFrame: number): EvaluatedPose {
   const anim = extractAnimation(clip);
   return {
-    zoom: evaluateChannel(anim?.zoom, localFrame, ANIM_PROP_META.zoom.defaultValue),
-    x: evaluateChannel(anim?.x, localFrame, ANIM_PROP_META.x.defaultValue),
-    y: evaluateChannel(anim?.y, localFrame, ANIM_PROP_META.y.defaultValue),
-    rotation: evaluateChannel(anim?.rotation, localFrame, ANIM_PROP_META.rotation.defaultValue),
-    opacity: evaluateChannel(anim?.opacity, localFrame, ANIM_PROP_META.opacity.defaultValue),
-    blur: evaluateChannel(anim?.blur, localFrame, ANIM_PROP_META.blur.defaultValue),
-    exposure: evaluateChannel(anim?.exposure, localFrame, ANIM_PROP_META.exposure.defaultValue),
+    zoom: evaluateChannel(anim?.zoom, localFrame, fallbackForProp(anim, "zoom", clip)),
+    x: evaluateChannel(anim?.x, localFrame, fallbackForProp(anim, "x", clip)),
+    y: evaluateChannel(anim?.y, localFrame, fallbackForProp(anim, "y", clip)),
+    rotation: evaluateChannel(anim?.rotation, localFrame, fallbackForProp(anim, "rotation", clip)),
+    opacity: evaluateChannel(anim?.opacity, localFrame, fallbackForProp(anim, "opacity", clip)),
+    blur: evaluateChannel(anim?.blur, localFrame, fallbackForProp(anim, "blur", clip)),
+    exposure: evaluateChannel(anim?.exposure, localFrame, fallbackForProp(anim, "exposure", clip)),
     gradeStrength: evaluateChannel(
       anim?.gradeStrength,
       localFrame,
-      ANIM_PROP_META.gradeStrength.defaultValue,
+      fallbackForProp(anim, "gradeStrength", clip),
     ),
-    depthAmount: evaluateChannel(anim?.depthAmount, localFrame, extractAuthoredDepthAmount(clip)),
+    depthAmount: evaluateChannel(anim?.depthAmount, localFrame, fallbackForProp(anim, "depthAmount", clip)),
   };
 }
 
 export function clampPropValue(prop: AnimProp, value: number): number {
   const meta = ANIM_PROP_META[prop];
   const safe = Number.isFinite(value) ? value : meta.defaultValue;
-  return Math.max(meta.min, Math.min(meta.max, safe));
+  const clamped = Math.max(meta.min, Math.min(meta.max, safe));
+  return Object.is(clamped, -0) ? 0 : clamped;
+}
+
+function cleanZero(n: number): number {
+  if (!Number.isFinite(n) || Object.is(n, -0) || Math.abs(n) < 1e-12) return 0;
+  const rounded = Math.round(n * 1e10) / 1e10;
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
+export const VIEWER_ASPECT = 16 / 9;
+export const MIN_KEN_BURNS_BOX_WIDTH = 0.2;
+
+/**
+ * Minimum zoom factor required so a 16:9 viewer rotated by `rotationDeg` stays 100% inside
+ * a 16:9 picture with zero black corners exposed.
+ */
+export function minZoomForRotation(rotationDeg: number, aspect = VIEWER_ASPECT): number {
+  const rad = ((Number(rotationDeg) || 0) * Math.PI) / 180;
+  const c = Math.abs(Math.cos(rad));
+  const s = Math.abs(Math.sin(rad));
+  return Math.max(1, c + s * Math.max(1, aspect));
+}
+
+export interface ClampedPoseResult {
+  zoom: number;
+  x: number;
+  y: number;
+  rotation: number;
+  clamped: boolean;
+}
+
+/**
+ * Clamps `{ zoom, x, y, rotation }` for `transform: translate(x%, y%) scale(zoom) rotate(rotationdeg)`
+ * centred at `50% 50%` on an `aspect` (16:9) viewer so the viewer frame NEVER extends past any
+ * of the picture's four edges. Reports `clamped: true` if the input pose had to be constrained.
+ */
+export function clampPoseToPictureEdges(
+  pose: { zoom: number; x: number; y: number; rotation?: number },
+  aspect = VIEWER_ASPECT,
+): ClampedPoseResult {
+  const rawZoom = Number.isFinite(pose.zoom) ? pose.zoom : 1;
+  const rawX = Number.isFinite(pose.x) ? pose.x : 0;
+  const rawY = Number.isFinite(pose.y) ? pose.y : 0;
+  const rawRotation = Number.isFinite(pose.rotation) ? Number(pose.rotation) : 0;
+
+  const rotation = clampPropValue("rotation", rawRotation);
+  const rad = (rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const absCos = Math.abs(cos);
+  const absSin = Math.abs(sin);
+
+  const minZoom = minZoomForRotation(rotation, aspect);
+  const maxZoom = ANIM_PROP_META.zoom.max;
+  const zoom = cleanZero(Math.max(minZoom, Math.min(maxZoom, rawZoom)));
+
+  const halfSpanU = (0.5 * absCos + (0.5 * absSin) / aspect) / zoom;
+  const halfSpanV = (0.5 * absSin * aspect + 0.5 * absCos) / zoom;
+  const maxDu = Math.max(0, 0.5 - halfSpanU);
+  const maxDv = Math.max(0, 0.5 - halfSpanV);
+
+  const tx0 = rawX / 100;
+  const ty0 = rawY / 100;
+
+  // Picture-space offset (du, dv) of the viewer centre (vx = 0, vy = 0)
+  const du = (-tx0 * cos - (ty0 / aspect) * sin) / zoom;
+  const dv = (tx0 * aspect * sin - ty0 * cos) / zoom;
+
+  const duClamped = Math.max(-maxDu, Math.min(maxDu, du));
+  const dvClamped = Math.max(-maxDv, Math.min(maxDv, dv));
+
+  const tx = -zoom * (duClamped * cos - (dvClamped / aspect) * sin);
+  const ty = -zoom * (duClamped * aspect * sin + dvClamped * cos);
+
+  const x = cleanZero(clampPropValue("x", tx * 100));
+  const y = cleanZero(clampPropValue("y", ty * 100));
+
+  const clamped =
+    Math.abs(zoom - rawZoom) > 1e-6 ||
+    Math.abs(x - rawX) > 1e-5 ||
+    Math.abs(y - rawY) > 1e-5 ||
+    Math.abs(rotation - rawRotation) > 1e-6;
+
+  return { zoom, x, y, rotation, clamped };
+}
+
+/**
+ * Zooms to `targetZoom` keeping the picture point under normalized viewer pointer `(pointerNormX, pointerNormY)`
+ * (`[0..1]` across the viewer) stationary, then clamps to the picture's edges.
+ */
+export function zoomPoseAroundPointer(
+  pose: { zoom: number; x: number; y: number; rotation?: number },
+  targetZoom: number,
+  pointerNormX: number,
+  pointerNormY: number,
+  aspect = VIEWER_ASPECT,
+): ClampedPoseResult {
+  const rotation = clampPropValue("rotation", Number(pose.rotation) || 0);
+  const z0 = Math.max(0.01, Number(pose.zoom) || 1);
+  const x0 = Number(pose.x) || 0;
+  const y0 = Number(pose.y) || 0;
+
+  const minZoom = minZoomForRotation(rotation, aspect);
+  const maxZoom = ANIM_PROP_META.zoom.max;
+  const z1 = Math.max(minZoom, Math.min(maxZoom, targetZoom));
+  const zoomWasClamped = Math.abs(z1 - targetZoom) > 1e-6;
+
+  const vx = Math.max(0, Math.min(1, pointerNormX)) - 0.5;
+  const vy = Math.max(0, Math.min(1, pointerNormY)) - 0.5;
+  const ratio = z1 / z0;
+
+  const rawX = vx * 100 * (1 - ratio) + x0 * ratio;
+  const rawY = vy * 100 * (1 - ratio) + y0 * ratio;
+
+  const edge = clampPoseToPictureEdges({ zoom: z1, x: rawX, y: rawY, rotation }, aspect);
+  return {
+    ...edge,
+    clamped: zoomWasClamped || edge.clamped,
+  };
+}
+
+export function clampKenBurnsBox(raw: KenBurnsBox): { box: KenBurnsBox; clamped: boolean } {
+  const rawW = Number.isFinite(raw.width) ? raw.width : 1;
+  const rawX = Number.isFinite(raw.x) ? raw.x : 0;
+  const rawY = Number.isFinite(raw.y) ? raw.y : 0;
+
+  const width = Math.max(MIN_KEN_BURNS_BOX_WIDTH, Math.min(1, rawW));
+  const x = cleanZero(Math.max(0, Math.min(1 - width, rawX)));
+  const y = cleanZero(Math.max(0, Math.min(1 - width, rawY)));
+
+  const clamped =
+    Math.abs(width - rawW) > 1e-6 ||
+    Math.abs(x - rawX) > 1e-6 ||
+    Math.abs(y - rawY) > 1e-6;
+
+  return {
+    box: { x, y, width },
+    clamped,
+  };
+}
+
+/**
+ * Builds a 16:9 Ken Burns box inside `[0, 1] × [0, 1]` from a drag anchor `(anchorX, anchorY)`
+ * to `(pointerX, pointerY)` in normalized picture coordinates.
+ */
+export function kenBurnsBoxFromDrag(
+  anchorX: number,
+  anchorY: number,
+  pointerX: number,
+  pointerY: number,
+): { box: KenBurnsBox; clamped: boolean } {
+  const ax = Math.max(0, Math.min(1, anchorX));
+  const ay = Math.max(0, Math.min(1, anchorY));
+  const outOfBounds = pointerX < 0 || pointerX > 1 || pointerY < 0 || pointerY > 1;
+  const px = Math.max(0, Math.min(1, pointerX));
+  const py = Math.max(0, Math.min(1, pointerY));
+
+  const dx = px - ax;
+  const dy = py - ay;
+  const signX = dx >= 0 ? 1 : -1;
+  const signY = dy >= 0 ? 1 : -1;
+
+  const maxSpanX = signX > 0 ? 1 - ax : ax;
+  const maxSpanY = signY > 0 ? 1 - ay : ay;
+  const maxAllowedWidth = Math.min(1, maxSpanX, maxSpanY);
+
+  const requestedWidth = Math.max(Math.abs(dx), Math.abs(dy), MIN_KEN_BURNS_BOX_WIDTH);
+  let width = Math.min(requestedWidth, Math.max(MIN_KEN_BURNS_BOX_WIDTH, maxAllowedWidth));
+  width = Math.max(MIN_KEN_BURNS_BOX_WIDTH, Math.min(1, width));
+
+  const rawLeft = signX > 0 ? ax : ax - width;
+  const rawTop = signY > 0 ? ay : ay - width;
+  const res = clampKenBurnsBox({ x: rawLeft, y: rawTop, width });
+  return {
+    box: res.box,
+    clamped: outOfBounds || requestedWidth > maxAllowedWidth + 1e-6 || res.clamped,
+  };
+}
+
+/**
+ * Converts a 16:9 `KenBurnsBox` (normalized `x`, `y`, `width` inside `[0, 1]`) into the viewer's
+ * centred `transform: translate(x%, y%) scale(zoom)` parameters:
+ * - `zoom = 1 / boxWidth`
+ * - `x = -zoom * (boxCenterX - 0.5) * 100`
+ * - `y = -zoom * (boxCenterY - 0.5) * 100`
+ */
+export function kenBurnsBoxToPose(rawBox: KenBurnsBox): {
+  zoom: number;
+  x: number;
+  y: number;
+  box: KenBurnsBox;
+  clamped: boolean;
+} {
+  const { box, clamped } = clampKenBurnsBox(rawBox);
+  const boxWidth = box.width;
+  const boxCenterX = box.x + boxWidth / 2;
+  const boxCenterY = box.y + boxWidth / 2;
+  const zoom = cleanZero(1 / boxWidth);
+  const x = cleanZero(-zoom * (boxCenterX - 0.5) * 100);
+  const y = cleanZero(-zoom * (boxCenterY - 0.5) * 100);
+  return { zoom, x, y, box, clamped };
+}
+
+export function poseToKenBurnsBox(pose: { zoom: number; x: number; y: number }): KenBurnsBox {
+  const z = Math.max(1, Math.min(ANIM_PROP_META.zoom.max, Number(pose.zoom) || 1));
+  const width = 1 / z;
+  const centerX = 0.5 - (Number(pose.x) || 0) / (100 * z);
+  const centerY = 0.5 - (Number(pose.y) || 0) / (100 * z);
+  return clampKenBurnsBox({
+    x: centerX - width / 2,
+    y: centerY - width / 2,
+    width,
+  }).box;
+}
+
+/**
+ * Writes `zoom`, `x`, and `y` `ease-in-out` keyframes at the clip's first (`0`) and last
+ * (`Math.max(0, clipDurationFrames - 1)`) frames from `startBox` and `endBox`, storing both boxes
+ * on `animation.kenBurns` so they reappear whenever the clip is selected.
+ */
+export function applyKenBurnsBoxes(
+  animation: BeatAnimation | undefined,
+  startBox: KenBurnsBox,
+  endBox: KenBurnsBox,
+  clipDurationFrames: number,
+): { animation: BeatAnimation; clamped: boolean } {
+  const startRes = kenBurnsBoxToPose(startBox);
+  const endRes = kenBurnsBoxToPose(endBox);
+  const lastFrame = Math.max(0, Math.round(clipDurationFrames) - 1);
+
+  const zoomKeys: Key[] =
+    lastFrame > 0
+      ? [
+          { frame: 0, value: startRes.zoom, easing: "ease-in-out" },
+          { frame: lastFrame, value: endRes.zoom, easing: "ease-in-out" },
+        ]
+      : [{ frame: 0, value: endRes.zoom, easing: "ease-in-out" }];
+
+  const xKeys: Key[] =
+    lastFrame > 0
+      ? [
+          { frame: 0, value: startRes.x, easing: "ease-in-out" },
+          { frame: lastFrame, value: endRes.x, easing: "ease-in-out" },
+        ]
+      : [{ frame: 0, value: endRes.x, easing: "ease-in-out" }];
+
+  const yKeys: Key[] =
+    lastFrame > 0
+      ? [
+          { frame: 0, value: startRes.y, easing: "ease-in-out" },
+          { frame: lastFrame, value: endRes.y, easing: "ease-in-out" },
+        ]
+      : [{ frame: 0, value: endRes.y, easing: "ease-in-out" }];
+
+  const nextValues: BeatAnimValues = { ...(animation?.values ?? {}) };
+  delete nextValues.zoom;
+  delete nextValues.x;
+  delete nextValues.y;
+  delete nextValues.rotation;
+
+  const normalized = normalizeAnimation({
+    ...animation,
+    values: Object.keys(nextValues).length > 0 ? nextValues : undefined,
+    kenBurns: {
+      start: startRes.box,
+      end: endRes.box,
+    },
+    zoom: zoomKeys,
+    x: xKeys,
+    y: yKeys,
+    rotation: undefined,
+  })!;
+
+  return {
+    animation: normalized,
+    clamped: startRes.clamped || endRes.clamped,
+  };
 }
 
 function normalizeEasingValue(raw: unknown, rawBezier: unknown): {
@@ -476,6 +790,34 @@ export function normalizeAnimation(animation: BeatAnimation | undefined): BeatAn
   if (!animation) return undefined;
   const next: BeatAnimation = {};
   let hasAny = false;
+
+  if (animation.values && typeof animation.values === "object") {
+    const cleanValues: BeatAnimValues = {};
+    for (const prop of ANIM_PROPS) {
+      const rawVal = animation.values[prop];
+      if (typeof rawVal === "number" && Number.isFinite(rawVal)) {
+        cleanValues[prop] = clampPropValue(prop, rawVal);
+      }
+    }
+    if (Object.keys(cleanValues).length > 0) {
+      next.values = cleanValues;
+      hasAny = true;
+    }
+  }
+
+  if (
+    animation.kenBurns &&
+    typeof animation.kenBurns === "object" &&
+    animation.kenBurns.start &&
+    animation.kenBurns.end
+  ) {
+    next.kenBurns = {
+      start: clampKenBurnsBox(animation.kenBurns.start).box,
+      end: clampKenBurnsBox(animation.kenBurns.end).box,
+    };
+    hasAny = true;
+  }
+
   for (const prop of ANIM_PROPS) {
     const raw = animation[prop];
     if (!Array.isArray(raw) || raw.length === 0) continue;
@@ -527,6 +869,13 @@ export function toggleKeyAtFrame(
   });
 }
 
+/**
+ * Auto-key rule shared by Inspector sliders and direct viewer framing:
+ * - If `prop` already has keyframes (`animation[prop].length > 0`), updates the keyframe at
+ *   `localFrame` or adds a new keyframe at `localFrame`.
+ * - If `prop` has NO keyframes, updates the plain static value (`animation.values[prop]`) without
+ *   creating any keyframe.
+ */
 export function setSliderValueAtFrame(
   animation: BeatAnimation | undefined,
   prop: AnimProp,
@@ -537,6 +886,17 @@ export function setSliderValueAtFrame(
   const frame = Math.max(0, Math.round(localFrame));
   const clamped = clampPropValue(prop, value);
   const existing = sortedKeys(animation?.[prop] ?? []);
+
+  if (existing.length === 0) {
+    return normalizeAnimation({
+      ...animation,
+      values: {
+        ...(animation?.values ?? {}),
+        [prop]: clamped,
+      },
+    });
+  }
+
   const atIndex = existing.findIndex((key) => key.frame === frame);
   let nextKeys: Key[];
   if (atIndex >= 0) {
@@ -562,6 +922,29 @@ export function setSliderValueAtFrame(
     ...animation,
     [prop]: nextKeys,
   });
+}
+
+export const applyAutoKeyValue = setSliderValueAtFrame;
+
+/**
+ * Applies partial camera pose updates (`zoom`, `x`, `y`, `rotation`) at `localFrame` using the
+ * per-property auto-key rule.
+ */
+export function applyPoseAtPlayhead(
+  animation: BeatAnimation | undefined,
+  localFrame: number,
+  nextPose: Partial<Pick<EvaluatedPose, "zoom" | "x" | "y" | "rotation">>,
+  defaultEasing: KeyEasing = "linear",
+): BeatAnimation | undefined {
+  let next = animation;
+  const props: Array<"zoom" | "x" | "y" | "rotation"> = ["zoom", "x", "y", "rotation"];
+  for (const prop of props) {
+    const val = nextPose[prop];
+    if (typeof val === "number" && Number.isFinite(val)) {
+      next = setSliderValueAtFrame(next, prop, localFrame, val, defaultEasing);
+    }
+  }
+  return next;
 }
 
 export function setKeyEasingAtFrame(
@@ -737,7 +1120,17 @@ export function pasteCopiedKeyframesAt(
   }
   const baseFrame = Math.max(0, Math.round(pasteLocalFrame));
   const maxValidFrame = Math.max(0, Math.floor(clipDurationFrames) - 1);
-  const next: BeatAnimation = {};
+  const next: BeatAnimation = {
+    ...(existingAnimation?.values ? { values: { ...existingAnimation.values } } : {}),
+    ...(existingAnimation?.kenBurns
+      ? {
+          kenBurns: {
+            start: { ...existingAnimation.kenBurns.start },
+            end: { ...existingAnimation.kenBurns.end },
+          },
+        }
+      : {}),
+  };
   for (const prop of ANIM_PROPS) {
     if (existingAnimation?.[prop]?.length) {
       next[prop] = existingAnimation[prop]!.map((k) => ({
@@ -790,7 +1183,9 @@ export function pasteClipAnimationOnto(
     return { animation: undefined, pastedCount: 0, droppedCount: 0, pastedKeys: [] };
   }
   const maxValidFrame = Math.max(0, Math.floor(targetDurationFrames) - 1);
-  const next: BeatAnimation = {};
+  const next: BeatAnimation = {
+    ...(sourceAnimation.values ? { values: { ...sourceAnimation.values } } : {}),
+  };
   let pastedCount = 0;
   let droppedCount = 0;
   const pastedKeys: Array<{ prop: AnimProp; frame: number }> = [];
@@ -871,8 +1266,8 @@ export function splitAnimation(
 ): [BeatAnimation | undefined, BeatAnimation | undefined] {
   if (!animation) return [undefined, undefined];
   const cut = Math.max(0, Math.round(splitFrame));
-  const left: BeatAnimation = {};
-  const right: BeatAnimation = {};
+  const left: BeatAnimation = animation.values ? { values: { ...animation.values } } : {};
+  const right: BeatAnimation = animation.values ? { values: { ...animation.values } } : {};
   for (const prop of ANIM_PROPS) {
     const keys = animation[prop];
     if (!keys?.length) continue;

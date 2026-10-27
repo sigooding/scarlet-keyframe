@@ -27,12 +27,16 @@ import { formatTimecode, sceneProseFrames } from "../core/timing";
 import {
   ANIM_PROP_META,
   ANIM_PROPS,
+  applyPoseAtPlayhead,
+  clampPoseToPictureEdges,
   evaluate,
   hasAnimationKeyframes,
+  hasPlainValues,
   setKeyEasingAtFrame,
   setSliderValueAtFrame,
   toggleKeyAtFrame,
   type AnimProp,
+  type EvaluatedPose,
 } from "../sequence/animate";
 import { mapTransitionKind } from "../sequence/transitions";
 
@@ -142,9 +146,15 @@ interface InspectorProps {
   onSplit: () => void;
   onInsert: () => void;
   onDuplicate: () => void;
+  canMergeFrames?: boolean;
+  onMergeFrames?: () => void;
   onDelete: () => void;
   onExecuteDelete?: (ripple: boolean) => void;
+  onDeleteClip?: (ripple: boolean) => void;
   onMove: (delta: -1 | 1) => void;
+  kenBurnsActive?: boolean;
+  onToggleKenBurns?: () => void;
+  onEdgeClamped?: () => void;
   resolvedAudioClips?: ResolvedAudioClip[];
   selectedAudioClipIds?: string[];
   playheadMs?: number;
@@ -216,6 +226,7 @@ export function Inspector(props: InspectorProps) {
   const animation = beat.animation;
   const pose = evaluate(frame, localFrame);
   const animated = hasAnimationKeyframes(frame);
+  const hasPlain = hasPlainValues(frame);
 
   const musicUrl = String(scene.musicUrl || scene.sceneAudioUrl || "");
   const ambParsed = parseAmbienceSpec(scene.ambientAudio);
@@ -936,14 +947,31 @@ export function Inspector(props: InspectorProps) {
                 <button className="button button-quiet" onClick={props.onDuplicate}>
                   Duplicate
                 </button>
+                {props.onMergeFrames && (
+                  <button
+                    type="button"
+                    className="button button-quiet"
+                    data-testid="inspector-merge-frames-btn"
+                    onClick={props.onMergeFrames}
+                    disabled={!props.canMergeFrames}
+                    title="Merge frames: keeps first image, removes second image, and makes one clip"
+                  >
+                    Merge frames
+                  </button>
+                )}
                 <button
                   className="button button-quiet danger-quiet"
+                  data-testid="inspector-delete-clip-btn"
                   onClick={(e) =>
-                    props.onExecuteDelete ? props.onExecuteDelete(e.shiftKey) : props.onDelete()
+                    props.onDeleteClip
+                      ? props.onDeleteClip(e.shiftKey)
+                      : props.onExecuteDelete
+                        ? props.onExecuteDelete(e.shiftKey)
+                        : props.onDelete()
                   }
-                  title="Delete lifts picture to black gap (or closes gap); Shift+Click ripple-deletes shot & anchored sounds"
+                  title="Delete lifts picture to black gap (or removes gap completely); Shift+Click ripple-deletes shot & anchored sounds"
                 >
-                  {beat.gap ? "Close gap" : "Delete"}
+                  {beat.gap ? "Delete gap" : "Delete"}
                 </button>
               </div>
               <div className="move-actions">
@@ -964,12 +992,28 @@ export function Inspector(props: InspectorProps) {
             />
 
             <section className="inspector-section animation-section" data-testid="inspector-animation">
-              <SectionTitle number="03" title="Animation" status={animated ? "KEYFRAMED" : "PRESET"} />
+              <SectionTitle
+                number="03"
+                title="Animation"
+                status={animated ? "KEYFRAMED" : hasPlain ? "PLAIN" : "PRESET"}
+              />
               <div className="anim-section-bar">
                 <span>
                   Clip frame <strong>+{localFrame}f</strong> / {Math.max(0, clipDurationFrames - 1)}f
                 </span>
                 <div className="anim-jump-btns">
+                  {props.onToggleKenBurns && (
+                    <button
+                      type="button"
+                      className={`field-reset ${props.kenBurnsActive ? "is-active-pill" : ""}`}
+                      data-testid="inspector-ken-burns-btn"
+                      disabled={Boolean(beat.gap || !frame.picture)}
+                      onClick={props.onToggleKenBurns}
+                      title="Draw or edit 16:9 START and END Ken Burns boxes on the picture"
+                    >
+                      Ken Burns
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="field-reset"
@@ -1004,12 +1048,12 @@ export function Inspector(props: InspectorProps) {
                   >
                     End ▶∣
                   </button>
-                  {animated && (
+                  {(animated || hasPlain || Boolean(animation?.kenBurns)) && (
                     <button
                       type="button"
                       className="field-reset"
-                      onClick={() => props.onSetAnimation(undefined, "Animation keyframes cleared")}
-                      title="Clear all animation keyframes on this clip"
+                      onClick={() => props.onSetAnimation(undefined, "Animation reset")}
+                      title="Clear all animation keyframes and plain framing values on this clip"
                     >
                       CLEAR
                     </button>
@@ -1030,11 +1074,14 @@ export function Inspector(props: InspectorProps) {
                     decimals={meta.decimals}
                     suffix={meta.suffix}
                     value={pose[prop]}
+                    pose={pose}
+                    hasPicture={!beat.gap && Boolean(frame.picture)}
                     localFrame={localFrame}
                     animation={animation}
                     onSetAnimation={props.onSetAnimation}
                     onPreviewAnimation={props.onPreviewAnimation}
                     onOpenCurveEditor={() => props.onOpenCurveEditor?.(prop)}
+                    onEdgeClamped={props.onEdgeClamped}
                     onDragStart={props.onDragStart}
                     onDragEnd={props.onDragEnd}
                   />
@@ -1254,11 +1301,14 @@ function AnimationChannelControl({
   decimals,
   suffix,
   value,
+  pose,
+  hasPicture,
   localFrame,
   animation,
   onSetAnimation,
   onPreviewAnimation,
   onOpenCurveEditor,
+  onEdgeClamped,
   onDragStart,
   onDragEnd,
 }: {
@@ -1270,11 +1320,14 @@ function AnimationChannelControl({
   decimals: number;
   suffix: string;
   value: number;
+  pose: EvaluatedPose;
+  hasPicture: boolean;
   localFrame: number;
   animation: BeatAnimation | undefined;
   onSetAnimation: (animation: BeatAnimation | undefined, label: string) => void;
   onPreviewAnimation: (animation: BeatAnimation | undefined) => void;
   onOpenCurveEditor?: () => void;
+  onEdgeClamped?: () => void;
   onDragStart: () => void;
   onDragEnd: (label: string) => void;
 }) {
@@ -1378,9 +1431,35 @@ function AnimationChannelControl({
           }
         }}
         onChange={(event) => {
-          const next = setSliderValueAtFrame(animation, prop, localFrame, Number(event.target.value), "linear");
+          const rawVal = Number(event.target.value);
+          let next: BeatAnimation | undefined;
+          if (
+            hasPicture &&
+            (prop === "zoom" || prop === "x" || prop === "y" || prop === "rotation")
+          ) {
+            const candidate = {
+              zoom: prop === "zoom" ? rawVal : pose.zoom,
+              x: prop === "x" ? rawVal : pose.x,
+              y: prop === "y" ? rawVal : pose.y,
+              rotation: prop === "rotation" ? rawVal : pose.rotation,
+            };
+            const clamped = clampPoseToPictureEdges(candidate);
+            if (clamped.clamped) {
+              onEdgeClamped?.();
+            }
+            const patch: Partial<Pick<EvaluatedPose, "zoom" | "x" | "y" | "rotation">> = {
+              [prop]: clamped[prop],
+            };
+            if (Math.abs(clamped.zoom - pose.zoom) > 1e-6) patch.zoom = clamped.zoom;
+            if (Math.abs(clamped.x - pose.x) > 1e-5) patch.x = clamped.x;
+            if (Math.abs(clamped.y - pose.y) > 1e-5) patch.y = clamped.y;
+            next = applyPoseAtPlayhead(animation, localFrame, patch, "linear");
+          } else {
+            next = setSliderValueAtFrame(animation, prop, localFrame, rawVal, "linear");
+          }
+          const commitLabel = keys.length > 0 ? `${label} keyframe updated` : `${label} updated`;
           if (draggingRef.current) onPreviewAnimation(next);
-          else onSetAnimation(next, `${label} keyframe updated`);
+          else onSetAnimation(next, commitLabel);
         }}
       />
     </div>

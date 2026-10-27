@@ -48,7 +48,38 @@ export interface Key {
   bezier?: CubicBezierTuple;
 }
 
+export interface KenBurnsBox {
+  /** Normalized left edge in [0, 1) of the picture width */
+  x: number;
+  /** Normalized top edge in [0, 1) of the picture height */
+  y: number;
+  /** Normalized 16:9 box width (and height in 16:9 normalized space) in (0, 1] */
+  width: number;
+}
+
+export type BeatAnimValues = Partial<
+  Record<
+    | "zoom"
+    | "x"
+    | "y"
+    | "rotation"
+    | "opacity"
+    | "blur"
+    | "exposure"
+    | "gradeStrength"
+    | "depthAmount",
+    number
+  >
+>;
+
 export interface BeatAnimation {
+  /** Plain static values for properties that do not have keyframes yet */
+  values?: BeatAnimValues;
+  /** Stored 16:9 START and END boxes when framed with Ken Burns */
+  kenBurns?: {
+    start: KenBurnsBox;
+    end: KenBurnsBox;
+  };
   zoom?: Key[];
   x?: Key[];
   y?: Key[];

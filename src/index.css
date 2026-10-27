@@ -5518,6 +5518,508 @@ kbd {
   cursor: move;
 }
 
+/* ── Turn 11: Direct Viewer Framing, Ken Burns, Overlays, Full Screen & Merge ── */
+
+.cin-preview.is-direct-framing {
+  cursor: grab;
+}
+
+.cin-preview.is-direct-framing.is-panning {
+  cursor: grabbing;
+}
+
+.cin-preview.is-edge-clamped {
+  box-shadow: inset 0 0 0 2px rgba(245, 166, 35, 0.85);
+}
+
+/* Top-left Ken Burns button */
+.cin-kb-trigger-wrap {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 64;
+  pointer-events: auto;
+}
+
+/* Viewer corner toggles */
+.cin-corner-toggles {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 64;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  pointer-events: auto;
+}
+
+.cin-corner-btn {
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 3px;
+  background: rgba(8, 10, 15, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(235, 238, 245, 0.82);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.cin-corner-btn:hover:not(:disabled) {
+  background: rgba(20, 25, 36, 0.92);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.cin-corner-btn.is-active {
+  background: rgba(232, 162, 74, 0.24);
+  border-color: rgba(232, 162, 74, 0.82);
+  color: #ffd089;
+}
+
+.cin-corner-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.field-reset.is-active-pill {
+  background: rgba(232, 162, 74, 0.22);
+  border-color: rgba(232, 162, 74, 0.78);
+  color: var(--accent-amber);
+}
+
+/* Stack scene/beat mark & carried mark cleanly below corner buttons */
+.cin-mark {
+  top: 36px;
+  right: 10px;
+}
+
+.cin-carried-mark {
+  top: 36px;
+  left: 10px;
+}
+
+/* Timecode burn-in overlay */
+.cin-timecode-overlay {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  z-index: 55;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(5, 6, 8, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.cin-timecode-overlay strong {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #f8fafc;
+}
+
+.cin-timecode-overlay span {
+  font-size: 9.5px;
+  color: var(--ink-muted);
+}
+
+/* Action-safe (90%) and Title-safe (80%) guides */
+.cin-safe-guides {
+  position: absolute;
+  inset: 0;
+  z-index: 52;
+  pointer-events: none;
+}
+
+.cin-safe-box {
+  position: absolute;
+  border-style: dashed;
+  border-width: 1px;
+}
+
+.cin-action-safe {
+  inset: 5%;
+  border-color: rgba(82, 182, 236, 0.62);
+}
+
+.cin-title-safe {
+  inset: 10%;
+  border-color: rgba(232, 162, 74, 0.62);
+}
+
+.cin-safe-box span {
+  position: absolute;
+  top: 3px;
+  left: 24%;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(5, 7, 11, 0.72);
+}
+
+.cin-action-safe span {
+  color: #7dd3fc;
+}
+
+.cin-title-safe span {
+  color: #fcd34d;
+}
+
+.cin-safe-center-h,
+.cin-safe-center-v {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.cin-safe-center-h {
+  left: calc(50% - 10px);
+  top: 50%;
+  width: 20px;
+  height: 1px;
+}
+
+.cin-safe-center-v {
+  top: calc(50% - 10px);
+  left: 50%;
+  width: 1px;
+  height: 20px;
+}
+
+/* Shift single-axis lock guide */
+.cin-shift-axis-guide {
+  position: absolute;
+  z-index: 54;
+  pointer-events: none;
+  background: rgba(82, 182, 236, 0.7);
+}
+
+.cin-shift-axis-guide.is-axis-x {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+}
+
+.cin-shift-axis-guide.is-axis-y {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+}
+
+/* Onion skin overlay (previous and next clips at 30%) */
+.cin-onion-skin-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 44;
+  pointer-events: none;
+}
+
+.cin-onion-plate {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.cin-onion-legend {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  display: inline-flex;
+  gap: 6px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: rgba(5, 6, 8, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: #cbd5e1;
+}
+
+/* Round rotation handle at top of viewer */
+.cin-rotation-gizmo {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 66;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.cin-rotation-stem {
+  position: absolute;
+  top: 22px;
+  width: 1.5px;
+  height: 12px;
+  background: rgba(242, 120, 159, 0.75);
+  pointer-events: none;
+}
+
+.cin-rotation-handle {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(242, 120, 159, 0.92);
+  background: rgba(11, 14, 21, 0.88);
+  color: #f9a8d4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
+}
+
+.cin-rotation-handle:hover,
+.cin-rotation-handle.is-dragging {
+  background: #f2789f;
+  color: #0b0e15;
+  cursor: grabbing;
+}
+
+.cin-rotation-readout {
+  margin-top: 14px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(8, 10, 15, 0.82);
+  border: 1px solid rgba(242, 120, 159, 0.55);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  color: #fbcfe8;
+  pointer-events: none;
+}
+
+/* Edge clamp warning banner */
+.cin-edge-warning {
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  padding: 4px 11px;
+  border-radius: 4px;
+  background: rgba(28, 16, 4, 0.92);
+  border: 1px solid rgba(245, 166, 35, 0.9);
+  color: #fde68a;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+
+/* Ken Burns START / END 16:9 interactive boxes */
+.cin-ken-burns-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 58;
+  pointer-events: auto;
+}
+
+.cin-ken-burns-layer.is-drawing {
+  cursor: crosshair;
+  z-index: 68;
+}
+
+.cin-kb-banner {
+  position: absolute;
+  top: 36px;
+  left: 10px;
+  z-index: 65;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  background: rgba(6, 9, 14, 0.88);
+  border: 1px solid rgba(232, 162, 74, 0.65);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: #fde68a;
+  max-width: calc(100% - 140px);
+}
+
+.cin-kb-banner-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.cin-kb-banner-actions button {
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #f8fafc;
+  font-family: var(--mono);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.cin-kb-banner-actions button:hover {
+  background: rgba(232, 162, 74, 0.28);
+  border-color: rgba(232, 162, 74, 0.8);
+}
+
+.cin-kb-vector-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.cin-kb-box {
+  position: absolute;
+  box-sizing: border-box;
+  border-width: 2px;
+  border-style: solid;
+}
+
+.cin-kb-box.is-start {
+  border-color: #34d399;
+  background: rgba(52, 211, 153, 0.08);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.65);
+  cursor: move;
+}
+
+.cin-kb-box.is-end {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.65);
+  cursor: move;
+}
+
+.cin-kb-box.is-now {
+  border: 1px dashed rgba(255, 255, 255, 0.48);
+  pointer-events: none;
+}
+
+.cin-kb-tag {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+
+.cin-kb-box.is-start .cin-kb-tag {
+  top: auto;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(6, 78, 59, 0.92);
+  color: #a7f3d0;
+  border: 1px solid rgba(52, 211, 153, 0.7);
+}
+
+.cin-kb-box.is-end .cin-kb-tag {
+  background: rgba(120, 53, 15, 0.92);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.75);
+}
+
+.cin-kb-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: #0b0f16;
+  border: 1.5px solid currentColor;
+}
+
+.cin-kb-box.is-start .cin-kb-handle {
+  color: #34d399;
+}
+
+.cin-kb-box.is-end .cin-kb-handle {
+  color: #f59e0b;
+}
+
+.cin-kb-handle.is-nw {
+  top: -5px;
+  left: -5px;
+  cursor: nwse-resize;
+}
+
+.cin-kb-handle.is-ne {
+  top: -5px;
+  right: -5px;
+  cursor: nesw-resize;
+}
+
+.cin-kb-handle.is-sw {
+  bottom: -5px;
+  left: -5px;
+  cursor: nesw-resize;
+}
+
+.cin-kb-handle.is-se {
+  bottom: -5px;
+  right: -5px;
+  cursor: nwse-resize;
+}
+
+/* Full-screen cinema playback mode (F) */
+.frame24-shell.is-fullscreen-cinema .preview-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  padding: 0;
+  background: #000000;
+}
+
+.frame24-shell.is-fullscreen-cinema .preview-stage .preview-inner {
+  width: min(100vw, calc(100vh * 16 / 9));
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none !important;
+}
+
+.frame24-shell.is-fullscreen-cinema .preview-stage .preview-resolution {
+  display: none;
+}
+
+.frame24-shell.is-fullscreen-cinema .transport-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9510;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(4, 6, 10, 0.86) 100%);
+  border-top: none;
+}
+
+
 
 
 

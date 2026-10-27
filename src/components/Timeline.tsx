@@ -122,6 +122,8 @@ export interface TimelineProps {
   onCopy: () => void;
   onPaste: () => void;
   onSplit: () => void;
+  canMergeFrames?: boolean;
+  onMergeFrames?: () => void;
   onDelete: () => void;
   onExecuteDelete?: (ripple: boolean) => void;
   onMoveCue: (kind: "music" | "ambience" | "sfx", sourceId: string, targetId: string) => void;
@@ -217,6 +219,8 @@ export function Timeline({
   onCopy,
   onPaste,
   onSplit,
+  canMergeFrames = false,
+  onMergeFrames,
   onDelete,
   onExecuteDelete,
   onDropFile,
@@ -989,6 +993,18 @@ export function Timeline({
           >
             ✂ Split (S)
           </button>
+          {onMergeFrames && (
+            <button
+              type="button"
+              className="button button-quiet"
+              data-testid="toolbar-merge-frames-btn"
+              onClick={onMergeFrames}
+              disabled={!canMergeFrames}
+              title="Merge frames: keeps first image, removes second image, and makes one clip"
+            >
+              Merge frames
+            </button>
+          )}
           {canMergeCaptions && (
             <button
               type="button"

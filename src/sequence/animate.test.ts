@@ -1,17 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { setBeatAnimation, splitKeyframeAt, trimKeyframe } from "../core/edits";
+import {
+  EMPTY_MULTI_SELECTION,
+} from "../core/audioClips";
+import {
+  executeDeleteSelection,
+  mergeKeyframes,
+  setBeatAnimation,
+  splitKeyframeAt,
+  trimKeyframe,
+} from "../core/edits";
 import { UndoHistory } from "../core/history";
 import { buildKeyframes, createProjectState, parseImportPayload, type ProjectState } from "../core/model";
 import { clipFrames, FPS, formatTimecode, keyframeDuration } from "../core/timing";
 import {
+  applyKenBurnsBoxes,
+  applyPoseAtPlayhead,
   buildTimelineClips,
+  clampKenBurnsBox,
+  clampPoseToPictureEdges,
   copySelectedKeyframes,
   evaluate,
+  hasAnimationKeyframes,
+  kenBurnsBoxFromDrag,
+  kenBurnsBoxToPose,
+  minZoomForRotation,
   nextKeyframeFrameOnClip,
   pasteClipAnimationOnto,
   pasteCopiedKeyframesAt,
+  poseToKenBurnsBox,
   prevKeyframeFrameOnClip,
+  setSliderValueAtFrame,
   solveCubicBezier,
+  VIEWER_ASPECT,
+  zoomPoseAroundPointer,
 } from "./animate";
 
 function makeTestProject(): ProjectState {
@@ -449,4 +470,298 @@ describe("sequence time & animation", () => {
     expect(prevKeyframeFrameOnClip(anim, 12, dur)).toBe(0);
     expect(prevKeyframeFrameOnClip(anim, 0, dur)).toBeUndefined();
   });
+
+  it("computes the exact Ken Burns formula for three 16:9 boxes and writes ease-in-out keyframes", () => {
+    // Box 1: Full-frame 16:9 box (boxWidth = 1.0, center = (0.5, 0.5)) -> zoom = 1, x = 0, y = 0
+    const box1 = { x: 0, y: 0, width: 1.0 };
+    const pose1 = kenBurnsBoxToPose(box1);
+    expect(pose1.clamped).toBe(false);
+    expect(pose1.zoom).toBeCloseTo(1, 9);
+    expect(pose1.x).toBeCloseTo(0, 9);
+    expect(pose1.y).toBeCloseTo(0, 9);
+
+    // Box 2: Top-left half-frame 16:9 box (boxWidth = 0.5, center = (0.25, 0.25)) -> zoom = 2, x = +50, y = +50
+    const box2 = { x: 0, y: 0, width: 0.5 };
+    const pose2 = kenBurnsBoxToPose(box2);
+    expect(pose2.clamped).toBe(false);
+    expect(pose2.zoom).toBeCloseTo(1 / 0.5, 9);
+    expect(pose2.x).toBeCloseTo(-(1 / 0.5) * (0.25 - 0.5) * 100, 9); // +50
+    expect(pose2.y).toBeCloseTo(-(1 / 0.5) * (0.25 - 0.5) * 100, 9); // +50
+    expect(pose2.x).toBe(50);
+    expect(pose2.y).toBe(50);
+
+    // Box 3: Off-centre right/upper-mid 16:9 box (boxWidth = 0.4, center = (0.68, 0.40)) -> zoom = 2.5, x = -45, y = +25
+    const box3 = { x: 0.48, y: 0.2, width: 0.4 };
+    const pose3 = kenBurnsBoxToPose(box3);
+    expect(pose3.clamped).toBe(false);
+    expect(pose3.zoom).toBeCloseTo(2.5, 9);
+    expect(pose3.x).toBeCloseTo(-2.5 * (0.68 - 0.5) * 100, 9); // -45
+    expect(pose3.y).toBeCloseTo(-2.5 * (0.4 - 0.5) * 100, 9); // +25
+
+    // Inverse recovery matches all three boxes
+    expect(poseToKenBurnsBox(pose1)).toEqual(box1);
+    expect(poseToKenBurnsBox(pose2)).toEqual(box2);
+    expect(poseToKenBurnsBox({
+      zoom: pose3.zoom,
+      x: pose3.x,
+      y: pose3.y,
+    }).width).toBeCloseTo(box3.width, 9);
+    expect(poseToKenBurnsBox(pose3).x).toBeCloseTo(box3.x, 9);
+    expect(poseToKenBurnsBox(pose3).y).toBeCloseTo(box3.y, 9);
+
+    // Writing START (box2) and END (box3) on a 48-frame clip writes ease-in-out at frames 0 and 47
+    const applied = applyKenBurnsBoxes(undefined, box2, box3, 48);
+    expect(applied.clamped).toBe(false);
+    expect(applied.animation.kenBurns).toEqual({ start: box2, end: box3 });
+    expect(applied.animation.zoom).toEqual([
+      { frame: 0, value: 2, easing: "ease-in-out" },
+      { frame: 47, value: 2.5, easing: "ease-in-out" },
+    ]);
+    expect(applied.animation.x).toEqual([
+      { frame: 0, value: 50, easing: "ease-in-out" },
+      { frame: 47, value: -45, easing: "ease-in-out" },
+    ]);
+    expect(applied.animation.y).toEqual([
+      { frame: 0, value: 50, easing: "ease-in-out" },
+      { frame: 47, value: 25, easing: "ease-in-out" },
+    ]);
+
+    // Midpoint (frame 23.5 -> t = 0.5) of ease-in-out sits halfway between START and END poses
+    const midPose = evaluate(applied.animation, 23.5);
+    expect(midPose.zoom).toBeCloseTo(2.25, 6);
+    expect(midPose.x).toBeCloseTo(2.5, 6);
+    expect(midPose.y).toBeCloseTo(37.5, 6);
+  });
+
+  it("clamps pan, zoom, rotation, and Ken Burns boxes at the picture's edges so black never shows", () => {
+    // 1. Zooming below 1.0x clamps to 1.0x and flags clamped = true
+    const underZoom = clampPoseToPictureEdges({ zoom: 0.72, x: 15, y: -10, rotation: 0 });
+    expect(underZoom.clamped).toBe(true);
+    expect(underZoom.zoom).toBe(1);
+    expect(underZoom.x).toBe(0);
+    expect(underZoom.y).toBe(0);
+
+    // 2. At zoom = 2.0x (unrotated), valid x,y span is [-50, +50]
+    const inside = clampPoseToPictureEdges({ zoom: 2, x: -32, y: 24, rotation: 0 });
+    expect(inside.clamped).toBe(false);
+    expect(inside.x).toBe(-32);
+    expect(inside.y).toBe(24);
+
+    const pastEdges = clampPoseToPictureEdges({ zoom: 2, x: -85, y: 74, rotation: 0 });
+    expect(pastEdges.clamped).toBe(true);
+    expect(pastEdges.x).toBe(-50);
+    expect(pastEdges.y).toBe(50);
+
+    // 3. Rotating by 10deg at zoom = 1.0x auto-clamps zoom to minZoomForRotation(10deg, 16/9)
+    //    and keeps all four viewer corners strictly inside [0, 1] x [0, 1] of the picture
+    const rotated = clampPoseToPictureEdges({ zoom: 1, x: 25, y: -25, rotation: 10 }, VIEWER_ASPECT);
+    expect(rotated.clamped).toBe(true);
+    expect(rotated.zoom).toBeCloseTo(minZoomForRotation(10, VIEWER_ASPECT), 6);
+
+    const rad = (rotated.rotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    for (const [vx, vy] of [
+      [-0.5, -0.5],
+      [0.5, -0.5],
+      [-0.5, 0.5],
+      [0.5, 0.5],
+    ]) {
+      const qx = (vx - rotated.x / 100) / rotated.zoom;
+      const qy = (vy - rotated.y / 100) / rotated.zoom;
+      const u = 0.5 + qx * cos + (qy / VIEWER_ASPECT) * sin;
+      const v = 0.5 - qx * VIEWER_ASPECT * sin + qy * cos;
+      expect(u).toBeGreaterThanOrEqual(-1e-9);
+      expect(u).toBeLessThanOrEqual(1 + 1e-9);
+      expect(v).toBeGreaterThanOrEqual(-1e-9);
+      expect(v).toBeLessThanOrEqual(1 + 1e-9);
+    }
+
+    // 4. Wheel zoom around an off-centre pointer keeps that picture point stationary inside bounds
+    const pointerZoom = zoomPoseAroundPointer({ zoom: 1, x: 0, y: 0, rotation: 0 }, 2, 0.25, 0.75);
+    expect(pointerZoom.clamped).toBe(false);
+    expect(pointerZoom.zoom).toBe(2);
+    expect(pointerZoom.x).toBeCloseTo(25, 6);
+    expect(pointerZoom.y).toBeCloseTo(-25, 6);
+
+    // 5. Ken Burns boxes clamp strictly inside [0, 1] x [0, 1] at 16:9
+    const kbOver = clampKenBurnsBox({ x: 0.75, y: -0.2, width: 0.5 });
+    expect(kbOver.clamped).toBe(true);
+    expect(kbOver.box).toEqual({ x: 0.5, y: 0, width: 0.5 });
+
+    const kbDraggedOut = kenBurnsBoxFromDrag(0.6, 0.6, 1.3, 1.2);
+    expect(kbDraggedOut.clamped).toBe(true);
+    expect(kbDraggedOut.box.x).toBeGreaterThanOrEqual(0);
+    expect(kbDraggedOut.box.y).toBeGreaterThanOrEqual(0);
+    expect(kbDraggedOut.box.x + kbDraggedOut.box.width).toBeLessThanOrEqual(1 + 1e-9);
+    expect(kbDraggedOut.box.y + kbDraggedOut.box.width).toBeLessThanOrEqual(1 + 1e-9);
+  });
+
+  it("enforces the auto-key rule with and without existing keyframes", () => {
+    // WITHOUT existing keyframes: edits change plain values only and create zero keyframes
+    let plainAnim = setSliderValueAtFrame(undefined, "zoom", 18, 1.6);
+    plainAnim = applyPoseAtPlayhead(plainAnim, 18, { x: -12, y: 8, rotation: 4 });
+
+    expect(hasAnimationKeyframes(plainAnim)).toBe(false);
+    expect(plainAnim?.zoom).toBeUndefined();
+    expect(plainAnim?.x).toBeUndefined();
+    expect(plainAnim?.y).toBeUndefined();
+    expect(plainAnim?.rotation).toBeUndefined();
+    expect(plainAnim?.values).toEqual({ zoom: 1.6, x: -12, y: 8, rotation: 4 });
+
+    // Plain values apply identically at every frame of the clip
+    for (const f of [0, 18, 47]) {
+      const p = evaluate(plainAnim, f);
+      expect(p.zoom).toBe(1.6);
+      expect(p.x).toBe(-12);
+      expect(p.y).toBe(8);
+      expect(p.rotation).toBe(4);
+    }
+
+    // WITH existing keyframes on zoom and x (but NOT on y or rotation):
+    // - Updating at an existing keyframe frame (0) modifies that keyframe's value
+    // - Updating at a new playhead frame (24) adds a keyframe on zoom & x, while keeping y & rotation plain!
+    const seeded = {
+      zoom: [
+        { frame: 0, value: 1.2, easing: "ease-in-out" as const },
+        { frame: 48, value: 1.8, easing: "linear" as const },
+      ],
+      x: [{ frame: 0, value: 0, easing: "linear" as const }],
+    };
+
+    const updatedAtZero = setSliderValueAtFrame(seeded, "zoom", 0, 1.35);
+    expect(updatedAtZero?.zoom).toEqual([
+      { frame: 0, value: 1.35, easing: "ease-in-out" },
+      { frame: 48, value: 1.8, easing: "linear" },
+    ]);
+
+    const updatedAtMid = applyPoseAtPlayhead(updatedAtZero, 24, {
+      zoom: 1.6,
+      x: -14,
+      y: 9,
+      rotation: -2.5,
+    });
+    expect(updatedAtMid?.zoom?.map((k) => ({ frame: k.frame, value: k.value }))).toEqual([
+      { frame: 0, value: 1.35 },
+      { frame: 24, value: 1.6 },
+      { frame: 48, value: 1.8 },
+    ]);
+    // zoom keyframe at 24 inherits prior keyframe's ease-in-out easing
+    expect(updatedAtMid?.zoom?.[1].easing).toBe("ease-in-out");
+    expect(updatedAtMid?.x?.map((k) => ({ frame: k.frame, value: k.value }))).toEqual([
+      { frame: 0, value: 0 },
+      { frame: 24, value: -14 },
+    ]);
+    // y and rotation had NO keyframes, so they changed plain values without creating keyframes
+    expect(updatedAtMid?.y).toBeUndefined();
+    expect(updatedAtMid?.rotation).toBeUndefined();
+    expect(updatedAtMid?.values).toEqual({ y: 9, rotation: -2.5 });
+  });
+
+  it("merges frames keeping first image and removing second image into one clip, and Delete on a gap removes it completely", () => {
+    const project = makeTestProject();
+    const beforeClips = buildTimelineClips(buildKeyframes(project.story)).clips;
+    expect(beforeClips).toHaveLength(4);
+    expect(beforeClips[0].durationFrames).toBe(72);
+    expect(beforeClips[1].durationFrames).toBe(48);
+    const firstImg = beforeClips[0].keyframe.picture;
+    const thirdImg = beforeClips[2].keyframe.picture;
+    const origFirstText = project.story.scenes[0].dialogueBeats![0].text;
+
+    // Merge b1 + b2 -> single 120f clip with b1's image; b2 removed; b3 stays at frame 120 with its own image
+    const merged = mergeKeyframes(project, ["b1", "b2"]);
+    expect(merged).toBeDefined();
+    expect(merged!.mergedId).toBe("b1");
+    expect(merged!.removedCount).toBe(1);
+
+    const mergedClips = buildTimelineClips(buildKeyframes(merged!.project.story)).clips;
+    expect(mergedClips).toHaveLength(3);
+    expect(mergedClips[0].keyframe.id).toBe("b1");
+    expect(mergedClips[0].durationFrames).toBe(72 + 48);
+    expect(mergedClips[0].keyframe.picture).toBe(firstImg);
+    expect(mergedClips[1].keyframe.id).toBe("b3");
+    expect(mergedClips[1].startFrame).toBe(120);
+    expect(mergedClips[1].keyframe.picture).toBe(thirdImg);
+    // beat.text on b1 is never mutated
+    expect(merged!.project.story.scenes[0].dialogueBeats![0].text).toBe(origFirstText);
+
+    // Lift b3 into a black gap with Delete, then Delete on the gap removes b3 completely and ripples b4 to 120
+    const lifted = executeDeleteSelection(merged!.project, {
+      ...EMPTY_MULTI_SELECTION,
+      pictureIds: ["b3"],
+    });
+    const gapClips = buildTimelineClips(buildKeyframes(lifted.project.story)).clips;
+    expect(gapClips[1].keyframe.id).toBe("b3");
+    expect(gapClips[1].keyframe.beat.gap).toBe(true);
+
+    const gapDeleted = executeDeleteSelection(lifted.project, {
+      ...EMPTY_MULTI_SELECTION,
+      pictureIds: ["b3"],
+    });
+    const afterGapDelete = buildTimelineClips(buildKeyframes(gapDeleted.project.story)).clips;
+    expect(afterGapDelete).toHaveLength(2);
+    expect(afterGapDelete.find((c) => c.keyframe.id === "b3")).toBeUndefined();
+    // Scene chain across the removed last beat of s77 into s78 (b4) stays unbroken
+    expect(afterGapDelete[1].keyframe.id).toBe("b4");
+    expect(afterGapDelete[1].startFrame).toBe(120);
+  });
+
+  it("deletes single-beat gap scenes and preserves deduplicated beat IDs across afterBeatTargetSceneId chains", () => {
+    const project = createProjectState(
+      parseImportPayload(
+        {
+          id: "multi-scene-gap-merge",
+          title: "Multi Scene Gap & Merge",
+          startSceneId: "sc1",
+          scenes: [
+            {
+              id: "sc1",
+              title: "Scene 1",
+              dialogueBeats: [
+                { id: "dup_id", text: "Scene 1 shot", background: "img/s1.png", durationFrames: 48, afterBeatTargetSceneId: "sc2" },
+              ],
+            },
+            {
+              id: "sc2",
+              title: "Scene 2",
+              dialogueBeats: [
+                { id: "sc2_a", text: "Scene 2 A", background: "img/s2a.png", durationFrames: 36 },
+                { id: "sc2_b", text: "Scene 2 B", background: "img/s2b.png", durationFrames: 24, afterBeatTargetSceneId: "sc3" },
+              ],
+            },
+            {
+              id: "sc3",
+              title: "Scene 3",
+              dialogueBeats: [
+                { id: "sc3_gap", text: "", gap: true, durationFrames: 30, afterBeatTargetSceneId: "sc4" },
+              ],
+            },
+            {
+              id: "sc4",
+              title: "Scene 4",
+              dialogueBeats: [
+                { id: "dup_id", text: "Scene 4 duplicate raw id", background: "img/s4.png", durationFrames: 60 },
+              ],
+            },
+          ],
+        },
+        "multi.json",
+      ),
+    );
+
+    const afterGapDelete = executeDeleteSelection(project, {
+      ...EMPTY_MULTI_SELECTION,
+      pictureIds: ["sc3_gap"],
+    });
+    const framesAfterGap = buildKeyframes(afterGapDelete.project.story);
+    expect(framesAfterGap.map((f) => f.id)).toEqual(["dup_id", "sc2_a", "sc2_b", "sc4:dup_id"]);
+
+    const merged = mergeKeyframes(afterGapDelete.project, ["dup_id", "sc2_a"])!;
+    expect(merged).toBeDefined();
+    const framesAfterMerge = buildKeyframes(merged.project.story);
+    expect(framesAfterMerge.map((f) => f.id)).toEqual(["dup_id", "sc2_b", "sc4:dup_id"]);
+    expect(framesAfterMerge[0].picture).toBe("img/s1.png");
+    expect(framesAfterMerge[0].beat.durationFrames).toBe(48 + 36);
+  });
 });
+

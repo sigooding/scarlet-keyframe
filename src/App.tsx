@@ -56,11 +56,13 @@ import {
   type AnyRecord,
   type BeatAnimation,
   type BeatLike,
+  type KenBurnsBox,
   type ProjectAsset,
   type ProjectState,
 } from "./core/model";
 import {
   addNoteMarker,
+  canMergeKeyframes,
   cloneStory as cloneProjectStory,
   copyEffectBlock,
   copyMultiSelection,
@@ -69,6 +71,7 @@ import {
   duplicateKeyframe,
   executeDeleteSelection,
   insertKeyframeAfter,
+  mergeKeyframes,
   moveSfxCue,
   pasteEffectBlock,
   pasteKeyframesAt,
@@ -124,6 +127,7 @@ import {
 import { webAudioEngine } from "./core/webAudioEngine";
 import { preloadDepthParallaxAssets } from "./components/FrameDepthParallax";
 import {
+  applyKenBurnsBoxes,
   buildTimelineClips,
   clipAtFrame,
   copySelectedKeyframes,
@@ -248,6 +252,8 @@ export default function App() {
   playheadRef.current = playheadFrame;
 
   const [selectedFrameId, setSelectedFrameId] = useState("");
+  const selectedFrameIdRef = useRef("");
+  selectedFrameIdRef.current = selectedFrameId;
   const [selectedFrameIds, setSelectedFrameIds] = useState<string[]>([]);
   const selectedIdsRef = useRef<string[]>([]);
   selectedIdsRef.current = selectedFrameIds;
@@ -289,6 +295,16 @@ export default function App() {
   const selectedCaptionRef = useRef<SelectedCaptionState | null>(null);
   selectedCaptionRef.current = selectedCaption;
   const [showMarks, setShowMarks] = useState(true);
+  const [showTimecodeOverlay, setShowTimecodeOverlay] = useState(true);
+  const [showSafeGuides, setShowSafeGuides] = useState(false);
+  const [showOnionSkin, setShowOnionSkin] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const isFullscreenRef = useRef(false);
+  isFullscreenRef.current = isFullscreen;
+  const [kenBurnsSuppressed, setKenBurnsSuppressed] = useState(false);
+  const [kenBurnsDrawStep, setKenBurnsDrawStep] = useState<"start" | "end" | null>(null);
+  const [kenBurnsDraftStart, setKenBurnsDraftStart] = useState<KenBurnsBox | null>(null);
+  const [edgeWarningToken, setEdgeWarningToken] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [missingOpen, setMissingOpen] = useState(false);
@@ -1675,12 +1691,8 @@ export default function App() {
     audioController.stopAll();
   }, []);
 
-  const togglePlayback = useCallback(() => {
+  const startPlaybackFromCurrent = useCallback(() => {
     if (!project || !clips.length) return;
-    if (playback) {
-      stopPlaybackAndAudio();
-      return;
-    }
     webAudioEngine.unlock();
     const startAt = playheadRef.current >= totalFrames - 1 ? 0 : playheadRef.current;
     if (startAt !== playheadRef.current) setPlayheadFrame(startAt);
@@ -1693,7 +1705,6 @@ export default function App() {
     setPlaySpeed(1);
     setPlayback(true);
   }, [
-    playback,
     project,
     clips.length,
     totalFrames,
@@ -1702,8 +1713,66 @@ export default function App() {
     soundOn,
     trackMix,
     duckDepth,
-    stopPlaybackAndAudio,
   ]);
+
+  const togglePlayback = useCallback(() => {
+    if (!project || !clips.length) return;
+    if (playback) {
+      stopPlaybackAndAudio();
+      return;
+    }
+    startPlaybackFromCurrent();
+  }, [playback, project, clips.length, stopPlaybackAndAudio, startPlaybackFromCurrent]);
+
+  const nativeFsEnteredRef = useRef(false);
+
+  const exitFullscreenPlayback = useCallback(() => {
+    setIsFullscreen(false);
+    isFullscreenRef.current = false;
+    if (typeof document !== "undefined" && document.fullscreenElement) {
+      nativeFsEnteredRef.current = false;
+      document.exitFullscreen?.().catch(() => undefined);
+    }
+  }, []);
+
+  const toggleFullscreenPlayback = useCallback(() => {
+    if (isFullscreenRef.current) {
+      exitFullscreenPlayback();
+      return;
+    }
+    setIsFullscreen(true);
+    isFullscreenRef.current = true;
+    if (typeof document !== "undefined" && !document.fullscreenElement) {
+      document.documentElement
+        .requestFullscreen?.()
+        .then(() => {
+          nativeFsEnteredRef.current = true;
+        })
+        .catch(() => undefined);
+    }
+    if (!playback) {
+      startPlaybackFromCurrent();
+    }
+  }, [exitFullscreenPlayback, playback, startPlaybackFromCurrent]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onFsChange = () => {
+      if (!document.fullscreenElement && nativeFsEnteredRef.current) {
+        nativeFsEnteredRef.current = false;
+        setIsFullscreen(false);
+        isFullscreenRef.current = false;
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  useEffect(() => {
+    setKenBurnsSuppressed(false);
+    setKenBurnsDrawStep(null);
+    setKenBurnsDraftStart(null);
+  }, [selectedFrameId]);
 
   useEffect(() => {
     if (!playback || !totalFrames) return;
@@ -2238,18 +2307,10 @@ export default function App() {
     [activeAudioClip, applyProject, voiceDurations],
   );
 
-  const executeDelete = useCallback(
-    (forceRipple = false) => {
+  const runDeleteForSelection = useCallback(
+    (sel: MultiLaneSelection, forceRipple = false) => {
       const current = projectRef.current;
       if (!current) return;
-      const sel = multiSelectionRef.current;
-
-      if (isMultiSelectionEmpty(sel)) {
-        if (selectedCaptionRef.current?.indices.length) {
-          handleDeleteSelectedCaptions();
-        }
-        return;
-      }
 
       const preFrames = buildKeyframes(current.story);
       const liftedOnlyIds = !forceRipple
@@ -2279,26 +2340,213 @@ export default function App() {
       if (liftedOnlyIds.length > 0) {
         setSelectedFrameIds(liftedOnlyIds);
         setSelectedFrameId(liftedOnlyIds[0]);
-        setMultiSelection({
+        const nextMulti: MultiLaneSelection = {
           pictureIds: liftedOnlyIds,
           captions: [],
           audioClipIds: [],
           keyframes: [],
-        });
+        };
+        multiSelectionRef.current = nextMulti;
+        setMultiSelection(nextMulti);
       } else {
         const nearest = clipAtFrame(nextClips, nextPlayhead) || nextClips[0];
         setSelectedFrameId(nearest?.keyframe.id || "");
         const selectNearestPicture = Boolean(nearest && sel.pictureIds.length > 0);
-        setSelectedFrameIds(selectNearestPicture ? [nearest!.keyframe.id] : []);
-        setMultiSelection({
-          pictureIds: selectNearestPicture ? [nearest!.keyframe.id] : [],
+        const nextPicIds = selectNearestPicture ? [nearest!.keyframe.id] : [];
+        setSelectedFrameIds(nextPicIds);
+        const nextMulti: MultiLaneSelection = {
+          pictureIds: nextPicIds,
           captions: [],
           audioClipIds: [],
           keyframes: [],
-        });
+        };
+        multiSelectionRef.current = nextMulti;
+        setMultiSelection(nextMulti);
       }
     },
-    [applyProject, handleDeleteSelectedCaptions, voiceDurations],
+    [applyProject, voiceDurations],
+  );
+
+  const executeDelete = useCallback(
+    (forceRipple = false) => {
+      let sel = multiSelectionRef.current;
+
+      if (isMultiSelectionEmpty(sel)) {
+        if (selectedCaptionRef.current?.indices.length) {
+          handleDeleteSelectedCaptions();
+          return;
+        }
+        const fallbackIds =
+          selectedIdsRef.current.length > 0
+            ? selectedIdsRef.current
+            : selectedFrameIdRef.current
+              ? [selectedFrameIdRef.current]
+              : [];
+        if (!fallbackIds.length) return;
+        sel = { ...EMPTY_MULTI_SELECTION, pictureIds: fallbackIds };
+      }
+
+      runDeleteForSelection(sel, forceRipple);
+    },
+    [handleDeleteSelectedCaptions, runDeleteForSelection],
+  );
+
+  const handleDeleteInspectorClip = useCallback(
+    (forceRipple = false) => {
+      const targetId = selectedFrameIdRef.current;
+      if (!targetId) return;
+      const picIds =
+        selectedIdsRef.current.length > 0 && selectedIdsRef.current.includes(targetId)
+          ? selectedIdsRef.current
+          : [targetId];
+      runDeleteForSelection(
+        { ...EMPTY_MULTI_SELECTION, pictureIds: picIds },
+        forceRipple,
+      );
+    },
+    [runDeleteForSelection],
+  );
+
+  const mergeCandidateIds = useMemo(
+    () =>
+      selectedFrameIds.length > 0
+        ? selectedFrameIds
+        : selectedFrameId
+          ? [selectedFrameId]
+          : [],
+    [selectedFrameIds, selectedFrameId],
+  );
+
+  const canMergeFrames = useMemo(
+    () => (project ? canMergeKeyframes(project, mergeCandidateIds) : false),
+    [project, mergeCandidateIds],
+  );
+
+  const handleMergeFrames = useCallback(() => {
+    const current = projectRef.current;
+    if (!current) return;
+    const ids =
+      selectedIdsRef.current.length > 0
+        ? selectedIdsRef.current
+        : selectedFrameIdRef.current
+          ? [selectedFrameIdRef.current]
+          : [];
+    if (!ids.length) return;
+    const res = mergeKeyframes(current, ids, voiceDurations);
+    if (!res) return;
+    applyProject(res.project, "Merged frames into one clip");
+    const nextFrames = buildKeyframes(res.project.story);
+    const { clips: nextClips, totalFrames: nextTotal } = buildTimelineClips(
+      nextFrames,
+      voiceDurations,
+    );
+    const mergedClip = nextClips.find((c) => c.keyframe.id === res.mergedId);
+    setSelectedFrameId(res.mergedId);
+    setSelectedFrameIds([res.mergedId]);
+    setSelectedCaption(null);
+    const nextMulti: MultiLaneSelection = {
+      pictureIds: [res.mergedId],
+      captions: [],
+      audioClipIds: [],
+      keyframes: [],
+    };
+    multiSelectionRef.current = nextMulti;
+    setMultiSelection(nextMulti);
+    if (mergedClip) {
+      const clampedPh = Math.max(
+        mergedClip.startFrame,
+        Math.min(mergedClip.endFrame - 1, Math.min(Math.max(0, nextTotal - 1), playheadRef.current)),
+      );
+      setPlayheadFrame(clampedPh);
+    }
+  }, [applyProject, voiceDurations]);
+
+  const handleToggleKenBurns = useCallback(() => {
+    const targetFrame = viewerFrame ?? selectedFrame;
+    if (!targetFrame || targetFrame.beat.gap) return;
+    if (playback) stopPlaybackAndAudio();
+    if (selectedFrameIdRef.current !== targetFrame.id) {
+      setSelectedFrameId(targetFrame.id);
+      setSelectedFrameIds([targetFrame.id]);
+      const nextMulti: MultiLaneSelection = {
+        pictureIds: [targetFrame.id],
+        captions: [],
+        audioClipIds: [],
+        keyframes: [],
+      };
+      multiSelectionRef.current = nextMulti;
+      setMultiSelection(nextMulti);
+    }
+    if (kenBurnsDrawStep !== null) {
+      setKenBurnsDrawStep(null);
+      setKenBurnsDraftStart(null);
+      setEditLabel("Ken Burns cancelled");
+      return;
+    }
+    if (targetFrame.beat.animation?.kenBurns) {
+      setKenBurnsSuppressed((v) => !v);
+      return;
+    }
+    setKenBurnsSuppressed(false);
+    setKenBurnsDraftStart(null);
+    setKenBurnsDrawStep("start");
+    setEditLabel("Ken Burns: drag on picture to draw START 16:9 box");
+  }, [viewerFrame, selectedFrame, playback, stopPlaybackAndAudio, kenBurnsDrawStep]);
+
+  const handleStartKenBurnsRedraw = useCallback(() => {
+    if (playback) stopPlaybackAndAudio();
+    setKenBurnsSuppressed(false);
+    setKenBurnsDraftStart(null);
+    setKenBurnsDrawStep("start");
+    setEditLabel("Ken Burns: drag on picture to draw START 16:9 box");
+  }, [playback, stopPlaybackAndAudio]);
+
+  const handleClearKenBurns = useCallback(() => {
+    const targetFrame = viewerFrame ?? selectedFrame;
+    if (!targetFrame) return;
+    const curAnim = targetFrame.beat.animation;
+    if (!curAnim) return;
+    const cleaned: BeatAnimation = {
+      ...curAnim,
+      kenBurns: undefined,
+      zoom: undefined,
+      x: undefined,
+      y: undefined,
+    };
+    editProject(
+      (cur) => setBeatAnimation(cur, targetFrame.id, cleaned),
+      "Cleared Ken Burns move",
+    );
+    setKenBurnsDrawStep(null);
+    setKenBurnsDraftStart(null);
+  }, [viewerFrame, selectedFrame, editProject]);
+
+  const handleCompleteKenBurnsDraw = useCallback(
+    (step: "start" | "end", box: KenBurnsBox) => {
+      const targetClip = activeClip ?? selectedClip;
+      if (!targetClip) return;
+      if (step === "start") {
+        setKenBurnsDraftStart(box);
+        setKenBurnsDrawStep("end");
+        setEditLabel("Ken Burns: drag on picture to draw END 16:9 box");
+        return;
+      }
+      const startBox = kenBurnsDraftStart ?? { x: 0, y: 0, width: 1 };
+      const applied = applyKenBurnsBoxes(
+        targetClip.keyframe.beat.animation,
+        startBox,
+        box,
+        targetClip.durationFrames,
+      );
+      editProject(
+        (cur) => setBeatAnimation(cur, targetClip.keyframe.id, applied.animation),
+        "Applied Ken Burns START & END",
+      );
+      setKenBurnsDrawStep(null);
+      setKenBurnsDraftStart(null);
+      setKenBurnsSuppressed(false);
+    },
+    [activeClip, selectedClip, kenBurnsDraftStart, editProject],
   );
 
   useEffect(() => {
@@ -2540,7 +2788,21 @@ export default function App() {
       }
       if (event.key === "Escape") {
         event.preventDefault();
+        if (kenBurnsDrawStep !== null) {
+          setKenBurnsDrawStep(null);
+          setKenBurnsDraftStart(null);
+          return;
+        }
+        if (isFullscreenRef.current) {
+          exitFullscreenPlayback();
+          return;
+        }
         clearAllSelection();
+        return;
+      }
+      if (!mod && !event.altKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        toggleFullscreenPlayback();
         return;
       }
       if (event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
@@ -2660,10 +2922,13 @@ export default function App() {
     clearAllSelection,
     duckDepth,
     executeDelete,
+    exitFullscreenPlayback,
     handleAddMarkerAtPlayhead,
     handleCopyClips,
     handleNudgeSelectedAudio,
     handlePasteClips,
+    kenBurnsDrawStep,
+    toggleFullscreenPlayback,
     jumpNextKeyframe,
     jumpPrevKeyframe,
     playback,
@@ -2736,6 +3001,14 @@ export default function App() {
     const inserted = nextClips.find((clip) => clip.keyframe.id === result.insertedId);
     setSelectedFrameId(result.insertedId);
     setSelectedFrameIds([result.insertedId]);
+    const nextMulti: MultiLaneSelection = {
+      pictureIds: [result.insertedId],
+      captions: [],
+      audioClipIds: [],
+      keyframes: [],
+    };
+    multiSelectionRef.current = nextMulti;
+    setMultiSelection(nextMulti);
     if (inserted) setPlayheadFrame(inserted.startFrame);
     setBrowser({ kind: "image", target: "picture" });
   }
@@ -2749,6 +3022,14 @@ export default function App() {
     const inserted = nextClips.find((clip) => clip.keyframe.id === result.insertedId);
     setSelectedFrameId(result.insertedId);
     setSelectedFrameIds([result.insertedId]);
+    const nextMulti: MultiLaneSelection = {
+      pictureIds: [result.insertedId],
+      captions: [],
+      audioClipIds: [],
+      keyframes: [],
+    };
+    multiSelectionRef.current = nextMulti;
+    setMultiSelection(nextMulti);
     if (inserted) setPlayheadFrame(inserted.startFrame);
   }
 
@@ -2890,6 +3171,18 @@ export default function App() {
 
   const viewerImageSrc = viewerFrame ? resolveMedia(viewerFrame.picture) : undefined;
   const selectedImageSrc = selectedFrame ? resolveMedia(selectedFrame.picture) : undefined;
+  const prevOnionSrc = useMemo(() => {
+    if (!activeClip || activeClip.index <= 0) return undefined;
+    const prevKf = clips[activeClip.index - 1]?.keyframe;
+    if (!prevKf || prevKf.beat.gap || !prevKf.picture) return undefined;
+    return prevKf.picture.startsWith("gradient:") ? prevKf.picture : resolveMedia(prevKf.picture);
+  }, [activeClip, clips, resolveMedia]);
+  const nextOnionSrc = useMemo(() => {
+    if (!activeClip || activeClip.index + 1 >= clips.length) return undefined;
+    const nextKf = clips[activeClip.index + 1]?.keyframe;
+    if (!nextKf || nextKf.beat.gap || !nextKf.picture) return undefined;
+    return nextKf.picture.startsWith("gradient:") ? nextKf.picture : resolveMedia(nextKf.picture);
+  }, [activeClip, clips, resolveMedia]);
   const outgoingImageSrc = activeTransition
     ? resolveMedia(activeTransition.outgoingClip.keyframe.picture)
     : undefined;
@@ -2986,7 +3279,8 @@ export default function App() {
       ref={shellRef}
       tabIndex={-1}
       style={{ outline: "none" }}
-      className={`frame24-shell ${dragOver ? "is-drag-over" : ""}`}
+      className={`frame24-shell ${dragOver ? "is-drag-over" : ""} ${isFullscreen ? "is-fullscreen-cinema" : ""}`}
+      data-fullscreen={isFullscreen ? "true" : "false"}
       onDragOver={(event) => {
         if ([...event.dataTransfer.types].includes("Files")) {
           event.preventDefault();
@@ -3260,9 +3554,13 @@ export default function App() {
                   presetFrame={viewerPresetFrame}
                   shotKeyId={viewerShotKeyId}
                   clipDurationFrames={activeClip?.durationFrames}
+                  playheadFrame={playheadFrame}
+                  totalFrames={totalFrames}
                   captionStyle={captionStyle}
                   imageSrc={viewerImageSrc}
                   imagePosition={viewerImagePosition}
+                  prevOnionSrc={prevOnionSrc}
+                  nextOnionSrc={nextOnionSrc}
                   transition={activeTransition}
                   outgoingImageSrc={outgoingImageSrc}
                   outgoingImagePosition={outgoingImagePosition}
@@ -3278,6 +3576,50 @@ export default function App() {
                   soundOn={soundOn}
                   showCaption={showCaptions}
                   showMark={showMarks}
+                  showTimecodeOverlay={showTimecodeOverlay}
+                  showSafeGuides={showSafeGuides}
+                  showOnionSkin={showOnionSkin}
+                  isFullscreen={isFullscreen}
+                  interactiveFraming={true}
+                  isClipSelected={viewerFrame.id === selectedFrame.id}
+                  kenBurnsSuppressed={kenBurnsSuppressed}
+                  kenBurnsDrawStep={kenBurnsDrawStep}
+                  kenBurnsDraftStart={kenBurnsDraftStart}
+                  externalEdgeWarningToken={edgeWarningToken}
+                  onToggleSafeGuides={() => setShowSafeGuides((v) => !v)}
+                  onToggleOnionSkin={() => setShowOnionSkin((v) => !v)}
+                  onToggleTimecodeOverlay={() => setShowTimecodeOverlay((v) => !v)}
+                  onToggleMarkOverlay={() => setShowMarks((v) => !v)}
+                  onToggleFullscreen={toggleFullscreenPlayback}
+                  onToggleKenBurns={handleToggleKenBurns}
+                  onStartKenBurnsRedraw={handleStartKenBurnsRedraw}
+                  onClearKenBurns={handleClearKenBurns}
+                  onCompleteKenBurnsDraw={handleCompleteKenBurnsDraw}
+                  onDragStart={beginDragEdit}
+                  onDragEnd={endDragEdit}
+                  onPreviewAnimation={(animation) => {
+                    if (selectedFrameIdRef.current !== viewerFrame.id) {
+                      setSelectedFrameId(viewerFrame.id);
+                      setSelectedFrameIds([viewerFrame.id]);
+                      const nextMulti: MultiLaneSelection = {
+                        pictureIds: [viewerFrame.id],
+                        captions: [],
+                        audioClipIds: [],
+                        keyframes: [],
+                      };
+                      multiSelectionRef.current = nextMulti;
+                      setMultiSelection(nextMulti);
+                    }
+                    previewProjectEdit((current) =>
+                      setBeatAnimation(current, viewerFrame.id, animation),
+                    );
+                  }}
+                  onCommitAnimation={(animation, label) =>
+                    editProject(
+                      (current) => setBeatAnimation(current, viewerFrame.id, animation),
+                      label,
+                    )
+                  }
                   setFocalPoint={setFocalPoint}
                 />
               </div>
@@ -3458,8 +3800,17 @@ export default function App() {
             onSplit={splitAtPlayhead}
             onInsert={() => addKeyframe(selectedFrame.id)}
             onDuplicate={duplicateCurrent}
+            canMergeFrames={canMergeFrames}
+            onMergeFrames={handleMergeFrames}
             onDelete={() => executeDelete(false)}
             onExecuteDelete={executeDelete}
+            onDeleteClip={handleDeleteInspectorClip}
+            kenBurnsActive={
+              kenBurnsDrawStep !== null ||
+              (Boolean(selectedFrame.beat.animation?.kenBurns) && !kenBurnsSuppressed)
+            }
+            onToggleKenBurns={handleToggleKenBurns}
+            onEdgeClamped={() => setEdgeWarningToken((t) => t + 1)}
             onMove={(delta) => {
               const ids = selectedIdsRef.current.length ? selectedIdsRef.current : [selectedFrame.id];
               const current = projectRef.current;
@@ -3658,6 +4009,8 @@ export default function App() {
             onCopy={handleCopyClips}
             onPaste={handlePasteClips}
             onSplit={splitAtPlayhead}
+            canMergeFrames={canMergeFrames}
+            onMergeFrames={handleMergeFrames}
             onDelete={() => executeDelete(false)}
             onExecuteDelete={executeDelete}
             onMoveCue={moveCue}
