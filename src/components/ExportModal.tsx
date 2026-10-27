@@ -27,6 +27,7 @@ export interface ExportModalProps {
   onBundle: () => void;
   onPatch: () => void;
   onSrt: () => void;
+  onVtt?: () => void;
   onMp4: () => void;
   onClose: () => void;
   onRestoreSnapshot: (snapshotId: string) => void;
@@ -52,6 +53,7 @@ export function ExportModal({
   onBundle,
   onPatch,
   onSrt,
+  onVtt,
   onMp4,
   onClose,
   onRestoreSnapshot,
@@ -185,9 +187,22 @@ export function ExportModal({
                 <button className="button button-primary" onClick={onBundle}>
                   Download .reel.json bundle
                 </button>
-                <button className="button button-quiet" onClick={onSrt}>
+                <button
+                  className="button button-quiet"
+                  data-testid="export-srt-btn"
+                  onClick={onSrt}
+                >
                   Download .srt captions
                 </button>
+                {onVtt && (
+                  <button
+                    className="button button-quiet"
+                    data-testid="export-vtt-btn"
+                    onClick={onVtt}
+                  >
+                    Download .vtt captions
+                  </button>
+                )}
               </div>
 
               {project.snapshots.length > 0 && (
@@ -385,9 +400,22 @@ export function ExportModal({
                 <button className="button button-primary" onClick={onMp4}>
                   Render MP4 animatic
                 </button>
-                <button className="button button-quiet" onClick={onSrt}>
+                <button
+                  className="button button-quiet"
+                  data-testid="export-range-srt-btn"
+                  onClick={onSrt}
+                >
                   Export range .srt
                 </button>
+                {onVtt && (
+                  <button
+                    className="button button-quiet"
+                    data-testid="export-range-vtt-btn"
+                    onClick={onVtt}
+                  >
+                    Export range .vtt
+                  </button>
+                )}
               </div>
 
               {mp4Message && <div className="modal-callout">{mp4Message}</div>}

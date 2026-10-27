@@ -1,3 +1,9 @@
+import {
+  normalizeCaptions,
+  normalizeCaptionStyle,
+  type BeatCaption,
+  type CaptionStyle,
+} from "./captions";
 import type {
   AnyRecord,
   BeatAnimation,
@@ -133,7 +139,44 @@ export function trimKeyframe(project: ProjectState, frameId: string, durationFra
   const clamped = Math.max(MIN_CLIP_FRAMES, Math.round(durationFrames));
   return updateBeat(project, frameId, (beat) => {
     beat.durationFrames = clamped;
+    if (Array.isArray(beat.captions)) {
+      beat.captions = normalizeCaptions(beat.captions, clamped);
+    }
   });
+}
+
+export function setBeatCaptions(
+  project: ProjectState,
+  frameId: string,
+  captions: readonly BeatCaption[],
+  clipDurationFrames?: number,
+): ProjectState {
+  return updateBeat(project, frameId, (beat) => {
+    if (clipDurationFrames !== undefined) {
+      beat.captions = normalizeCaptions(captions, clipDurationFrames);
+    } else {
+      beat.captions = captions.map((cap) => ({
+        text: String(cap.text ?? ""),
+        inFrame: Math.max(0, Math.round(cap.inFrame)),
+        outFrame: Math.max(1, Math.round(cap.outFrame)),
+      }));
+    }
+  });
+}
+
+export function resetBeatCaptions(project: ProjectState, frameId: string): ProjectState {
+  return updateBeat(project, frameId, (beat) => {
+    delete beat.captions;
+  });
+}
+
+export function setStoryCaptionStyle(
+  project: ProjectState,
+  patch: Partial<CaptionStyle>,
+): ProjectState {
+  const story = cloneStory(project.story);
+  story.captionStyle = normalizeCaptionStyle({ ...(story.captionStyle || {}), ...patch });
+  return { ...project, story, updatedAt: Date.now() };
 }
 
 /**

@@ -1,4 +1,5 @@
 import { AFTER_VOICE_SECONDS, readingSeconds, untilNextMusicBeat } from "../../vendor/scarlet-reel/game/animatic";
+import { makeCaptionsSrt, makeCaptionsVtt } from "./captions";
 import type { Keyframe } from "./model";
 
 export { AFTER_VOICE_SECONDS, readingSeconds, untilNextMusicBeat };
@@ -6,17 +7,25 @@ export { AFTER_VOICE_SECONDS, readingSeconds, untilNextMusicBeat };
 export const FPS = 24;
 export const MIN_CLIP_FRAMES = 6;
 
+export function sceneProseSeconds(frame: Keyframe, pace = 1): number {
+  if (frame.beatIndex !== 0) return 0;
+  const prose = String(frame.scene.prose ?? "").trim();
+  if (!prose) return 0;
+  return /^(INT|EXT|I\/E)[./\s]/i.test(prose) ? 1.6 * pace : readingSeconds(prose, pace);
+}
+
+export function sceneProseFrames(frame: Keyframe, pace = 1): number {
+  const sec = sceneProseSeconds(frame, pace);
+  return sec > 0 ? Math.round(sec * FPS) : 0;
+}
+
 export function keyframeDuration(frame: Keyframe, voiceSeconds?: number, pace = 1): number {
   const beat = frame.beat;
   const explicit = Number(beat.holdSeconds ?? beat.holdDuration ?? beat.durationSeconds ?? beat.hold);
   if (Number.isFinite(explicit) && explicit > 0) return explicit;
   const beats = frame.scene.dialogueBeats ?? [];
-  const isFirstBeat = frame.beatIndex === 0;
   const isLastBeat = frame.beatIndex === beats.length - 1;
-  const prose = isFirstBeat ? String(frame.scene.prose ?? "").trim() : "";
-  const proseSec = prose
-    ? (/^(INT|EXT|I\/E)[./\s]/i.test(prose) ? 1.6 * pace : readingSeconds(prose, pace))
-    : 0;
+  const proseSec = sceneProseSeconds(frame, pace);
   const rawDelay = Number(beat.afterBeatDelaySeconds);
   const hasAutoDelay =
     isLastBeat &&
@@ -89,15 +98,15 @@ export function srtTime(seconds: number): string {
 }
 
 export function makeSrt(frames: Keyframe[], durations?: number[]): string {
-  let cursor = 0;
-  const entries: string[] = [];
-  frames.forEach((frame, index) => {
-    const duration = durations?.[index] ?? clipFrames(frame) / FPS;
-    const text = String(frame.beat.text || "").trim();
-    if (text && text !== "·") {
-      entries.push(`${entries.length + 1}\n${srtTime(cursor)} --> ${srtTime(cursor + duration)}\n${text}`);
-    }
-    cursor += duration;
-  });
-  return entries.join("\n\n");
+  const durationFrames = frames.map((frame, index) =>
+    durations?.[index] !== undefined ? Math.max(1, Math.round(durations[index] * FPS)) : clipFrames(frame),
+  );
+  return makeCaptionsSrt(frames, durationFrames, FPS);
+}
+
+export function makeVtt(frames: Keyframe[], durations?: number[]): string {
+  const durationFrames = frames.map((frame, index) =>
+    durations?.[index] !== undefined ? Math.max(1, Math.round(durations[index] * FPS)) : clipFrames(frame),
+  );
+  return makeCaptionsVtt(frames, durationFrames, FPS);
 }

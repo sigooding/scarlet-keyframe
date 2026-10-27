@@ -3,14 +3,25 @@ import { CinematicOverlays, LightGlow, LensFlareLayer, cinematicLayer } from "..
 import { DepthParallaxLayer } from "../../vendor/scarlet-reel/game/DepthParallax";
 import { Particles, type ParticleKind } from "../../vendor/scarlet-reel/game/AmbientParticles";
 import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
+import {
+  activeCaptionAtLocalFrame,
+  DEFAULT_CAPTION_STYLE,
+  isNarrationBeat,
+  normalizeCaptionStyle,
+  wrapCaptionLines,
+  type CaptionStyle,
+} from "../core/captions";
 import type { Keyframe } from "../core/model";
 import { pictureLabel, storyboardGradient } from "../core/helpers";
+import { clipFrames } from "../core/timing";
 import { evaluate, hasAnimationKeyframes } from "../sequence/animate";
 import type { ActiveTransition } from "../sequence/transitions";
 
 export interface CinematicPreviewProps {
   frame: Keyframe;
   localFrame?: number;
+  clipDurationFrames?: number;
+  captionStyle?: CaptionStyle;
   imageSrc?: string;
   imagePosition?: string;
   transition?: ActiveTransition;
@@ -30,6 +41,8 @@ export interface CinematicPreviewProps {
 export function CinematicPreview({
   frame,
   localFrame = 0,
+  clipDurationFrames,
+  captionStyle,
   imageSrc,
   imagePosition,
   transition,
@@ -49,6 +62,21 @@ export function CinematicPreview({
   const ownOverlay = [cinematic.vignette ? "fx-vignette" : "", cinematic.grain ? "fx-grain" : ""]
     .filter(Boolean)
     .join(" ");
+
+  const style = normalizeCaptionStyle(captionStyle ?? DEFAULT_CAPTION_STYLE);
+  const resolvedClipDuration =
+    clipDurationFrames !== undefined && clipDurationFrames > 0
+      ? clipDurationFrames
+      : clipFrames(frame);
+  const activeCaption = useMemo(
+    () => activeCaptionAtLocalFrame(frame.beat, resolvedClipDuration, localFrame),
+    [frame.beat, resolvedClipDuration, localFrame],
+  );
+  const wrappedCaptionText = useMemo(
+    () => (activeCaption ? wrapCaptionLines(activeCaption.text, 42).join("\n") : ""),
+    [activeCaption],
+  );
+  const isNarration = isNarrationBeat(frame.beat);
 
   const clampedVideoLevel = Math.max(0, Math.min(1, Number.isFinite(videoLevel) ? videoLevel : 1));
   const p = transition ? Math.max(0, Math.min(1, transition.progress)) : 0;
@@ -172,10 +200,25 @@ export function CinematicPreview({
           )}
         </div>
       )}
-      {showCaption && frame.text && (
-        <div className="cin-caption">
-          <span>{frame.speaker}</span>
-          <p>{frame.text}</p>
+      {showCaption && wrappedCaptionText && (
+        <div
+          className={[
+            "cin-caption",
+            style.position === "top" ? "pos-top" : "pos-bottom",
+            `size-${style.size.toLowerCase()}`,
+            style.backgroundBox ? "has-box" : "no-box",
+          ].join(" ")}
+          data-testid="viewer-caption"
+          data-position={style.position}
+          data-size={style.size}
+          data-box={style.backgroundBox ? "on" : "off"}
+          data-speaker={style.showSpeaker ? "on" : "off"}
+          data-italic-narration={style.italicNarration ? "on" : "off"}
+        >
+          {style.showSpeaker && <span>{frame.speaker}</span>}
+          <p className={style.italicNarration && isNarration ? "is-italic" : undefined}>
+            {wrappedCaptionText}
+          </p>
         </div>
       )}
       {frame.carried && (

@@ -40,6 +40,8 @@ import {
   type TransitionAlignment,
   type TransitionKind,
 } from "../sequence/transitions";
+import type { BeatCaption } from "../core/captions";
+import { CaptionLane, type SelectedCaptionState } from "./CaptionLane";
 import type { InspectorTab } from "./Inspector";
 import { Tracks } from "./Tracks";
 
@@ -96,6 +98,31 @@ export interface TimelineProps {
   onDelete: () => void;
   onMoveCue: (kind: "music" | "ambience" | "sfx", sourceId: string, targetId: string) => void;
   onDropFile: (file: File, frameId: string) => void;
+  showCaptions?: boolean;
+  onToggleShowCaptions?: () => void;
+  selectedCaption?: SelectedCaptionState | null;
+  canMergeCaptions?: boolean;
+  onSelectCaption?: (
+    frameId: string,
+    captionIndex: number,
+    extendNeighbour: boolean,
+    targetFrame?: number,
+  ) => void;
+  onClearCaptionSelection?: () => void;
+  onCommitCaptions?: (
+    frameId: string,
+    captions: BeatCaption[],
+    clipDurationFrames: number,
+    label: string,
+    nextSelectedIndices?: number[],
+  ) => void;
+  onCaptionPreview?: (
+    frameId: string,
+    captions: BeatCaption[],
+    clipDurationFrames: number,
+  ) => void;
+  onMergeCaptions?: () => void;
+  onDeleteCaptions?: () => void;
 }
 
 const MIN_PX_PER_FRAME = 0.08;
@@ -149,6 +176,16 @@ export function Timeline({
   onDelete,
   onMoveCue,
   onDropFile,
+  showCaptions = true,
+  onToggleShowCaptions,
+  selectedCaption = null,
+  canMergeCaptions = false,
+  onSelectCaption,
+  onClearCaptionSelection,
+  onCommitCaptions,
+  onCaptionPreview,
+  onMergeCaptions,
+  onDeleteCaptions,
 }: TimelineProps) {
   const [pxPerFrame, setPxPerFrame] = useState(DEFAULT_PX_PER_FRAME);
   const [scrollLeft, setScrollLeft] = useState(() =>
@@ -438,10 +475,19 @@ export function Timeline({
         return;
       }
 
+      onClearCaptionSelection?.();
       onSetSelection([id], id, clickedFrame);
       onFocusInspectorTab?.("clip");
     },
-    [clips, frameFromClientX, onFocusInspectorTab, onSetSelection, selectedFrameId, selectedFrameIds],
+    [
+      clips,
+      frameFromClientX,
+      onClearCaptionSelection,
+      onFocusInspectorTab,
+      onSetSelection,
+      selectedFrameId,
+      selectedFrameIds,
+    ],
   );
 
   // Marquee drag over empty track space
@@ -727,13 +773,36 @@ export function Timeline({
           >
             ✂ Split (S)
           </button>
+          {canMergeCaptions && (
+            <button
+              type="button"
+              className="button button-quiet is-active-tool"
+              data-testid="toolbar-merge-captions-btn"
+              onClick={() => onMergeCaptions?.()}
+              title="Merge the two selected neighbouring captions"
+            >
+              Merge
+            </button>
+          )}
           <button
             type="button"
             className="button button-quiet danger-quiet"
-            onClick={onDelete}
-            title="Delete selected clip(s) (Delete)"
+            onClick={() => {
+              if (selectedCaption && selectedCaption.indices.length > 0 && onDeleteCaptions) {
+                onDeleteCaptions();
+              } else {
+                onDelete();
+              }
+            }}
+            title={
+              selectedCaption && selectedCaption.indices.length > 0
+                ? "Delete selected caption(s) (Delete)"
+                : "Delete selected clip(s) (Delete)"
+            }
           >
-            Delete{selectedFrameIds.length > 1 ? ` (${selectedFrameIds.length})` : ""}
+            {selectedCaption && selectedCaption.indices.length > 0
+              ? `Delete CC${selectedCaption.indices.length > 1 ? ` (${selectedCaption.indices.length})` : ""}`
+              : `Delete${selectedFrameIds.length > 1 ? ` (${selectedFrameIds.length})` : ""}`}
           </button>
           <span className="timeline-tc-badge" data-testid="timeline-timecode">
             <strong>{formatTimecode(playheadFrame)}</strong>
@@ -771,6 +840,45 @@ export function Timeline({
         <aside className="timeline-track-headers" data-testid="timeline-track-headers" aria-label="Track headers">
           <div className="track-header-ruler">
             <span>TRACKS</span>
+          </div>
+          <div
+            className={`track-header-row is-captions ${!showCaptions ? "is-silenced" : ""}`}
+            data-testid="track-header-captions"
+          >
+            <div className="track-header-top">
+              <button
+                type="button"
+                className="track-header-title"
+                onClick={() => onFocusInspectorTab?.("clip")}
+                title="Open Caption section in Inspector"
+              >
+                <i aria-hidden>CC</i> Captions
+              </button>
+              <div className="track-header-btns">
+                {canMergeCaptions && (
+                  <button
+                    type="button"
+                    className="track-caption-merge-btn"
+                    data-testid="merge-captions-btn"
+                    onClick={() => onMergeCaptions?.()}
+                    title="Merge two neighbouring captions"
+                  >
+                    Merge
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={`track-ms-btn is-cc ${showCaptions ? "is-active" : ""}`}
+                  data-testid="track-toggle-captions"
+                  aria-label="Toggle captions in viewer"
+                  aria-pressed={showCaptions}
+                  title={showCaptions ? "Hide captions in viewer" : "Show captions in viewer"}
+                  onClick={() => onToggleShowCaptions?.()}
+                >
+                  CC
+                </button>
+              </div>
+            </div>
           </div>
           {TRACK_HEADERS.map((header) => {
             const state = effectiveMix[header.id];
@@ -898,6 +1006,41 @@ export function Timeline({
               </button>
             ))}
           </div>
+
+          <CaptionLane
+            visibleClips={visibleClips}
+            pxPerFrame={pxPerFrame}
+            playheadFrame={playheadFrame}
+            snapEnabled={snapEnabled}
+            selectedFrameId={selectedFrameId}
+            selectedCaption={selectedCaption}
+            rawFrameFromClientX={rawFrameFromClientX}
+            onSetSnapGuide={setSnapGuideFrame}
+            onSelectCaption={(frameId, captionIndex, extendNeighbour, targetFrame) =>
+              onSelectCaption?.(frameId, captionIndex, extendNeighbour, targetFrame)
+            }
+            onClearCaptionSelection={() => onClearCaptionSelection?.()}
+            onCommitCaptions={(
+              frameId,
+              captions,
+              clipDurationFrames,
+              label,
+              nextSelectedIndices,
+            ) =>
+              onCommitCaptions?.(
+                frameId,
+                captions,
+                clipDurationFrames,
+                label,
+                nextSelectedIndices,
+              )
+            }
+            onCaptionPreview={(frameId, captions, clipDurationFrames) =>
+              onCaptionPreview?.(frameId, captions, clipDurationFrames)
+            }
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+          />
 
           <div
             ref={trackRef}

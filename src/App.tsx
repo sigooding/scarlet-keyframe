@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
+import type { SelectedCaptionState } from "./components/CaptionLane";
 import { CinematicPreview } from "./components/CinematicPreview";
 import { CropModal, type CropState } from "./components/CropModal";
 import { ExportModal, type ExportTab } from "./components/ExportModal";
@@ -18,6 +19,18 @@ import { SnapshotModal } from "./components/SnapshotModal";
 import { Timeline } from "./components/Timeline";
 import { Topbar } from "./components/Topbar";
 import { resolveAmbienceSpans } from "./components/Tracks";
+import {
+  activeCaptionAtLocalFrame,
+  DEFAULT_CAPTION_STYLE,
+  deleteCaptionsAtIndices,
+  effectiveCaptionsForBeat,
+  makeCaptionsSrt,
+  makeCaptionsVtt,
+  mergeAdjacentCaptions,
+  normalizeCaptionStyle,
+  type BeatCaption,
+  type CaptionStyle,
+} from "./core/captions";
 import {
   applyStudioMusicSync,
   buildKeyframes,
@@ -45,14 +58,17 @@ import {
   pasteEffectBlock,
   pasteKeyframesAt,
   reorderKeyframeWithResult,
+  resetBeatCaptions,
   resetEffectField,
   setBeatAnimation,
+  setBeatCaptions,
   setBeatField,
   setCutTransition,
   setEffectField,
   setPicture,
   setRollDurations,
   setSceneField,
+  setStoryCaptionStyle,
   splitKeyframeAt,
   trimKeyframe,
   updateNoteMarker,
@@ -74,7 +90,7 @@ import {
 } from "./core/media";
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, saveActiveProject } from "./core/storage";
-import { clipFrames, FPS, formatTimecode, makeSrt } from "./core/timing";
+import { clipFrames, FPS, formatTimecode } from "./core/timing";
 import { writeStudioPatch, type StudioPatchResult } from "./core/patch";
 import {
   createDefaultTrackMix,
@@ -126,6 +142,10 @@ declare global {
       setInspectorTab: (tab: InspectorTab) => void;
       getMissingCount: () => number;
       resolveMedia: (ref: string | undefined) => string | undefined;
+      getCaptionStyle: () => CaptionStyle;
+      getActiveCaption: () => BeatCaption | undefined;
+      exportSrtText: (sceneId?: string) => string;
+      exportVttText: (sceneId?: string) => string;
       syncAnimations: (seconds: number) => void;
     };
   }
@@ -202,6 +222,10 @@ export default function App() {
   const [playSpeed, setPlaySpeed] = useState(1);
   const [viewerZoom, setViewerZoom] = useState(1);
   const [showCaptions, setShowCaptions] = useState(true);
+  const [ccStyleOpen, setCcStyleOpen] = useState(false);
+  const [selectedCaption, setSelectedCaption] = useState<SelectedCaptionState | null>(null);
+  const selectedCaptionRef = useRef<SelectedCaptionState | null>(null);
+  selectedCaptionRef.current = selectedCaption;
   const [showMarks, setShowMarks] = useState(true);
   const [soundOn, setSoundOn] = useState(true);
   const [dragOver, setDragOver] = useState(false);
@@ -1296,6 +1320,148 @@ export default function App() {
     setSelectedFrameIds([result.rightId]);
   }, [applyProject, selectedClip, voiceDurations]);
 
+  const captionStyle = useMemo<CaptionStyle>(
+    () => normalizeCaptionStyle(project?.story.captionStyle ?? DEFAULT_CAPTION_STYLE),
+    [project?.story.captionStyle],
+  );
+
+  const canMergeCaptions = useMemo(() => {
+    if (!selectedClip || !selectedCaption) return false;
+    if (selectedCaption.frameId !== selectedClip.keyframe.id) return false;
+    if (selectedCaption.indices.length !== 2) return false;
+    const [a, b] = selectedCaption.indices;
+    const caps = effectiveCaptionsForBeat(
+      selectedClip.keyframe.beat,
+      selectedClip.durationFrames,
+    );
+    return (
+      Math.abs(a - b) === 1 &&
+      Math.min(a, b) >= 0 &&
+      Math.max(a, b) < caps.length
+    );
+  }, [selectedCaption, selectedClip]);
+
+  const handleSelectCaption = useCallback(
+    (
+      frameId: string,
+      captionIndex: number,
+      extendNeighbour: boolean,
+      targetFrame?: number,
+    ) => {
+      setSelection([frameId], frameId, targetFrame);
+      setInspectorTab("clip");
+      setSelectedCaption((prev) => {
+        if (
+          extendNeighbour &&
+          prev &&
+          prev.frameId === frameId &&
+          prev.indices.length >= 1
+        ) {
+          const anchor = prev.indices[prev.indices.length - 1];
+          if (Math.abs(captionIndex - anchor) === 1) {
+            return {
+              frameId,
+              indices: [Math.min(anchor, captionIndex), Math.max(anchor, captionIndex)],
+            };
+          }
+        }
+        return { frameId, indices: [captionIndex] };
+      });
+    },
+    [setSelection],
+  );
+
+  const handleCommitCaptions = useCallback(
+    (
+      frameId: string,
+      captions: BeatCaption[],
+      clipDurationFrames: number,
+      label: string,
+      nextSelectedIndices?: number[],
+    ) => {
+      editProject(
+        (current) => setBeatCaptions(current, frameId, captions, clipDurationFrames),
+        label,
+      );
+      if (nextSelectedIndices !== undefined) {
+        setSelectedCaption(
+          nextSelectedIndices.length > 0
+            ? { frameId, indices: nextSelectedIndices }
+            : null,
+        );
+      }
+    },
+    [editProject],
+  );
+
+  const handleCaptionPreview = useCallback(
+    (frameId: string, captions: BeatCaption[], clipDurationFrames: number) => {
+      previewProjectEdit((current) =>
+        setBeatCaptions(current, frameId, captions, clipDurationFrames),
+      );
+    },
+    [previewProjectEdit],
+  );
+
+  const handleMergeCaptions = useCallback(() => {
+    const sel = selectedCaptionRef.current;
+    if (!sel || sel.indices.length !== 2) return;
+    const clip = clips.find((c) => c.keyframe.id === sel.frameId);
+    if (!clip) return;
+    const firstIndex = Math.min(sel.indices[0], sel.indices[1]);
+    if (Math.abs(sel.indices[0] - sel.indices[1]) !== 1) return;
+    const merged = mergeAdjacentCaptions(
+      clip.keyframe.beat,
+      clip.durationFrames,
+      firstIndex,
+    );
+    handleCommitCaptions(
+      clip.keyframe.id,
+      merged,
+      clip.durationFrames,
+      "Captions merged",
+      [firstIndex],
+    );
+  }, [clips, handleCommitCaptions]);
+
+  const handleDeleteSelectedCaptions = useCallback(() => {
+    const sel = selectedCaptionRef.current;
+    if (!sel || sel.indices.length === 0) return false;
+    const clip = clips.find((c) => c.keyframe.id === sel.frameId);
+    if (!clip) return false;
+    const next = deleteCaptionsAtIndices(
+      clip.keyframe.beat,
+      clip.durationFrames,
+      sel.indices,
+    );
+    handleCommitCaptions(
+      clip.keyframe.id,
+      next,
+      clip.durationFrames,
+      "Caption deleted",
+      [],
+    );
+    return true;
+  }, [clips, handleCommitCaptions]);
+
+  const handleResetCaptions = useCallback(
+    (frameId: string) => {
+      editProject((current) => resetBeatCaptions(current, frameId), "Caption reset");
+      setSelectedCaption(null);
+    },
+    [editProject],
+  );
+
+  const handleUpdateCaptionStyle = useCallback(
+    (patch: Partial<CaptionStyle>) => {
+      editProject(
+        (current) => setStoryCaptionStyle(current, patch),
+        "Caption style updated",
+      );
+    },
+    [editProject],
+  );
+
   const deleteCurrent = useCallback(() => {
     const current = projectRef.current;
     const ids = selectedIdsRef.current.length ? selectedIdsRef.current : selectedClip ? [selectedClip.keyframe.id] : [];
@@ -1309,6 +1475,7 @@ export default function App() {
     const nearest = clipAtFrame(nextClips, nextPlayhead);
     setSelectedFrameId(nearest?.keyframe.id || "");
     setSelectedFrameIds(nearest ? [nearest.keyframe.id] : []);
+    setSelectedCaption(null);
   }, [applyProject, selectedClip, voiceDurations]);
 
   useEffect(() => {
@@ -1344,8 +1511,12 @@ export default function App() {
           startFrame: hit.startFrame,
           endFrame: hit.endFrame,
           durationFrames: hit.durationFrames,
+          voiceInFrame: hit.voiceInFrame,
+          voiceOutFrame: hit.voiceOutFrame,
           duration: hit.durationFrames / FPS,
           text: frame.text,
+          captions: frame.beat.captions,
+          effectiveCaptions: effectiveCaptionsForBeat(frame.beat, hit.durationFrames),
           speaker: frame.speaker,
           picture: frame.picture,
           animation: frame.beat.animation,
@@ -1390,6 +1561,35 @@ export default function App() {
       setInspectorTab: (tab: InspectorTab) => setInspectorTab(tab),
       getMissingCount: () => project?.missing.length ?? 0,
       resolveMedia: (ref: string | undefined) => resolveMedia(ref),
+      getCaptionStyle: () => captionStyle,
+      getActiveCaption: () =>
+        activeClip
+          ? activeCaptionAtLocalFrame(
+              activeClip.keyframe.beat,
+              activeClip.durationFrames,
+              viewerLocalFrame,
+            )
+          : undefined,
+      exportSrtText: (sceneId?: string) => {
+        const subset = sceneId ? frames.filter((f) => f.sceneId === sceneId) : frames;
+        const durs = subset.map((frame) =>
+          clipFrames(
+            frame,
+            frame.beat.audioUrl ? voiceDurations.get(frame.beat.audioUrl) : undefined,
+          ),
+        );
+        return makeCaptionsSrt(subset, durs, FPS);
+      },
+      exportVttText: (sceneId?: string) => {
+        const subset = sceneId ? frames.filter((f) => f.sceneId === sceneId) : frames;
+        const durs = subset.map((frame) =>
+          clipFrames(
+            frame,
+            frame.beat.audioUrl ? voiceDurations.get(frame.beat.audioUrl) : undefined,
+          ),
+        );
+        return makeCaptionsVtt(subset, durs, FPS);
+      },
       syncAnimations: (seconds) => {
         const now = seconds * 1000;
         for (const animation of document.getAnimations()) {
@@ -1407,7 +1607,9 @@ export default function App() {
       delete window.__frame24;
     };
   }, [
+    activeClip,
     activeTransition,
+    captionStyle,
     clips,
     frames,
     musicDurations,
@@ -1419,6 +1621,8 @@ export default function App() {
     totalFrames,
     trackMix,
     viewerFrame,
+    viewerLocalFrame,
+    voiceDurations,
   ]);
 
   useEffect(() => {
@@ -1474,7 +1678,9 @@ export default function App() {
         handleAddMarkerAtPlayhead();
       } else if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
-        deleteCurrent();
+        if (!handleDeleteSelectedCaptions()) {
+          deleteCurrent();
+        }
       } else if (event.key.toLowerCase() === "k") {
         event.preventDefault();
         setPlayback(false);
@@ -1496,6 +1702,7 @@ export default function App() {
     deleteCurrent,
     handleAddMarkerAtPlayhead,
     handleCopyClips,
+    handleDeleteSelectedCaptions,
     handlePasteClips,
     redo,
     selectRelativeClip,
@@ -1614,14 +1821,24 @@ export default function App() {
     if (!frames.length) return;
     const selectedRange =
       rangeEnd === null ? frames : frames.slice(Math.min(rangeStart, rangeEnd), Math.max(rangeStart, rangeEnd) + 1);
-    const text = makeSrt(
-      selectedRange,
-      selectedRange.map(
-        (frame) => clipFrames(frame, frame.beat.audioUrl ? voiceDurations.get(frame.beat.audioUrl) : undefined) / FPS,
-      ),
+    const durationFrames = selectedRange.map((frame) =>
+      clipFrames(frame, frame.beat.audioUrl ? voiceDurations.get(frame.beat.audioUrl) : undefined),
     );
+    const text = makeCaptionsSrt(selectedRange, durationFrames, FPS);
     downloadText(text, `${slug(project?.title || "animatic")}.srt`, "text/plain");
     setExportMessage(`SRT written for ${selectedRange.length} clips.`);
+  }
+
+  function exportVtt(): void {
+    if (!frames.length) return;
+    const selectedRange =
+      rangeEnd === null ? frames : frames.slice(Math.min(rangeStart, rangeEnd), Math.max(rangeStart, rangeEnd) + 1);
+    const durationFrames = selectedRange.map((frame) =>
+      clipFrames(frame, frame.beat.audioUrl ? voiceDurations.get(frame.beat.audioUrl) : undefined),
+    );
+    const text = makeCaptionsVtt(selectedRange, durationFrames, FPS);
+    downloadText(text, `${slug(project?.title || "animatic")}.vtt`, "text/vtt");
+    setExportMessage(`WebVTT written for ${selectedRange.length} clips.`);
   }
 
   function saveCrop(): void {
@@ -1847,12 +2064,137 @@ export default function App() {
                   <i />
                   24 FPS
                 </span>
-                <button
-                  className={`caption-toggle ${showCaptions ? "is-active" : ""}`}
-                  onClick={() => setShowCaptions((value) => !value)}
-                >
-                  CC
-                </button>
+                <div className="cc-menu-anchor">
+                  <button
+                    type="button"
+                    data-testid="cc-style-button"
+                    aria-expanded={ccStyleOpen}
+                    className={`caption-toggle ${showCaptions || ccStyleOpen ? "is-active" : ""}`}
+                    onClick={() => setCcStyleOpen((open) => !open)}
+                    title="Caption visibility & project-wide caption style"
+                  >
+                    CC
+                  </button>
+                  {ccStyleOpen && (
+                    <div
+                      className="cc-style-panel"
+                      data-testid="cc-style-panel"
+                      role="dialog"
+                      aria-label="Caption style"
+                    >
+                      <div className="cc-style-head">
+                        <span>CAPTION STYLE</span>
+                        <button
+                          type="button"
+                          className="cc-style-close"
+                          onClick={() => setCcStyleOpen(false)}
+                          aria-label="Close caption style"
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      <div className="cc-style-row">
+                        <span>Captions</span>
+                        <button
+                          type="button"
+                          data-testid="cc-show-toggle"
+                          className={`cc-pill-btn ${showCaptions ? "is-active" : ""}`}
+                          onClick={() => setShowCaptions((v) => !v)}
+                        >
+                          {showCaptions ? "On" : "Off"}
+                        </button>
+                      </div>
+
+                      <div className="cc-style-row">
+                        <span>Position</span>
+                        <div className="cc-seg-group">
+                          <button
+                            type="button"
+                            data-testid="cc-pos-bottom"
+                            className={`cc-seg-btn ${captionStyle.position === "bottom" ? "is-active" : ""}`}
+                            onClick={() => handleUpdateCaptionStyle({ position: "bottom" })}
+                          >
+                            Bottom
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="cc-pos-top"
+                            className={`cc-seg-btn ${captionStyle.position === "top" ? "is-active" : ""}`}
+                            onClick={() => handleUpdateCaptionStyle({ position: "top" })}
+                          >
+                            Top
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="cc-style-row">
+                        <span>Size</span>
+                        <div className="cc-seg-group">
+                          {(["S", "M", "L"] as const).map((sz) => (
+                            <button
+                              key={sz}
+                              type="button"
+                              data-testid={`cc-size-${sz}`}
+                              className={`cc-seg-btn ${captionStyle.size === sz ? "is-active" : ""}`}
+                              onClick={() => handleUpdateCaptionStyle({ size: sz })}
+                            >
+                              {sz}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="cc-style-row">
+                        <span>Dark box</span>
+                        <button
+                          type="button"
+                          data-testid="cc-bg-toggle"
+                          className={`cc-pill-btn ${captionStyle.backgroundBox ? "is-active" : ""}`}
+                          onClick={() =>
+                            handleUpdateCaptionStyle({
+                              backgroundBox: !captionStyle.backgroundBox,
+                            })
+                          }
+                        >
+                          {captionStyle.backgroundBox ? "On" : "Off"}
+                        </button>
+                      </div>
+
+                      <div className="cc-style-row">
+                        <span>Speaker names</span>
+                        <button
+                          type="button"
+                          data-testid="cc-speaker-toggle"
+                          className={`cc-pill-btn ${captionStyle.showSpeaker ? "is-active" : ""}`}
+                          onClick={() =>
+                            handleUpdateCaptionStyle({
+                              showSpeaker: !captionStyle.showSpeaker,
+                            })
+                          }
+                        >
+                          {captionStyle.showSpeaker ? "On" : "Off"}
+                        </button>
+                      </div>
+
+                      <div className="cc-style-row">
+                        <span>Narration in italics</span>
+                        <button
+                          type="button"
+                          data-testid="cc-italic-toggle"
+                          className={`cc-pill-btn ${captionStyle.italicNarration ? "is-active" : ""}`}
+                          onClick={() =>
+                            handleUpdateCaptionStyle({
+                              italicNarration: !captionStyle.italicNarration,
+                            })
+                          }
+                        >
+                          {captionStyle.italicNarration ? "On" : "Off"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <button
                   className={`caption-toggle ${showMarks ? "is-active" : ""}`}
                   onClick={() => setShowMarks((value) => !value)}
@@ -1871,6 +2213,8 @@ export default function App() {
                   key={activeTransition ? `trans-${activeTransition.incomingClip.keyframe.id}` : viewerFrame.id}
                   frame={viewerFrame}
                   localFrame={viewerLocalFrame}
+                  clipDurationFrames={activeClip?.durationFrames}
+                  captionStyle={captionStyle}
                   imageSrc={viewerImageSrc}
                   imagePosition={viewerImagePosition}
                   transition={activeTransition}
@@ -2064,6 +2408,26 @@ export default function App() {
               previewSingleAudio(url, Number(selectedFrame.scene.musicLevel ?? 0.7));
             }}
             onPreviewAmbience={(fileUrl) => previewSingleAudio(fileUrl, 0.6)}
+            selectedCaptionIndices={
+              selectedCaption?.frameId === selectedFrame.id
+                ? selectedCaption.indices
+                : []
+            }
+            canMergeCaptions={canMergeCaptions}
+            onSelectCaptionIndex={(index, extendNeighbour) =>
+              handleSelectCaption(selectedFrame.id, index, extendNeighbour)
+            }
+            onCommitCaptions={(captions, label, nextSelectedIndices) =>
+              handleCommitCaptions(
+                selectedFrame.id,
+                captions,
+                selectedClip.durationFrames,
+                label,
+                nextSelectedIndices,
+              )
+            }
+            onResetCaptions={() => handleResetCaptions(selectedFrame.id)}
+            onMergeCaptions={handleMergeCaptions}
           />
         </div>
 
@@ -2117,6 +2481,18 @@ export default function App() {
             onDelete={deleteCurrent}
             onMoveCue={moveCue}
             onDropFile={handleTimelineDrop}
+            showCaptions={showCaptions}
+            onToggleShowCaptions={() => setShowCaptions((v) => !v)}
+            selectedCaption={selectedCaption}
+            canMergeCaptions={canMergeCaptions}
+            onSelectCaption={handleSelectCaption}
+            onClearCaptionSelection={() => setSelectedCaption(null)}
+            onCommitCaptions={handleCommitCaptions}
+            onCaptionPreview={handleCaptionPreview}
+            onMergeCaptions={handleMergeCaptions}
+            onDeleteCaptions={() => {
+              void handleDeleteSelectedCaptions();
+            }}
           />
         </div>
       </div>
@@ -2197,6 +2573,7 @@ export default function App() {
           onBundle={() => void exportBundle()}
           onPatch={exportPatch}
           onSrt={exportSrt}
+          onVtt={exportVtt}
           onMp4={() =>
             setMp4Message(
               "Exact MP4 rendering uses tools/export-animatic.mjs with local Playwright Chromium and ffmpeg. This browser-only surface does not substitute a simplified renderer.",

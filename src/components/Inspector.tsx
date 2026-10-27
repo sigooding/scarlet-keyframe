@@ -1,9 +1,21 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  addCaptionInGap,
+  captionMetrics,
+  captionsDifferFromRecordedLine,
+  effectiveCaptionsForBeat,
+  hasAuthoredCaptions,
+  parseCaptionTimecode,
+  setCaptionRange,
+  splitCaptionAtCursor,
+  updateCaptionText,
+  type BeatCaption,
+} from "../core/captions";
 import { CINEMATIC_GROUPS, type CinematicField } from "../core/cinematicSchema";
 import { getEffectValue } from "../core/edits";
 import { pictureLabel } from "../core/helpers";
 import type { BeatAnimation, KeyEasing, Keyframe, ProjectState } from "../core/model";
-import { formatTimecode } from "../core/timing";
+import { formatTimecode, sceneProseFrames } from "../core/timing";
 import {
   evaluate,
   hasAnimationKeyframes,
@@ -122,6 +134,16 @@ interface InspectorProps {
   onDuplicate: () => void;
   onDelete: () => void;
   onMove: (delta: -1 | 1) => void;
+  selectedCaptionIndices?: number[];
+  canMergeCaptions?: boolean;
+  onSelectCaptionIndex?: (index: number, extendNeighbour: boolean) => void;
+  onCommitCaptions?: (
+    captions: BeatCaption[],
+    label: string,
+    nextSelectedIndices?: number[],
+  ) => void;
+  onResetCaptions?: () => void;
+  onMergeCaptions?: () => void;
 }
 
 const TRANSITIONS = ["cut", "dissolve", "dip-to-black", "wipe-left", "wipe-right"];
@@ -306,6 +328,19 @@ export function Inspector(props: InspectorProps) {
 
             <section className="inspector-section">
               <SectionTitle number="02" title="Timing & dialogue" status={frame.speaker || "LINE"} />
+              <FieldNumber
+                label="Voice start"
+                value={
+                  Number.isFinite(Number(beat.voiceStartFrame))
+                    ? Number(beat.voiceStartFrame)
+                    : sceneProseFrames(frame)
+                }
+                min={0}
+                max={Math.max(0, clipDurationFrames - 1)}
+                step={1}
+                onChange={(value) => props.onSetBeat("voiceStartFrame", Math.max(0, Math.round(value)))}
+                suffix="f"
+              />
               <FieldNumber
                 label="Trim offset"
                 value={Number(beat.audioOffsetSeconds ?? 0)}
@@ -794,6 +829,17 @@ export function Inspector(props: InspectorProps) {
                 <button onClick={() => props.onMove(1)}>↓ Move later</button>
               </div>
             </section>
+
+            <CaptionInspectorSection
+              frame={frame}
+              clipDurationFrames={clipDurationFrames}
+              selectedCaptionIndices={props.selectedCaptionIndices}
+              canMergeCaptions={Boolean(props.canMergeCaptions)}
+              onSelectCaptionIndex={props.onSelectCaptionIndex}
+              onCommitCaptions={props.onCommitCaptions}
+              onResetCaptions={props.onResetCaptions}
+              onMergeCaptions={props.onMergeCaptions}
+            />
 
             <section className="inspector-section animation-section" data-testid="inspector-animation">
               <SectionTitle number="03" title="Animation" status={animated ? "KEYFRAMED" : "PRESET"} />
@@ -1457,5 +1503,328 @@ function FieldToggle({
         aria-label={label}
       />
     </div>
+  );
+}
+
+function CaptionInspectorSection({
+  frame,
+  clipDurationFrames,
+  selectedCaptionIndices,
+  canMergeCaptions,
+  onSelectCaptionIndex,
+  onCommitCaptions,
+  onResetCaptions,
+  onMergeCaptions,
+}: {
+  frame: Keyframe;
+  clipDurationFrames: number;
+  selectedCaptionIndices?: number[];
+  canMergeCaptions: boolean;
+  onSelectCaptionIndex?: (index: number, extendNeighbour: boolean) => void;
+  onCommitCaptions?: (
+    captions: BeatCaption[],
+    label: string,
+    nextSelectedIndices?: number[],
+  ) => void;
+  onResetCaptions?: () => void;
+  onMergeCaptions?: () => void;
+}) {
+  const beat = frame.beat;
+  const authored = hasAuthoredCaptions(beat);
+  const captions = effectiveCaptionsForBeat(beat, clipDurationFrames);
+  const differsFromRecorded = captionsDifferFromRecordedLine(beat, clipDurationFrames);
+  const nextGapList = addCaptionInGap(beat, clipDurationFrames);
+
+  return (
+    <section
+      className="inspector-section caption-inspector-section"
+      data-testid="inspector-caption-section"
+    >
+      <SectionTitle
+        number="CC"
+        title="Caption"
+        status={authored ? "EDITED" : "DEFAULT"}
+      />
+
+      <div className="caption-speaker-row">
+        <span className="control-label">Speaker</span>
+        <output
+          className="caption-speaker-readonly"
+          data-testid="caption-speaker-readonly"
+        >
+          {frame.speaker || "Narrator"}
+        </output>
+      </div>
+
+      {differsFromRecorded && (
+        <div
+          className="caption-recorded-warning"
+          data-testid="caption-recorded-mismatch"
+          role="status"
+        >
+          Differs from the recorded line
+        </div>
+      )}
+
+      {captions.length === 0 ? (
+        <div className="caption-empty-note" data-testid="inspector-caption-empty">
+          No caption shown on this shot.
+        </div>
+      ) : (
+        <div className="caption-inspector-list">
+          {captions.map((cap, idx) => {
+            const metrics = captionMetrics(cap);
+            const isSelected = Boolean(selectedCaptionIndices?.includes(idx));
+            return (
+              <div
+                key={`insp-cap-${frame.id}-${idx}`}
+                className={`caption-inspector-card ${isSelected ? "is-selected" : ""} ${metrics.tooFast ? "is-too-fast" : ""}`}
+                data-testid={`inspector-caption-card-${idx}`}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("textarea, input, button")) return;
+                  onSelectCaptionIndex?.(idx, e.shiftKey || e.ctrlKey || e.metaKey);
+                }}
+              >
+                <div className="caption-card-head">
+                  <button
+                    type="button"
+                    className={`caption-card-select ${isSelected ? "is-selected" : ""}`}
+                    onClick={(e) =>
+                      onSelectCaptionIndex?.(idx, e.shiftKey || e.ctrlKey || e.metaKey)
+                    }
+                    title="Click to select caption (Shift+click neighbour to merge)"
+                  >
+                    #{idx + 1} · {metrics.durationSeconds.toFixed(2)}s
+                  </button>
+                  <div className="caption-card-badges">
+                    {metrics.overTwoLines && (
+                      <span className="caption-flag is-lines" title="Needs more than 2 lines (~42 chars/line)">
+                        {metrics.lineCount} lines
+                      </span>
+                    )}
+                    {metrics.tooFast && (
+                      <span className="caption-flag is-cps" title="More than 17 chars/sec — too fast to read">
+                        {metrics.cps.toFixed(1)} c/s
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="field-reset"
+                      data-testid={`inspector-caption-delete-${idx}`}
+                      onClick={() => {
+                        const remaining = captions.filter((_, i) => i !== idx);
+                        onCommitCaptions?.(remaining, "Caption deleted", []);
+                      }}
+                      title="Delete this caption"
+                    >
+                      DELETE
+                    </button>
+                  </div>
+                </div>
+
+                <CaptionTextBox
+                  index={idx}
+                  value={cap.text}
+                  onCommit={(nextText) => {
+                    const nextCaps = updateCaptionText(
+                      beat,
+                      clipDurationFrames,
+                      idx,
+                      nextText,
+                    );
+                    onCommitCaptions?.(nextCaps, "Caption edited", [idx]);
+                  }}
+                  onSplit={(cursorOffset, draftText) => {
+                    const result = splitCaptionAtCursor(
+                      beat,
+                      clipDurationFrames,
+                      idx,
+                      cursorOffset,
+                      draftText,
+                    );
+                    onCommitCaptions?.(
+                      result.captions,
+                      result.didSplit ? "Caption split" : "Caption edited",
+                      result.didSplit ? [idx + 1] : [idx],
+                    );
+                  }}
+                />
+
+                <div className="caption-timecodes-row">
+                  <CaptionTimecodeInput
+                    label="In"
+                    testId={`inspector-caption-in-${idx}`}
+                    frames={cap.inFrame}
+                    onCommitFrame={(nextIn) => {
+                      const nextCaps = setCaptionRange(
+                        beat,
+                        clipDurationFrames,
+                        idx,
+                        nextIn,
+                        cap.outFrame,
+                      );
+                      onCommitCaptions?.(nextCaps, "Caption in-point updated", [idx]);
+                    }}
+                  />
+                  <CaptionTimecodeInput
+                    label="Out"
+                    testId={`inspector-caption-out-${idx}`}
+                    frames={cap.outFrame}
+                    onCommitFrame={(nextOut) => {
+                      const nextCaps = setCaptionRange(
+                        beat,
+                        clipDurationFrames,
+                        idx,
+                        cap.inFrame,
+                        nextOut,
+                      );
+                      onCommitCaptions?.(nextCaps, "Caption out-point updated", [idx]);
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="caption-inspector-actions">
+        {captions.length >= 2 && (
+          <button
+            type="button"
+            className="button button-quiet"
+            data-testid="inspector-merge-captions-btn"
+            disabled={!canMergeCaptions}
+            onClick={() => onMergeCaptions?.()}
+            title={
+              canMergeCaptions
+                ? "Merge the two selected neighbouring captions"
+                : "Shift+click two neighbouring captions in this clip to merge"
+            }
+          >
+            Merge
+          </button>
+        )}
+        {nextGapList && (
+          <button
+            type="button"
+            className="button button-quiet"
+            data-testid="inspector-add-caption-btn"
+            onClick={() =>
+              onCommitCaptions?.(nextGapList, "Caption added", [
+                Math.max(0, nextGapList.length - 1),
+              ])
+            }
+          >
+            ＋ Add caption
+          </button>
+        )}
+        <button
+          type="button"
+          className="button button-text"
+          data-testid="reset-caption-btn"
+          disabled={!authored}
+          onClick={() => onResetCaptions?.()}
+        >
+          Reset caption
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function CaptionTextBox({
+  index,
+  value,
+  onCommit,
+  onSplit,
+}: {
+  index: number;
+  value: string;
+  onCommit: (nextText: string) => void;
+  onSplit: (cursorOffset: number, draftText: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  return (
+    <textarea
+      className="inspector-textarea caption-card-textarea"
+      aria-label={`Caption ${index + 1} text`}
+      data-testid={`inspector-caption-text-${index}`}
+      rows={2}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        if (draft !== value) onCommit(draft);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          const cursor = e.currentTarget.selectionStart ?? draft.length;
+          onSplit(cursor, draft);
+        }
+      }}
+    />
+  );
+}
+
+function CaptionTimecodeInput({
+  label,
+  testId,
+  frames,
+  onCommitFrame,
+}: {
+  label: string;
+  testId: string;
+  frames: number;
+  onCommitFrame: (nextFrame: number) => void;
+}) {
+  const formatted = formatTimecode(frames);
+  const [draft, setDraft] = useState(formatted);
+
+  useEffect(() => {
+    setDraft(formatTimecode(frames));
+  }, [frames]);
+
+  const commit = () => {
+    const parsed = parseCaptionTimecode(draft);
+    if (parsed === null) {
+      setDraft(formatted);
+      return;
+    }
+    if (parsed !== frames) {
+      onCommitFrame(parsed);
+    } else {
+      setDraft(formatted);
+    }
+  };
+
+  return (
+    <label className="caption-tc-field">
+      <span>
+        {label} <i>({frames}f)</i>
+      </span>
+      <input
+        type="text"
+        className="text-control caption-tc-input"
+        aria-label={`Caption ${label} timecode`}
+        data-testid={testId}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            setDraft(formatted);
+          }
+        }}
+      />
+    </label>
   );
 }

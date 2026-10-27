@@ -1,3 +1,5 @@
+import type { BeatCaption, CaptionStyle } from "./captions";
+
 export type AnyRecord = Record<string, any>;
 
 export interface NoteMarker {
@@ -14,6 +16,7 @@ export interface StoryLike extends AnyRecord {
   startSceneId: string;
   scenes: SceneLike[];
   markers?: NoteMarker[];
+  captionStyle?: CaptionStyle;
 }
 
 export interface SceneLike extends AnyRecord {
@@ -44,10 +47,13 @@ export interface BeatLike extends AnyRecord {
   id?: string;
   characterId?: string;
   text?: string;
+  captions?: BeatCaption[];
   background?: string;
   cinematic?: AnyRecord;
   audioUrl?: string;
+  voiceStartFrame?: number;
   sfxUrl?: string;
+  silent?: boolean;
   durationFrames?: number;
   animation?: BeatAnimation;
 }

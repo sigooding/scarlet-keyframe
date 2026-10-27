@@ -1,5 +1,5 @@
 import type { BeatAnimation, BeatLike, Key, KeyEasing, Keyframe } from "../core/model";
-import { clipFrames, FPS, formatTimecode, MIN_CLIP_FRAMES } from "../core/timing";
+import { clipFrames, FPS, formatTimecode, MIN_CLIP_FRAMES, sceneProseFrames } from "../core/timing";
 
 export type { BeatAnimation, Key, KeyEasing };
 export { clipFrames, FPS, formatTimecode, MIN_CLIP_FRAMES };
@@ -19,6 +19,8 @@ export interface TimelineClip {
   durationFrames: number;
   endFrame: number;
   voiceFrames: number;
+  voiceInFrame: number;
+  voiceOutFrame: number;
 }
 
 export type AnimatableClip =
@@ -227,6 +229,18 @@ export function buildTimelineClips(
     const offsetSec = Math.max(0, Number(keyframe.beat.audioOffsetSeconds || 0));
     const rawVoiceSec = audioRef ? Math.max(0, (measuredVoice ?? 3) - offsetSec) : 0;
     const voiceFrames = audioRef ? Math.max(1, Math.round(rawVoiceSec * FPS)) : 0;
+    const explicitVoiceStart = Number(keyframe.beat.voiceStartFrame);
+    const defaultVoiceStart = audioRef ? sceneProseFrames(keyframe, pace) : 0;
+    const voiceInFrame = audioRef
+      ? Math.max(
+          0,
+          Math.min(
+            Math.max(0, duration - 1),
+            Number.isFinite(explicitVoiceStart) ? Math.round(explicitVoiceStart) : defaultVoiceStart,
+          ),
+        )
+      : 0;
+    const voiceOutFrame = audioRef ? Math.min(duration, voiceInFrame + voiceFrames) : 0;
     const clip: TimelineClip = {
       keyframe,
       index,
@@ -234,6 +248,8 @@ export function buildTimelineClips(
       durationFrames: duration,
       endFrame: cursor + duration,
       voiceFrames,
+      voiceInFrame,
+      voiceOutFrame,
     };
     cursor += duration;
     return clip;

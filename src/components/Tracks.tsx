@@ -180,9 +180,14 @@ export function Tracks({
       >
         {visibleVoice.map((clip) => {
           const kf = clip.keyframe;
-          const left = clip.startFrame * pxPerFrame;
-          const voiceSpanFrames = clip.voiceFrames > 0 ? clip.voiceFrames : clip.durationFrames;
-          const isVoiceCut = clip.voiceFrames > 0 && clip.durationFrames < clip.voiceFrames;
+          const vIn = clip.voiceInFrame ?? 0;
+          const vOut =
+            clip.voiceOutFrame > vIn
+              ? clip.voiceOutFrame
+              : Math.min(clip.durationFrames, vIn + (clip.voiceFrames > 0 ? clip.voiceFrames : clip.durationFrames));
+          const left = (clip.startFrame + vIn) * pxPerFrame;
+          const voiceSpanFrames = Math.max(1, vOut - vIn);
+          const isVoiceCut = clip.voiceFrames > 0 && vIn + clip.voiceFrames > clip.durationFrames;
           return (
             <button
               type="button"
@@ -190,13 +195,15 @@ export function Tracks({
               className={`vox-cue ${selectedFrameId === kf.id ? "is-selected" : ""} ${isVoiceCut ? "is-voice-cut" : ""}`}
               data-testid={`vox-cue-${kf.id}`}
               data-scene-mark={kf.mark}
+              data-voice-start={clip.startFrame + vIn}
+              data-voice-end={clip.startFrame + vOut}
               style={{
                 left,
-                width: Math.max(12, Math.min(clip.durationFrames, voiceSpanFrames) * pxPerFrame),
+                width: Math.max(12, voiceSpanFrames * pxPerFrame),
               }}
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect(kf.id, clip.startFrame, "voice");
+                onSelect(kf.id, clip.startFrame + vIn, "voice");
               }}
               title={`Voice (${kf.mark}/${kf.number}): ${kf.beat.audioUrl} — click to change file`}
             >
