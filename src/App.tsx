@@ -1,12 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
 import { CinematicPreview } from "./components/CinematicPreview";
+import { CropModal, type CropState } from "./components/CropModal";
+import { ExportModal, type ExportTab } from "./components/ExportModal";
 import { Inspector } from "./components/Inspector";
+import { MissingMediaModal } from "./components/MissingMediaModal";
+import { SnapshotModal } from "./components/SnapshotModal";
 import { Timeline } from "./components/Timeline";
+import { Topbar } from "./components/Topbar";
 import { Tracks } from "./components/Tracks";
 import { applyStudioMusicSync, buildKeyframes, collectImageReferences, collectMediaReferences, createProjectState, parseImportPayload, runningOrderDiagnostics, type AnyRecord, type ProjectAsset, type ProjectState } from "./core/model";
 import { cloneStory as cloneProjectStory, copyEffectBlock, deleteKeyframe, duplicateKeyframe, insertKeyframeAfter, moveSfxCue, pasteEffectBlock, reorderKeyframe, resetEffectField, setBeatField, setEffectField, setPicture, setSceneField, type EffectBlock } from "./core/edits";
 import { buildPortableBundle } from "./core/exportBundle";
+import { downloadText, measureAudioDuration, slug } from "./core/helpers";
 import { createUploadAsset, dataUrlToBlob, evaluateMissingMedia, folderFilePath, normalizeMediaPath, referencedPath } from "./core/media";
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, saveActiveProject } from "./core/storage";
@@ -21,8 +27,6 @@ import bundledEdits from "./data/studio-edits.json";
 type BrowseTarget = "picture" | "scenePicture" | "depthMap" | "foregroundImage" | "voice" | "sfx" | "music";
 type BrowserState = { kind: "image" | "audio"; target: BrowseTarget };
 type UploadIntent = { kind: "image" | "audio"; target: "picture" | "voice" | "sfx" | "music"; frameId: string };
-type CropState = { assetId: string; frameId: string; x: number; y: number };
-type ExportTab = "bundle" | "patch" | "mp4";
 
 declare global {
   interface Window {
@@ -766,7 +770,6 @@ export default function App() {
         missingCount={project.missing.length}
         onMissing={() => setMissingOpen(true)}
         editLabel={editLabel}
-        totalDuration={totalSeconds}
         totalDuration={totalSeconds}
       />
 
