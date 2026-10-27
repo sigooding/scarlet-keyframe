@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "export": "node scripts/export-mp4.mjs",
     "import:film": "node scripts/import-film.mjs",
     "test": "vitest run"
   },
@@ -17,6 +18,9 @@
     "tailwind-merge": "3.4.0"
   },
   "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
+    "@sparticuz/chromium": "^153.0.0",
     "@tailwindcss/vite": "4.1.17",
     "@types/node": "22.19.17",
     "@types/react": "19.2.7",

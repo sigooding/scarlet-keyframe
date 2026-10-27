@@ -6071,6 +6071,202 @@ kbd {
   color: #ffffff;
 }
 
+/* ============================================================================
+ * Turn 14: Resizable Panes, Free CC Dragging, /?render=1 1920x1080 & MP4 Export
+ * ============================================================================ */
+
+.pane-splitter {
+  position: relative;
+  background: var(--bg-950);
+  z-index: 28;
+  touch-action: none;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.pane-splitter::after {
+  content: "";
+  position: absolute;
+  background: var(--line-strong);
+  transition: background-color 120ms ease;
+}
+
+.pane-splitter.is-vertical {
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.pane-splitter.is-vertical.is-track-header-splitter {
+  width: 5px;
+}
+
+.pane-splitter.is-vertical::after {
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 1px;
+}
+
+.pane-splitter.is-horizontal {
+  width: 100%;
+  height: 6px;
+  cursor: row-resize;
+}
+
+.pane-splitter.is-horizontal::after {
+  left: 0;
+  right: 0;
+  top: 2px;
+  height: 1px;
+}
+
+.pane-splitter:hover::after,
+.pane-splitter.is-dragging::after {
+  background: var(--accent-amber);
+}
+
+.pane-splitter:hover,
+.pane-splitter.is-dragging {
+  background: rgba(245, 179, 66, 0.14);
+}
+
+.editor-body.is-resizing-pane,
+.timeline-body.is-resizing {
+  user-select: none;
+}
+
+/* Free timeline CC drag & cross-cut span styling */
+.caption-block {
+  cursor: grab;
+}
+
+.caption-block.is-dragging {
+  cursor: grabbing;
+  z-index: 26;
+  box-shadow: 0 0 0 1px var(--accent-amber), 0 8px 22px rgba(0, 0, 0, 0.62);
+}
+
+/* 1920x1080 viewer-only render mode (/?render=1&from=<frame>&to=<frame>) */
+.render-mode-shell {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000000;
+  overflow: hidden;
+  container-type: size;
+  cursor: none;
+  user-select: none;
+}
+
+.render-mode-shell,
+.render-mode-shell *,
+.render-mode-shell::before,
+.render-mode-shell::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+.render-mode-shell .cin-preview {
+  cursor: none;
+}
+
+.render-mode-shell .cin-caption {
+  max-width: min(84%, 1380px);
+  padding: 0.7cqw 1.5cqw;
+  border-radius: 0.42cqw;
+}
+
+.render-mode-shell .cin-caption span {
+  font-size: clamp(11px, 0.95cqw, 20px);
+  margin-bottom: 0.25cqw;
+}
+
+.render-mode-shell .cin-caption.size-s p {
+  font-size: clamp(14px, 1.38cqw, 28px);
+}
+
+.render-mode-shell .cin-caption.size-m p {
+  font-size: clamp(16px, 1.78cqw, 36px);
+}
+
+.render-mode-shell .cin-caption.size-l p {
+  font-size: clamp(20px, 2.28cqw, 46px);
+}
+
+.render-mode-shell .cin-mark {
+  top: 1.4cqw;
+  right: 1.6cqw;
+  padding: 0.35cqw 0.78cqw;
+  border-radius: 0.28cqw;
+  font-size: clamp(11px, 0.92cqw, 19px);
+}
+
+.render-mode-shell .cin-timecode-overlay {
+  bottom: 1.4cqw;
+  left: 1.6cqw;
+  gap: 0.45cqw;
+  padding: 0.35cqw 0.78cqw;
+  border-radius: 0.28cqw;
+}
+
+.render-mode-shell .cin-timecode-overlay strong {
+  font-size: clamp(12px, 1.02cqw, 21px);
+}
+
+.render-mode-shell .cin-timecode-overlay span {
+  font-size: clamp(10px, 0.84cqw, 17px);
+}
+
+/* Export modal MP4 range, progress & cancel */
+.export-mode-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.export-quick-range-btns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.export-mp4-progress-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--bg-900);
+  border: 1px solid var(--line-strong);
+}
+
+.export-mp4-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.export-mp4-progress-head span {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.export-download-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+
 
 
 

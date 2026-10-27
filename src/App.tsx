@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { flushSync } from "react-dom";
 import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
 import type { SelectedCaptionState } from "./components/CaptionLane";
 import { CinematicPreview } from "./components/CinematicPreview";
@@ -34,16 +35,19 @@ import {
   type SelectedKeyframeDiamond,
 } from "./core/audioClips";
 import {
-  activeCaptionAtLocalFrame,
+  activeTimelineCaptionAtFrame,
   DEFAULT_CAPTION_STYLE,
   deleteCaptionsAtIndices,
   effectiveCaptionsForBeat,
   makeCaptionsSrt,
   makeCaptionsVtt,
+  makeRangeCaptionsSrt,
   mergeAdjacentCaptions,
   normalizeCaptionStyle,
+  resolveTimelineCaptions,
   type BeatCaption,
   type CaptionStyle,
+  type ResolvedTimelineCaption,
 } from "./core/captions";
 import {
   applyStudioMusicSync,
@@ -74,6 +78,7 @@ import {
   insertKeyframeAfter,
   mergeKeyframes,
   moveSfxCue,
+  moveTimelineCaption,
   pasteEffectBlock,
   pasteKeyframesAt,
   pasteMultiSelectionAt,
@@ -151,6 +156,7 @@ import {
 import { audio } from "../vendor/scarlet-reel/audio";
 import bundledAudioDurations from "./data/audio-durations.json";
 import bundledMediaIndex from "./data/media-index.json";
+import { renderTimelineAudioOfflineWav, uint8ArrayToBase64 } from "./core/offlineAudioMix";
 import bundledFilm from "./data/nobodys-witness-film.json";
 import bundledEdits from "./data/studio-edits.json";
 
@@ -158,10 +164,165 @@ type BrowseTarget = BrowseMediaTarget;
 type BrowserState = { kind: "image" | "audio"; target: BrowseTarget };
 type UploadIntent = { kind: "image" | "audio"; target: UploadMediaTarget; frameId: string };
 
+export interface Mp4ExportJobState {
+  id: string;
+  status: "running" | "done" | "error" | "cancelled";
+  completedFrames: number;
+  totalFrames: number;
+  percent: number;
+  phase: string;
+  mp4Url?: string;
+  srtUrl?: string;
+  fileName?: string;
+  srtFileName?: string;
+  error?: string;
+}
+
 const PLAYHEAD_SESSION_KEY = "frame24-playhead";
+const PANE_SIZES_STORAGE_KEY = "frame24-pane-sizes";
+const DEFAULT_INSPECTOR_WIDTH = 368;
+const DEFAULT_TIMELINE_HEIGHT = 348;
+const DEFAULT_MEDIA_BIN_WIDTH = 256;
+
+interface PaneSizes {
+  inspectorWidth: number;
+  timelineHeight: number;
+  mediaBinWidth: number;
+}
+
+function readStoredPaneSizes(): PaneSizes {
+  try {
+    const raw = window.localStorage.getItem(PANE_SIZES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<PaneSizes>;
+      return {
+        inspectorWidth:
+          Number.isFinite(parsed.inspectorWidth) && parsed.inspectorWidth! >= 260 && parsed.inspectorWidth! <= 680
+            ? Math.round(parsed.inspectorWidth!)
+            : DEFAULT_INSPECTOR_WIDTH,
+        timelineHeight:
+          Number.isFinite(parsed.timelineHeight) && parsed.timelineHeight! >= 180 && parsed.timelineHeight! <= 820
+            ? Math.round(parsed.timelineHeight!)
+            : DEFAULT_TIMELINE_HEIGHT,
+        mediaBinWidth:
+          Number.isFinite(parsed.mediaBinWidth) && parsed.mediaBinWidth! >= 180 && parsed.mediaBinWidth! <= 520
+            ? Math.round(parsed.mediaBinWidth!)
+            : DEFAULT_MEDIA_BIN_WIDTH,
+      };
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return {
+    inspectorWidth: DEFAULT_INSPECTOR_WIDTH,
+    timelineHeight: DEFAULT_TIMELINE_HEIGHT,
+    mediaBinWidth: DEFAULT_MEDIA_BIN_WIDTH,
+  };
+}
+
+function writeStoredPaneSizes(sizes: PaneSizes): void {
+  try {
+    window.localStorage.setItem(PANE_SIZES_STORAGE_KEY, JSON.stringify(sizes));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+const renderImageDecodeCache = new Map<string, Promise<void>>();
+
+function ensureImageDecodedOnce(url: string): Promise<void> {
+  if (!url || url.startsWith("gradient:") || url.startsWith("emoji:")) {
+    return Promise.resolve();
+  }
+  const existing = renderImageDecodeCache.get(url);
+  if (existing) return existing;
+  const promise = new Promise<void>((resolve) => {
+    const img = new Image();
+    img.decoding = "sync";
+    const timer = window.setTimeout(() => resolve(), 4000);
+    const done = () => {
+      window.clearTimeout(timer);
+      if (typeof img.decode === "function") {
+        img.decode().then(() => resolve()).catch(() => resolve());
+      } else {
+        resolve();
+      }
+    };
+    img.onload = done;
+    img.onerror = () => {
+      window.clearTimeout(timer);
+      resolve();
+    };
+    img.src = url;
+    if (img.complete) done();
+  });
+  renderImageDecodeCache.set(url, promise);
+  return promise;
+}
+
+async function waitForRenderFrameReady(rootEl: HTMLElement | null): Promise<void> {
+  if (!rootEl) return;
+  const urls = new Set<string>();
+  const extractCssUrls = (bg: string) => {
+    const regex = /url\((['"]?)(.*?)\1\)/gi;
+    let m: RegExpExecArray | null;
+    while ((m = regex.exec(bg)) !== null) {
+      const u = m[2]?.trim();
+      if (u && !u.startsWith("data:image/svg")) urls.add(u);
+    }
+  };
+
+  rootEl.querySelectorAll<HTMLElement>(".cin-preview-plate").forEach((el) => {
+    if (el.style.backgroundImage) extractCssUrls(el.style.backgroundImage);
+  });
+  rootEl.querySelectorAll<HTMLImageElement>("img").forEach((img) => {
+    if (img.currentSrc || img.src) urls.add(img.currentSrc || img.src);
+  });
+
+  if (urls.size > 0) {
+    await Promise.all([...urls].map(ensureImageDecodedOnce));
+  }
+
+  // Wait for any WebGL depth-parallax canvases to finish uploading & drawing
+  const startWait = performance.now();
+  while (performance.now() - startWait < 4000) {
+    const depthCanvases = rootEl.querySelectorAll<HTMLCanvasElement>("canvas.depth-parallax");
+    const allDepthReady =
+      depthCanvases.length === 0 ||
+      Array.from(depthCanvases).every((c) => c.dataset.depthReady === "1");
+    const videos = rootEl.querySelectorAll<HTMLVideoElement>("video.cin-preview-video");
+    const allVideosReady =
+      videos.length === 0 ||
+      Array.from(videos).every((v) => !v.seeking);
+    if (allDepthReady && allVideosReady) break;
+    await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
+  }
+
+  await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
+  await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
+}
 
 declare global {
   interface Window {
+    __render?: {
+      ready: boolean;
+      fps: number;
+      from: number;
+      to: number;
+      totalFrames: number;
+      getFrame: () => number;
+      setFrame: (n: number) => Promise<number>;
+      setOptions: (opts: { captions?: boolean; marks?: boolean; timecode?: boolean }) => void;
+      renderAudioOffline: (fromFrame: number, toFrame: number, sampleRate?: number) => Promise<string>;
+      getSrt: (fromFrame: number, toFrame: number) => string;
+      getAudioMixSpec: () => {
+        resolvedAudioClips: ResolvedAudioClip[];
+        trackMix: TrackMixMap;
+        duckDepth: number;
+        fps: number;
+        totalFrames: number;
+      };
+    };
     __frame24?: {
       frameIds: string[];
       totalFrames: number;
@@ -194,6 +355,7 @@ declare global {
       resolveMedia: (ref: string | undefined) => string | undefined;
       getCaptionStyle: () => CaptionStyle;
       getActiveCaption: () => BeatCaption | undefined;
+      getTimelineCaptions: () => ResolvedTimelineCaption[];
       exportSrtText: (sceneId?: string) => string;
       exportVttText: (sceneId?: string) => string;
     };
@@ -289,14 +451,45 @@ export default function App() {
   const [playback, setPlayback] = useState(false);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [playSpeed, setPlaySpeed] = useState(1);
+  const renderParams = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("render") !== "1") return null;
+    const rawFrom = sp.get("from");
+    const rawTo = sp.get("to");
+    const parsedFrom =
+      rawFrom !== null && rawFrom !== "" && Number.isFinite(Number(rawFrom))
+        ? Math.max(0, Math.round(Number(rawFrom)))
+        : 0;
+    const parsedTo =
+      rawTo !== null && rawTo !== "" && Number.isFinite(Number(rawTo))
+        ? Math.max(parsedFrom, Math.round(Number(rawTo)))
+        : null;
+    const captionsParam = sp.get("captions") ?? sp.get("subs");
+    const captions = captionsParam === null ? true : captionsParam !== "0";
+    const marksParam = sp.get("marks");
+    const tcParam = sp.get("tc");
+    const marks = marksParam === null ? false : marksParam !== "0";
+    const tc = tcParam === null ? marks : tcParam !== "0";
+    const job = sp.get("job") || undefined;
+    return { from: parsedFrom, to: parsedTo, captions, marks, tc, job };
+  }, []);
+  const isRenderMode = renderParams !== null;
+
   const [viewerZoom, setViewerZoom] = useState(1);
-  const [showCaptions, setShowCaptions] = useState(true);
+  const [showCaptions, setShowCaptions] = useState(() =>
+    renderParams ? renderParams.captions : true,
+  );
   const [ccStyleOpen, setCcStyleOpen] = useState(false);
   const [selectedCaption, setSelectedCaption] = useState<SelectedCaptionState | null>(null);
   const selectedCaptionRef = useRef<SelectedCaptionState | null>(null);
   selectedCaptionRef.current = selectedCaption;
-  const [showMarks, setShowMarks] = useState(true);
-  const [showTimecodeOverlay, setShowTimecodeOverlay] = useState(true);
+  const [showMarks, setShowMarks] = useState(() =>
+    renderParams ? renderParams.marks : true,
+  );
+  const [showTimecodeOverlay, setShowTimecodeOverlay] = useState(() =>
+    renderParams ? renderParams.tc : true,
+  );
   const [showSafeGuides, setShowSafeGuides] = useState(false);
   const [showOnionSkin, setShowOnionSkin] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -317,16 +510,42 @@ export default function App() {
   const [mp4Message, setMp4Message] = useState("");
   const [rangeStart, setRangeStart] = useState(0);
   const [rangeEnd, setRangeEnd] = useState<number | null>(null);
+  const [exportWholeFilm, setExportWholeFilm] = useState(true);
+  const [exportFromFrame, setExportFromFrame] = useState(0);
+  const [exportToFrame, setExportToFrame] = useState(0);
   const [captionsExport, setCaptionsExport] = useState(true);
-  const [marksExport, setMarksExport] = useState(true);
+  const [srtExport, setSrtExport] = useState(true);
+  const [marksExport, setMarksExport] = useState(false);
+  const [mp4Job, setMp4Job] = useState<Mp4ExportJobState | null>(null);
   const [snapshotName, setSnapshotName] = useState("");
   const [snapshotModal, setSnapshotModal] = useState(false);
+
+  const [paneSizes, setPaneSizes] = useState<PaneSizes>(() => readStoredPaneSizes());
+  const paneSizesRef = useRef<PaneSizes>(paneSizes);
+  paneSizesRef.current = paneSizes;
+  const [activePaneDrag, setActivePaneDrag] = useState<"inspector" | "timeline" | "mediabin" | null>(null);
+  const paneDragSessionRef = useRef<{
+    which: "inspector" | "timeline" | "mediabin";
+    pointerId: number;
+    startClientX: number;
+    startClientY: number;
+    startSize: number;
+  } | null>(null);
 
   const importInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const previewStageRef = useRef<HTMLDivElement>(null);
+  const renderShellRef = useRef<HTMLDivElement>(null);
+  const lastFreeCaptionResultRef = useRef<{
+    anchorFrameId: string;
+    anchorCaptionIndex: number;
+  } | null>(null);
+  const copyEffectsRef = useRef<() => void>(() => undefined);
+  const pasteEffectsRef = useRef<() => void>(() => undefined);
+  const mp4PollTimerRef = useRef<number | null>(null);
+  const activeMp4JobTokenRef = useRef<number>(0);
   const voiceDurationCache = useRef(new Map<string, number>());
   const attemptedVoiceRefs = useRef(new Set<string>(Object.keys(bundledAudioDurations as Record<string, number>)));
   const attemptedMusicRefs = useRef(new Set<string>(Object.keys(bundledAudioDurations as Record<string, number>)));
@@ -362,13 +581,21 @@ export default function App() {
     let alive = true;
     async function boot() {
       try {
-        const [saved, mediaIndex] = await Promise.all([
-          loadActiveProject().catch(() => undefined),
+        const jobSnapshotPromise =
+          renderParams?.job && window.location.protocol !== "file:"
+            ? fetch(`/__api/export/project?id=${encodeURIComponent(renderParams.job)}`)
+                .then((r) => (r.ok ? (r.json() as Promise<AnyRecord>) : null))
+                .catch(() => null)
+            : Promise.resolve(null);
+
+        const [saved, mediaIndex, jobSnapshot] = await Promise.all([
+          isRenderMode ? Promise.resolve(undefined) : loadActiveProject().catch(() => undefined),
           window.location.protocol === "file:"
             ? Promise.resolve([] as string[])
             : fetch("examples/media-index.json")
                 .then((response) => (response.ok ? (response.json() as Promise<string[]>) : []))
                 .catch(() => [] as string[]),
+          jobSnapshotPromise,
         ]);
         const sourceEdits = bundledEdits as AnyRecord;
         const paths = new Set<string>([
@@ -387,7 +614,22 @@ export default function App() {
 
         let initialProject: ProjectState;
         let statusLabel: string;
-        if (saved?.story?.scenes?.length) {
+        if (jobSnapshot?.project?.story?.scenes?.length) {
+          const snapProj = jobSnapshot.project as ProjectState;
+          initialProject = {
+            ...snapProj,
+            importedMissing: snapProj.importedMissing || [],
+            assets: snapProj.assets || [],
+            snapshots: snapProj.snapshots || [],
+          };
+          if (jobSnapshot.trackMix) {
+            setTrackMix(jobSnapshot.trackMix as TrackMixMap);
+          }
+          if (typeof jobSnapshot.duckDepth === "number") {
+            setDuckDepth(jobSnapshot.duckDepth);
+          }
+          statusLabel = "RENDER JOB";
+        } else if (saved?.story?.scenes?.length) {
           initialProject = {
             ...saved,
             importedMissing: saved.importedMissing || [],
@@ -401,7 +643,7 @@ export default function App() {
           });
           const contextual = { ...imported, story: applyStudioMusicSync(imported.story, sourceEdits) };
           initialProject = createProjectState(contextual, [], sourceEdits);
-          statusLabel = "FILM READY";
+          statusLabel = isRenderMode ? "RENDER MODE" : "FILM READY";
         }
 
         if (!Array.isArray(initialProject.audioClips)) {
@@ -423,13 +665,16 @@ export default function App() {
           builtFrames,
           initialVoiceDurations,
         );
-        const storedFrame = readStoredPlayhead();
+        setExportToFrame(Math.max(0, builtTotal - 1));
+        const storedFrame = isRenderMode ? null : readStoredPlayhead();
         const s77Clip = builtClips.find((clip) => clip.keyframe.mark === "77") || builtClips[0];
-        const startPlayhead =
-          storedFrame !== null && storedFrame < builtTotal
+        const startPlayhead = renderParams
+          ? Math.max(0, Math.min(Math.max(0, builtTotal - 1), renderParams.from))
+          : storedFrame !== null && storedFrame < builtTotal
             ? storedFrame
             : s77Clip?.startFrame ?? 0;
         const startClip = clipAtFrame(builtClips, startPlayhead) || s77Clip;
+        playheadRef.current = startPlayhead;
         setPlayheadFrame(startPlayhead);
         setSelectedFrameId(startClip?.keyframe.id || "");
         setSelectedFrameIds(startClip ? [startClip.keyframe.id] : []);
@@ -450,16 +695,24 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [isRenderMode, renderParams]);
 
   useEffect(() => {
-    if (!loading) writeStoredPlayhead(playheadFrame);
-  }, [loading, playheadFrame]);
+    if (!loading && !isRenderMode) writeStoredPlayhead(playheadFrame);
+  }, [loading, isRenderMode, playheadFrame]);
 
   const frames = useMemo(() => (project ? buildKeyframes(project.story) : []), [project?.story]);
   const { clips, totalFrames } = useMemo(
     () => buildTimelineClips(frames, voiceDurations),
     [frames, voiceDurations],
+  );
+  const resolvedTimelineCaptions = useMemo(
+    () => resolveTimelineCaptions(clips),
+    [clips],
+  );
+  const activeTimelineCaption = useMemo<ResolvedTimelineCaption | null>(
+    () => activeTimelineCaptionAtFrame(resolvedTimelineCaptions, playheadFrame) ?? null,
+    [resolvedTimelineCaptions, playheadFrame],
   );
   const noteMarkers = useMemo(() => project?.story.markers ?? [], [project?.story.markers]);
 
@@ -774,7 +1027,7 @@ export default function App() {
   }, [project, folderFiles, publicPaths]);
 
   useEffect(() => {
-    if (!project) return;
+    if (!project || isRenderMode) return;
     const timer = window.setTimeout(() => {
       setSaveStatus("SAVING…");
       void saveActiveProject(project)
@@ -782,7 +1035,45 @@ export default function App() {
         .catch(() => setSaveStatus("AUTOSAVE FAILED"));
     }, 150);
     return () => window.clearTimeout(timer);
-  }, [project]);
+  }, [project, isRenderMode]);
+
+  useEffect(() => {
+    const onPointerMove = (e: PointerEvent) => {
+      const session = paneDragSessionRef.current;
+      if (!session || e.pointerId !== session.pointerId) return;
+      if (session.which === "inspector") {
+        const dx = session.startClientX - e.clientX;
+        const maxW = Math.min(680, Math.max(300, window.innerWidth - 360));
+        const nextW = Math.max(260, Math.min(maxW, Math.round(session.startSize + dx)));
+        setPaneSizes((prev) => ({ ...prev, inspectorWidth: nextW }));
+      } else if (session.which === "timeline") {
+        const dy = session.startClientY - e.clientY;
+        const maxH = Math.min(820, Math.max(240, window.innerHeight - 210));
+        const nextH = Math.max(180, Math.min(maxH, Math.round(session.startSize + dy)));
+        setPaneSizes((prev) => ({ ...prev, timelineHeight: nextH }));
+      } else if (session.which === "mediabin") {
+        const dx = e.clientX - session.startClientX;
+        const maxW = Math.min(520, Math.max(220, window.innerWidth - 520));
+        const nextW = Math.max(180, Math.min(maxW, Math.round(session.startSize + dx)));
+        setPaneSizes((prev) => ({ ...prev, mediaBinWidth: nextW }));
+      }
+    };
+    const onPointerEnd = (e: PointerEvent) => {
+      const session = paneDragSessionRef.current;
+      if (!session || e.pointerId !== session.pointerId) return;
+      paneDragSessionRef.current = null;
+      setActivePaneDrag(null);
+      writeStoredPaneSizes(paneSizesRef.current);
+    };
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerEnd);
+    window.addEventListener("pointercancel", onPointerEnd);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerEnd);
+      window.removeEventListener("pointercancel", onPointerEnd);
+    };
+  }, []);
 
   useEffect(() => {
     const el = previewStageRef.current;
@@ -2007,6 +2298,77 @@ export default function App() {
     [previewProjectEdit],
   );
 
+  const handleBeginFreeCaptionDrag = useCallback(() => {
+    lastFreeCaptionResultRef.current = null;
+    beginDragEdit();
+  }, [beginDragEdit]);
+
+  const handlePreviewFreeCaptionMove = useCallback(
+    (
+      sourceFrameId: string,
+      captionIndex: number,
+      targetGlobalInFrame: number,
+      targetGlobalOutFrame: number,
+      copy: boolean,
+    ) => {
+      const base = dragBaseProjectRef.current ?? projectRef.current;
+      if (!base) return;
+      const res = moveTimelineCaption(
+        base,
+        sourceFrameId,
+        captionIndex,
+        targetGlobalInFrame,
+        targetGlobalOutFrame,
+        { copy, voiceDurationByRef: voiceDurations, totalFrames },
+      );
+      lastFreeCaptionResultRef.current = {
+        anchorFrameId: res.anchorFrameId,
+        anchorCaptionIndex: res.anchorCaptionIndex,
+      };
+      projectRef.current = res.project;
+      setProject(res.project);
+      setSaveStatus("UNSAVED CHANGES");
+    },
+    [totalFrames, voiceDurations],
+  );
+
+  const handleCommitFreeCaptionMove = useCallback(
+    (label: string) => {
+      const movedTo = lastFreeCaptionResultRef.current;
+      lastFreeCaptionResultRef.current = null;
+      endDragEdit(label);
+      if (movedTo) {
+        setSelectedFrameId(movedTo.anchorFrameId);
+        setSelectedFrameIds([]);
+        const nextCapSel: SelectedCaptionState = {
+          frameId: movedTo.anchorFrameId,
+          indices: [movedTo.anchorCaptionIndex],
+        };
+        selectedCaptionRef.current = nextCapSel;
+        setSelectedCaption(nextCapSel);
+        const nextMulti: MultiLaneSelection = {
+          pictureIds: [],
+          captions: [{ frameId: movedTo.anchorFrameId, index: movedTo.anchorCaptionIndex }],
+          audioClipIds: [],
+          keyframes: [],
+        };
+        multiSelectionRef.current = nextMulti;
+        setMultiSelection(nextMulti);
+      }
+    },
+    [endDragEdit],
+  );
+
+  const handleCancelFreeCaptionMove = useCallback(() => {
+    lastFreeCaptionResultRef.current = null;
+    const base = dragBaseProjectRef.current;
+    if (base) {
+      projectRef.current = base;
+      setProject(base);
+    }
+    endDragEdit("");
+  }, [endDragEdit]);
+
   const handleMergeCaptions = useCallback(() => {
     const sel = selectedCaptionRef.current;
     if (!sel || sel.indices.length !== 2) return;
@@ -2630,13 +2992,17 @@ export default function App() {
       resolveMedia: (ref: string | undefined) => resolveMedia(ref),
       getCaptionStyle: () => captionStyle,
       getActiveCaption: () =>
-        activeClip
-          ? activeCaptionAtLocalFrame(
-              activeClip.keyframe.beat,
-              activeClip.durationFrames,
-              viewerLocalFrame,
-            )
+        activeTimelineCaption
+          ? {
+              text: activeTimelineCaption.text,
+              inFrame: activeTimelineCaption.inFrame,
+              outFrame: activeTimelineCaption.outFrame,
+              ...(activeTimelineCaption.free ? { free: true } : {}),
+              speaker: activeTimelineCaption.speaker,
+              isNarration: activeTimelineCaption.isNarration,
+            }
           : undefined,
+      getTimelineCaptions: () => resolvedTimelineCaptions,
       exportSrtText: (sceneId?: string) => {
         const subset = sceneId ? frames.filter((f) => f.sceneId === sceneId) : frames;
         const durs = subset.map((frame) =>
@@ -2663,6 +3029,7 @@ export default function App() {
     };
   }, [
     activeClip,
+    activeTimelineCaption,
     activeTransition,
     captionStyle,
     clearAllSelection,
@@ -2675,6 +3042,7 @@ export default function App() {
     project?.missing.length,
     resolveMedia,
     resolvedAudioClips,
+    resolvedTimelineCaptions,
     scrubToFrame,
     setSelection,
     snapEnabled,
@@ -2683,6 +3051,77 @@ export default function App() {
     viewerFrame,
     viewerLocalFrame,
     voiceDurations,
+  ]);
+
+  useEffect(() => {
+    const maxFrameIdx = Math.max(0, totalFrames - 1);
+    const resolvedFrom = renderParams
+      ? Math.max(0, Math.min(maxFrameIdx, renderParams.from))
+      : 0;
+    const resolvedTo =
+      renderParams && renderParams.to !== null
+        ? Math.max(resolvedFrom, Math.min(maxFrameIdx, renderParams.to))
+        : maxFrameIdx;
+    const ready = !loading && Boolean(project) && clips.length > 0;
+
+    window.__render = {
+      ready,
+      fps: FPS,
+      from: resolvedFrom,
+      to: resolvedTo,
+      totalFrames,
+      getFrame: () => playheadRef.current,
+      setFrame: async (n: number) => {
+        const clamped = Math.max(0, Math.min(Math.max(0, totalFrames - 1), Math.round(n)));
+        flushSync(() => {
+          playheadRef.current = clamped;
+          setPlayheadFrame(clamped);
+        });
+        await waitForRenderFrameReady(renderShellRef.current ?? previewStageRef.current);
+        return clamped;
+      },
+      setOptions: (opts) => {
+        flushSync(() => {
+          if (opts.captions !== undefined) setShowCaptions(opts.captions);
+          if (opts.marks !== undefined) setShowMarks(opts.marks);
+          if (opts.timecode !== undefined) setShowTimecodeOverlay(opts.timecode);
+        });
+      },
+      renderAudioOffline: async (fromF: number, toF: number, sampleRate = 48000) => {
+        const wavBytes = await renderTimelineAudioOfflineWav({
+          resolvedClips: resolvedAudioClips,
+          resolveMedia,
+          trackMix,
+          duckDepth,
+          fromFrame: fromF,
+          toFrame: toF,
+          fps: FPS,
+          sampleRate,
+        });
+        return uint8ArrayToBase64(wavBytes);
+      },
+      getSrt: (fromF: number, toF: number) => makeRangeCaptionsSrt(clips, fromF, toF, FPS),
+      getAudioMixSpec: () => ({
+        resolvedAudioClips,
+        trackMix,
+        duckDepth,
+        fps: FPS,
+        totalFrames,
+      }),
+    };
+    return () => {
+      delete window.__render;
+    };
+  }, [
+    clips,
+    duckDepth,
+    loading,
+    project,
+    renderParams,
+    resolveMedia,
+    resolvedAudioClips,
+    totalFrames,
+    trackMix,
   ]);
 
   useEffect(() => {
@@ -2743,6 +3182,16 @@ export default function App() {
         return;
       }
 
+      if (!typingText && mod && event.altKey && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        copyEffectsRef.current();
+        return;
+      }
+      if (!typingText && mod && event.altKey && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        pasteEffectsRef.current();
+        return;
+      }
       if (!typingText && mod && event.key.toLowerCase() === "c") {
         event.preventDefault();
         handleCopyClips();
@@ -3005,20 +3454,29 @@ export default function App() {
   }
 
   function copyEffects(): void {
-    if (!selectedFrame) return;
-    setCopiedEffects(copyEffectBlock(selectedFrame));
-    setEditLabel("Effects copied");
+    const sourceFrame = selectedFrame ?? viewerFrame;
+    if (!sourceFrame) return;
+    setCopiedEffects(copyEffectBlock(sourceFrame));
+    setEditLabel(`Effects copied from ${sourceFrame.mark}/${sourceFrame.number}`);
   }
 
   function pasteEffects(): void {
     if (!project || !copiedEffects) return;
-    const targets = selectedFrameIds.filter((id) => id !== selectedFrameId);
+    const targets = selectedFrameIds.length
+      ? selectedFrameIds
+      : multiSelection.pictureIds.length
+        ? multiSelection.pictureIds
+        : selectedFrame
+          ? [selectedFrame.id]
+          : [];
     if (!targets.length) return;
     editProject(
-      (current) => pasteEffectBlock(current, targets, copiedEffects),
-      `Effects pasted to ${targets.length} clips`,
+      (current) => pasteEffectBlock(current, targets, copiedEffects, voiceDurations),
+      targets.length === 1 ? "Effects pasted" : `Effects pasted to ${targets.length} clips`,
     );
   }
+  copyEffectsRef.current = copyEffects;
+  pasteEffectsRef.current = pasteEffects;
 
   function copyAnimation(): void {
     if (!selectedFrame?.beat.animation) return;
@@ -3077,15 +3535,13 @@ export default function App() {
   }
 
   function exportSrt(): void {
-    if (!frames.length) return;
-    const selectedRange =
-      rangeEnd === null ? frames : frames.slice(Math.min(rangeStart, rangeEnd), Math.max(rangeStart, rangeEnd) + 1);
-    const durationFrames = selectedRange.map((frame) =>
-      clipFrames(frame, frame.beat.audioUrl ? voiceDurations.get(frame.beat.audioUrl) : undefined),
-    );
-    const text = makeCaptionsSrt(selectedRange, durationFrames, FPS);
+    if (!clips.length) return;
+    const maxF = Math.max(0, totalFrames - 1);
+    const fromF = exportWholeFilm ? 0 : Math.max(0, Math.min(maxF, Math.round(exportFromFrame)));
+    const toF = exportWholeFilm ? maxF : Math.max(fromF, Math.min(maxF, Math.round(exportToFrame)));
+    const text = makeRangeCaptionsSrt(clips, fromF, toF, FPS);
     downloadText(text, `${slug(project?.title || "animatic")}.srt`, "text/plain");
-    setExportMessage(`SRT written for ${selectedRange.length} clips.`);
+    setExportMessage(`SRT written for frames ${fromF}..${toF} (${toF - fromF + 1} frames).`);
   }
 
   function exportVtt(): void {
@@ -3098,6 +3554,148 @@ export default function App() {
     const text = makeCaptionsVtt(selectedRange, durationFrames, FPS);
     downloadText(text, `${slug(project?.title || "animatic")}.vtt`, "text/vtt");
     setExportMessage(`WebVTT written for ${selectedRange.length} clips.`);
+  }
+
+  function clearMp4Poll(): void {
+    if (mp4PollTimerRef.current !== null) {
+      window.clearInterval(mp4PollTimerRef.current);
+      mp4PollTimerRef.current = null;
+    }
+  }
+
+  async function startMp4Export(): Promise<void> {
+    if (!project || !clips.length) return;
+    clearMp4Poll();
+    const myToken = ++activeMp4JobTokenRef.current;
+    const maxF = Math.max(0, totalFrames - 1);
+    const fromF = exportWholeFilm ? 0 : Math.max(0, Math.min(maxF, Math.round(exportFromFrame)));
+    const toF = exportWholeFilm ? maxF : Math.max(fromF, Math.min(maxF, Math.round(exportToFrame)));
+    const expectedCount = toF - fromF + 1;
+    const baseName = slug(project.title || "animatic");
+
+    setMp4Message("");
+    setMp4Job({
+      id: "starting",
+      status: "running",
+      completedFrames: 0,
+      totalFrames: expectedCount,
+      percent: 0,
+      phase: "Starting headless Chromium & ffmpeg…",
+    });
+
+    try {
+      const resp = await fetch("/__api/export/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project,
+          trackMix,
+          duckDepth,
+          fromFrame: fromF,
+          toFrame: toF,
+          captions: captionsExport,
+          srt: srtExport,
+          marks: marksExport,
+          baseName,
+        }),
+      });
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => "");
+        throw new Error(
+          resp.status === 404
+            ? "MP4 export server requires `npm run dev` (or run `npm run export -- --from ... --to ...` from the terminal)."
+            : errText || `Export start failed (${resp.status})`,
+        );
+      }
+      const data = (await resp.json()) as { jobId: string };
+      const jobId = data.jobId;
+      if (activeMp4JobTokenRef.current !== myToken) {
+        void fetch("/__api/export/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: jobId }),
+        }).catch(() => undefined);
+        return;
+      }
+      setMp4Job((prev) =>
+        prev ? { ...prev, id: jobId, phase: "Opening /?render=1 at 1920×1080…" } : null,
+      );
+
+      mp4PollTimerRef.current = window.setInterval(async () => {
+        if (activeMp4JobTokenRef.current !== myToken) {
+          clearMp4Poll();
+          return;
+        }
+        try {
+          const stResp = await fetch(`/__api/export/status?id=${encodeURIComponent(jobId)}`);
+          if (!stResp.ok || activeMp4JobTokenRef.current !== myToken) return;
+          const st = (await stResp.json()) as Mp4ExportJobState;
+          if (activeMp4JobTokenRef.current !== myToken) return;
+          setMp4Job(st);
+          if (st.status === "done") {
+            clearMp4Poll();
+            setMp4Message(
+              `Rendered ${st.totalFrames} exact frames (${fromF}..${toF}) to ${st.fileName || "MP4"}${st.srtUrl ? " + .srt" : ""}.`,
+            );
+            if (st.mp4Url) {
+              const a = document.createElement("a");
+              a.href = st.mp4Url;
+              a.download = st.fileName || `${baseName}-${fromF}-${toF}.mp4`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            }
+            if (st.srtUrl && srtExport) {
+              window.setTimeout(() => {
+                const aSrt = document.createElement("a");
+                aSrt.href = st.srtUrl!;
+                aSrt.download = st.srtFileName || `${baseName}-${fromF}-${toF}.srt`;
+                document.body.appendChild(aSrt);
+                aSrt.click();
+                aSrt.remove();
+              }, 250);
+            }
+          } else if (st.status === "error" || st.status === "cancelled") {
+            clearMp4Poll();
+            if (st.status === "cancelled") {
+              setMp4Message("MP4 export cancelled.");
+            } else if (st.error) {
+              setMp4Message(st.error);
+            }
+          }
+        } catch {
+          // transient poll hiccup
+        }
+      }, 320);
+    } catch (err) {
+      if (activeMp4JobTokenRef.current !== myToken) return;
+      clearMp4Poll();
+      const message = err instanceof Error ? err.message : "MP4 export failed to start.";
+      setMp4Job((prev) =>
+        prev ? { ...prev, status: "error", phase: "Failed", error: message } : null,
+      );
+      setMp4Message(message);
+    }
+  }
+
+  async function cancelMp4Export(): Promise<void> {
+    activeMp4JobTokenRef.current++;
+    clearMp4Poll();
+    const job = mp4Job;
+    if (!job || job.status !== "running") return;
+    setMp4Job({ ...job, status: "cancelled", phase: "Cancelled" });
+    setMp4Message("MP4 export cancelled.");
+    if (job.id && job.id !== "starting") {
+      try {
+        await fetch("/__api/export/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: job.id }),
+        });
+      } catch {
+        // ignore network error on cancel
+      }
+    }
   }
 
   function saveCrop(): void {
@@ -3219,6 +3817,16 @@ export default function App() {
   );
 
   if (loading) {
+    if (isRenderMode) {
+      return (
+        <div
+          ref={renderShellRef}
+          className="render-mode-shell"
+          data-testid="render-mode-shell"
+          data-ready="0"
+        />
+      );
+    }
     return (
       <div className="loading-screen">
         <div className="loading-wordmark">
@@ -3244,6 +3852,62 @@ export default function App() {
   if (!project || !viewerFrame || !selectedFrame || !selectedClip) {
     return <div className="loading-screen">No keyframes are available in this project.</div>;
   }
+
+  if (isRenderMode) {
+    return (
+      <div
+        ref={renderShellRef}
+        className="render-mode-shell"
+        data-testid="render-mode-shell"
+        data-ready="1"
+        data-frame={playheadFrame}
+      >
+        <CinematicPreview
+          renderMode={true}
+          frame={viewerFrame}
+          localFrame={viewerLocalFrame}
+          presetFrame={viewerPresetFrame}
+          shotKeyId={viewerShotKeyId}
+          carriedStartPose={activeClip?.carriedStartPose}
+          clipDurationFrames={activeClip?.durationFrames}
+          playheadFrame={playheadFrame}
+          totalFrames={totalFrames}
+          captionStyle={captionStyle}
+          activeTimelineCaption={activeTimelineCaption}
+          imageSrc={viewerImageSrc}
+          imagePosition={viewerImagePosition}
+          transition={activeTransition}
+          outgoingImageSrc={outgoingImageSrc}
+          outgoingImagePosition={outgoingImagePosition}
+          outgoingPresetFrame={outgoingPresetFrame}
+          outgoingShotKeyId={outgoingShotKeyId}
+          incomingImageSrc={incomingImageSrc}
+          incomingImagePosition={incomingImagePosition}
+          incomingPresetFrame={incomingPresetFrame}
+          incomingShotKeyId={incomingShotKeyId}
+          videoLevel={effectiveTrackLevel(trackMix, "video")}
+          resolveMedia={resolveMedia}
+          playing={false}
+          soundOn={false}
+          showCaption={showCaptions}
+          showMark={showMarks}
+          showTimecodeOverlay={showTimecodeOverlay}
+          showSafeGuides={false}
+          showOnionSkin={false}
+          isFullscreen={false}
+          interactiveFraming={false}
+          isClipSelected={false}
+        />
+      </div>
+    );
+  }
+
+  const effectiveTimelineDockHeight = curveEditor
+    ? Math.max(paneSizes.timelineHeight + 140, 440)
+    : paneSizes.timelineHeight;
+  const upperGridColumns = mediaBinOpen
+    ? `${paneSizes.mediaBinWidth}px 6px minmax(260px, 1fr) 6px ${paneSizes.inspectorWidth}px`
+    : `minmax(260px, 1fr) 6px ${paneSizes.inspectorWidth}px`;
 
   return (
     <div
@@ -3319,8 +3983,14 @@ export default function App() {
         }
       />
 
-      <div className={`editor-body ${curveEditor ? "has-curve-editor" : ""}`}>
-        <div className={`upper-workspace ${mediaBinOpen ? "has-bin" : ""}`}>
+      <div
+        className={`editor-body ${curveEditor ? "has-curve-editor" : ""} ${activePaneDrag ? "is-resizing-pane" : ""}`}
+        style={{ gridTemplateRows: `minmax(160px, 1fr) 6px ${effectiveTimelineDockHeight}px` }}
+      >
+        <div
+          className={`upper-workspace ${mediaBinOpen ? "has-bin" : ""}`}
+          style={{ gridTemplateColumns: upperGridColumns }}
+        >
           <MediaBin
             open={mediaBinOpen}
             onClose={() => setMediaBinOpen(false)}
@@ -3331,6 +4001,33 @@ export default function App() {
               handleAddAudioClipOnLane("sfx", ref, frameToMs(playheadRef.current))
             }
           />
+          {mediaBinOpen && (
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize media bin and viewer"
+              data-testid="splitter-media-bin"
+              className={`pane-splitter is-vertical ${activePaneDrag === "mediabin" ? "is-dragging" : ""}`}
+              title="Drag to resize Media Bin (double-click to reset)"
+              onDoubleClick={() => {
+                const next = { ...paneSizesRef.current, mediaBinWidth: DEFAULT_MEDIA_BIN_WIDTH };
+                setPaneSizes(next);
+                writeStoredPaneSizes(next);
+              }}
+              onPointerDown={(e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                setActivePaneDrag("mediabin");
+                paneDragSessionRef.current = {
+                  which: "mediabin",
+                  pointerId: e.pointerId,
+                  startClientX: e.clientX,
+                  startClientY: e.clientY,
+                  startSize: paneSizes.mediaBinWidth,
+                };
+              }}
+            />
+          )}
           <main className="stage-column">
             <header className="stage-heading">
               <div className="stage-title-lockup">
@@ -3535,6 +4232,7 @@ export default function App() {
                   playheadFrame={playheadFrame}
                   totalFrames={totalFrames}
                   captionStyle={captionStyle}
+                  activeTimelineCaption={activeTimelineCaption}
                   imageSrc={viewerImageSrc}
                   imagePosition={viewerImagePosition}
                   prevOnionSrc={prevOnionSrc}
@@ -3701,6 +4399,32 @@ export default function App() {
               </div>
             </div>
           </main>
+
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize viewer and inspector"
+            data-testid="splitter-inspector"
+            className={`pane-splitter is-vertical ${activePaneDrag === "inspector" ? "is-dragging" : ""}`}
+            title="Drag to resize Inspector width (double-click to reset)"
+            onDoubleClick={() => {
+              const next = { ...paneSizesRef.current, inspectorWidth: DEFAULT_INSPECTOR_WIDTH };
+              setPaneSizes(next);
+              writeStoredPaneSizes(next);
+            }}
+            onPointerDown={(e) => {
+              if (e.button !== 0) return;
+              e.preventDefault();
+              setActivePaneDrag("inspector");
+              paneDragSessionRef.current = {
+                which: "inspector",
+                pointerId: e.pointerId,
+                startClientX: e.clientX,
+                startClientY: e.clientY,
+                startSize: paneSizes.inspectorWidth,
+              };
+            }}
+          />
 
           <Inspector
             project={project}
@@ -3898,6 +4622,32 @@ export default function App() {
           />
         </div>
 
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize viewer and timeline"
+          data-testid="splitter-timeline-height"
+          className={`pane-splitter is-horizontal ${activePaneDrag === "timeline" ? "is-dragging" : ""}`}
+          title="Drag to resize timeline dock height (double-click to reset)"
+          onDoubleClick={() => {
+            const next = { ...paneSizesRef.current, timelineHeight: DEFAULT_TIMELINE_HEIGHT };
+            setPaneSizes(next);
+            writeStoredPaneSizes(next);
+          }}
+          onPointerDown={(e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            setActivePaneDrag("timeline");
+            paneDragSessionRef.current = {
+              which: "timeline",
+              pointerId: e.pointerId,
+              startClientX: e.clientX,
+              startClientY: e.clientY,
+              startSize: paneSizes.timelineHeight,
+            };
+          }}
+        />
+
         <div className={`lower-timeline-dock ${curveEditor ? "has-curve-editor" : ""}`}>
           {curveEditor && (() => {
             const curveClip =
@@ -4015,6 +4765,11 @@ export default function App() {
             onClearCaptionSelection={() => setSelectedCaption(null)}
             onCommitCaptions={handleCommitCaptions}
             onCaptionPreview={handleCaptionPreview}
+            resolvedCaptions={resolvedTimelineCaptions}
+            onBeginFreeCaptionDrag={handleBeginFreeCaptionDrag}
+            onPreviewFreeCaptionMove={handlePreviewFreeCaptionMove}
+            onCommitFreeCaptionMove={handleCommitFreeCaptionMove}
+            onCancelFreeCaptionMove={handleCancelFreeCaptionMove}
             onMergeCaptions={handleMergeCaptions}
             onDeleteCaptions={() => {
               void handleDeleteSelectedCaptions();
@@ -4096,6 +4851,10 @@ export default function App() {
         <ExportModal
           project={project}
           frames={frames}
+          clips={clips}
+          totalFrames={totalFrames}
+          playheadFrame={playheadFrame}
+          selectedClip={selectedClip}
           tab={exportTab}
           setTab={setExportTab}
           progress={exportProgress}
@@ -4106,19 +4865,25 @@ export default function App() {
           rangeEnd={rangeEnd}
           setRangeStart={setRangeStart}
           setRangeEnd={setRangeEnd}
+          wholeFilm={exportWholeFilm}
+          setWholeFilm={setExportWholeFilm}
+          fromFrame={exportFromFrame}
+          toFrame={exportToFrame}
+          setFromFrame={setExportFromFrame}
+          setToFrame={setExportToFrame}
           captions={captionsExport}
+          srt={srtExport}
           marks={marksExport}
           setCaptions={setCaptionsExport}
+          setSrt={setSrtExport}
           setMarks={setMarksExport}
+          mp4Job={mp4Job}
           onBundle={() => void exportBundle()}
           onPatch={exportPatch}
           onSrt={exportSrt}
           onVtt={exportVtt}
-          onMp4={() =>
-            setMp4Message(
-              "Exact MP4 rendering uses tools/export-animatic.mjs with local Playwright Chromium and ffmpeg. This browser-only surface does not substitute a simplified renderer.",
-            )
-          }
+          onMp4={() => void startMp4Export()}
+          onCancelMp4={() => void cancelMp4Export()}
           onClose={() => setExportOpen(false)}
           onRestoreSnapshot={restoreSnapshot}
         />

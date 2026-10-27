@@ -8,6 +8,26 @@ export interface BeatCaption {
   text: string;
   inFrame: number;
   outFrame: number;
+  /** True when freely moved/trimmed on the timeline (allowed to span across shot cuts). */
+  free?: boolean;
+  /** Preserves original speaker name when moved onto a different beat. */
+  speaker?: string;
+  /** Preserves narration italic styling when moved onto a different beat. */
+  isNarration?: boolean;
+}
+
+export interface ResolvedTimelineCaption {
+  id: string;
+  frameId: string;
+  captionIndex: number;
+  text: string;
+  inFrame: number;
+  outFrame: number;
+  globalInFrame: number;
+  globalOutFrame: number;
+  speaker: string;
+  isNarration: boolean;
+  free: boolean;
 }
 
 export interface CaptionStyle {
@@ -69,16 +89,39 @@ export function normalizeCaptions(
       text: String(cap.text ?? ""),
       inFrame: Math.max(0, Math.round(Number(cap.inFrame) || 0)),
       outFrame: Math.round(Number(cap.outFrame) || 0),
+      ...(cap.free ? { free: true } : {}),
+      ...(cap.speaker !== undefined ? { speaker: cap.speaker } : {}),
+      ...(cap.isNarration !== undefined ? { isNarration: cap.isNarration } : {}),
     }))
     .sort((a, b) => a.inFrame - b.inFrame || a.outFrame - b.outFrame);
 
   const out: BeatCaption[] = [];
   let cursor = 0;
   for (const cap of sorted) {
+    if (cap.free) {
+      const start = Math.max(cursor, cap.inFrame);
+      const end = Math.max(start + 1, cap.outFrame);
+      out.push({
+        text: cap.text,
+        inFrame: start,
+        outFrame: end,
+        free: true,
+        ...(cap.speaker !== undefined ? { speaker: cap.speaker } : {}),
+        ...(cap.isNarration !== undefined ? { isNarration: cap.isNarration } : {}),
+      });
+      cursor = end;
+      continue;
+    }
     const start = Math.max(cursor, Math.min(maxFrame - 1, cap.inFrame));
     const end = Math.max(start + 1, Math.min(maxFrame, cap.outFrame));
     if (start >= maxFrame || end <= start) continue;
-    out.push({ text: cap.text, inFrame: start, outFrame: end });
+    out.push({
+      text: cap.text,
+      inFrame: start,
+      outFrame: end,
+      ...(cap.speaker !== undefined ? { speaker: cap.speaker } : {}),
+      ...(cap.isNarration !== undefined ? { isNarration: cap.isNarration } : {}),
+    });
     cursor = end;
   }
   return out;
@@ -239,12 +282,26 @@ export function setCaptionRange(
   const maxFrame = Math.max(1, Math.round(clipDurationFrames));
   const base = effectiveCaptionsForBeat(beat, maxFrame);
   if (index < 0 || index >= base.length) return base;
+  const target = base[index];
   const minIn = index > 0 ? base[index - 1].outFrame : 0;
-  const maxOut = index < base.length - 1 ? base[index + 1].inFrame : maxFrame;
+  const isFree = Boolean(target.free) || Math.round(nextOutFrame) > maxFrame;
+  const maxOut =
+    index < base.length - 1
+      ? base[index + 1].inFrame
+      : isFree
+        ? Math.max(maxFrame, Math.round(nextOutFrame))
+        : maxFrame;
   const clampedIn = Math.max(minIn, Math.min(maxOut - 1, Math.round(nextInFrame)));
   const clampedOut = Math.max(clampedIn + 1, Math.min(maxOut, Math.round(nextOutFrame)));
   return base.map((cap, idx) =>
-    idx === index ? { ...cap, inFrame: clampedIn, outFrame: clampedOut } : { ...cap },
+    idx === index
+      ? {
+          ...cap,
+          inFrame: clampedIn,
+          outFrame: clampedOut,
+          ...(isFree ? { free: true } : {}),
+        }
+      : { ...cap },
   );
 }
 
@@ -289,16 +346,23 @@ export function splitCaptionAtCursor(
     Math.min(totalFrames - 1, Math.round((totalFrames * leftText.length) / totalChars)),
   );
   const splitFrame = target.inFrame + leftFrames;
+  const carryMeta = {
+    ...(target.free ? { free: true } : {}),
+    ...(target.speaker !== undefined ? { speaker: target.speaker } : {}),
+    ...(target.isNarration !== undefined ? { isNarration: target.isNarration } : {}),
+  };
 
   const first: BeatCaption = {
     text: leftText,
     inFrame: target.inFrame,
     outFrame: splitFrame,
+    ...carryMeta,
   };
   const second: BeatCaption = {
     text: rightText,
     inFrame: splitFrame,
     outFrame: target.outFrame,
+    ...carryMeta,
   };
 
   const next = [...base.slice(0, index), first, second, ...base.slice(index + 1)];
@@ -322,6 +386,9 @@ export function mergeAdjacentCaptions(
     text: [a.text.trim(), b.text.trim()].filter(Boolean).join(" "),
     inFrame: a.inFrame,
     outFrame: b.outFrame,
+    ...((a.free || b.free) ? { free: true } : {}),
+    ...(a.speaker !== undefined ? { speaker: a.speaker } : {}),
+    ...(a.isNarration !== undefined ? { isNarration: a.isNarration } : {}),
   };
   return [...base.slice(0, firstIndex), merged, ...base.slice(firstIndex + 2)];
 }
@@ -414,6 +481,69 @@ export interface TimedCaptionCue {
   text: string;
 }
 
+export interface TimelineCaptionSourceClip {
+  keyframe: Keyframe;
+  startFrame: number;
+  durationFrames: number;
+}
+
+/**
+ * Resolves all timeline captions into global `[globalInFrame, globalOutFrame)` coordinates,
+ * supporting freely moved/trimmed captions that span across shot cuts or over gap clips.
+ */
+export function resolveTimelineCaptions(
+  clips: readonly TimelineCaptionSourceClip[],
+): ResolvedTimelineCaption[] {
+  const out: ResolvedTimelineCaption[] = [];
+  for (const clip of clips) {
+    const durFrames = Math.max(1, Math.round(clip.durationFrames));
+    const caps = effectiveCaptionsForBeat(clip.keyframe.beat, durFrames);
+    caps.forEach((cap, idx) => {
+      const globalInFrame = clip.startFrame + cap.inFrame;
+      const globalOutFrame = clip.startFrame + cap.outFrame;
+      if (globalOutFrame <= globalInFrame) return;
+      out.push({
+        id: `${clip.keyframe.id}:${idx}`,
+        frameId: clip.keyframe.id,
+        captionIndex: idx,
+        text: cap.text,
+        inFrame: cap.inFrame,
+        outFrame: cap.outFrame,
+        globalInFrame,
+        globalOutFrame,
+        speaker: cap.speaker ?? clip.keyframe.speaker,
+        isNarration: cap.isNarration ?? isNarrationBeat(clip.keyframe.beat),
+        free: Boolean(cap.free) || cap.outFrame > durFrames,
+      });
+    });
+  }
+  return out;
+}
+
+/**
+ * Returns the active timeline caption at `globalFrame` (`globalInFrame <= f < globalOutFrame`),
+ * preferring the most recently started caption when two overlap across a cut.
+ */
+export function activeTimelineCaptionAtFrame(
+  resolved: readonly ResolvedTimelineCaption[],
+  globalFrame: number,
+): ResolvedTimelineCaption | undefined {
+  const f = Math.max(0, Math.floor(globalFrame));
+  let match: ResolvedTimelineCaption | undefined;
+  for (const cap of resolved) {
+    if (f >= cap.globalInFrame && f < cap.globalOutFrame) {
+      if (!match) {
+        match = cap;
+      } else if (cap.free && !match.free) {
+        match = cap;
+      } else if (cap.free === match.free && cap.globalInFrame >= match.globalInFrame) {
+        match = cap;
+      }
+    }
+  }
+  return match;
+}
+
 export function collectExportCaptionCues(
   frames: readonly Keyframe[],
   clipDurationsFrames?: readonly number[],
@@ -436,6 +566,7 @@ export function collectExportCaptionCues(
     }
     cursorFrames += durFrames;
   });
+  cues.sort((a, b) => a.startSeconds - b.startSeconds || a.endSeconds - b.endSeconds);
   return cues;
 }
 
@@ -445,6 +576,41 @@ export function makeCaptionsSrt(
   fps = FPS,
 ): string {
   const cues = collectExportCaptionCues(frames, clipDurationsFrames, fps);
+  return cues
+    .map(
+      (cue, idx) =>
+        `${idx + 1}\n${srtTime(cue.startSeconds)} --> ${srtTime(cue.endSeconds)}\n${cue.text}`,
+    )
+    .join("\n\n");
+}
+
+/**
+ * Exports `.srt` cues clipped to `[fromFrame, toFrame + 1)` and shifted so `fromFrame`
+ * begins at `00:00:00,000` (matching an exported MP4 over `--from .. --to`).
+ */
+export function makeRangeCaptionsSrt(
+  clips: readonly TimelineCaptionSourceClip[],
+  fromFrame: number,
+  toFrame: number,
+  fps = FPS,
+): string {
+  const startFrame = Math.max(0, Math.round(fromFrame));
+  const endExclusive = Math.max(startFrame + 1, Math.round(toFrame) + 1);
+  const resolved = resolveTimelineCaptions(clips);
+  const cues: TimedCaptionCue[] = [];
+  for (const cap of resolved) {
+    const clippedIn = Math.max(startFrame, cap.globalInFrame);
+    const clippedOut = Math.min(endExclusive, cap.globalOutFrame);
+    if (clippedOut <= clippedIn) continue;
+    const cleaned = wrapCaptionLines(cap.text, CAPTION_MAX_LINE_CHARS).join("\n").trim();
+    if (!cleaned || cleaned === "·") continue;
+    cues.push({
+      startSeconds: (clippedIn - startFrame) / fps,
+      endSeconds: (clippedOut - startFrame) / fps,
+      text: cleaned,
+    });
+  }
+  cues.sort((a, b) => a.startSeconds - b.startSeconds || a.endSeconds - b.endSeconds);
   return cues
     .map(
       (cue, idx) =>

@@ -1,0 +1,454 @@
+import {
+  AUDIO_LANES,
+  computeScheduleWindow,
+  DEFAULT_DUCK_DEPTH,
+  type AudioLaneId,
+  type ResolvedAudioClip,
+} from "./audioClips";
+import {
+  createDefaultTrackMix,
+  effectiveTrackLevel,
+  type MediaResolver,
+  type TrackMixMap,
+} from "./previewAudio";
+import { FPS } from "./timing";
+import { extractPlayableUrlsFromSrc } from "./webAudioEngine";
+
+const BASE_LANE_LEVEL: Record<AudioLaneId, number> = {
+  voice: 0.95,
+  sfx: 0.85,
+  music: 0.8,
+  ambience: 0.55,
+};
+
+const MAX_FRAMES_PER_OFFLINE_CHUNK = 7200; // 5 minutes per OfflineAudioContext chunk
+
+export interface OfflineAudioMixOptions {
+  resolvedClips: readonly ResolvedAudioClip[];
+  resolveMedia: MediaResolver;
+  trackMix?: TrackMixMap;
+  duckDepth?: number;
+  fromFrame: number;
+  toFrame: number;
+  fps?: number;
+  sampleRate?: number;
+}
+
+/**
+ * Deterministic xorshift32 noise buffer for offline procedural ambience ("rain")
+ * so offline audio renders never use Math.random().
+ */
+function createDeterministicNoiseBuffer(ctx: BaseAudioContext, seed = 0x5ca1e724): AudioBuffer {
+  const len = ctx.sampleRate * 2;
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  let state = seed >>> 0 || 1;
+  for (let i = 0; i < len; i += 1) {
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    data[i] = ((state >>> 0) / 0xffffffff) * 2 - 1;
+  }
+  return buf;
+}
+
+function scheduleSynthBedOffline(
+  ctx: BaseAudioContext,
+  noiseBuffer: AudioBuffer,
+  preset: string,
+  dest: AudioNode,
+  whenSec: number,
+  durSec: number,
+): void {
+  if (durSec <= 0) return;
+  if (preset === "rain") {
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer;
+    src.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 1100;
+    filter.Q.value = 0.7;
+    const g = ctx.createGain();
+    g.gain.value = 0.22;
+    src.connect(filter).connect(g).connect(dest);
+    src.start(whenSec);
+    src.stop(whenSec + durSec);
+  } else {
+    const osc = ctx.createOscillator();
+    osc.type = preset === "tension" ? "sawtooth" : "sine";
+    osc.frequency.value = preset === "jazz" ? 110 : preset === "tension" ? 73.4 : 65.4;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 240;
+    const g = ctx.createGain();
+    g.gain.value = 0.14;
+    osc.connect(filter).connect(g).connect(dest);
+    osc.start(whenSec);
+    osc.stop(whenSec + durSec);
+  }
+}
+
+interface Interval {
+  startSec: number;
+  endSec: number;
+}
+
+function mergeVoiceIntervals(
+  clips: readonly ResolvedAudioClip[],
+  windowStartMs: number,
+  windowDurationMs: number,
+): Interval[] {
+  const windowEndMs = windowStartMs + windowDurationMs;
+  const raw: Interval[] = [];
+  for (const clip of clips) {
+    if (clip.lane !== "voice") continue;
+    if (clip.gain <= 0 || clip.durationMs <= 0) continue;
+    const s = Math.max(windowStartMs, clip.startMs);
+    const e = Math.min(windowEndMs, clip.endMs);
+    if (e <= s) continue;
+    raw.push({
+      startSec: (s - windowStartMs) / 1000,
+      endSec: (e - windowStartMs) / 1000,
+    });
+  }
+  if (!raw.length) return [];
+  raw.sort((a, b) => a.startSec - b.startSec);
+  const merged: Interval[] = [{ ...raw[0] }];
+  for (let i = 1; i < raw.length; i += 1) {
+    const prev = merged[merged.length - 1];
+    // Merge voice intervals separated by < 160ms so music doesn't pump between adjacent syllables
+    if (raw[i].startSec <= prev.endSec + 0.16) {
+      prev.endSec = Math.max(prev.endSec, raw[i].endSec);
+    } else {
+      merged.push({ ...raw[i] });
+    }
+  }
+  return merged;
+}
+
+function automateDuckingGain(
+  duckGainParam: AudioParam,
+  voiceIntervals: readonly Interval[],
+  duckDepth: number,
+  durationSec: number,
+): void {
+  const clampedDuck = Math.max(0, Math.min(1, duckDepth));
+  if (!voiceIntervals.length || clampedDuck >= 0.999) {
+    duckGainParam.setValueAtTime(1, 0);
+    return;
+  }
+  const attackSec = 0.08;
+  const releaseSec = 0.22;
+
+  const first = voiceIntervals[0];
+  if (first.startSec <= 0.005) {
+    duckGainParam.setValueAtTime(clampedDuck, 0);
+  } else {
+    duckGainParam.setValueAtTime(1, 0);
+  }
+
+  for (let i = 0; i < voiceIntervals.length; i += 1) {
+    const cur = voiceIntervals[i];
+    if (cur.startSec > 0.005) {
+      const rampStart = Math.max(0, cur.startSec - attackSec);
+      duckGainParam.setValueAtTime(1, rampStart);
+      duckGainParam.linearRampToValueAtTime(clampedDuck, cur.startSec);
+    }
+    const holdUntil = Math.min(durationSec, cur.endSec);
+    duckGainParam.setValueAtTime(clampedDuck, holdUntil);
+    const next = voiceIntervals[i + 1];
+    const releaseEnd = Math.min(durationSec, holdUntil + releaseSec);
+    if (!next || next.startSec - attackSec > releaseEnd) {
+      duckGainParam.linearRampToValueAtTime(1, releaseEnd);
+    }
+  }
+}
+
+async function decodeAllNeededAudioBuffers(
+  clips: readonly ResolvedAudioClip[],
+  resolveMedia: MediaResolver,
+  windowStartMs: number,
+  windowEndMs: number,
+  sampleRate: number,
+): Promise<{
+  byUrl: Map<string, AudioBuffer>;
+  fileDurationsMs: Map<string, number>;
+}> {
+  const urlsToDecode = new Set<string>();
+  const urlToLogicalSrcs = new Map<string, Set<string>>();
+
+  for (const clip of clips) {
+    if (clip.durationMs <= 0 || clip.endMs <= windowStartMs || clip.startMs >= windowEndMs) {
+      continue;
+    }
+    const { urls } = extractPlayableUrlsFromSrc(clip.src, resolveMedia);
+    for (const u of urls) {
+      urlsToDecode.add(u);
+      const set = urlToLogicalSrcs.get(u) ?? new Set<string>();
+      set.add(clip.src);
+      urlToLogicalSrcs.set(u, set);
+    }
+  }
+
+  const byUrl = new Map<string, AudioBuffer>();
+  const fileDurationsMs = new Map<string, number>();
+  if (!urlsToDecode.size || typeof OfflineAudioContext === "undefined") {
+    return { byUrl, fileDurationsMs };
+  }
+
+  const decoder = new OfflineAudioContext(2, 1, sampleRate);
+  await Promise.all(
+    [...urlsToDecode].map(async (url) => {
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) return;
+        const ct = resp.headers.get("content-type") || "";
+        if (ct.includes("text/html")) return;
+        const ab = await resp.arrayBuffer();
+        const decoded = await decoder.decodeAudioData(ab.slice(0));
+        byUrl.set(url, decoded);
+        for (const logical of urlToLogicalSrcs.get(url) ?? []) {
+          fileDurationsMs.set(logical, decoded.duration * 1000);
+        }
+      } catch {
+        // Skip unreadable/missing media asset cleanly
+      }
+    }),
+  );
+
+  return { byUrl, fileDurationsMs };
+}
+
+async function renderOfflineChunk(
+  clips: readonly ResolvedAudioClip[],
+  resolveMedia: MediaResolver,
+  byUrl: ReadonlyMap<string, AudioBuffer>,
+  fileDurationsMs: ReadonlyMap<string, number>,
+  trackMix: TrackMixMap,
+  duckDepth: number,
+  chunkStartMs: number,
+  chunkSamples: number,
+  sampleRate: number,
+): Promise<{ left: Float32Array; right: Float32Array }> {
+  const chunkDurationSec = chunkSamples / sampleRate;
+  const chunkDurationMs = chunkDurationSec * 1000;
+  const ctx = new OfflineAudioContext(2, Math.max(1, chunkSamples), sampleRate);
+
+  const master = ctx.createGain();
+  master.gain.value = 1;
+  master.connect(ctx.destination);
+
+  const duck = ctx.createGain();
+  duck.connect(master);
+
+  const voiceLevel = effectiveTrackLevel(trackMix, "voice");
+  const voiceIntervals =
+    voiceLevel > 0 ? mergeVoiceIntervals(clips, chunkStartMs, chunkDurationMs) : [];
+  automateDuckingGain(duck.gain, voiceIntervals, duckDepth, chunkDurationSec);
+
+  const laneBuses: Record<AudioLaneId, GainNode> = {} as Record<AudioLaneId, GainNode>;
+  for (const lane of AUDIO_LANES) {
+    const bus = ctx.createGain();
+    bus.gain.value = effectiveTrackLevel(trackMix, lane) * BASE_LANE_LEVEL[lane];
+    if (lane === "music" || lane === "ambience") {
+      bus.connect(duck);
+    } else {
+      bus.connect(master);
+    }
+    laneBuses[lane] = bus;
+  }
+
+  const noiseBuffer = createDeterministicNoiseBuffer(ctx);
+  const slices = computeScheduleWindow(clips, chunkStartMs, {
+    includeActiveAtPlayhead: true,
+    windowFromMs: chunkStartMs,
+    lookaheadMs: chunkDurationMs,
+    fileDurationsMs,
+  });
+
+  for (const slice of slices) {
+    const bus = laneBuses[slice.clip.lane];
+    if (!bus || effectiveTrackLevel(trackMix, slice.clip.lane) <= 0) continue;
+
+    const whenSec = Math.max(0, slice.startWhenOffsetMs / 1000);
+    if (whenSec >= chunkDurationSec) continue;
+    const maxAvailSec = chunkDurationSec - whenSec;
+    const sliceRemSec = Math.min(maxAvailSec, slice.remainingMs / 1000);
+    if (sliceRemSec <= 0) continue;
+
+    const clipGain = ctx.createGain();
+    clipGain.connect(bus);
+
+    const applyEnvelope = (durSec: number) => {
+      const pts = slice.gainEnvelope;
+      if (!pts.length) {
+        clipGain.gain.setValueAtTime(slice.clip.gain, whenSec);
+        return;
+      }
+      clipGain.gain.setValueAtTime(pts[0].gain, whenSec);
+      for (let i = 1; i < pts.length; i += 1) {
+        const t = whenSec + Math.min(durSec, pts[i].offsetMs / 1000);
+        clipGain.gain.linearRampToValueAtTime(pts[i].gain, t);
+      }
+    };
+
+    const { urls, synthTokens } = extractPlayableUrlsFromSrc(slice.clip.src, resolveMedia);
+
+    for (const url of urls) {
+      const buf = byUrl.get(url);
+      if (!buf || buf.duration <= 0) continue;
+      const offsetInFileSec = slice.offsetInFileMs / 1000;
+      const source = ctx.createBufferSource();
+      source.buffer = buf;
+
+      if (slice.clip.loop) {
+        source.loop = true;
+        const wrapped = ((offsetInFileSec % buf.duration) + buf.duration) % buf.duration;
+        applyEnvelope(sliceRemSec);
+        source.connect(clipGain);
+        source.start(whenSec, wrapped);
+        source.stop(whenSec + sliceRemSec);
+      } else {
+        if (offsetInFileSec >= buf.duration) continue;
+        const finalDurSec = Math.min(sliceRemSec, buf.duration - offsetInFileSec);
+        if (finalDurSec <= 0) continue;
+        applyEnvelope(finalDurSec);
+        source.connect(clipGain);
+        source.start(whenSec, offsetInFileSec, finalDurSec);
+      }
+    }
+
+    for (const preset of synthTokens) {
+      applyEnvelope(sliceRemSec);
+      scheduleSynthBedOffline(ctx, noiseBuffer, preset, clipGain, whenSec, sliceRemSec);
+    }
+  }
+
+  const rendered = await ctx.startRendering();
+  const left = new Float32Array(rendered.getChannelData(0));
+  const right =
+    rendered.numberOfChannels > 1
+      ? new Float32Array(rendered.getChannelData(1))
+      : new Float32Array(rendered.getChannelData(0));
+  return { left, right };
+}
+
+/**
+ * Renders the exact 4-track audio mix (`voice`, `sfx`, `music` with fades & ducking, `ambience`)
+ * over `[fromFrame, toFrame]` inclusive (`N = toFrame - fromFrame + 1` frames) using
+ * Web Audio `OfflineAudioContext`, returning a 16-bit PCM stereo WAV `Uint8Array` with
+ * exact sample count `N * (sampleRate / fps)`.
+ */
+export async function renderTimelineAudioOfflineWav(
+  options: OfflineAudioMixOptions,
+): Promise<Uint8Array> {
+  const fps = options.fps ?? FPS;
+  const sampleRate = options.sampleRate ?? 48000;
+  const startFrame = Math.max(0, Math.round(options.fromFrame));
+  const endFrame = Math.max(startFrame, Math.round(options.toFrame));
+  const frameCount = endFrame - startFrame + 1;
+  const samplesPerFrame = Math.round(sampleRate / fps);
+  const totalSamples = Math.max(1, frameCount * samplesPerFrame);
+  const trackMix = options.trackMix ?? createDefaultTrackMix();
+  const duckDepth = options.duckDepth ?? DEFAULT_DUCK_DEPTH;
+
+  const fullStartMs = (startFrame * 1000) / fps;
+  const fullEndMs = ((endFrame + 1) * 1000) / fps;
+
+  const { byUrl, fileDurationsMs } = await decodeAllNeededAudioBuffers(
+    options.resolvedClips,
+    options.resolveMedia,
+    fullStartMs,
+    fullEndMs,
+    sampleRate,
+  );
+
+  const outLeft = new Float32Array(totalSamples);
+  const outRight = new Float32Array(totalSamples);
+
+  let frameCursor = startFrame;
+  let sampleCursor = 0;
+
+  while (frameCursor <= endFrame) {
+    const chunkFrames = Math.min(MAX_FRAMES_PER_OFFLINE_CHUNK, endFrame - frameCursor + 1);
+    const chunkSamples = Math.min(totalSamples - sampleCursor, chunkFrames * samplesPerFrame);
+    const chunkStartMs = (frameCursor * 1000) / fps;
+
+    const { left, right } = await renderOfflineChunk(
+      options.resolvedClips,
+      options.resolveMedia,
+      byUrl,
+      fileDurationsMs,
+      trackMix,
+      duckDepth,
+      chunkStartMs,
+      chunkSamples,
+      sampleRate,
+    );
+
+    outLeft.set(left.subarray(0, chunkSamples), sampleCursor);
+    outRight.set(right.subarray(0, chunkSamples), sampleCursor);
+
+    frameCursor += chunkFrames;
+    sampleCursor += chunkSamples;
+  }
+
+  return encodeWav16BitStereo(outLeft, outRight, sampleRate);
+}
+
+export function encodeWav16BitStereo(
+  left: Float32Array,
+  right: Float32Array,
+  sampleRate: number,
+): Uint8Array {
+  const numFrames = Math.min(left.length, right.length);
+  const numChannels = 2;
+  const bytesPerSample = 2;
+  const blockAlign = numChannels * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = numFrames * blockAlign;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  const writeAscii = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i += 1) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  };
+
+  writeAscii(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeAscii(8, "WAVE");
+  writeAscii(12, "fmt ");
+  view.setUint32(16, 16, true); // PCM chunk size
+  view.setUint16(20, 1, true); // PCM = 1
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true); // 16-bit
+  writeAscii(36, "data");
+  view.setUint32(40, dataSize, true);
+
+  let offset = 44;
+  for (let i = 0; i < numFrames; i += 1) {
+    const l = Math.max(-1, Math.min(1, left[i]));
+    const r = Math.max(-1, Math.min(1, right[i]));
+    view.setInt16(offset, l < 0 ? l * 0x8000 : l * 0x7fff, true);
+    view.setInt16(offset + 2, r < 0 ? r * 0x8000 : r * 0x7fff, true);
+    offset += 4;
+  }
+
+  return new Uint8Array(buffer);
+}
+
+export function uint8ArrayToBase64(bytes: Uint8Array): string {
+  const chunkSize = 0x8000;
+  const chunks: string[] = [];
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const sub = bytes.subarray(i, Math.min(bytes.length, i + chunkSize));
+    chunks.push(String.fromCharCode(...sub));
+  }
+  return btoa(chunks.join(""));
+}

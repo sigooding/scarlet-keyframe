@@ -16,6 +16,7 @@ import {
   normalizeCaptionStyle,
   wrapCaptionLines,
   type CaptionStyle,
+  type ResolvedTimelineCaption,
 } from "../core/captions";
 import type { BeatAnimation, KenBurnsBox, Keyframe } from "../core/model";
 import { pictureLabel, storyboardGradient } from "../core/helpers";
@@ -47,6 +48,8 @@ export interface CinematicPreviewProps {
   playheadFrame?: number;
   totalFrames?: number;
   captionStyle?: CaptionStyle;
+  activeTimelineCaption?: ResolvedTimelineCaption | null;
+  renderMode?: boolean;
   imageSrc?: string;
   imagePosition?: string;
   prevOnionSrc?: string;
@@ -104,6 +107,8 @@ export function CinematicPreview({
   playheadFrame = 0,
   totalFrames = 0,
   captionStyle,
+  activeTimelineCaption,
+  renderMode = false,
   imageSrc,
   imagePosition,
   prevOnionSrc,
@@ -194,20 +199,35 @@ export function CinematicPreview({
     clipDurationFrames !== undefined && clipDurationFrames > 0
       ? clipDurationFrames
       : clipFrames(frame);
-  const activeCaption = useMemo(
-    () => activeCaptionAtLocalFrame(frame.beat, resolvedClipDuration, localFrame),
-    [frame.beat, resolvedClipDuration, localFrame],
+  const fallbackLocalCaption = useMemo(
+    () =>
+      activeTimelineCaption === undefined
+        ? activeCaptionAtLocalFrame(frame.beat, resolvedClipDuration, localFrame)
+        : undefined,
+    [activeTimelineCaption, frame.beat, resolvedClipDuration, localFrame],
   );
+  const effectiveCaptionText =
+    activeTimelineCaption !== undefined
+      ? activeTimelineCaption?.text ?? ""
+      : fallbackLocalCaption?.text ?? "";
   const wrappedCaptionText = useMemo(
-    () => (activeCaption ? wrapCaptionLines(activeCaption.text, 42).join("\n") : ""),
-    [activeCaption],
+    () => (effectiveCaptionText ? wrapCaptionLines(effectiveCaptionText, 42).join("\n") : ""),
+    [effectiveCaptionText],
   );
-  const isNarration = isNarrationBeat(frame.beat);
+  const captionSpeaker =
+    activeTimelineCaption !== undefined
+      ? activeTimelineCaption?.speaker ?? frame.speaker
+      : fallbackLocalCaption?.speaker ?? frame.speaker;
+  const isNarration =
+    activeTimelineCaption !== undefined
+      ? activeTimelineCaption?.isNarration ?? isNarrationBeat(frame.beat)
+      : fallbackLocalCaption?.isNarration ?? isNarrationBeat(frame.beat);
 
   const hasEditablePicture =
     !frame.beat.gap && Boolean(imageSrc || (frame.picture && frame.picture.length > 0));
   const storedKenBurns = frame.beat.animation?.kenBurns;
   const showKenBurnsBoxes =
+    !renderMode &&
     interactiveFraming &&
     isClipSelected &&
     hasEditablePicture &&
@@ -216,6 +236,7 @@ export function CinematicPreview({
     (kenBurnsDrawStep !== null || (Boolean(storedKenBurns) && !kenBurnsSuppressed));
 
   const canDirectFrame =
+    !renderMode &&
     interactiveFraming &&
     hasEditablePicture &&
     !playing &&
@@ -436,13 +457,14 @@ export function CinematicPreview({
     }
   }
 
-  const showEdgeBanner = Boolean(edgeWarningMsg) || poseHitsEdge;
+  const showEdgeBanner = !renderMode && (Boolean(edgeWarningMsg) || poseHitsEdge);
 
   return (
     <div
       ref={previewRef}
       className={[
         "cin-preview",
+        renderMode ? "is-render-mode" : "",
         frame.beat.gap ? "" : ownOverlay,
         canDirectFrame ? "is-direct-framing" : "",
         isPanning ? "is-panning" : "",
@@ -1208,7 +1230,7 @@ export function CinematicPreview({
       )}
 
       {/* Top-left Ken Burns button */}
-      {onToggleKenBurns && !isFullscreen && (
+      {!renderMode && onToggleKenBurns && !isFullscreen && (
         <div
           className="cin-kb-trigger-wrap"
           onPointerDown={(e) => e.stopPropagation()}
@@ -1229,11 +1251,12 @@ export function CinematicPreview({
       )}
 
       {/* Viewer corner overlay toggles & Full Screen control */}
-      {(onToggleSafeGuides ||
-        onToggleOnionSkin ||
-        onToggleTimecodeOverlay ||
-        onToggleMarkOverlay ||
-        onToggleFullscreen) && (
+      {!renderMode &&
+        (onToggleSafeGuides ||
+          onToggleOnionSkin ||
+          onToggleTimecodeOverlay ||
+          onToggleMarkOverlay ||
+          onToggleFullscreen) && (
         <div
           className="cin-corner-toggles"
           data-testid="viewer-corner-toggles"
@@ -1318,21 +1341,23 @@ export function CinematicPreview({
           data-speaker={style.showSpeaker ? "on" : "off"}
           data-italic-narration={style.italicNarration ? "on" : "off"}
         >
-          {style.showSpeaker && <span>{frame.speaker}</span>}
+          {style.showSpeaker && captionSpeaker && <span>{captionSpeaker}</span>}
           <p className={style.italicNarration && isNarration ? "is-italic" : undefined}>
             {wrappedCaptionText}
           </p>
         </div>
       )}
-      {frame.carried && (
+      {!renderMode && frame.carried && (
         <div className="cin-carried-mark">
           {frame.pictureSource === "scene" ? "SCENE PLATE" : "CARRIED PICTURE"}
         </div>
       )}
-      <div className="cin-preview-crosshair" aria-hidden>
-        <i />
-        <b />
-      </div>
+      {!renderMode && (
+        <div className="cin-preview-crosshair" aria-hidden>
+          <i />
+          <b />
+        </div>
+      )}
     </div>
   );
 }

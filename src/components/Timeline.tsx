@@ -2,6 +2,7 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -29,7 +30,10 @@ import {
   type SelectedKeyframeDiamond,
   type TimelineLaneBands,
 } from "../core/audioClips";
-import type { BeatCaption } from "../core/captions";
+import type {
+  BeatCaption,
+  ResolvedTimelineCaption,
+} from "../core/captions";
 import { FPS, formatTimecode, MIN_CLIP_FRAMES } from "../core/timing";
 import { CaptionLane, type SelectedCaptionState } from "./CaptionLane";
 import type { InspectorTab } from "./Inspector";
@@ -165,6 +169,17 @@ export interface TimelineProps {
     captions: BeatCaption[],
     clipDurationFrames: number,
   ) => void;
+  resolvedCaptions?: ResolvedTimelineCaption[];
+  onBeginFreeCaptionDrag?: () => void;
+  onPreviewFreeCaptionMove?: (
+    sourceFrameId: string,
+    captionIndex: number,
+    targetGlobalInFrame: number,
+    targetGlobalOutFrame: number,
+    copy: boolean,
+  ) => void;
+  onCommitFreeCaptionMove?: (label: string) => void;
+  onCancelFreeCaptionMove?: () => void;
   onMergeCaptions?: () => void;
   onDeleteCaptions?: () => void;
 }
@@ -172,6 +187,10 @@ export interface TimelineProps {
 const MIN_PX_PER_FRAME = 0.08;
 const MAX_PX_PER_FRAME = 160;
 const DEFAULT_PX_PER_FRAME = 1.6;
+const DEFAULT_TRACK_HEADER_WIDTH = 196;
+const MIN_TRACK_HEADER_WIDTH = 136;
+const MAX_TRACK_HEADER_WIDTH = 380;
+const TRACK_HEADER_STORAGE_KEY = "frame24-track-header-width";
 const TICK_INTERVALS = [1, 2, 4, 6, 12, 24, 48, 120, 240, 360, 720, 1440, 2880, 7200];
 
 function chooseMajorTickFrames(pxPerFrame: number): number {
@@ -246,10 +265,29 @@ export function Timeline({
   onClearCaptionSelection,
   onCommitCaptions,
   onCaptionPreview,
+  resolvedCaptions: resolvedCaptionsProp,
+  onBeginFreeCaptionDrag,
+  onPreviewFreeCaptionMove,
+  onCommitFreeCaptionMove,
+  onCancelFreeCaptionMove,
   onMergeCaptions,
   onDeleteCaptions,
 }: TimelineProps) {
   const [pxPerFrame, setPxPerFrame] = useState(DEFAULT_PX_PER_FRAME);
+  const [trackHeaderWidth, setTrackHeaderWidth] = useState<number>(() => {
+    try {
+      const saved = Number(window.localStorage.getItem(TRACK_HEADER_STORAGE_KEY));
+      if (Number.isFinite(saved) && saved >= MIN_TRACK_HEADER_WIDTH && saved <= MAX_TRACK_HEADER_WIDTH) {
+        return saved;
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return DEFAULT_TRACK_HEADER_WIDTH;
+  });
+  const headerResizeRef = useRef<{ pointerId: number; startX: number; startWidth: number } | null>(null);
+  const [isResizingHeaders, setIsResizingHeaders] = useState(false);
+  const lastMultiCaptionDeltaMsRef = useRef(0);
   const [scrollLeft, setScrollLeft] = useState(() =>
     Math.max(0, playheadFrame * DEFAULT_PX_PER_FRAME - 300),
   );
@@ -411,35 +449,73 @@ export function Timeline({
     }
   }, [clips.length, playheadFrame, pxPerFrame, centerFrameInView]);
 
+  const pendingZoomScrollLeftRef = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (pendingZoomScrollLeftRef.current === null) return;
+    const targetLeft = pendingZoomScrollLeftRef.current;
+    pendingZoomScrollLeftRef.current = null;
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = targetLeft;
+    }
+    setScrollLeft(targetLeft);
+  }, [pxPerFrame]);
+
   const zoomTimeline = useCallback((factor: number, anchorX?: number) => {
     const el = scrollRef.current;
     const prevScale = pxPerFrameRef.current;
     const nextScale = Math.max(MIN_PX_PER_FRAME, Math.min(MAX_PX_PER_FRAME, prevScale * factor));
     if (Math.abs(nextScale - prevScale) < 1e-6) return;
+    const currentScroll =
+      pendingZoomScrollLeftRef.current ?? (el ? el.scrollLeft : 0);
     const viewOffset =
       anchorX ??
       (el
-        ? Math.min(el.clientWidth * 0.5, Math.max(40, playheadRef.current * prevScale - el.scrollLeft))
+        ? Math.min(el.clientWidth * 0.5, Math.max(40, playheadRef.current * prevScale - currentScroll))
         : 240);
-    const anchorFrame = el ? (el.scrollLeft + viewOffset) / prevScale : playheadRef.current;
+    const anchorFrame = el ? (currentScroll + viewOffset) / prevScale : playheadRef.current;
+    const nextLeft = Math.max(0, anchorFrame * nextScale - viewOffset);
+    pxPerFrameRef.current = nextScale;
+    pendingZoomScrollLeftRef.current = nextLeft;
     setPxPerFrame(nextScale);
-    requestAnimationFrame(() => {
-      if (!scrollRef.current) return;
-      const nextLeft = Math.max(0, anchorFrame * nextScale - viewOffset);
-      scrollRef.current.scrollLeft = nextLeft;
-      setScrollLeft(nextLeft);
-    });
+    setScrollLeft(nextLeft);
   }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const onWheel = (event: WheelEvent) => {
-      if (!(event.ctrlKey || event.metaKey)) return;
+      // Alt+wheel allows vertical scrolling when timeline lanes exceed dock height
+      if (event.altKey) return;
+
+      // Shift+wheel or horizontal trackpad swipe pans the timeline horizontally
+      const isHorizontalSwipe =
+        !(event.ctrlKey || event.metaKey) &&
+        (event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.15);
+      if (isHorizontalSwipe) {
+        const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+        if (delta !== 0) {
+          event.preventDefault();
+          const next = Math.max(0, el.scrollLeft + delta);
+          el.scrollLeft = next;
+          setScrollLeft(next);
+        }
+        return;
+      }
+
+      // Plain vertical mouse wheel (or Ctrl/Cmd + wheel) zooms in/out anchored at cursor X
+      if (event.deltaY === 0) return;
       event.preventDefault();
       const rect = el.getBoundingClientRect();
-      const offsetX = event.clientX - rect.left;
-      const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
+      const offsetX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+      const pixelDelta =
+        event.deltaMode === 1
+          ? event.deltaY * 28
+          : event.deltaMode === 2
+            ? event.deltaY * 120
+            : event.deltaY;
+      const clampedDelta = Math.max(-240, Math.min(240, pixelDelta));
+      const factor = Math.pow(1.0022, -clampedDelta);
       zoomTimeline(factor, offsetX);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
@@ -1051,7 +1127,7 @@ export function Timeline({
             aria-label="Zoom out timeline"
             data-testid="timeline-zoom-out"
             onClick={() => zoomTimeline(1 / 1.35)}
-            title="Zoom out timeline (− or Ctrl+scroll)"
+            title="Zoom out timeline (− or mouse wheel)"
           >
             −
           </button>
@@ -1062,14 +1138,17 @@ export function Timeline({
             aria-label="Zoom in timeline"
             data-testid="timeline-zoom-in"
             onClick={() => zoomTimeline(1.35)}
-            title="Zoom in timeline (+ or Ctrl+scroll)"
+            title="Zoom in timeline (+ or mouse wheel)"
           >
             +
           </button>
         </div>
       </header>
 
-      <div className="timeline-body">
+      <div
+        className={`timeline-body ${isResizingHeaders ? "is-resizing" : ""}`}
+        style={{ gridTemplateColumns: `${trackHeaderWidth}px 5px minmax(0, 1fr)` }}
+      >
         <aside className="timeline-track-headers" data-testid="timeline-track-headers" aria-label="Track headers">
           <div className="track-header-ruler">
             <span>TRACKS</span>
@@ -1230,6 +1309,58 @@ export function Timeline({
         </aside>
 
         <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize timeline track headers"
+          data-testid="splitter-track-headers"
+          className={`pane-splitter is-vertical is-track-header-splitter ${isResizingHeaders ? "is-dragging" : ""}`}
+          title="Drag to resize track headers (double-click to reset)"
+          onDoubleClick={() => {
+            setTrackHeaderWidth(DEFAULT_TRACK_HEADER_WIDTH);
+            try {
+              window.localStorage.setItem(TRACK_HEADER_STORAGE_KEY, String(DEFAULT_TRACK_HEADER_WIDTH));
+            } catch {
+              // ignore
+            }
+          }}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            setIsResizingHeaders(true);
+            headerResizeRef.current = {
+              pointerId: event.pointerId,
+              startX: event.clientX,
+              startWidth: trackHeaderWidth,
+            };
+          }}
+          onPointerMove={(event) => {
+            const session = headerResizeRef.current;
+            if (!session || session.pointerId !== event.pointerId) return;
+            const next = Math.max(
+              MIN_TRACK_HEADER_WIDTH,
+              Math.min(MAX_TRACK_HEADER_WIDTH, Math.round(session.startWidth + (event.clientX - session.startX))),
+            );
+            setTrackHeaderWidth(next);
+          }}
+          onPointerUp={(event) => {
+            const session = headerResizeRef.current;
+            if (!session || session.pointerId !== event.pointerId) return;
+            headerResizeRef.current = null;
+            setIsResizingHeaders(false);
+            try {
+              window.localStorage.setItem(TRACK_HEADER_STORAGE_KEY, String(trackHeaderWidth));
+            } catch {
+              // ignore
+            }
+          }}
+          onPointerCancel={() => {
+            headerResizeRef.current = null;
+            setIsResizingHeaders(false);
+          }}
+        />
+
+        <div
           ref={scrollRef}
           className="timeline-scroll-area"
           data-testid="timeline-scroll"
@@ -1321,13 +1452,21 @@ export function Timeline({
             laneRef={(el) => {
               captionsLaneRef.current = el;
             }}
+            allClips={clips}
             visibleClips={visibleClips}
+            resolvedCaptions={resolvedCaptionsProp}
+            totalFrames={totalFrames}
             pxPerFrame={pxPerFrame}
             playheadFrame={playheadFrame}
             snapEnabled={snapEnabled}
             selectedFrameId={selectedFrameId}
             selectedCaption={selectedCaption}
             multiSelectedCaptions={multiSelection.captions}
+            multiSelectionTotalCount={
+              multiSelection.pictureIds.length +
+              multiSelection.audioClipIds.length +
+              multiSelection.captions.length
+            }
             rawFrameFromClientX={rawFrameFromClientX}
             onSetSnapGuide={setSnapGuideFrame}
             onSelectCaption={(frameId, captionIndex, extendNeighbour, targetFrame) =>
@@ -1352,6 +1491,31 @@ export function Timeline({
             onCaptionPreview={(frameId, captions, clipDurationFrames) =>
               onCaptionPreview?.(frameId, captions, clipDurationFrames)
             }
+            onBeginFreeCaptionDrag={onBeginFreeCaptionDrag}
+            onPreviewFreeCaptionMove={onPreviewFreeCaptionMove}
+            onCommitFreeCaptionMove={onCommitFreeCaptionMove}
+            onCancelFreeCaptionMove={onCancelFreeCaptionMove}
+            onBeginMultiDrag={() => {
+              lastMultiCaptionDeltaMsRef.current = 0;
+              onDragStart();
+            }}
+            onPreviewMultiDrag={(deltaMs) => {
+              lastMultiCaptionDeltaMsRef.current = deltaMs;
+              onShiftSelectionPreview?.(deltaMs);
+            }}
+            onCommitMultiDrag={(copy) => {
+              const deltaMs = lastMultiCaptionDeltaMsRef.current;
+              lastMultiCaptionDeltaMsRef.current = 0;
+              onCommitSelectionShift?.(
+                deltaMs,
+                copy,
+                copy ? "Selection duplicated" : "Selection moved",
+              );
+            }}
+            onCancelMultiDrag={() => {
+              lastMultiCaptionDeltaMsRef.current = 0;
+              onDragEnd("");
+            }}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
           />

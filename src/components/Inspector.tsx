@@ -348,16 +348,24 @@ export function Inspector(props: InspectorProps) {
           >
             Delete
           </button>
-          <button className="small-icon-button" onClick={props.onCopyEffects} title="Copy effects">
-            ⧉
+          <button
+            type="button"
+            className="button button-quiet inspector-head-anim-btn"
+            data-testid="copy-effects-btn"
+            onClick={props.onCopyEffects}
+            title="Copy grade, particles, transition & camera effects from this clip (Alt+Ctrl/Cmd+C)"
+          >
+            ⧉ Copy effects
           </button>
           <button
-            className={`small-icon-button ${props.copied ? "is-active" : ""}`}
+            type="button"
+            className={`button button-quiet inspector-head-anim-btn ${props.copied ? "is-active" : ""}`}
+            data-testid="paste-effects-btn"
             onClick={props.onPasteEffects}
             disabled={!props.copied}
-            title={`Paste effects to ${props.selectedCount} selected keyframes`}
+            title={`Paste copied effects onto ${Math.max(1, props.selectedCount)} selected clip${props.selectedCount === 1 ? "" : "s"} (Alt+Ctrl/Cmd+V)`}
           >
-            ↳
+            ↳ Paste effects
           </button>
           <button
             type="button"
@@ -1210,6 +1218,25 @@ export function Inspector(props: InspectorProps) {
               </summary>
               <div className="effect-intro">
                 Controls mirror the vendored Scarlet Reel cinematic settings. Click the preview to place the focal point.
+              </div>
+              <div className="button-row copy-effects">
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  data-testid="effects-section-copy-btn"
+                  onClick={props.onCopyEffects}
+                >
+                  ⧉ Copy effects
+                </button>
+                <button
+                  type="button"
+                  className={`button button-quiet ${props.copied ? "is-active" : ""}`}
+                  data-testid="effects-section-paste-btn"
+                  disabled={!props.copied}
+                  onClick={props.onPasteEffects}
+                >
+                  ↳ Paste effects
+                </button>
               </div>
               {CINEMATIC_GROUPS.map((group) => (
                 <details className="effect-group" key={group.id} open={group.id === "camera" || group.id === "depth"}>

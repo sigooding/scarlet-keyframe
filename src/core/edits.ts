@@ -9,8 +9,10 @@ import {
 import {
   deleteCaptionsAtIndices,
   effectiveCaptionsForBeat,
+  isNarrationBeat,
   normalizeCaptions,
   normalizeCaptionStyle,
+  resolveTimelineCaptions,
   type BeatCaption,
   type CaptionStyle,
 } from "./captions";
@@ -27,8 +29,10 @@ import type {
 import { buildKeyframes, convertStoryCameraMovesToKeyframes, runningSceneIds } from "./model";
 import { clipFrames, FPS, MIN_CLIP_FRAMES } from "./timing";
 import {
+  ANIM_PROPS,
   buildTimelineClips,
   normalizeAnimation,
+  pasteClipAnimationOnto,
   splitAnimation,
   type AnimProp,
   type TimelineClip,
@@ -41,14 +45,13 @@ import {
 } from "../sequence/transitions";
 
 export interface EffectBlock {
+  sourcePicture?: string;
   cinematic?: AnyRecord;
   particles?: string;
   particleConfig?: AnyRecord;
   backgroundTransition?: string;
   backgroundTransitionSpeed?: number;
-  backgroundHold?: boolean;
-  backgroundRevert?: boolean;
-  holdSeconds?: number;
+  transitionAlignment?: TransitionAlignment;
   animation?: BeatAnimation;
 }
 
@@ -100,10 +103,13 @@ export function setBeatField(project: ProjectState, frameId: string, path: strin
 
 export function setEffectField(project: ProjectState, frameId: string, path: string, value: unknown): ProjectState {
   const story = cloneStory(project.story);
+  const frames = buildKeyframes(story);
+  const target = frames.find((f) => f.id === frameId);
   const location = locateBeat(story, frameId);
   if (!location) return project;
   const normalized = path.replace(/^cinematic\.?/, "");
-  const cinematic: AnyRecord = { ...(location.beat.cinematic || location.scene.cinematic || {}) };
+  const baseCin = location.beat.cinematic ?? target?.cinematic ?? location.scene.cinematic ?? {};
+  const cinematic: AnyRecord = JSON.parse(JSON.stringify(baseCin));
   setPath(cinematic, normalized, value);
   if (Object.keys(cinematic).length) location.beat.cinematic = cinematic;
   else delete location.beat.cinematic;
@@ -112,7 +118,7 @@ export function setEffectField(project: ProjectState, frameId: string, path: str
 
 export function getEffectValue(frame: Keyframe, path: string): unknown {
   const normalized = path.replace(/^cinematic\.?/, "");
-  const cinematic = frame.beat.cinematic || frame.scene.cinematic || {};
+  const cinematic = frame.beat.cinematic ?? frame.cinematic ?? frame.scene.cinematic ?? {};
   return getPath(cinematic, normalized);
 }
 
@@ -134,9 +140,12 @@ export function resetEffectField(project: ProjectState, frameId: string, path: s
   return { ...project, story, updatedAt: Date.now() };
 }
 
+const SHOT_SPECIFIC_DEPTH_KEYS = ["depthMap", "depthPlate", "depthCutouts"] as const;
+
 export function copyEffectBlock(frame: Keyframe): EffectBlock {
   const block: EffectBlock = {};
-  const cinematic = frame.beat.cinematic || frame.scene.cinematic;
+  if (frame.picture) block.sourcePicture = frame.picture;
+  const cinematic = frame.beat.cinematic ?? frame.cinematic ?? frame.scene.cinematic;
   if (cinematic) block.cinematic = JSON.parse(JSON.stringify(cinematic));
   const beat = frame.beat as AnyRecord;
   const scene = frame.scene as AnyRecord;
@@ -144,25 +153,109 @@ export function copyEffectBlock(frame: Keyframe): EffectBlock {
   const particleConfig = beat.particleConfig ?? scene.particleConfig;
   if (particles !== undefined) block.particles = particles;
   if (particleConfig !== undefined) block.particleConfig = JSON.parse(JSON.stringify(particleConfig));
-  for (const key of ["backgroundTransition", "backgroundTransitionSpeed", "backgroundHold", "backgroundRevert", "holdSeconds"] as const) {
-    if (beat[key] !== undefined) block[key] = beat[key];
+  for (const key of ["backgroundTransition", "backgroundTransitionSpeed", "transitionAlignment"] as const) {
+    if (beat[key] !== undefined) {
+      (block as AnyRecord)[key] = beat[key];
+    }
   }
   if (beat.animation !== undefined) block.animation = JSON.parse(JSON.stringify(beat.animation));
   return block;
 }
 
-export function pasteEffectBlock(project: ProjectState, frameIds: string[], block: EffectBlock): ProjectState {
+function fitAnimationToTargetDuration(
+  sourceAnimation: BeatAnimation | undefined,
+  targetDurationFrames: number,
+): BeatAnimation | undefined {
+  if (!sourceAnimation) return undefined;
+  const maxValidFrame = Math.max(0, Math.floor(targetDurationFrames) - 1);
+  const fitted: BeatAnimation = {
+    ...(sourceAnimation.values ? { values: { ...sourceAnimation.values } } : {}),
+  };
+  for (const prop of ANIM_PROPS) {
+    const keys = sourceAnimation[prop];
+    if (!keys?.length) continue;
+    const byFrame = new Map<number, (typeof keys)[number]>();
+    for (const k of keys) {
+      const clampedFrame = Math.max(0, Math.min(maxValidFrame, Math.round(k.frame)));
+      byFrame.set(clampedFrame, {
+        ...k,
+        frame: clampedFrame,
+        ...(k.bezier ? { bezier: [...k.bezier] as typeof k.bezier } : {}),
+      });
+    }
+    fitted[prop] = [...byFrame.values()].sort((a, b) => a.frame - b.frame);
+  }
+  return normalizeAnimation(fitted);
+}
+
+export function pasteEffectBlock(
+  project: ProjectState,
+  frameIds: string[],
+  block: EffectBlock,
+  voiceDurationByRef?: ReadonlyMap<string, number>,
+): ProjectState {
+  if (!frameIds.length) return project;
   const story = cloneStory(project.story);
   const frames = buildKeyframes(story);
+  const { clips } = buildTimelineClips(frames, voiceDurationByRef);
+  const clipById = new Map(clips.map((c) => [c.keyframe.id, c]));
+
   for (const frameId of frameIds) {
     const location = locateBeat(story, frameId);
     if (!location) continue;
     const target = frames.find((frame) => frame.id === frameId);
     if (!target) continue;
-    location.beat.cinematic = block.cinematic ? JSON.parse(JSON.stringify(block.cinematic)) : undefined;
-    for (const key of ["particles", "particleConfig", "backgroundTransition", "backgroundTransitionSpeed", "backgroundHold", "backgroundRevert", "holdSeconds", "animation"]) {
-      if (block[key as keyof EffectBlock] === undefined) delete location.beat[key];
-      else location.beat[key] = JSON.parse(JSON.stringify(block[key as keyof EffectBlock]));
+    const targetClip = clipById.get(frameId);
+    const targetDur = targetClip?.durationFrames ?? clipFrames(target);
+
+    const samePicture = Boolean(block.sourcePicture && target.picture === block.sourcePicture);
+    const existingTargetCin =
+      target.beat.cinematic ?? target.cinematic ?? target.scene.cinematic ?? {};
+
+    if (block.cinematic) {
+      const nextCin: AnyRecord = JSON.parse(JSON.stringify(block.cinematic));
+      if (!samePicture) {
+        for (const k of SHOT_SPECIFIC_DEPTH_KEYS) {
+          delete nextCin[k];
+          if (existingTargetCin[k] !== undefined) {
+            nextCin[k] = JSON.parse(JSON.stringify(existingTargetCin[k]));
+          }
+        }
+      }
+      if (Object.keys(nextCin).length) location.beat.cinematic = nextCin;
+      else delete location.beat.cinematic;
+    } else {
+      const preserved: AnyRecord = {};
+      for (const k of SHOT_SPECIFIC_DEPTH_KEYS) {
+        if (location.beat.cinematic?.[k] !== undefined) {
+          preserved[k] = JSON.parse(JSON.stringify(location.beat.cinematic[k]));
+        }
+      }
+      if (Object.keys(preserved).length) location.beat.cinematic = preserved;
+      else delete location.beat.cinematic;
+    }
+
+    for (const key of [
+      "particles",
+      "particleConfig",
+      "backgroundTransition",
+      "backgroundTransitionSpeed",
+      "transitionAlignment",
+    ] as const) {
+      const val = block[key];
+      if (val === undefined) delete (location.beat as AnyRecord)[key];
+      else (location.beat as AnyRecord)[key] = JSON.parse(JSON.stringify(val));
+    }
+
+    if (block.animation === undefined) {
+      delete location.beat.animation;
+    } else {
+      const fitted =
+        pasteClipAnimationOnto(block.animation, targetDur).droppedCount === 0
+          ? pasteClipAnimationOnto(block.animation, targetDur).animation
+          : fitAnimationToTargetDuration(block.animation, targetDur);
+      if (fitted) location.beat.animation = fitted;
+      else delete location.beat.animation;
     }
   }
   return { ...project, story, updatedAt: Date.now() };
@@ -192,9 +285,149 @@ export function setBeatCaptions(
         text: String(cap.text ?? ""),
         inFrame: Math.max(0, Math.round(cap.inFrame)),
         outFrame: Math.max(1, Math.round(cap.outFrame)),
+        ...(cap.free ? { free: true } : {}),
+        ...(cap.speaker !== undefined ? { speaker: cap.speaker } : {}),
+        ...(cap.isNarration !== undefined ? { isNarration: cap.isNarration } : {}),
       }));
     }
   });
+}
+
+export interface MoveTimelineCaptionResult {
+  project: ProjectState;
+  anchorFrameId: string;
+  anchorCaptionIndex: number;
+}
+
+/**
+ * Moves or trims a timeline caption freely anywhere on the timeline (`[0, +inf)`),
+ * re-anchoring cleanly to whichever shot contains `targetGlobalInFrame` while allowing
+ * `targetGlobalOutFrame` to span across shot cuts, and never mutating `beat.text`.
+ */
+export function moveTimelineCaption(
+  project: ProjectState,
+  sourceFrameId: string,
+  captionIndex: number,
+  targetGlobalInFrame: number,
+  targetGlobalOutFrame: number,
+  options: {
+    copy?: boolean;
+    voiceDurationByRef?: ReadonlyMap<string, number>;
+    totalFrames?: number;
+  } = {},
+): MoveTimelineCaptionResult {
+  const { copy = false, voiceDurationByRef, totalFrames } = options;
+  const story = cloneStory(project.story);
+  const frames = buildKeyframes(story);
+  const { clips, totalFrames: computedTotalFrames } = buildTimelineClips(frames, voiceDurationByRef);
+  if (!clips.length) {
+    return { project, anchorFrameId: sourceFrameId, anchorCaptionIndex: captionIndex };
+  }
+
+  const maxTimelineFrames = Math.max(1, totalFrames ?? computedTotalFrames);
+  const sourceClip = clips.find((c) => c.keyframe.id === sourceFrameId);
+  if (!sourceClip) {
+    return { project, anchorFrameId: sourceFrameId, anchorCaptionIndex: captionIndex };
+  }
+
+  const sourceCaps = effectiveCaptionsForBeat(sourceClip.keyframe.beat, sourceClip.durationFrames);
+  if (captionIndex < 0 || captionIndex >= sourceCaps.length) {
+    return { project, anchorFrameId: sourceFrameId, anchorCaptionIndex: captionIndex };
+  }
+
+  const moving = sourceCaps[captionIndex];
+  const requestedLen = Math.max(1, Math.round(targetGlobalOutFrame) - Math.round(targetGlobalInFrame));
+  const clampedGlobalIn = Math.max(
+    0,
+    Math.min(Math.max(0, maxTimelineFrames - 1), Math.round(targetGlobalInFrame)),
+  );
+  const clampedGlobalOut = Math.max(clampedGlobalIn + 1, clampedGlobalIn + requestedLen);
+
+  const anchorClip =
+    clips.find((c) => clampedGlobalIn >= c.startFrame && clampedGlobalIn < c.endFrame) ??
+    clips[clips.length - 1];
+
+  const localIn = Math.max(0, clampedGlobalIn - anchorClip.startFrame);
+  const localOut = Math.max(localIn + 1, clampedGlobalOut - anchorClip.startFrame);
+  const movedAcrossClips = anchorClip.keyframe.id !== sourceClip.keyframe.id;
+  const speaker =
+    moving.speaker ?? (movedAcrossClips ? sourceClip.keyframe.speaker : undefined);
+  const isNarration =
+    moving.isNarration ??
+    (movedAcrossClips ? isNarrationBeat(sourceClip.keyframe.beat) : undefined);
+
+  const placedCaption: BeatCaption = {
+    text: moving.text,
+    inFrame: localIn,
+    outFrame: localOut,
+    free: true,
+    ...(speaker !== undefined ? { speaker } : {}),
+    ...(isNarration !== undefined ? { isNarration } : {}),
+  };
+
+  if (anchorClip.keyframe.id === sourceClip.keyframe.id) {
+    const remaining = copy
+      ? [...sourceCaps]
+      : sourceCaps.filter((_, idx) => idx !== captionIndex);
+    // Trim or shift any non-moved sibling caption on the same beat so it doesn't collide
+    const adjusted = adjustSiblingCaptionsAround(remaining, placedCaption);
+    adjusted.push(placedCaption);
+    adjusted.sort((a, b) => a.inFrame - b.inFrame || a.outFrame - b.outFrame);
+    const newIdx = adjusted.indexOf(placedCaption);
+    sourceClip.keyframe.beat.captions = adjusted.map((c) => ({ ...c }));
+    return {
+      project: { ...project, story, updatedAt: Date.now() },
+      anchorFrameId: anchorClip.keyframe.id,
+      anchorCaptionIndex: Math.max(0, newIdx),
+    };
+  }
+
+  if (!copy) {
+    const remainingSource = sourceCaps.filter((_, idx) => idx !== captionIndex);
+    sourceClip.keyframe.beat.captions = remainingSource.map((c) => ({ ...c }));
+  }
+
+  const destBase = effectiveCaptionsForBeat(anchorClip.keyframe.beat, anchorClip.durationFrames);
+  const adjustedDest = adjustSiblingCaptionsAround(destBase, placedCaption);
+  adjustedDest.push(placedCaption);
+  adjustedDest.sort((a, b) => a.inFrame - b.inFrame || a.outFrame - b.outFrame);
+  const newIdx = adjustedDest.indexOf(placedCaption);
+  anchorClip.keyframe.beat.captions = adjustedDest.map((c) => ({ ...c }));
+
+  return {
+    project: { ...project, story, updatedAt: Date.now() },
+    anchorFrameId: anchorClip.keyframe.id,
+    anchorCaptionIndex: Math.max(0, newIdx),
+  };
+}
+
+function adjustSiblingCaptionsAround(
+  siblings: readonly BeatCaption[],
+  placed: BeatCaption,
+): BeatCaption[] {
+  const out: BeatCaption[] = [];
+  for (const sib of siblings) {
+    if (sib.outFrame <= placed.inFrame || sib.inFrame >= placed.outFrame) {
+      out.push({ ...sib });
+      continue;
+    }
+    // Trim sibling around the placed caption so existing captions aren't pushed unexpectedly
+    if (sib.inFrame < placed.inFrame) {
+      out.push({
+        ...sib,
+        outFrame: placed.inFrame,
+        free: true,
+      });
+    }
+    if (sib.outFrame > placed.outFrame) {
+      out.push({
+        ...sib,
+        inFrame: placed.outFrame,
+        free: true,
+      });
+    }
+  }
+  return out.filter((c) => c.outFrame > c.inFrame);
 }
 
 export function resetBeatCaptions(project: ProjectState, frameId: string): ProjectState {
@@ -1661,45 +1894,118 @@ export function shiftMultiLaneSelection(
     };
   }
 
-  // Case C: Captions (+ optional sounds, no video clips)
+  // Case C: Captions (+ optional sounds, no video clips) — freely re-anchor across shot cuts
   const deltaFrames = Math.round((deltaMs * FPS) / 1000);
   let current = project;
-  if (deltaFrames !== 0 && hasCaptions) {
-    const byClip = new Map<string, Set<number>>();
-    for (const item of selection.captions) {
-      if (!Number.isFinite(item.index)) continue;
-      const set = byClip.get(item.frameId) ?? new Set<number>();
-      set.add(item.index);
-      byClip.set(item.frameId, set);
-    }
-    for (const [clipId, idxSet] of byClip) {
-      const kf = initialFrames.find((f) => f.id === clipId);
-      if (!kf) continue;
-      const audioRef = kf.beat.audioUrl;
-      const voiceSec = audioRef ? voiceDurationByRef?.get(audioRef) : undefined;
-      const dur = clipFrames(kf, voiceSec);
-      const caps = effectiveCaptionsForBeat(kf.beat, dur);
-      const shifted = caps.map((cap, idx) => {
-        if (!idxSet.has(idx)) return cap;
-        const len = Math.max(1, cap.outFrame - cap.inFrame);
-        const nextIn = Math.max(0, Math.min(dur - len, cap.inFrame + deltaFrames));
-        return { ...cap, inFrame: nextIn, outFrame: nextIn + len };
-      });
-      current = setBeatCaptions(current, clipId, shifted, dur);
+  let nextCaptionsSelection = selection.captions;
+
+  if ((deltaFrames !== 0 || copy) && hasCaptions) {
+    const story = cloneStory(current.story);
+    const frames = buildKeyframes(story);
+    const { clips, totalFrames: maxTimelineFrames } = buildTimelineClips(frames, voiceDurationByRef);
+    const selectedKeys = new Set(
+      selection.captions
+        .filter((item) => Number.isFinite(item.index))
+        .map((item) => `${item.frameId}:${item.index}`),
+    );
+    const allResolved = resolveTimelineCaptions(clips);
+    const movingResolved = allResolved.filter((rc) => selectedKeys.has(rc.id));
+
+    if (movingResolved.length > 0 && clips.length > 0) {
+      const minGlobalIn = Math.min(...movingResolved.map((rc) => rc.globalInFrame));
+      const clampedDeltaFrames = Math.max(-minGlobalIn, deltaFrames);
+
+      if (clampedDeltaFrames !== 0 || copy) {
+        const clipById = new Map(clips.map((c) => [c.keyframe.id, c]));
+
+        if (!copy) {
+          const dropByClip = new Map<string, Set<number>>();
+          for (const rc of movingResolved) {
+            const set = dropByClip.get(rc.frameId) ?? new Set<number>();
+            set.add(rc.captionIndex);
+            dropByClip.set(rc.frameId, set);
+          }
+          for (const [frameId, dropSet] of dropByClip) {
+            const clip = clipById.get(frameId);
+            if (!clip) continue;
+            const base = effectiveCaptionsForBeat(clip.keyframe.beat, clip.durationFrames);
+            clip.keyframe.beat.captions = base
+              .filter((_, idx) => !dropSet.has(idx))
+              .map((c) => ({ ...c }));
+          }
+        }
+
+        const placedTokens = new Map<BeatCaption, string>();
+        const touchedClips = new Set<TimelineClip>();
+
+        movingResolved.forEach((rc, moveIdx) => {
+          const len = Math.max(1, rc.globalOutFrame - rc.globalInFrame);
+          const nextGlobalIn = Math.max(
+            0,
+            Math.min(Math.max(0, maxTimelineFrames - 1), rc.globalInFrame + clampedDeltaFrames),
+          );
+          const anchorClip =
+            clips.find((c) => nextGlobalIn >= c.startFrame && nextGlobalIn < c.endFrame) ??
+            clips[clips.length - 1];
+          const localIn = Math.max(0, nextGlobalIn - anchorClip.startFrame);
+          const localOut = localIn + len;
+          const movedAcross = anchorClip.keyframe.id !== rc.frameId;
+
+          const placed: BeatCaption = {
+            text: rc.text,
+            inFrame: localIn,
+            outFrame: localOut,
+            free: true,
+            ...(movedAcross || rc.speaker ? { speaker: rc.speaker } : {}),
+            ...(movedAcross ? { isNarration: rc.isNarration } : {}),
+          };
+          placedTokens.set(placed, `${anchorClip.keyframe.id}#${moveIdx}`);
+
+          const existing = effectiveCaptionsForBeat(anchorClip.keyframe.beat, anchorClip.durationFrames);
+          const adjusted = adjustSiblingCaptionsAround(existing, placed);
+          adjusted.push(placed);
+          anchorClip.keyframe.beat.captions = adjusted;
+          touchedClips.add(anchorClip);
+        });
+
+        const nextSel: Array<{ frameId: string; index: number }> = [];
+        for (const clip of touchedClips) {
+          const list = clip.keyframe.beat.captions ?? [];
+          list.sort((a, b) => a.inFrame - b.inFrame || a.outFrame - b.outFrame);
+          list.forEach((cap, idx) => {
+            if (placedTokens.has(cap)) {
+              nextSel.push({ frameId: clip.keyframe.id, index: idx });
+            }
+          });
+          clip.keyframe.beat.captions = list.map((c) => ({ ...c }));
+        }
+
+        current = { ...current, story, updatedAt: Date.now() };
+        nextCaptionsSelection = nextSel;
+      }
     }
   }
 
+  let nextAudioIds = selection.audioClipIds;
   if (hasAudio) {
     const audioRes = shiftMultiLaneSelection(
       current,
       { ...EMPTY_MULTI_SELECTION, audioClipIds: selection.audioClipIds },
       deltaMs,
-      { copy: false, voiceDurationByRef },
+      { copy, voiceDurationByRef },
     );
     current = audioRes.project;
+    nextAudioIds = audioRes.selection.audioClipIds;
   }
 
-  return { project: current, selection };
+  return {
+    project: current,
+    selection: {
+      ...selection,
+      captions: nextCaptionsSelection,
+      audioClipIds: nextAudioIds,
+    },
+  };
 }
 
 export interface MultiLaneClipboard {
