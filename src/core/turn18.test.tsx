@@ -95,6 +95,39 @@ describe("Turn 18 — Speed ramps, Tokyo-Noir viewer engine, and Full-Film Direc
     expect(html).toContain('data-testid="viewer-title-card"');
     expect(html).toContain("NOBODY’S WITNESS");
 
+    // Verify motes scenes render at 35% opacity and subtitles sit in the black letterbox bar with no grey box
+    const motesSpokenFrame = dcFrames.find(
+      (f) =>
+        (f.beat.particles ?? f.scene.particles) === "motes" &&
+        Boolean(f.beat.audioUrl) &&
+        Boolean(f.scene.letterbox),
+    );
+    expect(motesSpokenFrame).toBeDefined();
+    expect(
+      (motesSpokenFrame!.beat.particleConfig ?? motesSpokenFrame!.scene.particleConfig)
+        ?.opacity,
+    ).toBe(0.35);
+
+    const motesHtml = renderToStaticMarkup(
+      <CinematicPreview
+        frame={motesSpokenFrame!}
+        localFrame={4}
+        clipDurationFrames={96}
+        playheadFrame={1200}
+        totalFrames={109661}
+        captionStyle={dcProj.story.captionStyle}
+        imageSrc="/film/img/s4/36-vera-at-the-table.jpg"
+        resolveMedia={(v) => v}
+        playing={false}
+        soundOn={false}
+        showCaption={true}
+        showMark={true}
+      />,
+    );
+    expect(motesHtml).toContain('data-particle-kind="motes"');
+    expect(motesHtml).toContain('data-particle-strength="0.35"');
+    expect(motesHtml).toContain("cin-caption pos-bottom has-letterbox size-s no-box");
+
     // Verify Topbar exposes the undoable Director's Cut button for Nobody's Witness
     const topbarHtml = renderToStaticMarkup(
       <Topbar

@@ -959,7 +959,7 @@ kbd {
   position: absolute;
   left: 0;
   right: 0;
-  height: 9.5%;
+  height: 12%;
   background: #000;
   z-index: 48;
   pointer-events: none;
@@ -6567,7 +6567,68 @@ kbd {
 }
 
 .cin-caption.pos-bottom.has-letterbox {
-  bottom: 10.6%;
+  bottom: 0;
+  top: auto;
+  height: 12%;
+  max-width: min(64%, 600px);
+  padding: 2px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-caption.pos-top.has-letterbox {
+  top: 0;
+  bottom: auto;
+  height: 12%;
+  max-width: min(64%, 600px);
+  padding: 2px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-caption.has-letterbox span {
+  font-size: clamp(8px, 0.82cqw, 10px);
+  letter-spacing: 0.16em;
+  margin-bottom: 1px;
+  line-height: 1.1;
+}
+
+.cin-caption.has-letterbox p {
+  line-height: 1.22;
+  color: rgba(242, 238, 229, 0.96);
+}
+
+.render-mode-shell .cin-caption.has-letterbox {
+  max-width: min(76%, 1340px);
+  padding: 0 1.4cqw;
+}
+
+.render-mode-shell .cin-caption.has-letterbox span {
+  font-size: clamp(10px, 0.78cqw, 16px);
+  margin-bottom: 0.16cqw;
+}
+
+.render-mode-shell .cin-caption.size-s.has-letterbox p {
+  font-size: clamp(13px, 1.32cqw, 26px);
+  line-height: 1.22;
+}
+
+.render-mode-shell .cin-caption.size-m.has-letterbox p {
+  font-size: clamp(15px, 1.56cqw, 31px);
+  line-height: 1.2;
+}
+
+.render-mode-shell .cin-caption.size-l.has-letterbox p {
+  font-size: clamp(17px, 1.82cqw, 36px);
+  line-height: 1.18;
 }
 
 

@@ -32,7 +32,7 @@ import {
   type TimelineClip,
 } from "../sequence/animate";
 
-export const DIRECTORS_CUT_VERSION = 2;
+export const DIRECTORS_CUT_VERSION = 3;
 
 export interface MissingFrameSpec {
   slotNumber: number;
@@ -777,8 +777,36 @@ export function buildDirectorsCutProject(
 
   const story = clone(baseProject.originalStory);
 
+  // Clean widescreen-bar subtitle styling (no grey box inside the black bar)
+  story.captionStyle = {
+    position: "bottom",
+    size: "S",
+    backgroundBox: false,
+    showSpeaker: true,
+    italicNarration: true,
+  };
+
   // 1. Restore the 7 missing cutscene, title, & Ozu pillow-montage scenes
   populateZeroBeatScenes(story);
+
+  // Dial floating motes down to ~35% opacity across all scenes & beats in the Director's Cut
+  for (const scene of story.scenes) {
+    if (scene.particles === "motes") {
+      scene.particleConfig = {
+        ...(scene.particleConfig || {}),
+        opacity: 0.35,
+      };
+    }
+    for (const beat of scene.dialogueBeats ?? []) {
+      const effectiveKind = beat.particles ?? scene.particles;
+      if (effectiveKind === "motes" && (beat.particles === "motes" || beat.particleConfig)) {
+        beat.particleConfig = {
+          ...(beat.particleConfig || {}),
+          opacity: 0.35,
+        };
+      }
+    }
+  }
 
   const orderedIds = runningSceneIds(story);
   const sceneById = new Map(story.scenes.map((s) => [s.id, s]));

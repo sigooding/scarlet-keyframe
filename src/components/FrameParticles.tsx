@@ -1254,12 +1254,14 @@ export function FrameAmbientAtmosphere({
   cinematic,
   reducedMotion,
   ambientAudio,
+  dustOpacityScale = 1,
 }: {
   seed: string;
   timeSec: number;
   cinematic?: CinematicSettings;
   reducedMotion?: boolean;
   ambientAudio?: string;
+  dustOpacityScale?: number;
 }) {
   const hasLights = (cinematic?.lights?.length ?? 0) > 0 || !!cinematic?.lightSource;
   const dim = cinematic?.dimAmount ?? 0;
@@ -1283,15 +1285,22 @@ export function FrameAmbientAtmosphere({
     ? 0.85 + Math.sin(timeSec * 1.8) * 0.15 + Math.sin(timeSec * 3.1 + 1.3) * 0.07
     : 1;
 
+  const clampedDustScale = Math.max(0, Math.min(1, dustOpacityScale));
+
   return (
     <div className="pointer-events-none absolute inset-0 z-[18] overflow-hidden" aria-hidden>
-      <FrameDustCanvas
-        seed={`${seed}:atm-a`}
-        timeSec={timeSec}
-        cinematic={cinematic}
-        density={36}
-        subtle
-      />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={clampedDustScale < 1 ? { opacity: clampedDustScale } : undefined}
+      >
+        <FrameDustCanvas
+          seed={`${seed}:atm-a`}
+          timeSec={timeSec}
+          cinematic={cinematic}
+          density={36}
+          subtle
+        />
+      </div>
       {hasLights && showShafts && (
         <div
           className="absolute inset-0 mix-blend-screen"
@@ -1331,13 +1340,18 @@ export function FrameAmbientAtmosphere({
         </div>
       )}
       {hasLights && showShafts && (
-        <FrameDustCanvas
-          seed={`${seed}:atm-b`}
-          timeSec={timeSec}
-          cinematic={cinematic}
-          density={18}
-          subtle
-        />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={clampedDustScale < 1 ? { opacity: clampedDustScale } : undefined}
+        >
+          <FrameDustCanvas
+            seed={`${seed}:atm-b`}
+            timeSec={timeSec}
+            cinematic={cinematic}
+            density={18}
+            subtle
+          />
+        </div>
       )}
     </div>
   );
@@ -1472,6 +1486,7 @@ export function FrameParticles({
           cinematic={cinematic}
           reducedMotion={reducedMotion}
           ambientAudio={ambientAudio}
+          dustOpacityScale={kind === "dust" || kind === "motes" ? strength : 1}
         />
       )}
     </div>
