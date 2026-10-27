@@ -58,7 +58,9 @@ export function CinematicPreview({
   showMark,
   setFocalPoint,
 }: CinematicPreviewProps) {
-  const cinematic = (frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>;
+  const cinematic = frame.beat.gap
+    ? {}
+    : ((frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>);
   const ownOverlay = [cinematic.vignette ? "fx-vignette" : "", cinematic.grain ? "fx-grain" : ""]
     .filter(Boolean)
     .join(" ");
@@ -114,8 +116,9 @@ export function CinematicPreview({
 
   return (
     <div
-      className={`cin-preview ${ownOverlay}`}
+      className={`cin-preview ${frame.beat.gap ? "" : ownOverlay}`}
       data-testid="cinematic-preview"
+      data-gap={frame.beat.gap ? "true" : undefined}
       data-transition-kind={transition?.kind || "none"}
       data-transition-progress={transition ? p.toFixed(4) : undefined}
       onClick={(event) => {
@@ -329,6 +332,29 @@ function ShotLayer({
     !useDirectPose && playing && Boolean(cinematic.startZoom || cinematic.endZoom || cinematic.easing);
 
   const shotName = pictureLabel(picture, false, "No picture on this keyframe");
+
+  if (frame.beat.gap) {
+    return (
+      <div
+        className="cin-preview-camera cin-preview-gap"
+        style={{ background: "#000000", transition: "none", animation: "none" }}
+      >
+        <div
+          className="cin-preview-plate cin-preview-gap-plate"
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "#000000",
+            transition: "none",
+            animation: "none",
+          }}
+          data-picture-ref=""
+          data-gap="true"
+          data-testid={plateTestId}
+        />
+      </div>
+    );
+  }
 
   return (
     <div

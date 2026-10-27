@@ -23,12 +23,14 @@ export interface SelectedCaptionState {
 }
 
 export interface CaptionLaneProps {
+  laneRef?: (el: HTMLDivElement | null) => void;
   visibleClips: TimelineClip[];
   pxPerFrame: number;
   playheadFrame: number;
   snapEnabled: boolean;
   selectedFrameId: string;
   selectedCaption: SelectedCaptionState | null;
+  multiSelectedCaptions?: ReadonlyArray<{ frameId: string; index: number }>;
   rawFrameFromClientX: (clientX: number) => number;
   onSetSnapGuide: (frame: number | null) => void;
   onSelectCaption: (
@@ -55,12 +57,14 @@ export interface CaptionLaneProps {
 }
 
 export function CaptionLane({
+  laneRef,
   visibleClips,
   pxPerFrame,
   playheadFrame,
   snapEnabled,
   selectedFrameId,
   selectedCaption,
+  multiSelectedCaptions,
   rawFrameFromClientX,
   onSetSnapGuide,
   onSelectCaption,
@@ -144,6 +148,7 @@ export function CaptionLane({
 
   return (
     <div
+      ref={laneRef}
       className="timeline-captions-lane"
       data-testid="lane-captions"
       onClick={(e) => {
@@ -170,8 +175,13 @@ export function CaptionLane({
               const width = Math.max(10, (cap.outFrame - cap.inFrame) * pxPerFrame);
               const metrics = captionMetrics(cap);
               const isCapSelected =
-                selectedCaption?.frameId === kf.id &&
-                selectedCaption.indices.includes(capIdx);
+                (selectedCaption?.frameId === kf.id &&
+                  selectedCaption.indices.includes(capIdx)) ||
+                Boolean(
+                  multiSelectedCaptions?.some(
+                    (item) => item.frameId === kf.id && item.index === capIdx,
+                  ),
+                );
               const isEditingThis =
                 editing?.frameId === kf.id && editing.index === capIdx;
 

@@ -1,357 +1,908 @@
-import { useMemo } from "react";
-import type { InspectorTab } from "./Inspector";
 import {
-  effectiveTrackLevel,
-  resolveMusicSpans,
-  type MusicSpan,
-  type TrackMixMap,
-} from "../core/previewAudio";
-import { clipAtFrame, type TimelineClip } from "../sequence/animate";
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent as ReactDragEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import {
+  AUDIO_LANES,
+  audioLabelFromSrc,
+  formatMsTimecode,
+  frameToMs,
+  msToFrameFloat,
+  resolveAmbienceSpans,
+  roundMicros,
+  snapAudioMs,
+  trimAudioClipLeft,
+  trimAudioClipRight,
+  type AmbienceSpan,
+  type AudioClip,
+  type AudioLaneId,
+  type ResolvedAudioClip,
+} from "../core/audioClips";
+import type { NoteMarker } from "../core/model";
+import { effectiveTrackLevel, type TrackMixMap } from "../core/previewAudio";
+import { FPS } from "../core/timing";
+import { extractPlayableUrlsFromSrc, webAudioEngine } from "../core/webAudioEngine";
+import type { TimelineClip } from "../sequence/animate";
+import type { InspectorTab } from "./Inspector";
+import { decodeDraggedAsset } from "./MediaBin";
 
 export type AudioInspectorTab = Exclude<InspectorTab, "clip">;
+export { resolveAmbienceSpans, type AmbienceSpan };
 
-export interface AmbienceSpan {
-  id: string;
-  sceneId: string;
-  mark: string;
-  label: string;
-  title: string;
-  startFrame: number;
-  endFrame: number;
-}
+const LANE_COLORS: Record<AudioLaneId, { stroke: string; fill: string }> = {
+  voice: { stroke: "rgba(96, 195, 255, 0.92)", fill: "rgba(56, 155, 235, 0.34)" },
+  sfx: { stroke: "rgba(255, 182, 72, 0.95)", fill: "rgba(245, 148, 42, 0.34)" },
+  music: { stroke: "rgba(186, 128, 255, 0.92)", fill: "rgba(148, 92, 232, 0.34)" },
+  ambience: { stroke: "rgba(92, 224, 168, 0.9)", fill: "rgba(52, 184, 132, 0.32)" },
+};
 
-export function resolveAmbienceSpans(clips: TimelineClip[], totalFrames: number): AmbienceSpan[] {
-  const spans: AmbienceSpan[] = [];
-  const seen = new Set<string>();
-  let active: AmbienceSpan | null = null;
-  for (const clip of clips) {
-    const scene = clip.keyframe.scene;
-    if (seen.has(scene.id)) continue;
-    seen.add(scene.id);
-    const raw = scene.ambientAudio;
-    if (raw === undefined) continue;
-    const amb = String(raw).trim();
-    if (!amb || amb === "none") {
-      if (active) {
-        active.endFrame = clip.startFrame;
-        if (active.endFrame > active.startFrame) spans.push(active);
-        active = null;
-      }
-      continue;
-    }
-    if (!active || active.title !== amb) {
-      if (active) {
-        active.endFrame = clip.startFrame;
-        if (active.endFrame > active.startFrame) spans.push(active);
-      }
-      active = {
-        id: clip.keyframe.id,
-        sceneId: scene.id,
-        mark: String(clip.keyframe.mark),
-        label: amb.replace(/file:/g, "").replace(/\/film\/sfx\//g, ""),
-        title: amb,
-        startFrame: clip.startFrame,
-        endFrame: totalFrames,
-      };
-    }
-  }
-  if (active) {
-    active.endFrame = totalFrames;
-    if (active.endFrame > active.startFrame) spans.push(active);
-  }
-  return spans;
-}
+const MAX_GAIN = 2;
 
 export interface SyncedAudioLanesProps {
   clips: TimelineClip[];
+  resolvedAudioClips: ResolvedAudioClip[];
+  selectedAudioClipIds: string[];
   totalFrames: number;
+  playheadFrame: number;
   pxPerFrame: number;
+  scrollLeft: number;
+  viewportWidth: number;
   minVisibleFrame: number;
   maxVisibleFrame: number;
-  selectedFrameId: string;
-  musicDurations?: ReadonlyMap<string, number>;
+  snapEnabled: boolean;
+  noteMarkers: NoteMarker[];
+  audioDurations?: ReadonlyMap<string, number>;
   trackMix?: TrackMixMap;
-  onSelect: (id: string, startFrame: number, audioTab?: AudioInspectorTab) => void;
-  onMoveCue: (kind: "music" | "ambience" | "sfx", sourceId: string, targetId: string) => void;
+  resolveMedia: (value: string | undefined) => string | undefined;
+  laneRefs?: Partial<Record<AudioLaneId, (el: HTMLDivElement | null) => void>>;
+  onSetSnapGuide: (frame: number | null) => void;
+  onSelectAudioClip: (
+    clip: ResolvedAudioClip,
+    additive: boolean,
+    targetFrame?: number,
+  ) => void;
+  onDragStart: () => void;
+  onDragEnd: (label: string) => void;
+  onPreviewUpdateAudioClip: (clipId: string, updated: AudioClip) => void;
+  onShiftAudioDragPreview: (deltaMs: number, primaryClipId: string) => void;
+  onCommitAudioDrag: (deltaMs: number, copy: boolean, primaryClipId: string) => void;
+  onDropAudioAsset?: (lane: AudioLaneId, ref: string, dropStartMs: number) => void;
 }
 
 export function Tracks({
   clips,
-  totalFrames,
+  resolvedAudioClips,
+  selectedAudioClipIds,
+  playheadFrame,
   pxPerFrame,
+  scrollLeft,
+  viewportWidth,
   minVisibleFrame,
   maxVisibleFrame,
-  selectedFrameId,
-  musicDurations,
+  snapEnabled,
+  noteMarkers,
+  audioDurations,
   trackMix,
-  onSelect,
-  onMoveCue,
+  resolveMedia,
+  laneRefs,
+  onSetSnapGuide,
+  onSelectAudioClip,
+  onDragStart,
+  onDragEnd,
+  onPreviewUpdateAudioClip,
+  onShiftAudioDragPreview,
+  onCommitAudioDrag,
+  onDropAudioAsset,
 }: SyncedAudioLanesProps) {
-  const musicSpans = useMemo<MusicSpan[]>(
-    () => resolveMusicSpans(clips, totalFrames, musicDurations),
-    [clips, totalFrames, musicDurations],
-  );
+  const [decodeTick, setDecodeTick] = useState(0);
+  useEffect(() => {
+    return webAudioEngine.onBufferDecoded(() => {
+      setDecodeTick((n) => n + 1);
+    });
+  }, []);
 
-  const ambienceSpans = useMemo<AmbienceSpan[]>(
-    () => resolveAmbienceSpans(clips, totalFrames),
-    [clips, totalFrames],
-  );
+  const selectedSet = useMemo(() => new Set(selectedAudioClipIds), [selectedAudioClipIds]);
+  const minVisibleMs = frameToMs(minVisibleFrame);
+  const maxVisibleMs = frameToMs(maxVisibleFrame);
+  const pxPerMs = (pxPerFrame * FPS) / 1000;
+  const playheadMs = frameToMs(playheadFrame);
 
-  const visibleVoice = useMemo(
-    () =>
-      clips.filter(
-        (clip) =>
-          clip.endFrame >= minVisibleFrame &&
-          clip.startFrame <= maxVisibleFrame &&
-          Boolean(clip.keyframe.beat.audioUrl),
-      ),
-    [clips, minVisibleFrame, maxVisibleFrame],
-  );
+  const visibleByLane = useMemo(() => {
+    const map: Record<AudioLaneId, ResolvedAudioClip[]> = {
+      voice: [],
+      sfx: [],
+      music: [],
+      ambience: [],
+    };
+    for (const rc of resolvedAudioClips) {
+      if (rc.endMs < minVisibleMs || rc.startMs > maxVisibleMs) continue;
+      map[rc.lane].push(rc);
+    }
+    return map;
+  }, [resolvedAudioClips, minVisibleMs, maxVisibleMs]);
 
-  const visibleSfx = useMemo(
-    () =>
-      clips.filter(
-        (clip) =>
-          clip.endFrame >= minVisibleFrame &&
-          clip.startFrame <= maxVisibleFrame &&
-          Boolean(clip.keyframe.beat.sfxUrl),
-      ),
-    [clips, minVisibleFrame, maxVisibleFrame],
-  );
-
-  const visibleMusic = useMemo(
-    () => musicSpans.filter((c) => c.endFrame >= minVisibleFrame && c.startFrame <= maxVisibleFrame),
-    [musicSpans, minVisibleFrame, maxVisibleFrame],
-  );
-
-  const visibleAmbience = useMemo(
-    () => ambienceSpans.filter((c) => c.endFrame >= minVisibleFrame && c.startFrame <= maxVisibleFrame),
-    [ambienceSpans, minVisibleFrame, maxVisibleFrame],
-  );
-
-  function frameFromLaneClick(event: React.MouseEvent<HTMLElement>, fallbackFrame: number): number {
-    const lane = event.currentTarget.closest(".synced-audio-lane") as HTMLElement | null;
-    if (!lane || event.clientX === 0) return fallbackFrame;
-    const rect = lane.getBoundingClientRect();
-    if (rect.width <= 0) return fallbackFrame;
-    return Math.max(0, Math.min(Math.max(0, totalFrames - 1), Math.round((event.clientX - rect.left) / pxPerFrame)));
-  }
-
-  function handleEmptyLaneClick(event: React.MouseEvent<HTMLDivElement>, tab: AudioInspectorTab): void {
-    if (event.target !== event.currentTarget || !clips.length) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const clickedFrame = Math.max(
-      0,
-      Math.min(Math.max(0, totalFrames - 1), Math.round((event.clientX - rect.left) / pxPerFrame)),
-    );
-    const hit = clipAtFrame(clips, clickedFrame) || clips[0];
-    if (hit) onSelect(hit.keyframe.id, clickedFrame, tab);
-  }
-
-  function dropCue(event: React.DragEvent<HTMLDivElement>): void {
+  const handleLaneDrop = (lane: AudioLaneId, event: ReactDragEvent<HTMLDivElement>) => {
+    const asset = decodeDraggedAsset(event);
+    if (!asset || asset.kind !== "audio" || !onDropAudioAsset) return;
     event.preventDefault();
-    const payload = event.dataTransfer.getData("application/x-frame24-cue");
-    if (!payload || !clips.length) return;
-    const [kind, sourceId] = payload.split("|");
+    event.stopPropagation();
     const rect = event.currentTarget.getBoundingClientRect();
-    const targetFrame = Math.max(0, Math.round((event.clientX - rect.left) / pxPerFrame));
-    let chosen = clips[0];
-    for (const clip of clips) {
-      if (clip.startFrame <= targetFrame) chosen = clip;
-      else break;
-    }
-    if (chosen && sourceId && (kind === "music" || kind === "ambience" || kind === "sfx")) {
-      onMoveCue(kind, sourceId, chosen.keyframe.id);
-    }
-  }
-
-  const voiceSilenced = trackMix ? effectiveTrackLevel(trackMix, "voice") === 0 : false;
-  const sfxSilenced = trackMix ? effectiveTrackLevel(trackMix, "sfx") === 0 : false;
-  const musicSilenced = trackMix ? effectiveTrackLevel(trackMix, "music") === 0 : false;
-  const ambienceSilenced = trackMix ? effectiveTrackLevel(trackMix, "ambience") === 0 : false;
+    const x = Math.max(0, event.clientX - rect.left);
+    const dropMs = Math.max(0, roundMicros(x / Math.max(0.00001, pxPerMs)));
+    onDropAudioAsset(lane, asset.ref, dropMs);
+  };
 
   return (
     <div className="synced-audio-lanes" data-testid="synced-audio-lanes">
-      {/* 1. Voice Lane */}
-      <div
-        className={`synced-audio-lane voice-lane ${voiceSilenced ? "is-silenced" : ""}`}
-        data-testid="lane-voice"
-        onClick={(e) => handleEmptyLaneClick(e, "voice")}
-      >
-        {visibleVoice.map((clip) => {
-          const kf = clip.keyframe;
-          const vIn = clip.voiceInFrame ?? 0;
-          const vOut =
-            clip.voiceOutFrame > vIn
-              ? clip.voiceOutFrame
-              : Math.min(clip.durationFrames, vIn + (clip.voiceFrames > 0 ? clip.voiceFrames : clip.durationFrames));
-          const left = (clip.startFrame + vIn) * pxPerFrame;
-          const voiceSpanFrames = Math.max(1, vOut - vIn);
-          const isVoiceCut = clip.voiceFrames > 0 && vIn + clip.voiceFrames > clip.durationFrames;
-          return (
-            <button
-              type="button"
-              key={`vox-${kf.sceneId}-${kf.id}-${clip.index}`}
-              className={`vox-cue ${selectedFrameId === kf.id ? "is-selected" : ""} ${isVoiceCut ? "is-voice-cut" : ""}`}
-              data-testid={`vox-cue-${kf.id}`}
-              data-scene-mark={kf.mark}
-              data-voice-start={clip.startFrame + vIn}
-              data-voice-end={clip.startFrame + vOut}
-              style={{
-                left,
-                width: Math.max(12, voiceSpanFrames * pxPerFrame),
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(kf.id, clip.startFrame + vIn, "voice");
-              }}
-              title={`Voice (${kf.mark}/${kf.number}): ${kf.beat.audioUrl} — click to change file`}
-            >
-              <span>◉ {basename(String(kf.beat.audioUrl))}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 2. SFX Lane */}
-      <div
-        className={`synced-audio-lane sfx-lane ${sfxSilenced ? "is-silenced" : ""}`}
-        data-testid="lane-sfx"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={dropCue}
-        onClick={(e) => handleEmptyLaneClick(e, "sfx")}
-      >
-        {visibleSfx.map((clip) => {
-          const kf = clip.keyframe;
-          const left = clip.startFrame * pxPerFrame;
-          return (
-            <button
-              type="button"
-              key={`sfx-${kf.sceneId}-${kf.id}-${clip.index}`}
-              className={`sfx-cue ${selectedFrameId === kf.id ? "is-selected" : ""}`}
-              data-testid={`sfx-cue-${kf.id}`}
-              data-scene-mark={kf.mark}
-              style={{
-                left,
-                maxWidth: Math.max(18, clip.durationFrames * pxPerFrame - 2),
-              }}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("application/x-frame24-cue", `sfx|${kf.id}`);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(kf.id, clip.startFrame, "sfx");
-              }}
-              title={`SFX (${kf.mark}/${kf.number}): ${kf.beat.sfxUrl} — click to change file`}
-            >
-              <i />
-              {basename(String(kf.beat.sfxUrl))}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 3. Music Lane */}
-      <div
-        className={`synced-audio-lane music-lane ${musicSilenced ? "is-silenced" : ""}`}
-        data-testid="lane-music"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={dropCue}
-        onClick={(e) => handleEmptyLaneClick(e, "music")}
-      >
-        {visibleMusic.map((cue) => {
-          const left = cue.startFrame * pxPerFrame;
-          const width = Math.max(2, (cue.endFrame - cue.startFrame) * pxPerFrame);
-          const s = cue.scene;
-          const fadeIn = Number(s.musicFadeSeconds) > 0;
-          const fadeOut = Number(s.musicFadeOutSeconds ?? s.musicFadeSeconds) > 0;
-          return (
-            <div
-              key={`music-${cue.sceneId}-${cue.startFrame}`}
-              role="button"
-              tabIndex={0}
-              className={`music-segment ${selectedFrameId === cue.id ? "is-selected" : ""}`}
-              data-testid={`music-span-${cue.sceneId}`}
-              data-track-url={cue.url}
-              data-start-frame={cue.startFrame}
-              data-end-frame={cue.endFrame}
-              style={{ left, width }}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("application/x-frame24-cue", `music|${cue.id}`);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                const clicked = frameFromLaneClick(e, cue.startFrame);
-                const clamped = Math.max(cue.startFrame, Math.min(Math.max(cue.startFrame, cue.endFrame - 1), clicked));
-                onSelect(cue.id, clamped, "music");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelect(cue.id, cue.startFrame, "music");
-                }
-              }}
-              title={`${cue.url} · ${cue.loop ? "loop" : "once"} · fade in ${s.musicFadeSeconds ?? 1.4}s · level ${s.musicLevel ?? 1} — click to change file`}
-            >
-              <span>{cue.label}</span>
-              {fadeIn && <i className="fade-in-wedge" />}
-              {fadeOut && <i className="fade-out-wedge" />}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* 4. Ambience Lane */}
-      <div
-        className={`synced-audio-lane ambience-lane ${ambienceSilenced ? "is-silenced" : ""}`}
-        data-testid="lane-ambience"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={dropCue}
-        onClick={(e) => handleEmptyLaneClick(e, "ambience")}
-      >
-        {visibleAmbience.map((cue) => {
-          const left = cue.startFrame * pxPerFrame;
-          const width = Math.max(2, (cue.endFrame - cue.startFrame) * pxPerFrame);
-          return (
-            <div
-              key={`amb-${cue.sceneId}-${cue.startFrame}`}
-              role="button"
-              tabIndex={0}
-              className={`ambience-segment ${selectedFrameId === cue.id ? "is-selected" : ""}`}
-              data-testid={`ambience-span-${cue.sceneId}`}
-              style={{ left, width }}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("application/x-frame24-cue", `ambience|${cue.id}`);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                const clicked = frameFromLaneClick(e, cue.startFrame);
-                const clamped = Math.max(cue.startFrame, Math.min(Math.max(cue.startFrame, cue.endFrame - 1), clicked));
-                onSelect(cue.id, clamped, "ambience");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelect(cue.id, cue.startFrame, "ambience");
-                }
-              }}
-              title={`${cue.title} — click to change ambience file`}
-            >
-              <span>{cue.label}</span>
-            </div>
-          );
-        })}
-      </div>
+      {AUDIO_LANES.map((lane) => {
+        const silenced = trackMix ? effectiveTrackLevel(trackMix, lane) === 0 : false;
+        const laneClips = visibleByLane[lane];
+        return (
+          <div
+            key={lane}
+            ref={(el) => laneRefs?.[lane]?.(el)}
+            className={`synced-audio-lane ${lane}-lane ${silenced ? "is-silenced" : ""}`}
+            data-testid={`lane-${lane}`}
+            data-lane-id={lane}
+            onDragOver={(e) => {
+              if ([...e.dataTransfer.types].length > 0) e.preventDefault();
+            }}
+            onDrop={(e) => handleLaneDrop(lane, e)}
+          >
+            {laneClips.map((rc) => (
+              <AudioClipItem
+                key={rc.id}
+                clip={rc}
+                allAudioClips={resolvedAudioClips}
+                timelineClips={clips}
+                isSelected={selectedSet.has(rc.id)}
+                selectedIds={selectedSet}
+                pxPerFrame={pxPerFrame}
+                pxPerMs={pxPerMs}
+                scrollLeft={scrollLeft}
+                viewportWidth={viewportWidth}
+                playheadMs={playheadMs}
+                snapEnabled={snapEnabled}
+                noteMarkers={noteMarkers}
+                audioDurations={audioDurations}
+                resolveMedia={resolveMedia}
+                decodeTick={decodeTick}
+                onSetSnapGuide={onSetSnapGuide}
+                onSelect={onSelectAudioClip}
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
+                onPreviewUpdate={onPreviewUpdateAudioClip}
+                onShiftDragPreview={onShiftAudioDragPreview}
+                onCommitDrag={onCommitAudioDrag}
+              />
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function basename(value: string): string {
-  return value.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") || value;
+interface AudioClipItemProps {
+  clip: ResolvedAudioClip;
+  allAudioClips: ResolvedAudioClip[];
+  timelineClips: TimelineClip[];
+  isSelected: boolean;
+  selectedIds: ReadonlySet<string>;
+  pxPerFrame: number;
+  pxPerMs: number;
+  scrollLeft: number;
+  viewportWidth: number;
+  playheadMs: number;
+  snapEnabled: boolean;
+  noteMarkers: NoteMarker[];
+  audioDurations?: ReadonlyMap<string, number>;
+  resolveMedia: (value: string | undefined) => string | undefined;
+  decodeTick: number;
+  onSetSnapGuide: (frame: number | null) => void;
+  onSelect: (clip: ResolvedAudioClip, additive: boolean, targetFrame?: number) => void;
+  onDragStart: () => void;
+  onDragEnd: (label: string) => void;
+  onPreviewUpdate: (clipId: string, updated: AudioClip) => void;
+  onShiftDragPreview: (deltaMs: number, primaryClipId: string) => void;
+  onCommitDrag: (deltaMs: number, copy: boolean, primaryClipId: string) => void;
+}
+
+function AudioClipItem({
+  clip,
+  allAudioClips,
+  timelineClips,
+  isSelected,
+  selectedIds,
+  pxPerFrame,
+  pxPerMs,
+  scrollLeft,
+  viewportWidth,
+  playheadMs,
+  snapEnabled,
+  noteMarkers,
+  audioDurations,
+  resolveMedia,
+  decodeTick,
+  onSetSnapGuide,
+  onSelect,
+  onDragStart,
+  onDragEnd,
+  onPreviewUpdate,
+  onShiftDragPreview,
+  onCommitDrag,
+}: AudioClipItemProps) {
+  const [liveBadge, setLiveBadge] = useState<string | null>(null);
+  const [dragTranslatePx, setDragTranslatePx] = useState<number>(0);
+
+  const leftPx = clip.startMs * pxPerMs;
+  const widthPx = Math.max(8, clip.durationMs * pxPerMs);
+  const label = audioLabelFromSrc(clip.src);
+
+  const { urls, synthTokens } = useMemo(
+    () => extractPlayableUrlsFromSrc(clip.src, resolveMedia),
+    [clip.src, resolveMedia],
+  );
+  const primaryUrl = urls[0];
+
+  // Kick off single WebAudio decode on first appearance so waveform + exact file duration populate
+  useEffect(() => {
+    if (primaryUrl) {
+      void webAudioEngine.decodeUrlOnce(primaryUrl, clip.src);
+    }
+  }, [primaryUrl, clip.src]);
+
+  const fileDurationMs = useMemo(() => {
+    const decoded = webAudioEngine.getKnownDurationMs(clip.src);
+    if (decoded && decoded > 0) return decoded;
+    const buf = webAudioEngine.getCachedBuffer(primaryUrl);
+    if (buf) return buf.duration * 1000;
+    const cleanRef = clip.src.startsWith("file:") ? clip.src.slice(5) : clip.src;
+    const sec = audioDurations?.get(cleanRef) ?? audioDurations?.get(clip.src);
+    return sec && sec > 0 ? sec * 1000 : undefined;
+  }, [clip.src, primaryUrl, audioDurations, decodeTick]);
+
+  // Viewport-clipped canvas geometry so waveforms stay razor-sharp even at 160 px/frame!
+  const overscan = 240;
+  const visMinX = Math.max(0, scrollLeft - overscan - leftPx);
+  const visMaxX = Math.min(widthPx, scrollLeft + viewportWidth + overscan - leftPx);
+  const canvasCssLeft = Math.floor(visMinX);
+  const canvasCssWidth = Math.max(0, Math.min(2400, Math.ceil(visMaxX - canvasCssLeft)));
+  const laneHeight = 36;
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || canvasCssWidth <= 0) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const pixelW = Math.max(1, Math.round(canvasCssWidth * dpr));
+    const pixelH = Math.max(1, Math.round(laneHeight * dpr));
+    if (canvas.width !== pixelW) canvas.width = pixelW;
+    if (canvas.height !== pixelH) canvas.height = pixelH;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, pixelW, pixelH);
+
+    const colors = LANE_COLORS[clip.lane];
+    const buf = webAudioEngine.getCachedBuffer(primaryUrl);
+    const midY = pixelH / 2;
+    const gainScale = Math.max(0.05, Math.min(1.6, clip.gain));
+
+    if (buf && buf.length > 0) {
+      const ch0 = buf.getChannelData(0);
+      const ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
+      const sr = buf.sampleRate;
+      const totalSamples = buf.length;
+
+      ctx.fillStyle = colors.fill;
+      ctx.strokeStyle = colors.stroke;
+      ctx.lineWidth = Math.max(1, dpr * 0.9);
+      ctx.beginPath();
+
+      for (let px = 0; px < pixelW; px += 1) {
+        const localCssX0 = canvasCssLeft + px / dpr;
+        const localCssX1 = canvasCssLeft + (px + 1) / dpr;
+        const t0Ms = clip.inMs + localCssX0 / Math.max(1e-6, pxPerMs);
+        const t1Ms = clip.inMs + localCssX1 / Math.max(1e-6, pxPerMs);
+
+        let s0 = Math.floor((t0Ms / 1000) * sr);
+        let s1 = Math.max(s0 + 1, Math.ceil((t1Ms / 1000) * sr));
+
+        let peak = 0;
+        if (clip.loop && totalSamples > 0) {
+          const span = Math.min(totalSamples, Math.max(1, s1 - s0));
+          const step = Math.max(1, Math.floor(span / 24));
+          for (let k = 0; k < span; k += step) {
+            const idx = (((s0 + k) % totalSamples) + totalSamples) % totalSamples;
+            const v0 = Math.abs(ch0[idx] || 0);
+            const v1 = ch1 ? Math.abs(ch1[idx] || 0) : v0;
+            const v = (v0 + v1) * 0.5;
+            if (v > peak) peak = v;
+          }
+        } else if (s0 < totalSamples && s1 > 0) {
+          s0 = Math.max(0, s0);
+          s1 = Math.min(totalSamples, s1);
+          const span = Math.max(1, s1 - s0);
+          const step = Math.max(1, Math.floor(span / 24));
+          for (let idx = s0; idx < s1; idx += step) {
+            const v0 = Math.abs(ch0[idx] || 0);
+            const v1 = ch1 ? Math.abs(ch1[idx] || 0) : v0;
+            const v = (v0 + v1) * 0.5;
+            if (v > peak) peak = v;
+          }
+        }
+
+        // Apply fade envelope visually to waveform height
+        const offsetInClipMs = localCssX0 / Math.max(1e-6, pxPerMs);
+        let fadeMul = 1;
+        if (clip.fadeInMs > 0 && offsetInClipMs < clip.fadeInMs) {
+          fadeMul *= Math.max(0, offsetInClipMs / clip.fadeInMs);
+        }
+        if (clip.fadeOutMs > 0 && offsetInClipMs > clip.durationMs - clip.fadeOutMs) {
+          fadeMul *= Math.max(0, (clip.durationMs - offsetInClipMs) / clip.fadeOutMs);
+        }
+
+        const amp = Math.min(midY - 2, peak * gainScale * fadeMul * (midY - 2));
+        if (amp > 0.4) {
+          ctx.fillRect(px, midY - amp, 1, amp * 2);
+        }
+      }
+    } else {
+      // Crisp procedural/placeholder waveform while decoding or for synth ambience beds
+      ctx.fillStyle = colors.fill;
+      let seed = 0;
+      for (let i = 0; i < clip.src.length; i += 1) {
+        seed = (seed * 31 + clip.src.charCodeAt(i)) | 0;
+      }
+      const isSynth = synthTokens.length > 0 && !primaryUrl;
+      const barStep = Math.max(2, Math.round(3 * dpr));
+      for (let px = 0; px < pixelW; px += barStep) {
+        const localCssX = canvasCssLeft + px / dpr;
+        const tMs = clip.inMs + localCssX / Math.max(1e-6, pxPerMs);
+        const wave = isSynth
+          ? 0.28 + 0.16 * Math.sin(tMs * 0.008 + seed) + 0.1 * Math.cos(tMs * 0.021)
+          : 0.22 + 0.25 * Math.abs(Math.sin(tMs * 0.017 + seed) * Math.cos(tMs * 0.007));
+        const offsetInClipMs = localCssX / Math.max(1e-6, pxPerMs);
+        let fadeMul = 1;
+        if (clip.fadeInMs > 0 && offsetInClipMs < clip.fadeInMs) {
+          fadeMul *= Math.max(0, offsetInClipMs / clip.fadeInMs);
+        }
+        if (clip.fadeOutMs > 0 && offsetInClipMs > clip.durationMs - clip.fadeOutMs) {
+          fadeMul *= Math.max(0, (clip.durationMs - offsetInClipMs) / clip.fadeOutMs);
+        }
+        const amp = Math.min(midY - 3, wave * gainScale * fadeMul * (midY - 3));
+        ctx.fillRect(px, midY - amp, Math.max(1, barStep - 1), amp * 2);
+      }
+    }
+  }, [
+    canvasCssLeft,
+    canvasCssWidth,
+    clip.durationMs,
+    clip.fadeInMs,
+    clip.fadeOutMs,
+    clip.gain,
+    clip.inMs,
+    clip.lane,
+    clip.loop,
+    clip.src,
+    decodeTick,
+    primaryUrl,
+    pxPerMs,
+    synthTokens.length,
+  ]);
+
+  // Drag sessions: body move, left trim, right trim, fade-in, fade-out, gain line
+  const dragSession = useRef<
+    | {
+        mode: "move";
+        startX: number;
+        initialStartMs: number;
+        moved: boolean;
+        additive: boolean;
+        lastDeltaMs: number;
+        excludeIds: Set<string>;
+      }
+    | {
+        mode: "trim-left" | "trim-right";
+        startX: number;
+        initialClip: ResolvedAudioClip;
+        excludeIds: Set<string>;
+      }
+    | {
+        mode: "fade-in" | "fade-out";
+        startX: number;
+        initialFadeMs: number;
+        initialClip: ResolvedAudioClip;
+      }
+    | {
+        mode: "gain";
+        startX: number;
+        startY: number;
+        decided: "pending" | "gain" | "move";
+        additive: boolean;
+        initialGain: number;
+        initialStartMs: number;
+        lastDeltaMs: number;
+        excludeIds: Set<string>;
+        initialClip: ResolvedAudioClip;
+      }
+    | null
+  >(null);
+
+  const plainAudio = (rc: ResolvedAudioClip): AudioClip => {
+    const { anchorStartMs: _a, startMs: _s, endMs: _e, ...rest } = rc;
+    return rest;
+  };
+
+  const edgeHandlePx = Math.max(2, Math.min(6, Math.floor(widthPx * 0.22)));
+  const fadeInPx = Math.max(0, Math.min(widthPx, clip.fadeInMs * pxPerMs));
+  const fadeOutPx = Math.max(0, Math.min(widthPx, clip.fadeOutMs * pxPerMs));
+  // Gain line y: gain 0 => 92% from top, gain 1.0 => 46%, gain 2.0 => 6%
+  const gainNorm = Math.max(0, Math.min(MAX_GAIN, clip.gain)) / MAX_GAIN;
+  const gainTopPct = Math.round((0.92 - gainNorm * 0.86) * 1000) / 10;
+
+  return (
+    <div
+      className={[
+        "audio-clip-box",
+        `lane-${clip.lane}`,
+        isSelected ? "is-selected" : "",
+        clip.loop ? "is-loop" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      data-testid={`audio-clip-${clip.id}`}
+      data-clip-id={clip.id}
+      data-lane={clip.lane}
+      data-anchor-id={clip.anchorId}
+      data-start-ms={clip.startMs.toFixed(3)}
+      data-duration-ms={clip.durationMs.toFixed(3)}
+      data-in-ms={clip.inMs.toFixed(3)}
+      data-fade-in-ms={clip.fadeInMs.toFixed(1)}
+      data-fade-out-ms={clip.fadeOutMs.toFixed(1)}
+      data-gain={clip.gain.toFixed(3)}
+      style={{
+        left: leftPx + dragTranslatePx,
+        width: widthPx,
+      }}
+      title={`${label} · Start ${formatMsTimecode(clip.startMs)} (${Math.round(clip.startMs)} ms) · Len ${Math.round(clip.durationMs)} ms · Gain ${Math.round(clip.gain * 100)}%`}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        const target = e.target as HTMLElement;
+        if (target.closest(".audio-edge-handle, .audio-fade-handle, .audio-gain-line")) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        const additive = e.shiftKey;
+        if (!isSelected && !additive) {
+          onSelect(clip, false);
+        }
+        const exclude = new Set<string>(isSelected ? [...selectedIds] : [clip.id]);
+        e.currentTarget.setPointerCapture(e.pointerId);
+        dragSession.current = {
+          mode: "move",
+          startX: e.clientX,
+          initialStartMs: clip.startMs,
+          moved: false,
+          additive,
+          lastDeltaMs: 0,
+          excludeIds: exclude,
+        };
+      }}
+      onPointerMove={(e) => {
+        const s = dragSession.current;
+        if (!s || s.mode !== "move") return;
+        const dx = e.clientX - s.startX;
+        if (!s.moved && Math.abs(dx) < 3) return;
+        if (!s.moved) {
+          s.moved = true;
+          onDragStart();
+        }
+        const rawDeltaMs = dx / Math.max(1e-6, pxPerMs);
+        const rawTargetMs = Math.max(0, s.initialStartMs + rawDeltaMs);
+        const ignoreSnap = e.ctrlKey || e.metaKey;
+        const snapped = snapAudioMs(rawTargetMs, {
+          pxPerFrame,
+          snapEnabled,
+          ignoreSnap,
+          playheadMs,
+          timelineClips,
+          noteMarkers,
+          otherAudioClips: allAudioClips,
+          excludeAudioIds: e.altKey ? undefined : s.excludeIds,
+        });
+        onSetSnapGuide(snapped.snapped ? snapped.snapFrameApprox : null);
+        const effectiveDeltaMs = roundMicros(snapped.ms - s.initialStartMs);
+        s.lastDeltaMs = effectiveDeltaMs;
+
+        if (e.altKey) {
+          setDragTranslatePx(effectiveDeltaMs * pxPerMs);
+        } else {
+          setDragTranslatePx(0);
+          onShiftDragPreview(effectiveDeltaMs, clip.id);
+        }
+        setLiveBadge(
+          `${e.altKey ? "+COPY " : ""}${formatMsTimecode(snapped.ms)} (${snapped.ms.toFixed(0)} ms)`,
+        );
+      }}
+      onPointerUp={(e) => {
+        const s = dragSession.current;
+        if (!s || s.mode !== "move") return;
+        dragSession.current = null;
+        setDragTranslatePx(0);
+        setLiveBadge(null);
+        onSetSnapGuide(null);
+
+        if (s.moved) {
+          onCommitDrag(s.lastDeltaMs, e.altKey, clip.id);
+        } else {
+          onSelect(clip, s.additive, Math.round(msToFrameFloat(clip.startMs)));
+        }
+      }}
+      onPointerCancel={() => {
+        const s = dragSession.current;
+        dragSession.current = null;
+        setDragTranslatePx(0);
+        setLiveBadge(null);
+        onSetSnapGuide(null);
+        if (s && s.mode === "move" && s.moved) onDragEnd("");
+      }}
+    >
+      {canvasCssWidth > 0 && (
+        <canvas
+          ref={canvasRef}
+          className="audio-clip-waveform"
+          style={{ left: canvasCssLeft, width: canvasCssWidth, height: laneHeight }}
+        />
+      )}
+
+      {/* Fade-in / Fade-out curve SVG overlay */}
+      {(fadeInPx > 0.5 || fadeOutPx > 0.5) && (
+        <svg
+          className="audio-fade-svg"
+          viewBox={`0 0 ${Math.max(1, widthPx)} 36`}
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          {fadeInPx > 0.5 && (
+            <>
+              <path
+                className="audio-fade-shade"
+                d={`M 0 0 L ${fadeInPx} 0 Q ${fadeInPx * 0.35} 6, 0 36 Z`}
+              />
+              <path
+                className="audio-fade-curve"
+                d={`M 0 36 Q ${fadeInPx * 0.35} 6, ${fadeInPx} 2`}
+              />
+            </>
+          )}
+          {fadeOutPx > 0.5 && (
+            <>
+              <path
+                className="audio-fade-shade"
+                d={`M ${widthPx - fadeOutPx} 0 L ${widthPx} 0 L ${widthPx} 36 Q ${widthPx - fadeOutPx * 0.35} 6, ${widthPx - fadeOutPx} 0 Z`}
+              />
+              <path
+                className="audio-fade-curve"
+                d={`M ${widthPx - fadeOutPx} 2 Q ${widthPx - fadeOutPx * 0.35} 6, ${widthPx} 36`}
+              />
+            </>
+          )}
+        </svg>
+      )}
+
+      {/* Clip title & millisecond pill */}
+      {widthPx >= 26 && (
+        <div className="audio-clip-header">
+          <span className="audio-clip-title">
+            {clip.loop ? "↻ " : ""}
+            {label}
+          </span>
+          {widthPx >= 110 && (
+            <span className="audio-clip-ms">{formatMsTimecode(clip.startMs)}</span>
+          )}
+        </div>
+      )}
+
+      {/* Horizontal Gain Line */}
+      <div
+        className="audio-gain-line"
+        data-testid={`audio-gain-line-${clip.id}`}
+        style={{ top: `${gainTopPct}%` }}
+        title={`Clip gain: ${Math.round(clip.gain * 100)}% — drag vertically to adjust`}
+        onPointerDown={(e: ReactPointerEvent<HTMLDivElement>) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+          const additive = e.shiftKey;
+          if (!isSelected && !additive) {
+            onSelect(clip, false);
+          }
+          const exclude = new Set<string>(isSelected ? [...selectedIds] : [clip.id]);
+          e.currentTarget.setPointerCapture(e.pointerId);
+          dragSession.current = {
+            mode: "gain",
+            startX: e.clientX,
+            startY: e.clientY,
+            decided: "pending",
+            additive,
+            initialGain: clip.gain,
+            initialStartMs: clip.startMs,
+            lastDeltaMs: 0,
+            excludeIds: exclude,
+            initialClip: clip,
+          };
+        }}
+        onPointerMove={(e: ReactPointerEvent<HTMLDivElement>) => {
+          const s = dragSession.current;
+          if (!s || s.mode !== "gain") return;
+          const dx = e.clientX - s.startX;
+          const dy = s.startY - e.clientY;
+          if (s.decided === "pending") {
+            if (Math.hypot(dx, dy) < 3) return;
+            s.decided = Math.abs(dy) > Math.abs(dx) ? "gain" : "move";
+            onDragStart();
+          }
+          if (s.decided === "gain") {
+            const nextGain = Math.max(
+              0,
+              Math.min(MAX_GAIN, Math.round((s.initialGain + dy / 28) * 100) / 100),
+            );
+            onPreviewUpdate(clip.id, { ...plainAudio(s.initialClip), gain: nextGain });
+            setLiveBadge(`Gain ${Math.round(nextGain * 100)}%`);
+          } else {
+            const rawDeltaMs = dx / Math.max(1e-6, pxPerMs);
+            const rawTargetMs = Math.max(0, s.initialStartMs + rawDeltaMs);
+            const snapped = snapAudioMs(rawTargetMs, {
+              pxPerFrame,
+              snapEnabled,
+              ignoreSnap: e.ctrlKey || e.metaKey,
+              playheadMs,
+              timelineClips,
+              noteMarkers,
+              otherAudioClips: allAudioClips,
+              excludeAudioIds: e.altKey ? undefined : s.excludeIds,
+            });
+            onSetSnapGuide(snapped.snapped ? snapped.snapFrameApprox : null);
+            const effectiveDeltaMs = roundMicros(snapped.ms - s.initialStartMs);
+            s.lastDeltaMs = effectiveDeltaMs;
+            if (e.altKey) {
+              setDragTranslatePx(effectiveDeltaMs * pxPerMs);
+            } else {
+              setDragTranslatePx(0);
+              onShiftDragPreview(effectiveDeltaMs, clip.id);
+            }
+            setLiveBadge(
+              `${e.altKey ? "+COPY " : ""}${formatMsTimecode(snapped.ms)} (${snapped.ms.toFixed(0)} ms)`,
+            );
+          }
+        }}
+        onPointerUp={(e: ReactPointerEvent<HTMLDivElement>) => {
+          e.stopPropagation();
+          const s = dragSession.current;
+          if (!s || s.mode !== "gain") return;
+          dragSession.current = null;
+          setDragTranslatePx(0);
+          setLiveBadge(null);
+          onSetSnapGuide(null);
+          if (s.decided === "gain") {
+            onDragEnd("Sound gain adjusted");
+          } else if (s.decided === "move") {
+            onCommitDrag(s.lastDeltaMs, e.altKey, clip.id);
+          } else {
+            onSelect(clip, s.additive, Math.round(msToFrameFloat(clip.startMs)));
+          }
+        }}
+        onPointerCancel={() => {
+          const s = dragSession.current;
+          dragSession.current = null;
+          setDragTranslatePx(0);
+          setLiveBadge(null);
+          onSetSnapGuide(null);
+          if (s && s.mode === "gain" && s.decided !== "pending") onDragEnd("");
+        }}
+      />
+
+      {/* Left edge trim (`inMs`) */}
+      <span
+        className="audio-edge-handle edge-left"
+        data-testid={`audio-trim-left-${clip.id}`}
+        style={{ width: edgeHandlePx }}
+        title="Drag left edge to trim file in-point (inMs)"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          dragSession.current = {
+            mode: "trim-left",
+            startX: e.clientX,
+            initialClip: clip,
+            excludeIds: new Set([clip.id]),
+          };
+          onDragStart();
+        }}
+        onPointerMove={(e) => {
+          const s = dragSession.current;
+          if (!s || s.mode !== "trim-left") return;
+          const rawStart = s.initialClip.startMs + (e.clientX - s.startX) / Math.max(1e-6, pxPerMs);
+          const snapped = snapAudioMs(rawStart, {
+            pxPerFrame,
+            snapEnabled,
+            ignoreSnap: e.ctrlKey || e.metaKey,
+            playheadMs,
+            timelineClips,
+            noteMarkers,
+            otherAudioClips: allAudioClips,
+            excludeAudioIds: s.excludeIds,
+          });
+          onSetSnapGuide(snapped.snapped ? snapped.snapFrameApprox : null);
+          const trimmed = trimAudioClipLeft(s.initialClip, snapped.ms, timelineClips, fileDurationMs);
+          onPreviewUpdate(clip.id, trimmed);
+          setLiveBadge(`In ${Math.round(trimmed.inMs)} ms`);
+        }}
+        onPointerUp={(e) => {
+          e.stopPropagation();
+          if (!dragSession.current || dragSession.current.mode !== "trim-left") return;
+          dragSession.current = null;
+          setLiveBadge(null);
+          onSetSnapGuide(null);
+          onDragEnd("Sound in-point trimmed");
+        }}
+        onPointerCancel={() => {
+          dragSession.current = null;
+          setLiveBadge(null);
+          onSetSnapGuide(null);
+          onDragEnd("");
+        }}
+      />
+
+      {/* Right edge trim (`durationMs`) */}
+      <span
+        className="audio-edge-handle edge-right"
+        data-testid={`audio-trim-right-${clip.id}`}
+        style={{ width: edgeHandlePx }}
+        title="Drag right edge to trim duration (durationMs)"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          dragSession.current = {
+            mode: "trim-right",
+            startX: e.clientX,
+            initialClip: clip,
+            excludeIds: new Set([clip.id]),
+          };
+          onDragStart();
+        }}
+        onPointerMove={(e) => {
+          const s = dragSession.current;
+          if (!s || s.mode !== "trim-right") return;
+          const rawEnd = s.initialClip.endMs + (e.clientX - s.startX) / Math.max(1e-6, pxPerMs);
+          const snapped = snapAudioMs(rawEnd, {
+            pxPerFrame,
+            snapEnabled,
+            ignoreSnap: e.ctrlKey || e.metaKey,
+            playheadMs,
+            timelineClips,
+            noteMarkers,
+            otherAudioClips: allAudioClips,
+            excludeAudioIds: s.excludeIds,
+          });
+          onSetSnapGuide(snapped.snapped ? snapped.snapFrameApprox : null);
+          const trimmed = trimAudioClipRight(s.initialClip, snapped.ms, fileDurationMs);
+          onPreviewUpdate(clip.id, trimmed);
+          setLiveBadge(`Len ${Math.round(trimmed.durationMs)} ms`);
+        }}
+        onPointerUp={(e) => {
+          e.stopPropagation();
+          if (!dragSession.current || dragSession.current.mode !== "trim-right") return;
+          dragSession.current = null;
+          setLiveBadge(null);
+          onSetSnapGuide(null);
+          onDragEnd("Sound duration trimmed");
+        }}
+        onPointerCancel={() => {
+          dragSession.current = null;
+          setLiveBadge(null);
+          onSetSnapGuide(null);
+          onDragEnd("");
+        }}
+      />
+
+      {/* Top-left Fade-In handle */}
+      <span
+        className="audio-fade-handle fade-in"
+        data-testid={`audio-fade-in-${clip.id}`}
+        style={{ left: Math.max(0, Math.min(widthPx - 8, fadeInPx)) }}
+        title={`Fade in: ${Math.round(clip.fadeInMs)} ms — drag horizontally`}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          dragSession.current = {
+            mode: "fade-in",
+            startX: e.clientX,
+            initialFadeMs: clip.fadeInMs,
+            initialClip: clip,
+          };
+          onDragStart();
+        }}
+        onPointerMove={(e) => {
+          const s = dragSession.current;
+          if (!s || s.mode !== "fade-in") return;
+          const deltaMs = (e.clientX - s.startX) / Math.max(1e-6, pxPerMs);
+          const maxFade = Math.max(0, s.initialClip.durationMs - s.initialClip.fadeOutMs);
+          const nextFade = Math.max(0, Math.min(maxFade, Math.round(s.initialFadeMs + deltaMs)));
+          onPreviewUpdate(clip.id, { ...plainAudio(s.initialClip), fadeInMs: nextFade });
+          setLiveBadge(`Fade in ${(nextFade / 1000).toFixed(2)}s (${nextFade} ms)`);
+        }}
+        onPointerUp={(e) => {
+          e.stopPropagation();
+          if (!dragSession.current || dragSession.current.mode !== "fade-in") return;
+          dragSession.current = null;
+          setLiveBadge(null);
+          onDragEnd("Fade-in updated");
+        }}
+        onPointerCancel={() => {
+          dragSession.current = null;
+          setLiveBadge(null);
+          onDragEnd("");
+        }}
+      />
+
+      {/* Top-right Fade-Out handle */}
+      <span
+        className="audio-fade-handle fade-out"
+        data-testid={`audio-fade-out-${clip.id}`}
+        style={{ right: Math.max(0, Math.min(widthPx - 8, fadeOutPx)) }}
+        title={`Fade out: ${Math.round(clip.fadeOutMs)} ms — drag horizontally`}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          dragSession.current = {
+            mode: "fade-out",
+            startX: e.clientX,
+            initialFadeMs: clip.fadeOutMs,
+            initialClip: clip,
+          };
+          onDragStart();
+        }}
+        onPointerMove={(e) => {
+          const s = dragSession.current;
+          if (!s || s.mode !== "fade-out") return;
+          const deltaMs = (s.startX - e.clientX) / Math.max(1e-6, pxPerMs);
+          const maxFade = Math.max(0, s.initialClip.durationMs - s.initialClip.fadeInMs);
+          const nextFade = Math.max(0, Math.min(maxFade, Math.round(s.initialFadeMs + deltaMs)));
+          onPreviewUpdate(clip.id, { ...plainAudio(s.initialClip), fadeOutMs: nextFade });
+          setLiveBadge(`Fade out ${(nextFade / 1000).toFixed(2)}s (${nextFade} ms)`);
+        }}
+        onPointerUp={(e) => {
+          e.stopPropagation();
+          if (!dragSession.current || dragSession.current.mode !== "fade-out") return;
+          dragSession.current = null;
+          setLiveBadge(null);
+          onDragEnd("Fade-out updated");
+        }}
+        onPointerCancel={() => {
+          dragSession.current = null;
+          setLiveBadge(null);
+          onDragEnd("");
+        }}
+      />
+
+      {liveBadge && (
+        <div className="audio-clip-live-badge" data-testid={`audio-live-badge-${clip.id}`}>
+          {liveBadge}
+        </div>
+      )}
+    </div>
+  );
 }

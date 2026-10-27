@@ -2689,7 +2689,7 @@ kbd {
 
 .editor-body {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) 330px;
+  grid-template-rows: minmax(0, 1fr) 348px;
   grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   min-width: 0;
@@ -2706,9 +2706,16 @@ kbd {
   border-bottom: 1px solid var(--line-strong);
 }
 
+.upper-workspace.has-bin {
+  grid-template-columns: 256px minmax(0, 1fr) 368px;
+}
+
 @media (max-width: 1100px) {
   .upper-workspace {
     grid-template-columns: minmax(0, 1fr) 316px;
+  }
+  .upper-workspace.has-bin {
+    grid-template-columns: 220px minmax(0, 1fr) 316px;
   }
 }
 
@@ -3059,7 +3066,7 @@ kbd {
 .track-header-row.is-sfx,
 .track-header-row.is-music,
 .track-header-row.is-ambience {
-  height: 28px;
+  height: 36px;
 }
 
 .track-header-row.is-ambience {
@@ -3733,13 +3740,13 @@ kbd {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 112px;
+  min-height: 144px;
   background: #080b10;
 }
 
 .synced-audio-lane {
   position: relative;
-  height: 28px;
+  height: 36px;
   flex-shrink: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.055);
 }
@@ -4448,5 +4455,529 @@ kbd {
   align-items: center;
   gap: 6px;
 }
+
+/* ============================================================================
+ * Turn 7: Free Sound Clips, Waveforms, Fades, Gain Line, Gaps, Sub-Frame Ticks,
+ *         Multi-Lane Marquee Selection, Media Bin & Millisecond Inspector
+ * ============================================================================ */
+
+/* Viewer Pure Black Gap */
+.cin-preview[data-gap="true"] {
+  background: #000000 !important;
+}
+
+/* Hatched Gap Clip on Video Lane */
+.timeline-clip.is-gap {
+  background: repeating-linear-gradient(
+    -45deg,
+    #060709,
+    #060709 7px,
+    #11151d 7px,
+    #11151d 14px
+  );
+  border: 1px dashed rgba(255, 255, 255, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.7);
+}
+
+.timeline-clip.is-gap.is-selected {
+  border: 2px solid var(--accent-amber);
+}
+
+.timeline-clip.is-drop-hover {
+  border: 2px solid #4ade80 !important;
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35), inset 0 0 18px rgba(74, 222, 128, 0.22);
+}
+
+.timeline-gap-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  pointer-events: none;
+}
+
+.timeline-gap-label span {
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: rgba(5, 7, 10, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Selected Keyframe Diamond */
+.clip-key-diamond.is-selected {
+  background: var(--accent-amber);
+  color: #080a0e !important;
+  border-color: #fff !important;
+  box-shadow: 0 0 0 2px rgba(232, 162, 74, 0.55);
+  z-index: 10;
+}
+
+/* Sub-Frame Millisecond Ruler Ticks */
+.ruler-tick.is-subframe {
+  position: absolute;
+  bottom: 0;
+  height: 7px;
+  width: 1px;
+  background: rgba(103, 183, 209, 0.36);
+  pointer-events: none;
+}
+
+.ruler-subtick-label {
+  position: absolute;
+  bottom: 8px;
+  left: 3px;
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: rgba(159, 219, 240, 0.78);
+  white-space: nowrap;
+}
+
+/* Free Sound Clip Boxes on Voice / SFX / Music / Ambience Lanes */
+.synced-audio-lane.is-silenced {
+  opacity: 0.44;
+}
+
+.audio-clip-box {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(20, 26, 36, 0.9);
+  z-index: 2;
+}
+
+.audio-clip-box:active {
+  cursor: grabbing;
+}
+
+.audio-clip-box.lane-voice {
+  background: linear-gradient(180deg, rgba(24, 66, 102, 0.78) 0%, rgba(15, 42, 68, 0.88) 100%);
+  border-color: rgba(96, 195, 255, 0.52);
+}
+
+.audio-clip-box.lane-sfx {
+  background: linear-gradient(180deg, rgba(102, 58, 16, 0.78) 0%, rgba(66, 36, 10, 0.88) 100%);
+  border-color: rgba(255, 182, 72, 0.55);
+}
+
+.audio-clip-box.lane-music {
+  background: linear-gradient(180deg, rgba(64, 38, 108, 0.78) 0%, rgba(40, 22, 72, 0.88) 100%);
+  border-color: rgba(186, 128, 255, 0.52);
+}
+
+.audio-clip-box.lane-ambience {
+  background: linear-gradient(180deg, rgba(20, 76, 56, 0.78) 0%, rgba(12, 48, 36, 0.88) 100%);
+  border-color: rgba(92, 224, 168, 0.5);
+}
+
+.audio-clip-box.is-loop {
+  border-right-style: dashed;
+}
+
+.audio-clip-box.is-selected {
+  border: 1.5px solid var(--accent-amber);
+  box-shadow: 0 0 0 1px rgba(232, 162, 74, 0.48), 0 4px 12px rgba(0, 0, 0, 0.55);
+  z-index: 6;
+}
+
+.audio-clip-waveform {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.audio-fade-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.audio-fade-shade {
+  fill: rgba(4, 6, 10, 0.58);
+}
+
+.audio-fade-curve {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.82);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.audio-clip-header {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 1px 6px;
+  pointer-events: none;
+}
+
+.audio-clip-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(248, 246, 240, 0.95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audio-clip-ms {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: rgba(232, 162, 74, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Horizontal Gain Line inside Audio Clip */
+.audio-gain-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 5px;
+  margin-top: -2px;
+  cursor: ns-resize;
+  z-index: 4;
+  touch-action: none;
+}
+
+.audio-gain-line::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 2px;
+  height: 1.5px;
+  background: rgba(255, 232, 168, 0.55);
+  transition: background-color 90ms ease, height 90ms ease;
+}
+
+.audio-clip-box:hover .audio-gain-line::after,
+.audio-clip-box.is-selected .audio-gain-line::after,
+.audio-gain-line:hover::after {
+  background: #ffd166;
+  height: 2px;
+}
+
+/* Left / Right Edge Trim Handles on Audio Clip */
+.audio-edge-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 5;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 90ms ease;
+}
+
+.audio-edge-handle.edge-left {
+  left: 0;
+  background: linear-gradient(to right, rgba(232, 162, 74, 0.6), transparent);
+}
+
+.audio-edge-handle.edge-right {
+  right: 0;
+  background: linear-gradient(to left, rgba(232, 162, 74, 0.6), transparent);
+}
+
+.audio-clip-box:hover .audio-edge-handle,
+.audio-clip-box.is-selected .audio-edge-handle {
+  opacity: 1;
+}
+
+/* Top-Corner Fade Handles */
+.audio-fade-handle {
+  position: absolute;
+  top: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #ffffff;
+  border: 1px solid #090c12;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
+  cursor: ew-resize;
+  z-index: 6;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 90ms ease, transform 90ms ease;
+}
+
+.audio-clip-box:hover .audio-fade-handle,
+.audio-clip-box.is-selected .audio-fade-handle {
+  opacity: 0.95;
+}
+
+.audio-fade-handle:hover {
+  transform: scale(1.22);
+  background: var(--accent-amber);
+}
+
+.audio-clip-live-badge {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(6, 8, 12, 0.94);
+  border: 1px solid var(--accent-amber);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent-amber);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 12;
+}
+
+/* Collapsible Project Media Bin */
+.media-bin-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--bg-900);
+  border-right: 1px solid var(--line-strong);
+  overflow: hidden;
+}
+
+.media-bin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--line-mid);
+}
+
+.media-bin-head h3 {
+  margin: 1px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.media-bin-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--line-mid);
+  background: var(--bg-950);
+}
+
+.media-bin-tab {
+  height: 28px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  border-right: 1px solid var(--line-mid);
+}
+
+.media-bin-tab:last-child {
+  border-right: 0;
+}
+
+.media-bin-tab.is-active {
+  background: var(--bg-850);
+  color: var(--accent-amber);
+}
+
+.media-bin-search-wrap {
+  padding: 8px 10px 4px;
+}
+
+.media-bin-search {
+  width: 100%;
+  height: 27px;
+  font-size: 11.5px;
+}
+
+.media-bin-hint {
+  margin: 0;
+  padding: 2px 10px 7px;
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--line-subtle);
+}
+
+.media-bin-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.media-bin-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 4px;
+  background: var(--bg-850);
+  border: 1px solid var(--line-mid);
+  cursor: grab;
+  user-select: none;
+}
+
+.media-bin-item:hover {
+  border-color: var(--accent-amber);
+  background: var(--bg-800);
+}
+
+.media-bin-item:active {
+  cursor: grabbing;
+}
+
+.media-bin-thumb {
+  width: 46px;
+  height: 26px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #05070a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.media-bin-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-bin-thumb i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink-muted);
+}
+
+.media-bin-audio-badge {
+  width: 28px;
+  height: 26px;
+  border-radius: 3px;
+  background: rgba(103, 183, 209, 0.16);
+  border: 1px solid rgba(103, 183, 209, 0.42);
+  color: #9fdbef;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.media-bin-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.media-bin-meta strong {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-bin-meta small {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-bin-empty {
+  padding: 16px 8px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 11.5px;
+}
+
+/* Inspector Millisecond Audio Timing & Delete Controls */
+.audio-ms-readout-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.audio-ms-readout-row > div {
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--bg-950);
+  border: 1px solid var(--line-mid);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.audio-ms-readout-row strong {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--accent-amber);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audio-ms-readout-row small {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audio-ms-input {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.danger-quiet:hover {
+  border-color: rgba(239, 68, 68, 0.65);
+  color: #fca5a5;
+}
+
 
 

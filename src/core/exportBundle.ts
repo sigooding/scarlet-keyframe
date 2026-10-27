@@ -1,3 +1,4 @@
+import type { AudioClip } from "./audioClips";
 import type { AnyRecord, ProjectAsset, ProjectState, StoryLike } from "./model";
 import { assetIdFromReference, unwrapMediaReference } from "./model";
 import {
@@ -11,6 +12,7 @@ import {
 
 export interface PortableStoryBundle {
   story: StoryLike;
+  audioClips?: AudioClip[];
   assets: Array<{
     id: string;
     name: string;
@@ -124,7 +126,15 @@ export async function buildPortableBundle(
   const currentMissing = evaluateMissingMedia(project, folderFiles, publicPaths);
   currentMissing.forEach((item) => missing.add(item));
   delete story.assets;
-  return { story, assets: [...assets.values()], missing: [...missing].sort() };
+  const audioClips = project.audioClips
+    ? (JSON.parse(JSON.stringify(project.audioClips)) as AudioClip[])
+    : undefined;
+  return {
+    story,
+    ...(audioClips ? { audioClips } : {}),
+    assets: [...assets.values()],
+    missing: [...missing].sort(),
+  };
 }
 
 function collectWritableRefs(story: StoryLike): WritableRef[] {

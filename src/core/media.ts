@@ -107,7 +107,7 @@ export function folderFilePath(file: File): string {
 
 export function referencedPath(value: string): string | undefined {
   const raw = unwrapMediaReference(value);
-  if (!raw || /^(?:asset:|data:|blob:|gradient:|emoji:)/i.test(raw)) return undefined;
+  if (!raw || /^(?:asset:|data:|blob:|gradient:|emoji:|synth:)/i.test(raw)) return undefined;
   if (/^https?:\/\//i.test(raw)) return undefined;
   if (/^(?:none|rain|jazz|drone|tension)$/i.test(raw.trim())) return undefined;
   return normalizeMediaPath(raw);
@@ -119,7 +119,7 @@ export function evaluateMissingMedia(
   publicPaths: Set<string>,
 ): string[] {
   const availableAssetIds = new Set(project.assets.map((asset) => asset.id));
-  const refs = collectMediaReferences(project.story);
+  const refs = collectMediaReferences(project.story, project.audioClips);
   const missing = new Set<string>();
   for (const ref of refs) {
     const id = assetIdFromReference(ref);

@@ -228,13 +228,25 @@ describe("App and studio windows", () => {
         />
         <Tracks
           clips={clips}
+          resolvedAudioClips={[]}
+          selectedAudioClipIds={[]}
           totalFrames={totalFrames}
+          playheadFrame={startClip.startFrame}
           pxPerFrame={3}
+          scrollLeft={0}
+          viewportWidth={900}
           minVisibleFrame={Math.max(0, startClip.startFrame - 240)}
           maxVisibleFrame={startClip.startFrame + 480}
-          selectedFrameId={startFrame.id}
-          onSelect={noop}
-          onMoveCue={noop}
+          snapEnabled={true}
+          noteMarkers={[]}
+          resolveMedia={resolveMedia}
+          onSetSnapGuide={noop}
+          onSelectAudioClip={noop}
+          onDragStart={noop}
+          onDragEnd={noop}
+          onPreviewUpdateAudioClip={noop}
+          onShiftAudioDragPreview={noop}
+          onCommitAudioDrag={noop}
         />
         <Inspector
           project={project}

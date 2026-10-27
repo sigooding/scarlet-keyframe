@@ -6,19 +6,32 @@ import { CropModal, type CropState } from "./components/CropModal";
 import { ExportModal, type ExportTab } from "./components/ExportModal";
 import {
   Inspector,
-  parseAmbienceSpec,
-  serializeAmbienceSpec,
   type BrowseMediaTarget,
   type InheritedAmbienceInfo,
   type InheritedMusicInfo,
   type InspectorTab,
   type UploadMediaTarget,
 } from "./components/Inspector";
+import { MediaBin } from "./components/MediaBin";
 import { MissingMediaModal } from "./components/MissingMediaModal";
 import { SnapshotModal } from "./components/SnapshotModal";
 import { Timeline } from "./components/Timeline";
 import { Topbar } from "./components/Topbar";
 import { resolveAmbienceSpans } from "./components/Tracks";
+import {
+  buildAudioClipsFromFilm,
+  DEFAULT_DUCK_DEPTH,
+  EMPTY_MULTI_SELECTION,
+  frameToMs,
+  isMultiSelectionEmpty,
+  reanchorAudioClipToMs,
+  resolveAudioClips,
+  type AudioClip,
+  type AudioLaneId,
+  type MultiLaneSelection,
+  type ResolvedAudioClip,
+  type SelectedKeyframeDiamond,
+} from "./core/audioClips";
 import {
   activeCaptionAtLocalFrame,
   DEFAULT_CAPTION_STYLE,
@@ -49,17 +62,20 @@ import {
   addNoteMarker,
   cloneStory as cloneProjectStory,
   copyEffectBlock,
+  copyMultiSelection,
   copySelectedBeats,
-  deleteKeyframes,
   deleteNoteMarker,
   duplicateKeyframe,
+  executeDeleteSelection,
   insertKeyframeAfter,
   moveSfxCue,
   pasteEffectBlock,
   pasteKeyframesAt,
+  pasteMultiSelectionAt,
   reorderKeyframeWithResult,
   resetBeatCaptions,
   resetEffectField,
+  setAudioClips,
   setBeatAnimation,
   setBeatCaptions,
   setBeatField,
@@ -69,10 +85,13 @@ import {
   setRollDurations,
   setSceneField,
   setStoryCaptionStyle,
+  shiftMultiLaneSelection,
   splitKeyframeAt,
   trimKeyframe,
+  updateAudioClip,
   updateNoteMarker,
   type EffectBlock,
+  type MultiLaneClipboard,
   type ReorderDestination,
 } from "./core/edits";
 import { buildPortableBundle } from "./core/exportBundle";
@@ -101,6 +120,7 @@ import {
   type TrackId,
   type TrackMixMap,
 } from "./core/previewAudio";
+import { webAudioEngine } from "./core/webAudioEngine";
 import { buildTimelineClips, clipAtFrame, evaluate } from "./sequence/animate";
 import {
   activeTransitionAtFrame,
@@ -127,10 +147,20 @@ declare global {
       totalFrames: number;
       snapEnabled: boolean;
       getPlayhead: () => number;
+      getPlayheadMs: () => number;
       setPlayhead: (frameNumber: number) => void;
       setFrame: (frameId: string) => void;
       getSelectedIds: () => string[];
       setSelectedIds: (ids: string[]) => void;
+      getMultiSelection: () => MultiLaneSelection;
+      getAudioClips: () => ResolvedAudioClip[];
+      getWebAudioClock: () => {
+        playing: boolean;
+        playheadMs: number;
+        activeSources: number;
+        duckDepth: number;
+      };
+      getEditLabel: () => string;
       getDuration: (frameId: string) => number;
       getFrame: (frameId: string) => AnyRecord | undefined;
       getActiveTransition: () => AnyRecord | undefined;
@@ -190,7 +220,10 @@ export default function App() {
   const [measuredMusicDurations, setMeasuredMusicDurations] = useState<Map<string, number>>(
     () => new Map(Object.entries(bundledAudioDurations as Record<string, number>)),
   );
+  const [decodedAudioMs, setDecodedAudioMs] = useState<Map<string, number>>(() => new Map());
   const [trackMix, setTrackMix] = useState<TrackMixMap>(() => createDefaultTrackMix());
+  const [duckDepth, setDuckDepth] = useState(DEFAULT_DUCK_DEPTH);
+  const [mediaBinOpen, setMediaBinOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("clip");
   const inspectorTabRef = useRef<InspectorTab>("clip");
   inspectorTabRef.current = inspectorTab;
@@ -203,6 +236,14 @@ export default function App() {
   const [selectedFrameIds, setSelectedFrameIds] = useState<string[]>([]);
   const selectedIdsRef = useRef<string[]>([]);
   selectedIdsRef.current = selectedFrameIds;
+
+  const [multiSelection, setMultiSelection] = useState<MultiLaneSelection>(EMPTY_MULTI_SELECTION);
+  const multiSelectionRef = useRef<MultiLaneSelection>(EMPTY_MULTI_SELECTION);
+  multiSelectionRef.current = multiSelection;
+
+  const [multiClipboard, setMultiClipboard] = useState<MultiLaneClipboard | null>(null);
+  const multiClipboardRef = useRef<MultiLaneClipboard | null>(null);
+  multiClipboardRef.current = multiClipboard;
 
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [editingMarkerId, setEditingMarkerId] = useState<string | null>(null);
@@ -252,13 +293,26 @@ export default function App() {
   const attemptedVoiceRefs = useRef(new Set<string>(Object.keys(bundledAudioDurations as Record<string, number>)));
   const attemptedMusicRefs = useRef(new Set<string>(Object.keys(bundledAudioDurations as Record<string, number>)));
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
-  const lastPlayedClipRef = useRef("");
-  const lastPlayedSceneRef = useRef("");
+  const dragBaseProjectRef = useRef<ProjectState | null>(null);
+  const dragBaseSelectionRef = useRef<MultiLaneSelection>(EMPTY_MULTI_SELECTION);
   const animationClockRef = useRef(new WeakMap<Animation, number>());
 
   useEffect(() => {
     projectRef.current = project;
   }, [project]);
+
+  useEffect(() => {
+    return webAudioEngine.onBufferDecoded((src, buffer) => {
+      const durationMs = buffer.duration * 1000;
+      if (!src || !Number.isFinite(durationMs) || durationMs <= 0) return;
+      setDecodedAudioMs((prev) => {
+        if (prev.get(src) === Math.round(durationMs)) return prev;
+        const next = new Map(prev);
+        next.set(src, Math.round(durationMs));
+        return next;
+      });
+    });
+  }, []);
 
   useEffect(() => {
     window.__sw_audio = audio;
@@ -289,6 +343,10 @@ export default function App() {
         const initialVoiceDurations = new Map<string, number>(
           Object.entries(bundledAudioDurations as Record<string, number>),
         );
+        const initialMusicDurations = extractKnownMusicDurations(sourceEdits);
+        initialVoiceDurations.forEach((sec, ref) => {
+          if (!initialMusicDurations.has(ref)) initialMusicDurations.set(ref, sec);
+        });
 
         let initialProject: ProjectState;
         let statusLabel: string;
@@ -299,15 +357,25 @@ export default function App() {
             assets: saved.assets || [],
             snapshots: saved.snapshots || [],
           };
-          initialProject.missing = evaluateMissingMedia(initialProject, new Map(), paths);
           statusLabel = "AUTOSAVED PROJECT";
         } else {
           const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json");
           const contextual = { ...imported, story: applyStudioMusicSync(imported.story, sourceEdits) };
           initialProject = createProjectState(contextual, [], sourceEdits);
-          initialProject.missing = evaluateMissingMedia(initialProject, new Map(), paths);
           statusLabel = "FILM READY";
         }
+
+        if (!Array.isArray(initialProject.audioClips)) {
+          initialProject = {
+            ...initialProject,
+            audioClips: buildAudioClipsFromFilm(
+              initialProject.story,
+              initialVoiceDurations,
+              extractKnownMusicDurations(initialProject.sourceEdits ?? sourceEdits),
+            ),
+          };
+        }
+        initialProject.missing = evaluateMissingMedia(initialProject, new Map(), paths);
 
         projectRef.current = initialProject;
         setProject(initialProject);
@@ -326,6 +394,12 @@ export default function App() {
         setPlayheadFrame(startPlayhead);
         setSelectedFrameId(startClip?.keyframe.id || "");
         setSelectedFrameIds(startClip ? [startClip.keyframe.id] : []);
+        setMultiSelection({
+          pictureIds: startClip ? [startClip.keyframe.id] : [],
+          captions: [],
+          audioClipIds: [],
+          keyframes: [],
+        });
         setSaveStatus(statusLabel);
       } catch (error) {
         if (alive) setLoadError(error instanceof Error ? error.message : "Unable to open this project.");
@@ -521,13 +595,80 @@ export default function App() {
     return combined;
   }, [project?.sourceEdits, measuredMusicDurations]);
 
+  const audioDurationSecondsMap = useMemo(() => {
+    const out = new Map<string, number>();
+    voiceDurations.forEach((sec, ref) => {
+      if (sec > 0) out.set(ref, sec);
+    });
+    musicDurations.forEach((sec, ref) => {
+      if (sec > 0) out.set(ref, sec);
+    });
+    decodedAudioMs.forEach((ms, ref) => {
+      if (ms > 0) out.set(ref, ms / 1000);
+    });
+    return out;
+  }, [voiceDurations, musicDurations, decodedAudioMs]);
+
+  const fileDurationMap = useMemo(() => {
+    const out = new Map<string, number>();
+    voiceDurations.forEach((sec, ref) => {
+      if (sec > 0) out.set(ref, Math.round(sec * 1000));
+    });
+    musicDurations.forEach((sec, ref) => {
+      if (sec > 0) out.set(ref, Math.round(sec * 1000));
+    });
+    decodedAudioMs.forEach((ms, ref) => {
+      if (ms > 0) out.set(ref, Math.round(ms));
+    });
+    return out;
+  }, [voiceDurations, musicDurations, decodedAudioMs]);
+
+  const resolvedAudioClips = useMemo(
+    () => resolveAudioClips(project?.audioClips ?? [], clips),
+    [project?.audioClips, clips],
+  );
+
   useEffect(() => {
     audioController.setTimeline(clips, totalFrames, musicDurations);
   }, [clips, totalFrames, musicDurations]);
 
   useEffect(() => {
     audioController.setTrackMix(trackMix);
+    webAudioEngine.setTrackMix(trackMix);
   }, [trackMix]);
+
+  useEffect(() => {
+    webAudioEngine.setClips(resolvedAudioClips, resolveMedia);
+  }, [resolvedAudioClips, resolveMedia]);
+
+  useEffect(() => {
+    webAudioEngine.setSoundEnabled(soundOn);
+  }, [soundOn]);
+
+  useEffect(() => {
+    webAudioEngine.setDuckDepth(duckDepth);
+  }, [duckDepth]);
+
+  const activeAudioClip = useMemo<ResolvedAudioClip | undefined>(() => {
+    if (multiSelection.audioClipIds.length > 0) {
+      const explicit = resolvedAudioClips.find((c) => c.id === multiSelection.audioClipIds[0]);
+      if (explicit) return explicit;
+    }
+    const tab = inspectorTab;
+    if (tab !== "voice" && tab !== "sfx" && tab !== "music" && tab !== "ambience") {
+      return undefined;
+    }
+    if (!selectedClip) return undefined;
+    const anchored = resolvedAudioClips.find(
+      (c) => c.lane === tab && c.anchorId === selectedClip.keyframe.id,
+    );
+    if (anchored) return anchored;
+    const clipStartMs = frameToMs(selectedClip.startFrame);
+    const clipEndMs = frameToMs(selectedClip.endFrame);
+    return resolvedAudioClips.find(
+      (c) => c.lane === tab && c.startMs < clipEndMs && c.endMs > clipStartMs,
+    );
+  }, [multiSelection.audioClipIds, resolvedAudioClips, inspectorTab, selectedClip]);
 
   const handleToggleTrackMute = useCallback((track: TrackId) => {
     setTrackMix((prev) => ({
@@ -606,7 +747,11 @@ export default function App() {
   );
 
   const beginDragEdit = useCallback(() => {
-    if (projectRef.current) history.beginDrag(projectRef.current);
+    if (projectRef.current) {
+      history.beginDrag(projectRef.current);
+      dragBaseProjectRef.current = projectRef.current;
+      dragBaseSelectionRef.current = multiSelectionRef.current;
+    }
   }, []);
 
   const previewProjectEdit = useCallback((update: (current: ProjectState) => ProjectState) => {
@@ -621,6 +766,7 @@ export default function App() {
 
   const endDragEdit = useCallback((label: string) => {
     const current = projectRef.current;
+    dragBaseProjectRef.current = null;
     if (!current) return;
     if (!label) {
       history.cancelDrag();
@@ -637,7 +783,9 @@ export default function App() {
       const nextFrames = buildKeyframes(nextProject.story);
       const { clips: nextClips, totalFrames: nextTotal } = buildTimelineClips(nextFrames, voiceDurations);
       const validIds = new Set(nextFrames.map((f) => f.id));
+      const validAudioIds = new Set((nextProject.audioClips ?? []).map((a) => a.id));
       const kept = selectedIdsRef.current.filter((id) => validIds.has(id));
+      const keptAudio = multiSelectionRef.current.audioClipIds.filter((id) => validAudioIds.has(id));
       const clampedPlayhead = Math.max(0, Math.min(Math.max(0, nextTotal - 1), playheadRef.current));
       setPlayheadFrame(clampedPlayhead);
       if (kept.length > 0) {
@@ -646,8 +794,14 @@ export default function App() {
       } else {
         const hit = clipAtFrame(nextClips, clampedPlayhead) || nextClips[0];
         setSelectedFrameId(hit?.keyframe.id || "");
-        setSelectedFrameIds(hit ? [hit.keyframe.id] : []);
+        setSelectedFrameIds(keptAudio.length > 0 ? [] : hit ? [hit.keyframe.id] : []);
       }
+      setMultiSelection((prev) => ({
+        pictureIds: prev.pictureIds.filter((id) => validIds.has(id)),
+        captions: prev.captions.filter((c) => validIds.has(c.frameId)),
+        audioClipIds: keptAudio,
+        keyframes: prev.keyframes.filter((k) => validIds.has(k.frameId)),
+      }));
     },
     [voiceDurations],
   );
@@ -680,21 +834,41 @@ export default function App() {
 
   const scrubToFrame = useCallback(
     (targetFrame: number) => {
+      const clamped = Math.max(0, Math.min(Math.max(0, totalFrames - 1), Math.round(targetFrame)));
       if (playback) {
         setPlayback(false);
+        webAudioEngine.stop();
         audioController.stopAll();
+      } else if (soundOn) {
+        webAudioEngine.scrub(frameToMs(clamped));
       }
-      const clamped = Math.max(0, Math.min(Math.max(0, totalFrames - 1), Math.round(targetFrame)));
       setPlayheadFrame(clamped);
       const hit = clipAtFrame(clips, clamped);
       if (hit) {
         setSelectedFrameId(hit.keyframe.id);
-        setSelectedFrameIds((prev) =>
-          prev.length > 1 && prev.includes(hit.keyframe.id) ? prev : [hit.keyframe.id],
-        );
+        const curSel = multiSelectionRef.current;
+        const hasOtherLaneSel =
+          curSel.audioClipIds.length > 0 ||
+          curSel.captions.length > 0 ||
+          curSel.keyframes.length > 0;
+        if (!hasOtherLaneSel) {
+          setSelectedFrameIds((prev) =>
+            prev.length > 1 && prev.includes(hit.keyframe.id) ? prev : [hit.keyframe.id],
+          );
+          setMultiSelection((prev) =>
+            prev.pictureIds.length > 1 && prev.pictureIds.includes(hit.keyframe.id)
+              ? prev
+              : {
+                  pictureIds: [hit.keyframe.id],
+                  captions: [],
+                  audioClipIds: [],
+                  keyframes: [],
+                },
+          );
+        }
       }
     },
-    [clips, playback, totalFrames],
+    [clips, playback, soundOn, totalFrames],
   );
 
   const stepFrames = useCallback(
@@ -707,11 +881,24 @@ export default function App() {
   const setSelection = useCallback(
     (ids: string[], primaryId: string, targetFrame?: number) => {
       const cleanIds = ids.length ? ids : primaryId ? [primaryId] : [];
+      selectedIdsRef.current = cleanIds;
       setSelectedFrameIds(cleanIds);
-      setSelectedFrameId(primaryId || cleanIds[0] || "");
+      if (primaryId || cleanIds[0]) {
+        setSelectedFrameId(primaryId || cleanIds[0]);
+      }
+      setSelectedCaption(null);
+      const nextMulti: MultiLaneSelection = {
+        pictureIds: cleanIds,
+        captions: [],
+        audioClipIds: [],
+        keyframes: [],
+      };
+      multiSelectionRef.current = nextMulti;
+      setMultiSelection(nextMulti);
       if (targetFrame !== undefined) {
         if (playback) {
           setPlayback(false);
+          webAudioEngine.stop();
           audioController.stopAll();
         }
         setPlayheadFrame(Math.max(0, Math.min(Math.max(0, totalFrames - 1), Math.round(targetFrame))));
@@ -719,6 +906,62 @@ export default function App() {
     },
     [playback, totalFrames],
   );
+
+  const handleSetMultiSelection = useCallback(
+    (next: MultiLaneSelection, primaryFrameId?: string, targetFrame?: number) => {
+      multiSelectionRef.current = next;
+      selectedIdsRef.current = next.pictureIds;
+      setMultiSelection(next);
+      setSelectedFrameIds(next.pictureIds);
+      if (primaryFrameId) {
+        setSelectedFrameId(primaryFrameId);
+      } else if (next.pictureIds.length > 0) {
+        setSelectedFrameId((prev) =>
+          next.pictureIds.includes(prev) ? prev : next.pictureIds[0],
+        );
+      } else if (next.audioClipIds.length > 0) {
+        const hitAudio = resolvedAudioClips.find((c) => c.id === next.audioClipIds[0]);
+        if (hitAudio) {
+          setSelectedFrameId(hitAudio.anchorId);
+          setInspectorTab(hitAudio.lane);
+        }
+      } else if (next.captions.length > 0) {
+        setSelectedFrameId(next.captions[0].frameId);
+      } else if (next.keyframes.length > 0) {
+        setSelectedFrameId(next.keyframes[0].frameId);
+      }
+      if (targetFrame !== undefined) {
+        if (playback) {
+          setPlayback(false);
+          webAudioEngine.stop();
+          audioController.stopAll();
+        }
+        setPlayheadFrame(Math.max(0, Math.min(Math.max(0, totalFrames - 1), Math.round(targetFrame))));
+      }
+      if (next.captions.length > 0) {
+        const firstFrameId = next.captions[0].frameId;
+        setSelectedCaption({
+          frameId: firstFrameId,
+          indices: next.captions
+            .filter((c) => c.frameId === firstFrameId)
+            .map((c) => c.index),
+        });
+      } else {
+        setSelectedCaption(null);
+      }
+    },
+    [playback, resolvedAudioClips, totalFrames],
+  );
+
+  const clearAllSelection = useCallback(() => {
+    multiSelectionRef.current = EMPTY_MULTI_SELECTION;
+    selectedIdsRef.current = [];
+    setMultiSelection(EMPTY_MULTI_SELECTION);
+    setSelectedFrameIds([]);
+    setSelectedCaption(null);
+    setEditingMarkerId(null);
+    setCcStyleOpen(false);
+  }, []);
 
   const selectRelativeClip = useCallback(
     (delta: number) => {
@@ -745,6 +988,12 @@ export default function App() {
         const firstMoved = nextClips.find((c) => c.keyframe.id === result.resultIds[0]);
         setSelectedFrameIds(result.resultIds);
         setSelectedFrameId(result.resultIds[0]);
+        setMultiSelection({
+          pictureIds: result.resultIds,
+          captions: [],
+          audioClipIds: [],
+          keyframes: [],
+        });
         if (firstMoved) setPlayheadFrame(firstMoved.startFrame);
       }
     },
@@ -753,18 +1002,51 @@ export default function App() {
 
   const handleCopyClips = useCallback(() => {
     const current = projectRef.current;
-    const ids = selectedIdsRef.current.length ? selectedIdsRef.current : selectedFrameId ? [selectedFrameId] : [];
-    if (!current || !ids.length) return;
+    if (!current) return;
+    const sel = multiSelectionRef.current;
+    if (
+      sel.audioClipIds.length > 0 ||
+      sel.captions.length > 0 ||
+      (sel.pictureIds.length > 0 && (sel.audioClipIds.length > 0 || sel.captions.length > 0))
+    ) {
+      const clipBoard = copyMultiSelection(current, sel, voiceDurations);
+      if (!clipBoard) return;
+      setMultiClipboard(clipBoard);
+      if (clipBoard.beats.length > 0) setCopiedClips(clipBoard.beats);
+      const parts: string[] = [];
+      if (clipBoard.beats.length) parts.push(`${clipBoard.beats.length} shot${clipBoard.beats.length === 1 ? "" : "s"}`);
+      if (clipBoard.audioClips.length) parts.push(`${clipBoard.audioClips.length} sound${clipBoard.audioClips.length === 1 ? "" : "s"}`);
+      setEditLabel(`Copied ${parts.join(" + ") || "selection"}`);
+      return;
+    }
+    const ids = sel.pictureIds.length
+      ? sel.pictureIds
+      : selectedIdsRef.current.length
+        ? selectedIdsRef.current
+        : selectedFrameId
+          ? [selectedFrameId]
+          : [];
+    if (!ids.length) return;
     const beats = copySelectedBeats(current, ids);
     if (!beats.length) return;
+    setMultiClipboard(null);
     setCopiedClips(beats);
     setEditLabel(`Copied ${beats.length} clip${beats.length === 1 ? "" : "s"}`);
-  }, [selectedFrameId]);
+  }, [selectedFrameId, voiceDurations]);
 
   const handlePasteClips = useCallback(() => {
     const current = projectRef.current;
+    if (!current) return;
+    const mClip = multiClipboardRef.current;
+    if (mClip && (mClip.audioClips.length > 0 || mClip.beats.length > 0 || mClip.standaloneCaptions.length > 0)) {
+      const result = pasteMultiSelectionAt(current, mClip, playheadRef.current, voiceDurations);
+      if (!result) return;
+      applyProject(result.project, "Pasted selection");
+      handleSetMultiSelection(result.selection);
+      return;
+    }
     const beats = copiedClipsRef.current;
-    if (!current || !beats.length) return;
+    if (!beats.length) return;
     const result = pasteKeyframesAt(current, beats, playheadRef.current, voiceDurations);
     if (!result) return;
     applyProject(
@@ -773,7 +1055,13 @@ export default function App() {
     );
     setSelectedFrameIds(result.insertedIds);
     setSelectedFrameId(result.insertedIds[0] || "");
-  }, [applyProject, voiceDurations]);
+    setMultiSelection({
+      pictureIds: result.insertedIds,
+      captions: [],
+      audioClipIds: [],
+      keyframes: [],
+    });
+  }, [applyProject, handleSetMultiSelection, voiceDurations]);
 
   const handleAddMarkerAtPlayhead = useCallback(() => {
     const current = projectRef.current;
@@ -828,6 +1116,67 @@ export default function App() {
     [editProject, selectedFrame],
   );
 
+  const assignAudioAssetToLane = useCallback(
+    (lane: AudioLaneId, assetRef: string, label: string) => {
+      if (!selectedClip) return;
+      const knownDurMs = fileDurationMap.get(assetRef);
+      const targetClip =
+        activeAudioClip && activeAudioClip.lane === lane
+          ? activeAudioClip
+          : resolvedAudioClips.find(
+              (c) => c.lane === lane && c.anchorId === selectedClip.keyframe.id,
+            );
+      if (targetClip) {
+        editProject(
+          (current) =>
+            updateAudioClip(current, targetClip.id, {
+              src: assetRef,
+              inMs: 0,
+              ...(knownDurMs ? { durationMs: knownDurMs } : {}),
+            }),
+          label,
+        );
+        setMultiSelection({
+          pictureIds: [],
+          captions: [],
+          audioClipIds: [targetClip.id],
+          keyframes: [],
+        });
+      } else {
+        const newId = `ac-${lane}-${crypto.randomUUID().slice(0, 8)}`;
+        const defaultDur =
+          knownDurMs ??
+          (lane === "sfx"
+            ? 1500
+            : Math.max(1000, frameToMs(selectedClip.durationFrames)));
+        const newClip: AudioClip = {
+          id: newId,
+          lane,
+          src: assetRef,
+          anchorId: selectedClip.keyframe.id,
+          offsetMs: 0,
+          inMs: 0,
+          durationMs: defaultDur,
+          gain: lane === "voice" ? 1 : lane === "sfx" ? 0.85 : lane === "music" ? 0.7 : 0.6,
+          fadeInMs: lane === "music" || lane === "ambience" ? 500 : 0,
+          fadeOutMs: lane === "music" || lane === "ambience" ? 500 : 0,
+          ...(lane === "ambience" ? { loop: true } : {}),
+        };
+        editProject(
+          (current) => setAudioClips(current, [...(current.audioClips ?? []), newClip]),
+          label,
+        );
+        setMultiSelection({
+          pictureIds: [],
+          captions: [],
+          audioClipIds: [newId],
+          keyframes: [],
+        });
+      }
+    },
+    [activeAudioClip, editProject, fileDurationMap, resolvedAudioClips, selectedClip],
+  );
+
   const openBrowser = useCallback((kind: "image" | "audio", target: BrowseTarget) => setBrowser({ kind, target }), []);
 
   const chooseBrowserAsset = useCallback(
@@ -843,39 +1192,16 @@ export default function App() {
           `${target} changed`,
         );
       else if (target === "voice")
-        editProject((current) => setBeatField(current, selectedFrame.id, "audioUrl", asset.ref), "Voice take changed");
+        assignAudioAssetToLane("voice", asset.ref, "Voice take changed");
       else if (target === "sfx")
-        editProject((current) => setBeatField(current, selectedFrame.id, "sfxUrl", asset.ref), "Sound effect changed");
+        assignAudioAssetToLane("sfx", asset.ref, "Sound effect changed");
       else if (target === "music")
-        editProject((current) => {
-          let next = setSceneField(current, selectedFrame.sceneId, "musicUrl", asset.ref);
-          next = setSceneField(next, selectedFrame.sceneId, "musicMode", "track");
-          return next;
-        }, "Music cue changed");
-      else if (target === "ambience" || target.startsWith("ambience:")) {
-        const layerIndex = target.startsWith("ambience:")
-          ? Number.parseInt(target.slice("ambience:".length), 10)
-          : 0;
-        editProject((current) => {
-          const scene = current.story.scenes.find((s) => s.id === selectedFrame.sceneId);
-          const parsed = parseAmbienceSpec(scene?.ambientAudio);
-          const nextFiles = [...parsed.files];
-          if (Number.isFinite(layerIndex) && layerIndex >= 0 && layerIndex < nextFiles.length) {
-            nextFiles[layerIndex] = asset.ref;
-          } else {
-            nextFiles.push(asset.ref);
-          }
-          return setSceneField(
-            current,
-            selectedFrame.sceneId,
-            "ambientAudio",
-            serializeAmbienceSpec(parsed.synth, nextFiles),
-          );
-        }, "Ambience file changed");
-      }
+        assignAudioAssetToLane("music", asset.ref, "Music cue changed");
+      else if (target === "ambience" || target.startsWith("ambience:"))
+        assignAudioAssetToLane("ambience", asset.ref, "Ambience file changed");
       setBrowser(null);
     },
-    [browser, editProject, project, selectedFrame, setFramePicture],
+    [assignAudioAssetToLane, browser, editProject, project, selectedFrame, setFramePicture],
   );
 
   const imageInputRefTarget = useCallback(
@@ -894,28 +1220,29 @@ export default function App() {
     if (intent.kind === "audio" && !file.type.startsWith("audio/")) return;
     const asset = await createUploadAsset(file);
     let next: ProjectState = { ...current, assets: [...current.assets, asset], updatedAt: Date.now() };
-    if (intent.target === "picture") next = setPicture(next, intent.frameId, `asset:${asset.id}`);
-    else if (intent.target === "voice") next = setBeatField(next, intent.frameId, "audioUrl", `asset:${asset.id}`);
-    else if (intent.target === "sfx") next = setBeatField(next, intent.frameId, "sfxUrl", `asset:${asset.id}`);
-    else if (intent.target === "music") {
-      const targetFrame = buildKeyframes(next.story).find((frame) => frame.id === intent.frameId);
-      if (targetFrame) {
-        next = setSceneField(next, targetFrame.sceneId, "musicUrl", `asset:${asset.id}`);
-        next = setSceneField(next, targetFrame.sceneId, "musicMode", "track");
-      }
-    } else if (intent.target === "ambience") {
-      const targetFrame = buildKeyframes(next.story).find((frame) => frame.id === intent.frameId);
-      if (targetFrame) {
-        const scene = next.story.scenes.find((s) => s.id === targetFrame.sceneId);
-        const parsed = parseAmbienceSpec(scene?.ambientAudio);
-        const nextFiles = parsed.files.length > 0 ? [`asset:${asset.id}`, ...parsed.files.slice(1)] : [`asset:${asset.id}`];
-        next = setSceneField(
-          next,
-          targetFrame.sceneId,
-          "ambientAudio",
-          serializeAmbienceSpec(parsed.synth, nextFiles),
-        );
-      }
+    const assetRef = `asset:${asset.id}`;
+    if (intent.target === "picture") {
+      next = setPicture(next, intent.frameId, assetRef);
+    } else if (
+      intent.target === "voice" ||
+      intent.target === "sfx" ||
+      intent.target === "music" ||
+      intent.target === "ambience"
+    ) {
+      const lane: AudioLaneId = intent.target;
+      const newClip: AudioClip = {
+        id: `ac-${lane}-${crypto.randomUUID().slice(0, 8)}`,
+        lane,
+        src: assetRef,
+        anchorId: intent.frameId,
+        offsetMs: 0,
+        inMs: 0,
+        durationMs: lane === "sfx" ? 1500 : 4000,
+        gain: lane === "voice" ? 1 : lane === "sfx" ? 0.85 : 0.7,
+        fadeInMs: 0,
+        fadeOutMs: 0,
+      };
+      next = setAudioClips(next, [...(next.audioClips ?? []), newClip]);
     }
     applyProject(next, `${intent.kind === "image" ? "Picture" : "Sound"} uploaded`);
     setSelectedFrameId(intent.frameId);
@@ -969,18 +1296,34 @@ export default function App() {
         blob,
       });
     }
-    const next = createProjectState({ ...imported, story }, assets, sourceEdits);
+    let next = createProjectState({ ...imported, story }, assets, sourceEdits);
+    if (!Array.isArray(next.audioClips)) {
+      next = {
+        ...next,
+        audioClips: buildAudioClipsFromFilm(
+          next.story,
+          voiceDurations,
+          extractKnownMusicDurations(sourceEdits ?? bundledEdits),
+        ),
+      };
+    }
     next.missing = evaluateMissingMedia(next, folderFiles, publicPaths);
     history.clear();
     setHistoryVersion((value) => value + 1);
     projectRef.current = next;
     setProject(next);
     const ordered = buildKeyframes(next.story);
-    const built = buildTimelineClips(ordered).clips;
+    const built = buildTimelineClips(ordered, voiceDurations).clips;
     const start = built.find((clip) => clip.keyframe.mark === "77") || built[0];
     setPlayheadFrame(start?.startFrame ?? 0);
     setSelectedFrameId(start?.keyframe.id || "");
     setSelectedFrameIds(start ? [start.keyframe.id] : []);
+    setMultiSelection({
+      pictureIds: start ? [start.keyframe.id] : [],
+      captions: [],
+      audioClipIds: [],
+      keyframes: [],
+    });
     setBrowser(null);
     setExportOpen(false);
     setEditLabel(`Imported ${file.name}`);
@@ -1069,7 +1412,7 @@ export default function App() {
     const output = new Map<string, BrowserAsset>();
     const assets = new Map(project.assets.map((asset) => [asset.id, asset]));
     const refs = new Set(
-      collectMediaReferences(project.story).filter(
+      collectMediaReferences(project.story, project.audioClips).filter(
         (value) => /\.(?:mp3|wav|ogg|m4a|aac|flac)(?:[?#].*)?$/i.test(value) || value.startsWith("asset:"),
       ),
     );
@@ -1155,112 +1498,127 @@ export default function App() {
     );
   }, [project, resolveMedia, folderFiles, publicPaths, browser?.target, selectedFrame]);
 
+  const stopPlaybackAndAudio = useCallback(() => {
+    setPlayback(false);
+    webAudioEngine.stop();
+    audioController.stopAll();
+  }, []);
+
   const togglePlayback = useCallback(() => {
     if (!project || !clips.length) return;
     if (playback) {
-      setPlayback(false);
-      audioController.stopAll();
-      lastPlayedClipRef.current = "";
-      lastPlayedSceneRef.current = "";
+      stopPlaybackAndAudio();
       return;
     }
-    audioController.unlock();
-    setDirection(1);
-    setPlaySpeed(1);
-    lastPlayedClipRef.current = "";
-    lastPlayedSceneRef.current = "";
+    webAudioEngine.unlock();
     const startAt = playheadRef.current >= totalFrames - 1 ? 0 : playheadRef.current;
     if (startAt !== playheadRef.current) setPlayheadFrame(startAt);
-    const startClip = clipAtFrame(clips, startAt) || clips[0];
-    if (soundOn && startClip) {
-      lastPlayedSceneRef.current = startClip.keyframe.sceneId;
-      void audioController.startFrom(
-        project.story,
-        startClip.keyframe.sceneId,
-        resolveMedia,
-        startAt,
-      );
-    }
+    webAudioEngine.setClips(resolvedAudioClips, resolveMedia);
+    webAudioEngine.setSoundEnabled(soundOn);
+    webAudioEngine.setTrackMix(trackMix);
+    webAudioEngine.setDuckDepth(duckDepth);
+    webAudioEngine.startPlayback(frameToMs(startAt), 1);
+    setDirection(1);
+    setPlaySpeed(1);
     setPlayback(true);
-  }, [playback, project, clips, totalFrames, soundOn, resolveMedia]);
+  }, [
+    playback,
+    project,
+    clips.length,
+    totalFrames,
+    resolvedAudioClips,
+    resolveMedia,
+    soundOn,
+    trackMix,
+    duckDepth,
+    stopPlaybackAndAudio,
+  ]);
 
   useEffect(() => {
     if (!playback || !totalFrames) return;
     let rafId = 0;
-    const anchorTime = performance.now();
-    const anchorFrame = playheadRef.current;
 
-    const tick = (now: number) => {
-      const elapsedSeconds = ((now - anchorTime) / 1000) * playSpeed;
-      const deltaFrames = Math.floor(elapsedSeconds * FPS) * direction;
-      const nextFrame = anchorFrame + deltaFrames;
-
-      if (direction > 0 && nextFrame >= totalFrames - 1) {
-        const end = Math.max(0, totalFrames - 1);
-        setPlayheadFrame(end);
-        const endClip = clipAtFrame(clips, end);
-        if (endClip) setSelectedFrameId(endClip.keyframe.id);
-        setPlayback(false);
-        audioController.stopAll();
-        lastPlayedClipRef.current = "";
-        lastPlayedSceneRef.current = "";
-        return;
+    if (direction > 0) {
+      if (!webAudioEngine.isPlaying) {
+        webAudioEngine.unlock();
+        webAudioEngine.setClips(resolvedAudioClips, resolveMedia);
+        webAudioEngine.setSoundEnabled(soundOn);
+        webAudioEngine.setTrackMix(trackMix);
+        webAudioEngine.setDuckDepth(duckDepth);
+        webAudioEngine.startPlayback(frameToMs(playheadRef.current), playSpeed);
       }
-      if (direction < 0 && nextFrame <= 0) {
+
+      const tickForward = () => {
+        // Master clock: strictly derived from AudioContext.currentTime inside webAudioEngine.
+        const currentMs = webAudioEngine.getCurrentPlayheadMs();
+        const nextFrame = Math.floor((currentMs * FPS) / 1000);
+
+        if (nextFrame >= totalFrames - 1) {
+          const end = Math.max(0, totalFrames - 1);
+          setPlayheadFrame(end);
+          const endClip = clipAtFrame(clips, end);
+          if (endClip) setSelectedFrameId(endClip.keyframe.id);
+          stopPlaybackAndAudio();
+          return;
+        }
+        if (nextFrame !== playheadRef.current) {
+          setPlayheadFrame(nextFrame);
+          const hit = clipAtFrame(clips, nextFrame);
+          if (hit) {
+            setSelectedFrameId(hit.keyframe.id);
+            const curSel = multiSelectionRef.current;
+            if (
+              curSel.audioClipIds.length === 0 &&
+              curSel.captions.length === 0 &&
+              curSel.keyframes.length === 0 &&
+              curSel.pictureIds.length <= 1
+            ) {
+              setSelectedFrameIds([hit.keyframe.id]);
+            }
+          }
+        }
+        rafId = requestAnimationFrame(tickForward);
+      };
+
+      rafId = requestAnimationFrame(tickForward);
+      return () => cancelAnimationFrame(rafId);
+    }
+
+    // Reverse shuttle (J key): step backward smoothly while Web Audio stays stopped.
+    webAudioEngine.stop();
+    const anchorFrame = playheadRef.current;
+    let reverseSteps = 0;
+    const tickReverse = () => {
+      reverseSteps += Math.max(1, playSpeed);
+      const nextFrame = anchorFrame - Math.floor(reverseSteps / 2);
+      if (nextFrame <= 0) {
         setPlayheadFrame(0);
         if (clips[0]) setSelectedFrameId(clips[0].keyframe.id);
-        setPlayback(false);
-        audioController.stopAll();
-        lastPlayedClipRef.current = "";
-        lastPlayedSceneRef.current = "";
+        stopPlaybackAndAudio();
         return;
       }
       if (nextFrame !== playheadRef.current) {
         setPlayheadFrame(nextFrame);
-        if (soundOn) audioController.syncAtFrame(nextFrame);
         const hit = clipAtFrame(clips, nextFrame);
-        if (hit) {
-          setSelectedFrameId(hit.keyframe.id);
-          setSelectedFrameIds([hit.keyframe.id]);
-        }
+        if (hit) setSelectedFrameId(hit.keyframe.id);
       }
-      rafId = requestAnimationFrame(tick);
+      rafId = requestAnimationFrame(tickReverse);
     };
-
-    rafId = requestAnimationFrame(tick);
+    rafId = requestAnimationFrame(tickReverse);
     return () => cancelAnimationFrame(rafId);
-  }, [playback, direction, playSpeed, totalFrames, clips, soundOn]);
-
-  useEffect(() => {
-    if (!playback || !activeClip || !project) return;
-    if (lastPlayedClipRef.current === activeClip.keyframe.id) return;
-    lastPlayedClipRef.current = activeClip.keyframe.id;
-    const frame = activeClip.keyframe;
-
-    if (lastPlayedSceneRef.current !== frame.sceneId) {
-      lastPlayedSceneRef.current = frame.sceneId;
-      if (soundOn) {
-        void audioController.enterScene(
-          frame.scene,
-          resolveMedia,
-          activeClip.startFrame,
-          project.story,
-        );
-      }
-    }
-    if (!soundOn) return;
-    if (frame.beat.sfxUrl) {
-      audioController.playSfx(frame.beat.sfxUrl, frame.beat.sfxVolume, resolveMedia);
-    }
-    if (frame.beat.audioUrl) {
-      const midClipSec = Math.max(0, (playheadRef.current - activeClip.startFrame) / FPS);
-      audioController.playVoice(
-        frame.beat.audioUrl,
-        resolveMedia,
-        Number(frame.beat.audioOffsetSeconds || 0) + midClipSec,
-      );
-    }
-  }, [playback, activeClip, project, resolveMedia, soundOn]);
+  }, [
+    playback,
+    direction,
+    playSpeed,
+    totalFrames,
+    clips,
+    resolvedAudioClips,
+    resolveMedia,
+    soundOn,
+    trackMix,
+    duckDepth,
+    stopPlaybackAndAudio,
+  ]);
 
   const moveCue = useCallback(
     (kind: "music" | "ambience" | "sfx", sourceId: string, targetId: string) => {
@@ -1318,6 +1676,12 @@ export default function App() {
     applyProject(result.project, "Clip split at playhead");
     setSelectedFrameId(result.rightId);
     setSelectedFrameIds([result.rightId]);
+    setMultiSelection({
+      pictureIds: [result.rightId],
+      captions: [],
+      audioClipIds: [],
+      keyframes: [],
+    });
   }, [applyProject, selectedClip, voiceDurations]);
 
   const captionStyle = useMemo<CaptionStyle>(
@@ -1348,9 +1712,15 @@ export default function App() {
       extendNeighbour: boolean,
       targetFrame?: number,
     ) => {
-      setSelection([frameId], frameId, targetFrame);
+      setSelectedFrameId(frameId);
+      setSelectedFrameIds([]);
       setInspectorTab("clip");
+      if (targetFrame !== undefined) {
+        if (playback) stopPlaybackAndAudio();
+        setPlayheadFrame(Math.max(0, Math.min(Math.max(0, totalFrames - 1), Math.round(targetFrame))));
+      }
       setSelectedCaption((prev) => {
+        let nextSel: SelectedCaptionState;
         if (
           extendNeighbour &&
           prev &&
@@ -1359,16 +1729,26 @@ export default function App() {
         ) {
           const anchor = prev.indices[prev.indices.length - 1];
           if (Math.abs(captionIndex - anchor) === 1) {
-            return {
+            nextSel = {
               frameId,
               indices: [Math.min(anchor, captionIndex), Math.max(anchor, captionIndex)],
             };
+          } else {
+            nextSel = { frameId, indices: [captionIndex] };
           }
+        } else {
+          nextSel = { frameId, indices: [captionIndex] };
         }
-        return { frameId, indices: [captionIndex] };
+        setMultiSelection({
+          pictureIds: [],
+          captions: nextSel.indices.map((idx) => ({ frameId, index: idx })),
+          audioClipIds: [],
+          keyframes: [],
+        });
+        return nextSel;
       });
     },
-    [setSelection],
+    [playback, stopPlaybackAndAudio, totalFrames],
   );
 
   const handleCommitCaptions = useCallback(
@@ -1389,6 +1769,10 @@ export default function App() {
             ? { frameId, indices: nextSelectedIndices }
             : null,
         );
+        setMultiSelection((prev) => ({
+          ...prev,
+          captions: nextSelectedIndices.map((index) => ({ frameId, index })),
+        }));
       }
     },
     [editProject],
@@ -1462,21 +1846,289 @@ export default function App() {
     [editProject],
   );
 
-  const deleteCurrent = useCallback(() => {
-    const current = projectRef.current;
-    const ids = selectedIdsRef.current.length ? selectedIdsRef.current : selectedClip ? [selectedClip.keyframe.id] : [];
-    if (!ids.length || !current) return;
-    const next = deleteKeyframes(current, ids);
-    applyProject(next, ids.length > 1 ? `Deleted ${ids.length} clips` : "Clip deleted");
-    const nextFrames = buildKeyframes(next.story);
-    const { clips: nextClips, totalFrames: nextTotal } = buildTimelineClips(nextFrames, voiceDurations);
-    const nextPlayhead = Math.max(0, Math.min(Math.max(0, nextTotal - 1), playheadRef.current));
-    setPlayheadFrame(nextPlayhead);
-    const nearest = clipAtFrame(nextClips, nextPlayhead);
-    setSelectedFrameId(nearest?.keyframe.id || "");
-    setSelectedFrameIds(nearest ? [nearest.keyframe.id] : []);
-    setSelectedCaption(null);
-  }, [applyProject, selectedClip, voiceDurations]);
+  // ── Turn 7: Free Sound Clips, Lift/Ripple Delete & Multi-Lane Selection ──
+
+  const handleSelectAudioClip = useCallback(
+    (clip: ResolvedAudioClip, additive: boolean, targetFrame?: number) => {
+      setSelectedFrameId(clip.anchorId);
+      setInspectorTab(clip.lane);
+      setSelectedCaption(null);
+      if (targetFrame !== undefined) {
+        if (playback) stopPlaybackAndAudio();
+        setPlayheadFrame(Math.max(0, Math.min(Math.max(0, totalFrames - 1), Math.round(targetFrame))));
+      }
+      const prev = multiSelectionRef.current;
+      let nextMulti: MultiLaneSelection;
+      if (additive) {
+        const exists = prev.audioClipIds.includes(clip.id);
+        nextMulti = {
+          ...prev,
+          audioClipIds: exists
+            ? prev.audioClipIds.filter((id) => id !== clip.id)
+            : [...prev.audioClipIds, clip.id],
+        };
+      } else {
+        selectedIdsRef.current = [];
+        setSelectedFrameIds([]);
+        nextMulti = {
+          pictureIds: [],
+          captions: [],
+          audioClipIds: [clip.id],
+          keyframes: [],
+        };
+      }
+      multiSelectionRef.current = nextMulti;
+      setMultiSelection(nextMulti);
+    },
+    [playback, stopPlaybackAndAudio, totalFrames],
+  );
+
+  const handleSelectKeyframeDiamond = useCallback(
+    (diamond: SelectedKeyframeDiamond, additive: boolean) => {
+      setSelectedFrameId(diamond.frameId);
+      setSelectedCaption(null);
+      const prev = multiSelectionRef.current;
+      const same = (k: SelectedKeyframeDiamond) =>
+        k.frameId === diamond.frameId && k.prop === diamond.prop && k.frame === diamond.frame;
+      let nextMulti: MultiLaneSelection;
+      if (additive) {
+        const exists = prev.keyframes.some(same);
+        nextMulti = {
+          ...prev,
+          keyframes: exists ? prev.keyframes.filter((k) => !same(k)) : [...prev.keyframes, diamond],
+        };
+      } else {
+        selectedIdsRef.current = [];
+        setSelectedFrameIds([]);
+        nextMulti = {
+          pictureIds: [],
+          captions: [],
+          audioClipIds: [],
+          keyframes: [diamond],
+        };
+      }
+      multiSelectionRef.current = nextMulti;
+      setMultiSelection(nextMulti);
+    },
+    [],
+  );
+
+  const handleShiftSelectionPreview = useCallback(
+    (deltaMs: number) => {
+      const base = dragBaseProjectRef.current;
+      const baseSel = dragBaseSelectionRef.current;
+      if (!base || isMultiSelectionEmpty(baseSel)) return;
+      const shifted = shiftMultiLaneSelection(base, baseSel, deltaMs, {
+        copy: false,
+        voiceDurationByRef: voiceDurations,
+      });
+      if (shifted.project === projectRef.current) return;
+      projectRef.current = shifted.project;
+      setProject(shifted.project);
+      setSaveStatus("UNSAVED CHANGES");
+    },
+    [voiceDurations],
+  );
+
+  const handleCommitSelectionShift = useCallback(
+    (deltaMs: number, copy: boolean, label?: string) => {
+      const base = dragBaseProjectRef.current;
+      const baseSel = dragBaseSelectionRef.current;
+      if (!base || isMultiSelectionEmpty(baseSel)) {
+        endDragEdit("");
+        return;
+      }
+      if (Math.abs(deltaMs) < 0.05 && !copy) {
+        projectRef.current = base;
+        setProject(base);
+        endDragEdit("");
+        return;
+      }
+      const shifted = shiftMultiLaneSelection(base, baseSel, deltaMs, {
+        copy,
+        voiceDurationByRef: voiceDurations,
+      });
+      projectRef.current = shifted.project;
+      setProject(shifted.project);
+      endDragEdit(
+        label ||
+          (copy
+            ? `Copied selection (${deltaMs >= 0 ? "+" : ""}${Math.round(deltaMs)} ms)`
+            : `Moved selection (${deltaMs >= 0 ? "+" : ""}${Math.round(deltaMs)} ms)`),
+      );
+      handleSetMultiSelection(shifted.selection);
+    },
+    [endDragEdit, handleSetMultiSelection, voiceDurations],
+  );
+
+  const handleDropAssetOnClip = useCallback(
+    (assetRef: string, frameId: string) => {
+      editProject(
+        (current) => setPicture(current, frameId, assetRef),
+        "Picture dropped on shot",
+      );
+      setSelectedFrameId(frameId);
+      setSelectedFrameIds([frameId]);
+      setMultiSelection({
+        pictureIds: [frameId],
+        captions: [],
+        audioClipIds: [],
+        keyframes: [],
+      });
+    },
+    [editProject],
+  );
+
+  const handleAddAudioClipOnLane = useCallback(
+    (lane: AudioLaneId, assetRef: string, targetStartMs: number) => {
+      const current = projectRef.current;
+      if (!current || !clips.length) return;
+      const knownDur = fileDurationMap.get(assetRef);
+      const id = `ac-${lane}-${crypto.randomUUID().slice(0, 8)}`;
+      const seed: AudioClip = {
+        id,
+        lane,
+        src: assetRef,
+        anchorId: clips[0].keyframe.id,
+        offsetMs: 0,
+        inMs: 0,
+        durationMs: knownDur ?? (lane === "sfx" ? 1500 : 4000),
+        gain: lane === "voice" ? 1 : lane === "sfx" ? 0.85 : lane === "music" ? 0.7 : 0.6,
+        fadeInMs: lane === "music" || lane === "ambience" ? 500 : 0,
+        fadeOutMs: lane === "music" || lane === "ambience" ? 500 : 0,
+        ...(lane === "ambience" ? { loop: true } : {}),
+      };
+      const anchored = reanchorAudioClipToMs(seed, Math.max(0, targetStartMs), clips);
+      applyProject(
+        setAudioClips(current, [...(current.audioClips ?? []), anchored]),
+        `Added ${lane} sound at ${Math.round(targetStartMs)} ms`,
+      );
+      setSelectedFrameId(anchored.anchorId);
+      setSelectedFrameIds([]);
+      setInspectorTab(lane);
+      setMultiSelection({
+        pictureIds: [],
+        captions: [],
+        audioClipIds: [id],
+        keyframes: [],
+      });
+    },
+    [applyProject, clips, fileDurationMap],
+  );
+
+  const handleRebuildSoundFromFilm = useCallback(() => {
+    if (
+      !window.confirm(
+        "Rebuild sound from the film? This replaces all sound clips on the Voice, SFX, Music, and Ambience lanes with fresh clips built from the story (you can Undo).",
+      )
+    ) {
+      return;
+    }
+    editProject(
+      (current) =>
+        setAudioClips(
+          current,
+          buildAudioClipsFromFilm(current.story, voiceDurations, musicDurations),
+        ),
+      "Rebuilt sound from the film",
+    );
+    setMultiSelection((prev) => ({ ...prev, audioClipIds: [] }));
+  }, [editProject, musicDurations, voiceDurations]);
+
+  const handleNudgeSelectedAudio = useCallback(
+    (deltaMs: number) => {
+      const current = projectRef.current;
+      if (!current?.audioClips?.length) return false;
+      const ids =
+        multiSelectionRef.current.audioClipIds.length > 0
+          ? multiSelectionRef.current.audioClipIds
+          : activeAudioClip
+            ? [activeAudioClip.id]
+            : [];
+      if (!ids.length) return false;
+      const shifted = shiftMultiLaneSelection(
+        current,
+        { ...EMPTY_MULTI_SELECTION, audioClipIds: ids },
+        deltaMs,
+        { copy: false, voiceDurationByRef: voiceDurations },
+      );
+      if (shifted.project === current) return false;
+      const nextClips = buildTimelineClips(buildKeyframes(shifted.project.story), voiceDurations).clips;
+      const firstResolved = resolveAudioClips(shifted.project.audioClips ?? [], nextClips).find(
+        (c) => c.id === ids[0],
+      );
+      const msReadout = firstResolved ? ` (${Math.round(firstResolved.startMs)} ms)` : "";
+      applyProject(
+        shifted.project,
+        `Nudged sound ${deltaMs > 0 ? `+${deltaMs}` : deltaMs} ms${msReadout}`,
+      );
+      return true;
+    },
+    [activeAudioClip, applyProject, voiceDurations],
+  );
+
+  const executeDelete = useCallback(
+    (forceRipple = false) => {
+      const current = projectRef.current;
+      if (!current) return;
+      const sel = multiSelectionRef.current;
+
+      if (isMultiSelectionEmpty(sel)) {
+        if (selectedCaptionRef.current?.indices.length) {
+          handleDeleteSelectedCaptions();
+        }
+        return;
+      }
+
+      const preFrames = buildKeyframes(current.story);
+      const liftedOnlyIds = !forceRipple
+        ? sel.pictureIds.filter((id) => {
+            const kf = preFrames.find((f) => f.id === id);
+            return kf && !kf.beat.gap;
+          })
+        : [];
+
+      const res = executeDeleteSelection(current, sel, {
+        ripple: forceRipple,
+        voiceDurationByRef: voiceDurations,
+      });
+      if (res.project === current) return;
+
+      applyProject(res.project, res.statusMessage);
+
+      const nextFrames = buildKeyframes(res.project.story);
+      const { clips: nextClips, totalFrames: nextTotal } = buildTimelineClips(
+        nextFrames,
+        voiceDurations,
+      );
+      const nextPlayhead = Math.max(0, Math.min(Math.max(0, nextTotal - 1), playheadRef.current));
+      setPlayheadFrame(nextPlayhead);
+      setSelectedCaption(null);
+
+      if (liftedOnlyIds.length > 0) {
+        setSelectedFrameIds(liftedOnlyIds);
+        setSelectedFrameId(liftedOnlyIds[0]);
+        setMultiSelection({
+          pictureIds: liftedOnlyIds,
+          captions: [],
+          audioClipIds: [],
+          keyframes: [],
+        });
+      } else {
+        const nearest = clipAtFrame(nextClips, nextPlayhead) || nextClips[0];
+        setSelectedFrameId(nearest?.keyframe.id || "");
+        const selectNearestPicture = Boolean(nearest && sel.pictureIds.length > 0);
+        setSelectedFrameIds(selectNearestPicture ? [nearest!.keyframe.id] : []);
+        setMultiSelection({
+          pictureIds: selectNearestPicture ? [nearest!.keyframe.id] : [],
+          captions: [],
+          audioClipIds: [],
+          keyframes: [],
+        });
+      }
+    },
+    [applyProject, handleDeleteSelectedCaptions, voiceDurations],
+  );
 
   useEffect(() => {
     if (!viewerFrame) return;
@@ -1485,6 +2137,8 @@ export default function App() {
       totalFrames,
       snapEnabled,
       getPlayhead: () => playheadRef.current,
+      getPlayheadMs: () =>
+        playback ? webAudioEngine.getCurrentPlayheadMs() : frameToMs(playheadRef.current),
       setPlayhead: (frameNumber) => scrubToFrame(frameNumber),
       setFrame: (frameId) => {
         const hit = clips.find((clip) => clip.keyframe.id === frameId);
@@ -1493,7 +2147,17 @@ export default function App() {
       getSelectedIds: () => [...selectedIdsRef.current],
       setSelectedIds: (ids) => {
         if (ids.length) setSelection(ids, ids[0]);
+        else clearAllSelection();
       },
+      getMultiSelection: () => multiSelectionRef.current,
+      getAudioClips: () => resolvedAudioClips,
+      getWebAudioClock: () => ({
+        playing: webAudioEngine.isPlaying,
+        playheadMs: webAudioEngine.getCurrentPlayheadMs(),
+        activeSources: webAudioEngine.activeSourceCount,
+        duckDepth,
+      }),
+      getEditLabel: () => editLabel,
       getDuration: (frameId) => {
         const hit = clips.find((clip) => clip.keyframe.id === frameId);
         return hit ? hit.durationFrames / FPS : 0;
@@ -1514,6 +2178,7 @@ export default function App() {
           voiceInFrame: hit.voiceInFrame,
           voiceOutFrame: hit.voiceOutFrame,
           duration: hit.durationFrames / FPS,
+          gap: Boolean(frame.beat.gap),
           text: frame.text,
           captions: frame.beat.captions,
           effectiveCaptions: effectiveCaptionsForBeat(frame.beat, hit.durationFrames),
@@ -1610,11 +2275,16 @@ export default function App() {
     activeClip,
     activeTransition,
     captionStyle,
+    clearAllSelection,
     clips,
+    duckDepth,
+    editLabel,
     frames,
     musicDurations,
+    playback,
     project?.missing.length,
     resolveMedia,
+    resolvedAudioClips,
     scrubToFrame,
     setSelection,
     snapEnabled,
@@ -1652,6 +2322,17 @@ export default function App() {
         return;
       }
       if (typing) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        clearAllSelection();
+        return;
+      }
+      if (event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+        event.preventDefault();
+        const stepMs = event.shiftKey ? 100 : 10;
+        handleNudgeSelectedAudio(event.key === "ArrowLeft" ? -stepMs : stepMs);
+        return;
+      }
       if (event.code === "Space") {
         event.preventDefault();
         togglePlayback();
@@ -1678,37 +2359,56 @@ export default function App() {
         handleAddMarkerAtPlayhead();
       } else if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
-        if (!handleDeleteSelectedCaptions()) {
-          deleteCurrent();
-        }
+        executeDelete(event.shiftKey);
       } else if (event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setPlayback(false);
-        audioController.stopAll();
+        stopPlaybackAndAudio();
       } else if (event.key.toLowerCase() === "j") {
         event.preventDefault();
+        webAudioEngine.stop();
         setDirection(-1);
         setPlayback(true);
       } else if (event.key.toLowerCase() === "l") {
         event.preventDefault();
         setDirection(1);
-        setPlaySpeed((speed) => (speed >= 4 ? 1 : speed * 2));
+        setPlaySpeed((speed) => {
+          const nextSpeed = playback ? (speed >= 4 ? 1 : speed * 2) : 1;
+          webAudioEngine.unlock();
+          webAudioEngine.setClips(resolvedAudioClips, resolveMedia);
+          webAudioEngine.setSoundEnabled(soundOn);
+          webAudioEngine.setTrackMix(trackMix);
+          webAudioEngine.setDuckDepth(duckDepth);
+          if (webAudioEngine.isPlaying) {
+            webAudioEngine.seek(webAudioEngine.getCurrentPlayheadMs(), nextSpeed);
+          } else {
+            webAudioEngine.startPlayback(frameToMs(playheadRef.current), nextSpeed);
+          }
+          return nextSpeed;
+        });
         setPlayback(true);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [
-    deleteCurrent,
+    clearAllSelection,
+    duckDepth,
+    executeDelete,
     handleAddMarkerAtPlayhead,
     handleCopyClips,
-    handleDeleteSelectedCaptions,
+    handleNudgeSelectedAudio,
     handlePasteClips,
+    playback,
     redo,
+    resolveMedia,
+    resolvedAudioClips,
     selectRelativeClip,
+    soundOn,
     splitAtPlayhead,
     stepFrames,
+    stopPlaybackAndAudio,
     togglePlayback,
+    trackMix,
     undo,
   ]);
 
@@ -1731,6 +2431,7 @@ export default function App() {
       name,
       createdAt: Date.now(),
       story: cloneProjectStory(current.story),
+      audioClips: current.audioClips?.map((c) => ({ ...c })),
     };
     applyProject(
       { ...current, snapshots: [...current.snapshots, snapshot], updatedAt: Date.now() },
@@ -1745,7 +2446,12 @@ export default function App() {
     const snapshot = current?.snapshots.find((item) => item.id === snapshotId);
     if (!current || !snapshot) return;
     applyProject(
-      { ...current, story: cloneProjectStory(snapshot.story), updatedAt: Date.now() },
+      {
+        ...current,
+        story: cloneProjectStory(snapshot.story),
+        audioClips: snapshot.audioClips?.map((c) => ({ ...c })) ?? current.audioClips,
+        updatedAt: Date.now(),
+      },
       `Restored ${snapshot.name}`,
     );
     const restoredFrames = buildKeyframes(snapshot.story);
@@ -2014,7 +2720,17 @@ export default function App() {
       />
 
       <div className="editor-body">
-        <div className="upper-workspace">
+        <div className={`upper-workspace ${mediaBinOpen ? "has-bin" : ""}`}>
+          <MediaBin
+            open={mediaBinOpen}
+            onClose={() => setMediaBinOpen(false)}
+            imageAssets={imageBrowserItems}
+            audioAssets={audioBrowserItems}
+            onApplyImageToSelection={(ref) => setFramePicture(ref)}
+            onInsertAudioAtPlayhead={(ref) =>
+              handleAddAudioClipOnLane("sfx", ref, frameToMs(playheadRef.current))
+            }
+          />
           <main className="stage-column">
             <header className="stage-heading">
               <div className="stage-title-lockup">
@@ -2273,6 +2989,7 @@ export default function App() {
               <div className="transport-secondary">
                 <button
                   onClick={() => {
+                    webAudioEngine.stop();
                     setDirection(-1);
                     setPlayback(true);
                   }}
@@ -2281,8 +2998,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => {
-                    setPlayback(false);
-                    audioController.stopAll();
+                    stopPlaybackAndAudio();
                   }}
                 >
                   K
@@ -2290,7 +3006,20 @@ export default function App() {
                 <button
                   onClick={() => {
                     setDirection(1);
-                    setPlaySpeed((value) => (value >= 4 ? 1 : value * 2));
+                    setPlaySpeed((value) => {
+                      const nextSpeed = playback ? (value >= 4 ? 1 : value * 2) : 1;
+                      webAudioEngine.unlock();
+                      webAudioEngine.setClips(resolvedAudioClips, resolveMedia);
+                      webAudioEngine.setSoundEnabled(soundOn);
+                      webAudioEngine.setTrackMix(trackMix);
+                      webAudioEngine.setDuckDepth(duckDepth);
+                      if (webAudioEngine.isPlaying) {
+                        webAudioEngine.seek(webAudioEngine.getCurrentPlayheadMs(), nextSpeed);
+                      } else {
+                        webAudioEngine.startPlayback(frameToMs(playheadRef.current), nextSpeed);
+                      }
+                      return nextSpeed;
+                    });
                     setPlayback(true);
                   }}
                 >
@@ -2300,8 +3029,12 @@ export default function App() {
                 <button
                   className={`sound-button ${soundOn ? "" : "is-muted"}`}
                   onClick={() => {
-                    setSoundOn((value) => !value);
-                    if (soundOn) audioController.stopAll();
+                    setSoundOn((value) => {
+                      const next = !value;
+                      webAudioEngine.setSoundEnabled(next);
+                      if (!next) audioController.stopAll();
+                      return next;
+                    });
                   }}
                 >
                   ♫
@@ -2367,6 +3100,10 @@ export default function App() {
             onCopyEffects={copyEffects}
             onPasteEffects={pasteEffects}
             onPlayVoice={() => {
+              if (activeAudioClip && activeAudioClip.lane === "voice") {
+                webAudioEngine.previewClip(activeAudioClip, resolveMedia);
+                return;
+              }
               if (!selectedFrame.beat.audioUrl) return;
               previewPlayerRef.current?.pause();
               audioController.unlock();
@@ -2379,7 +3116,8 @@ export default function App() {
             onSplit={splitAtPlayhead}
             onInsert={() => addKeyframe(selectedFrame.id)}
             onDuplicate={duplicateCurrent}
-            onDelete={deleteCurrent}
+            onDelete={() => executeDelete(false)}
+            onExecuteDelete={executeDelete}
             onMove={(delta) => {
               const ids = selectedIdsRef.current.length ? selectedIdsRef.current : [selectedFrame.id];
               const current = projectRef.current;
@@ -2390,15 +3128,29 @@ export default function App() {
                 if (res.resultIds.length) {
                   setSelectedFrameIds(res.resultIds);
                   setSelectedFrameId(res.resultIds[0]);
+                  setMultiSelection({
+                    pictureIds: res.resultIds,
+                    captions: [],
+                    audioClipIds: [],
+                    keyframes: [],
+                  });
                 }
               }
             }}
             onPreviewSfx={() => {
+              if (activeAudioClip && activeAudioClip.lane === "sfx") {
+                webAudioEngine.previewClip(activeAudioClip, resolveMedia);
+                return;
+              }
               previewPlayerRef.current?.pause();
               audioController.unlock();
               audioController.playSfx(selectedFrame.beat.sfxUrl, selectedFrame.beat.sfxVolume, resolveMedia);
             }}
             onPreviewMusic={() => {
+              if (activeAudioClip && activeAudioClip.lane === "music") {
+                webAudioEngine.previewClip(activeAudioClip, resolveMedia);
+                return;
+              }
               const url = String(
                 selectedFrame.scene.musicUrl ||
                   selectedFrame.scene.sceneAudioUrl ||
@@ -2428,6 +3180,38 @@ export default function App() {
             }
             onResetCaptions={() => handleResetCaptions(selectedFrame.id)}
             onMergeCaptions={handleMergeCaptions}
+            resolvedAudioClips={resolvedAudioClips}
+            selectedAudioClipIds={multiSelection.audioClipIds}
+            playheadMs={playback ? webAudioEngine.getCurrentPlayheadMs() : frameToMs(playheadFrame)}
+            duckDepth={duckDepth}
+            onSetDuckDepth={setDuckDepth}
+            onSelectAudioClipId={(clipId: string) => {
+              const hit = resolvedAudioClips.find((c) => c.id === clipId);
+              if (hit) handleSelectAudioClip(hit, false, Math.round((hit.startMs * FPS) / 1000));
+            }}
+            onCommitAudioClipPatch={(clipId: string, patch: Partial<AudioClip>, label: string) =>
+              editProject((cur) => updateAudioClip(cur, clipId, patch), label)
+            }
+            onMoveAudioClipStartMs={(clipId: string, newStartMs: number) =>
+              editProject(
+                (cur) => {
+                  const curClips = buildTimelineClips(buildKeyframes(cur.story), voiceDurations).clips;
+                  const existing = cur.audioClips?.find((c) => c.id === clipId);
+                  if (!existing) return cur;
+                  const reanchored = reanchorAudioClipToMs(existing, Math.max(0, newStartMs), curClips);
+                  return updateAudioClip(cur, clipId, {
+                    anchorId: reanchored.anchorId,
+                    offsetMs: reanchored.offsetMs,
+                  });
+                },
+                `Moved sound to ${Math.round(newStartMs)} ms`,
+              )
+            }
+            onAddAudioClipOnLane={(lane: AudioLaneId) => openBrowser("audio", lane)}
+            onPreviewAudioClip={(clip: ResolvedAudioClip) =>
+              webAudioEngine.previewClip(clip, resolveMedia)
+            }
+            onRebuildSoundFromFilm={handleRebuildSoundFromFilm}
           />
         </div>
 
@@ -2442,7 +3226,7 @@ export default function App() {
             noteMarkers={noteMarkers}
             editingMarkerId={editingMarkerId}
             canSplit={canSplit}
-            hasClipboard={copiedClips.length > 0}
+            hasClipboard={copiedClips.length > 0 || Boolean(multiClipboard)}
             musicDurations={musicDurations}
             trackMix={trackMix}
             resolveMedia={resolveMedia}
@@ -2478,9 +3262,12 @@ export default function App() {
             onCopy={handleCopyClips}
             onPaste={handlePasteClips}
             onSplit={splitAtPlayhead}
-            onDelete={deleteCurrent}
+            onDelete={() => executeDelete(false)}
+            onExecuteDelete={executeDelete}
             onMoveCue={moveCue}
             onDropFile={handleTimelineDrop}
+            onDropImageAsset={handleDropAssetOnClip}
+            onDropAudioAsset={handleAddAudioClipOnLane}
             showCaptions={showCaptions}
             onToggleShowCaptions={() => setShowCaptions((v) => !v)}
             selectedCaption={selectedCaption}
@@ -2493,6 +3280,20 @@ export default function App() {
             onDeleteCaptions={() => {
               void handleDeleteSelectedCaptions();
             }}
+            resolvedAudioClips={resolvedAudioClips}
+            audioDurations={audioDurationSecondsMap}
+            multiSelection={multiSelection}
+            mediaBinOpen={mediaBinOpen}
+            onToggleMediaBin={() => setMediaBinOpen((v) => !v)}
+            onSetMultiSelection={handleSetMultiSelection}
+            onClearAllSelection={clearAllSelection}
+            onSelectAudioClip={handleSelectAudioClip}
+            onSelectKeyframeDiamond={handleSelectKeyframeDiamond}
+            onPreviewUpdateAudioClip={(clipId, updated) =>
+              previewProjectEdit((cur) => updateAudioClip(cur, clipId, updated))
+            }
+            onShiftSelectionPreview={handleShiftSelectionPreview}
+            onCommitSelectionShift={handleCommitSelectionShift}
           />
         </div>
       </div>

@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  audioLabelFromSrc,
+  formatMsTimecode,
+  MIN_AUDIO_CLIP_MS,
+  type AudioClip,
+  type AudioLaneId,
+  type ResolvedAudioClip,
+} from "../core/audioClips";
+import {
   addCaptionInGap,
   captionMetrics,
   captionsDifferFromRecordedLine,
@@ -133,7 +141,19 @@ interface InspectorProps {
   onInsert: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onExecuteDelete?: (ripple: boolean) => void;
   onMove: (delta: -1 | 1) => void;
+  resolvedAudioClips?: ResolvedAudioClip[];
+  selectedAudioClipIds?: string[];
+  playheadMs?: number;
+  duckDepth?: number;
+  onSetDuckDepth?: (depth: number) => void;
+  onSelectAudioClipId?: (clipId: string) => void;
+  onCommitAudioClipPatch?: (clipId: string, patch: Partial<AudioClip>, label: string) => void;
+  onMoveAudioClipStartMs?: (clipId: string, newStartMs: number) => void;
+  onAddAudioClipOnLane?: (lane: AudioLaneId) => void;
+  onPreviewAudioClip?: (clip: ResolvedAudioClip) => void;
+  onRebuildSoundFromFilm?: () => void;
   selectedCaptionIndices?: number[];
   canMergeCaptions?: boolean;
   onSelectCaptionIndex?: (index: number, extendNeighbour: boolean) => void;
@@ -184,39 +204,54 @@ export function Inspector(props: InspectorProps) {
 
   const musicUrl = String(scene.musicUrl || scene.sceneAudioUrl || "");
   const ambParsed = parseAmbienceSpec(scene.ambientAudio);
+  const useFreeAudioClips = props.resolvedAudioClips !== undefined;
+  const playheadMs = props.playheadMs ?? 0;
+
+  const hasAudioOnLane = (lane: AudioLaneId): boolean => {
+    if (!props.resolvedAudioClips) return false;
+    return props.resolvedAudioClips.some(
+      (rc) =>
+        rc.lane === lane &&
+        (props.selectedAudioClipIds?.includes(rc.id) ||
+          rc.anchorId === frame.id ||
+          (playheadMs >= rc.startMs && playheadMs < rc.endMs)),
+    );
+  };
 
   const tabs: ReadonlyArray<{ id: InspectorTab; label: string; icon: string; hasItem: boolean }> = [
     {
       id: "clip",
       label: "Clip",
       icon: "▣",
-      hasItem: Boolean(frame.picture && !frame.picture.startsWith("gradient:")),
+      hasItem: Boolean(!beat.gap && frame.picture && !frame.picture.startsWith("gradient:")),
     },
     {
       id: "voice",
       label: "Voice",
       icon: "◉",
-      hasItem: Boolean(beat.audioUrl),
+      hasItem: useFreeAudioClips ? hasAudioOnLane("voice") : Boolean(beat.audioUrl),
     },
     {
       id: "sfx",
       label: "SFX",
       icon: "✦",
-      hasItem: Boolean(beat.sfxUrl),
+      hasItem: useFreeAudioClips ? hasAudioOnLane("sfx") : Boolean(beat.sfxUrl),
     },
     {
       id: "music",
       label: "Music",
       icon: "♪",
-      hasItem: Boolean(musicUrl || props.inheritedMusic),
+      hasItem: useFreeAudioClips ? hasAudioOnLane("music") : Boolean(musicUrl || props.inheritedMusic),
     },
     {
       id: "ambience",
       label: "Ambience",
       icon: "≈",
-      hasItem: Boolean(
-        (scene.ambientAudio && String(scene.ambientAudio) !== "none") || props.inheritedAmbience,
-      ),
+      hasItem: useFreeAudioClips
+        ? hasAudioOnLane("ambience")
+        : Boolean(
+            (scene.ambientAudio && String(scene.ambientAudio) !== "none") || props.inheritedAmbience,
+          ),
     },
   ];
 
@@ -234,6 +269,17 @@ export function Inspector(props: InspectorProps) {
           </h2>
         </div>
         <div className="inspector-head-actions">
+          <button
+            type="button"
+            className="button button-quiet danger-quiet inspector-head-delete"
+            data-testid="inspector-delete-btn"
+            onClick={(e) =>
+              props.onExecuteDelete ? props.onExecuteDelete(e.shiftKey) : props.onDelete()
+            }
+            title="Delete current selection (Shift+Click to ripple-delete shot & anchored sounds)"
+          >
+            Delete
+          </button>
           <button className="small-icon-button" onClick={props.onCopyEffects} title="Copy effects">
             ⧉
           </button>
@@ -267,7 +313,28 @@ export function Inspector(props: InspectorProps) {
       </div>
 
       <div className="inspector-scroll">
-        {currentTab === "voice" && (
+        {useFreeAudioClips && currentTab !== "clip" && (
+          <FreeAudioClipTabPanel
+            lane={currentTab}
+            frame={frame}
+            resolvedAudioClips={props.resolvedAudioClips ?? []}
+            selectedAudioClipIds={props.selectedAudioClipIds ?? []}
+            playheadMs={playheadMs}
+            duckDepth={props.duckDepth ?? 0.65}
+            onSetDuckDepth={props.onSetDuckDepth}
+            onSelectAudioClipId={props.onSelectAudioClipId}
+            onBrowse={props.onBrowse}
+            onUpload={props.onUpload}
+            onCommitAudioClipPatch={props.onCommitAudioClipPatch}
+            onMoveAudioClipStartMs={props.onMoveAudioClipStartMs}
+            onAddAudioClipOnLane={props.onAddAudioClipOnLane}
+            onPreviewAudioClip={props.onPreviewAudioClip}
+            onExecuteDelete={props.onExecuteDelete}
+            onRebuildSoundFromFilm={props.onRebuildSoundFromFilm}
+          />
+        )}
+
+        {!useFreeAudioClips && currentTab === "voice" && (
           <div className="inspector-audio-tab" data-testid="inspector-panel-voice">
             <section className="inspector-section">
               <SectionTitle
@@ -358,7 +425,7 @@ export function Inspector(props: InspectorProps) {
           </div>
         )}
 
-        {currentTab === "sfx" && (
+        {!useFreeAudioClips && currentTab === "sfx" && (
           <div className="inspector-audio-tab" data-testid="inspector-panel-sfx">
             <section className="inspector-section">
               <SectionTitle
@@ -431,7 +498,7 @@ export function Inspector(props: InspectorProps) {
           </div>
         )}
 
-        {currentTab === "music" && (
+        {!useFreeAudioClips && currentTab === "music" && (
           <div className="inspector-audio-tab" data-testid="inspector-panel-music">
             <section className="inspector-section">
               <SectionTitle
@@ -594,7 +661,7 @@ export function Inspector(props: InspectorProps) {
           </div>
         )}
 
-        {currentTab === "ambience" && (
+        {!useFreeAudioClips && currentTab === "ambience" && (
           <div className="inspector-audio-tab" data-testid="inspector-panel-ambience">
             <section className="inspector-section">
               <SectionTitle
@@ -762,9 +829,17 @@ export function Inspector(props: InspectorProps) {
         {currentTab === "clip" && (
           <>
             <section className="inspector-section picture-section">
-              <SectionTitle number="01" title="Picture" status={frame.carried ? "CARRIED" : "OWN FRAME"} />
+              <SectionTitle
+                number="01"
+                title="Picture"
+                status={beat.gap ? "BLACK GAP" : frame.carried ? "CARRIED" : "OWN FRAME"}
+              />
               <div className="picture-current">
-                {props.pictureSrc && !props.pictureSrc.startsWith("gradient:") && !props.pictureSrc.startsWith("emoji:") ? (
+                {beat.gap ? (
+                  <div className="picture-empty is-gap-thumb">
+                    <span>GAP · BLACK</span>
+                  </div>
+                ) : props.pictureSrc && !props.pictureSrc.startsWith("gradient:") && !props.pictureSrc.startsWith("emoji:") ? (
                   <img src={props.pictureSrc} alt="Current keyframe picture" />
                 ) : frame.picture?.startsWith("gradient:") ? (
                   <div className="picture-empty" style={{ background: frame.picture.slice(9) }}>
@@ -776,13 +851,19 @@ export function Inspector(props: InspectorProps) {
                   </div>
                 )}
                 <div className="picture-current-meta">
-                  <strong>{pictureLabel(frame.picture, false, "No picture")}</strong>
+                  <strong>
+                    {beat.gap
+                      ? "Gap · drop a picture"
+                      : pictureLabel(frame.picture, false, "No picture")}
+                  </strong>
                   <small>
-                    {frame.pictureSource === "scene"
-                      ? "Scene plate"
-                      : frame.carried
-                        ? "Inherited from previous clip"
-                        : "Clip picture"}
+                    {beat.gap
+                      ? "Black gap — drop from Bin or click Choose… (Delete closes gap)"
+                      : frame.pictureSource === "scene"
+                        ? "Scene plate"
+                        : frame.carried
+                          ? "Inherited from previous clip"
+                          : "Clip picture"}
                   </small>
                 </div>
               </div>
@@ -820,8 +901,14 @@ export function Inspector(props: InspectorProps) {
                 <button className="button button-quiet" onClick={props.onDuplicate}>
                   Duplicate
                 </button>
-                <button className="button button-quiet danger-quiet" onClick={props.onDelete}>
-                  Delete
+                <button
+                  className="button button-quiet danger-quiet"
+                  onClick={(e) =>
+                    props.onExecuteDelete ? props.onExecuteDelete(e.shiftKey) : props.onDelete()
+                  }
+                  title="Delete lifts picture to black gap (or closes gap); Shift+Click ripple-deletes shot & anchored sounds"
+                >
+                  {beat.gap ? "Close gap" : "Delete"}
                 </button>
               </div>
               <div className="move-actions">
@@ -1828,3 +1915,341 @@ function CaptionTimecodeInput({
     </label>
   );
 }
+
+const LANE_TITLES: Record<AudioLaneId, { title: string; chooseLabel: string }> = {
+  voice: { title: "Voice clip", chooseLabel: "Choose voice…" },
+  sfx: { title: "Sound effect clip", chooseLabel: "Choose sound…" },
+  music: { title: "Music clip", chooseLabel: "Choose music…" },
+  ambience: { title: "Ambience clip", chooseLabel: "Choose ambience…" },
+};
+
+function FreeAudioClipTabPanel({
+  lane,
+  frame,
+  resolvedAudioClips,
+  selectedAudioClipIds,
+  playheadMs,
+  duckDepth,
+  onSetDuckDepth,
+  onSelectAudioClipId,
+  onBrowse,
+  onUpload,
+  onCommitAudioClipPatch,
+  onMoveAudioClipStartMs,
+  onAddAudioClipOnLane,
+  onPreviewAudioClip,
+  onExecuteDelete,
+  onRebuildSoundFromFilm,
+}: {
+  lane: AudioLaneId;
+  frame: Keyframe;
+  resolvedAudioClips: ResolvedAudioClip[];
+  selectedAudioClipIds: string[];
+  playheadMs: number;
+  duckDepth: number;
+  onSetDuckDepth?: (depth: number) => void;
+  onSelectAudioClipId?: (clipId: string) => void;
+  onBrowse: (kind: "image" | "audio", target: BrowseMediaTarget) => void;
+  onUpload: (kind: "image" | "audio", target: UploadMediaTarget) => void;
+  onCommitAudioClipPatch?: (clipId: string, patch: Partial<AudioClip>, label: string) => void;
+  onMoveAudioClipStartMs?: (clipId: string, newStartMs: number) => void;
+  onAddAudioClipOnLane?: (lane: AudioLaneId) => void;
+  onPreviewAudioClip?: (clip: ResolvedAudioClip) => void;
+  onExecuteDelete?: (ripple: boolean) => void;
+  onRebuildSoundFromFilm?: () => void;
+}) {
+  const laneClips = resolvedAudioClips.filter((rc) => rc.lane === lane);
+  const selectedOnLane = laneClips.find((rc) => selectedAudioClipIds.includes(rc.id));
+  const atPlayheadOnLane = laneClips.find(
+    (rc) => playheadMs >= rc.startMs && playheadMs < rc.endMs,
+  );
+  const anchoredOnLane = laneClips.find((rc) => rc.anchorId === frame.id);
+  const active = selectedOnLane ?? atPlayheadOnLane ?? anchoredOnLane ?? null;
+  const meta = LANE_TITLES[lane];
+
+  return (
+    <div className="inspector-audio-tab" data-testid={`inspector-panel-${lane}`}>
+      <section className="inspector-section">
+        <SectionTitle
+          number="01"
+          title={meta.title}
+          status={active ? `${formatMsTimecode(active.startMs)}` : "NONE AT PLAYHEAD"}
+        />
+
+        {active ? (
+          <>
+            <div className="audio-file-card">
+              <div className="audio-file-card-meta">
+                <strong>{audioLabelFromSrc(active.src)}</strong>
+                <small>{active.src}</small>
+              </div>
+              <button
+                type="button"
+                className="audio-preview-btn"
+                onClick={() => onPreviewAudioClip?.(active)}
+                aria-label={`Preview ${meta.title}`}
+                title="Preview sound clip"
+              >
+                ▶
+              </button>
+            </div>
+
+            <div className="picture-actions">
+              <button
+                type="button"
+                className="button button-primary"
+                data-testid={`choose-${lane}-btn`}
+                onClick={() => {
+                  onSelectAudioClipId?.(active.id);
+                  onBrowse("audio", lane);
+                }}
+              >
+                {meta.chooseLabel}
+              </button>
+              <button
+                type="button"
+                className="button button-quiet"
+                onClick={() => {
+                  onSelectAudioClipId?.(active.id);
+                  onUpload("audio", lane);
+                }}
+              >
+                Upload…
+              </button>
+              <button
+                type="button"
+                className="button button-quiet danger-quiet"
+                onClick={() => {
+                  onSelectAudioClipId?.(active.id);
+                  onExecuteDelete?.(false);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+
+            <label className="control-label">File path / source</label>
+            <input
+              className="text-control"
+              aria-label={`${meta.title} path`}
+              value={active.src}
+              onChange={(e) =>
+                onCommitAudioClipPatch?.(
+                  active.id,
+                  { src: e.target.value },
+                  `${meta.title} source updated`,
+                )
+              }
+            />
+          </>
+        ) : (
+          <>
+            <div className="audio-file-card">
+              <div className="audio-file-card-meta">
+                <strong>No {lane} clip selected here</strong>
+                <small>
+                  Click a clip on the {lane.toUpperCase()} lane or add a new {lane} clip at{" "}
+                  {formatMsTimecode(playheadMs)}.
+                </small>
+              </div>
+            </div>
+            <div className="picture-actions">
+              <button
+                type="button"
+                className="button button-primary"
+                data-testid={`choose-${lane}-btn`}
+                onClick={() => onBrowse("audio", lane)}
+              >
+                {meta.chooseLabel}
+              </button>
+              <button
+                type="button"
+                className="button button-quiet"
+                onClick={() => onAddAudioClipOnLane?.(lane)}
+              >
+                ＋ Add clip here
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+
+      {active && (
+        <section className="inspector-section" data-testid="inspector-audio-timing">
+          <SectionTitle
+            number="02"
+            title="Millisecond timing & mix"
+            status={`${Math.round(active.startMs)} ms`}
+          />
+
+          <div className="audio-ms-readout-row" data-testid="inspector-audio-time-readout">
+            <div>
+              <span className="eyebrow">START TIME</span>
+              <strong>{formatMsTimecode(active.startMs)}</strong>
+              <small>{active.startMs.toFixed(1)} ms</small>
+            </div>
+            <div>
+              <span className="eyebrow">ANCHOR SHOT</span>
+              <strong>{active.anchorId}</strong>
+              <small>
+                {active.offsetMs >= 0 ? "+" : ""}
+                {Math.round(active.offsetMs)} ms from cut
+              </small>
+            </div>
+          </div>
+
+          <div className="field-line">
+            <span className="control-label">Start (ms)</span>
+            <input
+              type="number"
+              className="text-control audio-ms-input"
+              data-testid="inspector-audio-start-ms"
+              step={1}
+              min={0}
+              value={Math.round(active.startMs * 100) / 100}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (Number.isFinite(v) && v >= 0) {
+                  onMoveAudioClipStartMs?.(active.id, v);
+                }
+              }}
+            />
+          </div>
+
+          <div className="field-line">
+            <span className="control-label">In trim (ms)</span>
+            <input
+              type="number"
+              className="text-control audio-ms-input"
+              data-testid="inspector-audio-in-ms"
+              step={10}
+              min={0}
+              value={Math.round(active.inMs)}
+              onChange={(e) => {
+                const v = Math.max(0, Number(e.target.value) || 0);
+                onCommitAudioClipPatch?.(active.id, { inMs: v }, "Sound in-point updated");
+              }}
+            />
+          </div>
+
+          <div className="field-line">
+            <span className="control-label">Duration (ms)</span>
+            <input
+              type="number"
+              className="text-control audio-ms-input"
+              data-testid="inspector-audio-duration-ms"
+              step={10}
+              min={MIN_AUDIO_CLIP_MS}
+              value={Math.round(active.durationMs)}
+              onChange={(e) => {
+                const v = Math.max(MIN_AUDIO_CLIP_MS, Number(e.target.value) || MIN_AUDIO_CLIP_MS);
+                onCommitAudioClipPatch?.(active.id, { durationMs: v }, "Sound duration updated");
+              }}
+            />
+          </div>
+
+          <FieldNumber
+            label="Gain"
+            value={active.gain}
+            min={0}
+            max={2}
+            step={0.01}
+            onChange={(value) =>
+              onCommitAudioClipPatch?.(active.id, { gain: value }, "Sound gain updated")
+            }
+          />
+
+          <div className="field-line">
+            <span className="control-label">Fade in (ms)</span>
+            <input
+              type="number"
+              className="text-control audio-ms-input"
+              data-testid="inspector-audio-fade-in-ms"
+              step={50}
+              min={0}
+              max={Math.round(active.durationMs)}
+              value={Math.round(active.fadeInMs)}
+              onChange={(e) => {
+                const v = Math.max(
+                  0,
+                  Math.min(active.durationMs - active.fadeOutMs, Number(e.target.value) || 0),
+                );
+                onCommitAudioClipPatch?.(active.id, { fadeInMs: v }, "Fade-in updated");
+              }}
+            />
+          </div>
+
+          <div className="field-line">
+            <span className="control-label">Fade out (ms)</span>
+            <input
+              type="number"
+              className="text-control audio-ms-input"
+              data-testid="inspector-audio-fade-out-ms"
+              step={50}
+              min={0}
+              max={Math.round(active.durationMs)}
+              value={Math.round(active.fadeOutMs)}
+              onChange={(e) => {
+                const v = Math.max(
+                  0,
+                  Math.min(active.durationMs - active.fadeInMs, Number(e.target.value) || 0),
+                );
+                onCommitAudioClipPatch?.(active.id, { fadeOutMs: v }, "Fade-out updated");
+              }}
+            />
+          </div>
+
+          <FieldToggle
+            label="Loop audio"
+            checked={Boolean(active.loop)}
+            onChange={(checked) =>
+              onCommitAudioClipPatch?.(active.id, { loop: checked }, "Loop toggled")
+            }
+          />
+
+          {lane === "voice" && frame.text && (
+            <div className="audio-dialogue-box">
+              <span className="eyebrow">{frame.speaker || "NARRATOR"}</span>
+              <p>{frame.text}</p>
+            </div>
+          )}
+        </section>
+      )}
+
+      {(lane === "music" || lane === "ambience") && onSetDuckDepth && (
+        <section className="inspector-section">
+          <SectionTitle
+            number="03"
+            title="Voice ducking"
+            status={`-${Math.round(duckDepth * 100)}%`}
+          />
+          <FieldNumber
+            label="Duck under voice"
+            value={duckDepth}
+            min={0}
+            max={0.95}
+            step={0.05}
+            onChange={onSetDuckDepth}
+          />
+        </section>
+      )}
+
+      <section className="inspector-section">
+        <SectionTitle number="04" title="Film audioClips" status={`${resolvedAudioClips.length} CLIPS`} />
+        <p className="preview-only-note">
+          Sound lanes, waveforms, mixer, and Web Audio playback run from free{" "}
+          <code>audioClips</code> in milliseconds while leaving story beat &amp; scene fields untouched.
+        </p>
+        <button
+          type="button"
+          className="button button-wide button-quiet"
+          data-testid="rebuild-sound-btn"
+          onClick={() => onRebuildSoundFromFilm?.()}
+        >
+          ↻ Rebuild sound from the film…
+        </button>
+      </section>
+    </div>
+  );
+}
+

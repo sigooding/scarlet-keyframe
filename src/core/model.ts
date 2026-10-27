@@ -1,3 +1,4 @@
+import type { AudioClip } from "./audioClips";
 import type { BeatCaption, CaptionStyle } from "./captions";
 
 export type AnyRecord = Record<string, any>;
@@ -48,6 +49,7 @@ export interface BeatLike extends AnyRecord {
   characterId?: string;
   text?: string;
   captions?: BeatCaption[];
+  gap?: boolean;
   background?: string;
   cinematic?: AnyRecord;
   audioUrl?: string;
@@ -81,6 +83,7 @@ export interface ProjectSnapshot {
   name: string;
   createdAt: number;
   story: StoryLike;
+  audioClips?: AudioClip[];
 }
 
 export interface ProjectState {
@@ -89,6 +92,7 @@ export interface ProjectState {
   sourceName: string;
   story: StoryLike;
   originalStory: StoryLike;
+  audioClips?: AudioClip[];
   assets: ProjectAsset[];
   missing: string[];
   importedMissing: string[];
@@ -116,6 +120,7 @@ export interface Keyframe {
 
 export interface ImportedStory {
   story: StoryLike;
+  audioClips?: AudioClip[];
   assets: AnyRecord[];
   missing: string[];
   sourceName: string;
@@ -153,6 +158,9 @@ export function parseImportPayload(value: unknown, sourceName: string): Imported
   if (!Array.isArray(story.scenes) || !story.scenes.length) throw new Error("The imported Story has no scene nodes.");
   if (!story.startSceneId) throw new Error("The imported Story is missing startSceneId.");
   const assets = bundle && Array.isArray(payload.assets) ? payload.assets.filter(isRecord) : [];
+  const audioClips = bundle && Array.isArray(payload.audioClips)
+    ? (clone(payload.audioClips) as AudioClip[])
+    : undefined;
   const missing = bundle && Array.isArray(payload.missing) ? payload.missing.map(String) : [];
   const availableAssetIds = new Set(assets.map((asset) => String(asset.id)));
   for (const ref of collectMediaReferences(story)) {
@@ -161,6 +169,7 @@ export function parseImportPayload(value: unknown, sourceName: string): Imported
   }
   return {
     story: clone(story),
+    audioClips,
     assets: clone(assets),
     missing: [...new Set(missing)],
     sourceName,
@@ -180,6 +189,7 @@ export function createProjectState(
     sourceName: imported.sourceName,
     story,
     originalStory: clone(story),
+    ...(imported.audioClips ? { audioClips: clone(imported.audioClips) } : {}),
     assets,
     missing: imported.missing,
     importedMissing: imported.missing,
@@ -256,16 +266,21 @@ export function buildKeyframes(story: StoryLike): Keyframe[] {
     let activePicture = scenePicture || carriedPicture;
 
     beats.forEach((beat, beatIndex) => {
-      if (beat.backgroundRevert) activePicture = scenePicture || carriedPicture;
-      if (typeof beat.background === "string" && beat.background) activePicture = beat.background;
-      const picture = activePicture || scenePicture || carriedPicture;
-      const pictureSource = beat.background
-        ? "beat"
-        : beatIndex === 0 && scenePicture
-          ? "scene"
-          : picture
-            ? "carried"
-            : "none";
+      const isGap = beat.gap === true;
+      if (!isGap) {
+        if (beat.backgroundRevert) activePicture = scenePicture || carriedPicture;
+        if (typeof beat.background === "string" && beat.background) activePicture = beat.background;
+      }
+      const picture = isGap ? undefined : activePicture || scenePicture || carriedPicture;
+      const pictureSource = isGap
+        ? "none"
+        : beat.background
+          ? "beat"
+          : beatIndex === 0 && scenePicture
+            ? "scene"
+            : picture
+              ? "carried"
+              : "none";
       const rawId = String(beat.id || `${scene.id}:${beatIndex + 1}`);
       const id = seenIds.has(rawId) ? `${scene.id}:${rawId}` : rawId;
       seenIds.add(id);
@@ -280,7 +295,7 @@ export function buildKeyframes(story: StoryLike): Keyframe[] {
         scene,
         picture,
         pictureSource,
-        carried: pictureSource !== "beat",
+        carried: isGap ? false : pictureSource !== "beat",
         speaker: speakerLabel(story, beat.characterId),
         text: String(beat.text || ""),
       });
@@ -327,11 +342,14 @@ export function unwrapMediaReference(value: string): string {
   return value;
 }
 
-export function collectMediaReferences(story: StoryLike): string[] {
+export function collectMediaReferences(
+  story: StoryLike,
+  audioClips?: readonly AudioClip[],
+): string[] {
   const refs = new Set<string>();
   const add = (value: unknown) => {
     if (typeof value !== "string" || !value) return;
-    if (/^(?:gradient:|emoji:)/i.test(value)) return;
+    if (/^(?:gradient:|emoji:|synth:)/i.test(value)) return;
     const unwrapped = unwrapMediaReference(value);
     if (unwrapped.startsWith("data:") || unwrapped.startsWith("blob:")) return;
     refs.add(unwrapped);
@@ -362,6 +380,14 @@ export function collectMediaReferences(story: StoryLike): string[] {
       add(beat.audioUrl);
       add(beat.sfxUrl);
       visitCinematic(beat.cinematic);
+    }
+  }
+  for (const clip of audioClips ?? []) {
+    if (!clip.src) continue;
+    for (const part of clip.src.split("+")) {
+      const trimmed = part.trim();
+      if (!trimmed || trimmed === "none" || trimmed.startsWith("synth:")) continue;
+      add(trimmed.startsWith("file:") ? trimmed.slice(5) : trimmed);
     }
   }
   return [...refs];

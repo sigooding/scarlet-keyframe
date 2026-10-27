@@ -1,4 +1,14 @@
 import {
+  EMPTY_MULTI_SELECTION,
+  reanchorAudioClipToMs,
+  resolveAudioClips,
+  type AudioClip,
+  type MultiLaneSelection,
+  type SelectedKeyframeDiamond,
+} from "./audioClips";
+import {
+  deleteCaptionsAtIndices,
+  effectiveCaptionsForBeat,
   normalizeCaptions,
   normalizeCaptionStyle,
   type BeatCaption,
@@ -16,7 +26,13 @@ import type {
 } from "./model";
 import { buildKeyframes, runningSceneIds } from "./model";
 import { clipFrames, FPS, MIN_CLIP_FRAMES } from "./timing";
-import { buildTimelineClips, normalizeAnimation, splitAnimation, type TimelineClip } from "../sequence/animate";
+import {
+  buildTimelineClips,
+  normalizeAnimation,
+  splitAnimation,
+  type AnimProp,
+  type TimelineClip,
+} from "../sequence/animate";
 import {
   DEFAULT_TRANSITION_FRAMES,
   mapTransitionKind,
@@ -48,9 +64,26 @@ export function cloneStory<T extends StoryLike>(story: T): T {
 
 export function setPicture(project: ProjectState, frameId: string, picture?: string): ProjectState {
   const story = cloneStory(project.story);
+  const preFrames = buildKeyframes(story);
+  const targetIdx = preFrames.findIndex((f) => f.id === frameId);
   const location = locateBeat(story, frameId);
   if (!location) return project;
+  const wasGap = location.beat.gap === true;
+
   if (picture) {
+    // If filling a gap, stamp any immediately following beat that relied on carried picture
+    // so filling the gap only changes this slot and never alters shots after it.
+    if (wasGap && targetIdx >= 0) {
+      for (let i = targetIdx + 1; i < preFrames.length; i += 1) {
+        const downstream = preFrames[i];
+        if (downstream.beat.gap) continue;
+        if (!downstream.beat.background && downstream.picture) {
+          downstream.beat.background = downstream.picture;
+        }
+        break;
+      }
+    }
+    delete location.beat.gap;
     location.beat.background = picture;
     location.beat.backgroundRevert = false;
     location.beat.backgroundHold = true;
@@ -328,8 +361,29 @@ export function splitKeyframeAt(
   else delete rightBeat.animation;
 
   location.scene.dialogueBeats!.splice(location.index + 1, 0, rightBeat);
+
+  let nextAudioClips = project.audioClips;
+  if (Array.isArray(project.audioClips)) {
+    const cutMs = (cut * 1000) / FPS;
+    nextAudioClips = project.audioClips.map((ac) => {
+      if (ac.anchorId === frameId && ac.offsetMs >= cutMs) {
+        return {
+          ...ac,
+          anchorId: rightBeat.id!,
+          offsetMs: ac.offsetMs - cutMs,
+        };
+      }
+      return ac;
+    });
+  }
+
   return {
-    project: { ...project, story, updatedAt: Date.now() },
+    project: {
+      ...project,
+      story,
+      ...(nextAudioClips ? { audioClips: nextAudioClips } : {}),
+      updatedAt: Date.now(),
+    },
     leftId: frameId,
     rightId: rightBeat.id!,
   };
@@ -899,3 +953,727 @@ function deletePath(target: AnyRecord, path: string): void {
   }
   delete parent[parts[parts.length - 1]];
 }
+
+// ============================================================================
+// Turn 7 — Free Sound Clips, Lift / Ripple-Delete / Gaps, & Multi-Lane Edits
+// ============================================================================
+
+export function setAudioClips(project: ProjectState, audioClips: AudioClip[]): ProjectState {
+  return {
+    ...project,
+    audioClips: audioClips.map((c) => ({ ...c })),
+    updatedAt: Date.now(),
+  };
+}
+
+export function updateAudioClip(
+  project: ProjectState,
+  clipId: string,
+  updater: Partial<AudioClip> | ((clip: AudioClip) => AudioClip),
+): ProjectState {
+  const existing = project.audioClips ?? [];
+  let changed = false;
+  const next = existing.map((clip) => {
+    if (clip.id !== clipId) return clip;
+    changed = true;
+    return typeof updater === "function" ? updater({ ...clip }) : { ...clip, ...updater };
+  });
+  if (!changed) return project;
+  return { ...project, audioClips: next, updatedAt: Date.now() };
+}
+
+export function deleteAudioClips(project: ProjectState, clipIds: readonly string[]): ProjectState {
+  if (!clipIds.length || !project.audioClips?.length) return project;
+  const idSet = new Set(clipIds);
+  const next = project.audioClips.filter((clip) => !idSet.has(clip.id));
+  if (next.length === project.audioClips.length) return project;
+  return { ...project, audioClips: next, updatedAt: Date.now() };
+}
+
+/**
+ * Lift (`Delete` on picture clips): removes picture and leaves a black gap (`beat.gap: true`)
+ * of the exact same frame length, keeping captions and anchored sounds in place and moving
+ * nothing after it.
+ */
+export function liftKeyframes(
+  project: ProjectState,
+  frameIds: readonly string[],
+  voiceDurationByRef?: ReadonlyMap<string, number>,
+): ProjectState {
+  if (!frameIds.length) return project;
+  const story = cloneStory(project.story);
+  const preFrames = buildKeyframes(story);
+  const idSet = new Set(frameIds);
+  const targets = preFrames.filter((kf) => idSet.has(kf.id) && !kf.beat.gap);
+  if (!targets.length) return project;
+
+  // Stamp explicit background onto any surviving non-gap beat that previously inherited its
+  // picture from a lifted beat so nothing downstream alters its image.
+  for (const kf of preFrames) {
+    if (idSet.has(kf.id) || kf.beat.gap) continue;
+    if (!kf.beat.background && kf.picture) {
+      kf.beat.background = kf.picture;
+    }
+  }
+
+  for (const kf of targets) {
+    const audioRef = kf.beat.audioUrl;
+    const voiceSec = audioRef ? voiceDurationByRef?.get(audioRef) : undefined;
+    const exactFrames = clipFrames(kf, voiceSec);
+    kf.beat.durationFrames = exactFrames;
+    kf.beat.gap = true;
+    delete kf.beat.background;
+    delete kf.beat.backgroundRevert;
+    delete kf.beat.backgroundHold;
+    delete kf.beat.backgroundTransition;
+    delete kf.beat.backgroundTransitionSpeed;
+    delete kf.beat.cinematic;
+    delete kf.beat.animation;
+    delete kf.beat.particles;
+    delete kf.beat.particleConfig;
+  }
+
+  return { ...project, story, updatedAt: Date.now() };
+}
+
+/**
+ * Closes one or more gap beats (`Delete` on a gap). Any surviving sound clip that happened
+ * to be anchored to a closed gap beat is re-anchored to the clip now occupying that cut
+ * so no orphan `anchorId` is left behind.
+ */
+export function closeGapKeyframes(
+  project: ProjectState,
+  gapFrameIds: readonly string[],
+  voiceDurationByRef?: ReadonlyMap<string, number>,
+): ProjectState {
+  if (!gapFrameIds.length) return project;
+  const idSet = new Set(gapFrameIds);
+  const preFrames = buildKeyframes(project.story);
+  const actualGapIds = preFrames.filter((kf) => idSet.has(kf.id) && kf.beat.gap).map((kf) => kf.id);
+  if (!actualGapIds.length) return project;
+
+  const { clips: preClips } = buildTimelineClips(preFrames, voiceDurationByRef);
+  const preStartByGapId = new Map<string, number>();
+  for (const c of preClips) {
+    if (idSet.has(c.keyframe.id)) {
+      preStartByGapId.set(c.keyframe.id, (c.startFrame * 1000) / FPS);
+    }
+  }
+
+  const nextProject = deleteKeyframes(project, actualGapIds);
+  if (!nextProject.audioClips?.length) return nextProject;
+
+  const postFrames = buildKeyframes(nextProject.story);
+  const { clips: postClips } = buildTimelineClips(postFrames, voiceDurationByRef);
+  const removedGapSet = new Set(actualGapIds);
+
+  const nextAudioClips = nextProject.audioClips.map((ac) => {
+    if (!removedGapSet.has(ac.anchorId)) return ac;
+    const gapCutMs = preStartByGapId.get(ac.anchorId) ?? 0;
+    const targetMs = Math.max(0, gapCutMs + ac.offsetMs);
+    return reanchorAudioClipToMs(ac, targetMs, postClips);
+  });
+
+  return { ...nextProject, audioClips: nextAudioClips, updatedAt: Date.now() };
+}
+
+/**
+ * Ripple-delete (`Shift+Delete` on picture/gap clips): removes the shot(s), closes the gap,
+ * and removes all sound clips whose `anchorId` belonged to the deleted shot(s).
+ */
+export function rippleDeleteKeyframes(
+  project: ProjectState,
+  frameIds: readonly string[],
+): { project: ProjectState; removedSoundCount: number } {
+  if (!frameIds.length) return { project, removedSoundCount: 0 };
+  const idSet = new Set(frameIds);
+
+  // Preserve carried picture on surviving beats before removing upstream beats.
+  const storyWithPreservedCarry = cloneStory(project.story);
+  const preFrames = buildKeyframes(storyWithPreservedCarry);
+  for (const kf of preFrames) {
+    if (idSet.has(kf.id) || kf.beat.gap) continue;
+    if (!kf.beat.background && kf.picture) {
+      kf.beat.background = kf.picture;
+    }
+  }
+
+  const deletedProject = deleteKeyframes({ ...project, story: storyWithPreservedCarry }, [...frameIds]);
+  const existingAudio = project.audioClips ?? [];
+  const survivingAudio = existingAudio.filter((ac) => !idSet.has(ac.anchorId));
+  const removedSoundCount = existingAudio.length - survivingAudio.length;
+
+  return {
+    project: {
+      ...deletedProject,
+      ...(project.audioClips !== undefined ? { audioClips: survivingAudio } : {}),
+      updatedAt: Date.now(),
+    },
+    removedSoundCount,
+  };
+}
+
+function stripResolvedAudioFields(rc: AudioClip): AudioClip {
+  return {
+    id: rc.id,
+    lane: rc.lane,
+    src: rc.src,
+    anchorId: rc.anchorId,
+    offsetMs: rc.offsetMs,
+    inMs: rc.inMs,
+    durationMs: rc.durationMs,
+    gain: rc.gain,
+    fadeInMs: rc.fadeInMs,
+    fadeOutMs: rc.fadeOutMs,
+    ...(rc.loop !== undefined ? { loop: rc.loop } : {}),
+  };
+}
+
+/**
+ * Deletes selected animation keyframe diamonds (`SelectedKeyframeDiamond[]`).
+ */
+export function deleteAnimationKeyframes(
+  project: ProjectState,
+  diamonds: readonly SelectedKeyframeDiamond[],
+): ProjectState {
+  if (!diamonds.length) return project;
+  const byClip = new Map<string, Array<{ prop: AnimProp; frame: number }>>();
+  for (const d of diamonds) {
+    const list = byClip.get(d.frameId) ?? [];
+    list.push({ prop: d.prop, frame: Math.round(d.frame) });
+    byClip.set(d.frameId, list);
+  }
+  if (!byClip.size) return project;
+
+  const story = cloneStory(project.story);
+  let changed = false;
+  for (const [clipId, items] of byClip) {
+    const loc = locateBeat(story, clipId);
+    if (!loc?.beat.animation) continue;
+    const nextAnim: BeatAnimation = { ...loc.beat.animation };
+    for (const item of items) {
+      const existing = nextAnim[item.prop];
+      if (!existing?.length) continue;
+      const filtered = existing.filter((k) => Math.round(k.frame) !== item.frame);
+      if (filtered.length !== existing.length) {
+        nextAnim[item.prop] = filtered;
+        changed = true;
+      }
+    }
+    const normalized = normalizeAnimation(nextAnim);
+    if (normalized) loc.beat.animation = normalized;
+    else delete loc.beat.animation;
+  }
+  if (!changed) return project;
+  return { ...project, story, updatedAt: Date.now() };
+}
+
+export interface DeleteSelectionResult {
+  project: ProjectState;
+  removedSoundCount: number;
+  statusMessage: string;
+}
+
+/**
+ * Executes Section B Delete / Shift+Delete rules across any multi-lane selection in one undo step.
+ */
+export function executeDeleteSelection(
+  project: ProjectState,
+  selection: MultiLaneSelection,
+  options: { ripple?: boolean; voiceDurationByRef?: ReadonlyMap<string, number> } = {},
+): DeleteSelectionResult {
+  const { ripple = false, voiceDurationByRef } = options;
+  let current = project;
+  let removedSoundCount = 0;
+  const parts: string[] = [];
+
+  const preFrames = buildKeyframes(current.story);
+  const frameById = new Map(preFrames.map((f) => [f.id, f]));
+  const gapIds: string[] = [];
+  const pictureIds: string[] = [];
+  for (const id of selection.pictureIds) {
+    const kf = frameById.get(id);
+    if (!kf) continue;
+    if (kf.beat.gap) gapIds.push(id);
+    else pictureIds.push(id);
+  }
+
+  // 1. Keyframe diamonds
+  if (selection.keyframes.length > 0) {
+    const next = deleteAnimationKeyframes(current, selection.keyframes);
+    if (next !== current) {
+      current = next;
+      parts.push(
+        selection.keyframes.length === 1
+          ? "Removed 1 keyframe"
+          : `Removed ${selection.keyframes.length} keyframes`,
+      );
+    }
+  }
+
+  // 2. Explicitly selected captions (skip beats being completely removed)
+  const beatsBeingRemoved = new Set<string>(ripple ? [...pictureIds, ...gapIds] : gapIds);
+  if (selection.captions.length > 0) {
+    const byClip = new Map<string, number[]>();
+    for (const item of selection.captions) {
+      if (beatsBeingRemoved.has(item.frameId) || !Number.isFinite(item.index)) continue;
+      const list = byClip.get(item.frameId) ?? [];
+      list.push(item.index);
+      byClip.set(item.frameId, list);
+    }
+    let deletedCaps = 0;
+    for (const [clipId, indices] of byClip) {
+      const kf = buildKeyframes(current.story).find((f) => f.id === clipId);
+      if (!kf) continue;
+      const audioRef = kf.beat.audioUrl;
+      const voiceSec = audioRef ? voiceDurationByRef?.get(audioRef) : undefined;
+      const dur = clipFrames(kf, voiceSec);
+      const uniqueIndices = [...new Set(indices)];
+      const nextCaps = deleteCaptionsAtIndices(kf.beat, dur, uniqueIndices);
+      current = setBeatCaptions(current, clipId, nextCaps, dur);
+      deletedCaps += uniqueIndices.length;
+    }
+    if (deletedCaps > 0) {
+      parts.push(deletedCaps === 1 ? "Removed caption" : `Removed ${deletedCaps} captions`);
+    }
+  }
+
+  // 3. Explicitly selected sounds (no gaps on sound lanes)
+  if (selection.audioClipIds.length > 0) {
+    const before = current.audioClips?.length ?? 0;
+    current = deleteAudioClips(current, selection.audioClipIds);
+    const after = current.audioClips?.length ?? 0;
+    const directRemoved = before - after;
+    if (directRemoved > 0) {
+      removedSoundCount += directRemoved;
+      parts.push(directRemoved === 1 ? "Removed 1 sound clip" : `Removed ${directRemoved} sound clips`);
+    }
+  }
+
+  // 4. Video lane: Shift+Delete = ripple delete; Delete = lift picture -> gap, close gap
+  const allVideoIds = [...pictureIds, ...gapIds];
+  if (ripple && allVideoIds.length > 0) {
+    const res = rippleDeleteKeyframes(current, allVideoIds);
+    current = res.project;
+    removedSoundCount += res.removedSoundCount;
+    const shotLabel = allVideoIds.length === 1 ? "1 shot" : `${allVideoIds.length} shots`;
+    const soundLabel =
+      res.removedSoundCount === 1
+        ? "1 anchored sound removed"
+        : `${res.removedSoundCount} anchored sounds removed`;
+    parts.unshift(`Ripple-deleted ${shotLabel} · ${soundLabel}`);
+  } else {
+    if (pictureIds.length > 0) {
+      current = liftKeyframes(current, pictureIds, voiceDurationByRef);
+      parts.unshift(
+        pictureIds.length === 1
+          ? "Lifted picture to black gap"
+          : `Lifted ${pictureIds.length} pictures to black gaps`,
+      );
+    }
+    if (gapIds.length > 0) {
+      current = closeGapKeyframes(current, gapIds, voiceDurationByRef);
+      parts.push(gapIds.length === 1 ? "Closed gap" : `Closed ${gapIds.length} gaps`);
+    }
+  }
+
+  return {
+    project: current,
+    removedSoundCount,
+    statusMessage: parts.join(" · ") || "Nothing selected to delete.",
+  };
+}
+
+function ensureAllBeatIds(story: StoryLike): void {
+  const frames = buildKeyframes(story);
+  for (const kf of frames) {
+    if (!kf.beat.id) kf.beat.id = kf.id;
+  }
+}
+
+/**
+ * Drags a single-lane or multi-lane selection in time as one unit:
+ * - Sound-only selections shift by exact `deltaMs` (millisecond precision, never rounded to frames)
+ *   and re-anchor on drop to the picture clip under each sound's new start.
+ * - Selections including video clips shift on whole-frame boundaries (`deltaFrames`), inserting or
+ *   resizing a gap before the block so video + co-selected sounds/captions move together by the
+ *   exact same duration while unselected upstream sounds stay put.
+ */
+export function shiftMultiLaneSelection(
+  project: ProjectState,
+  selection: MultiLaneSelection,
+  deltaMs: number,
+  options: { copy?: boolean; voiceDurationByRef?: ReadonlyMap<string, number> } = {},
+): { project: ProjectState; selection: MultiLaneSelection } {
+  const { copy = false, voiceDurationByRef } = options;
+  const hasVideo = selection.pictureIds.length > 0;
+  const hasCaptions = selection.captions.length > 0;
+  const hasAudio = selection.audioClipIds.length > 0;
+
+  if (!hasVideo && !hasCaptions && !hasAudio) {
+    return { project, selection };
+  }
+
+  const initialFrames = buildKeyframes(project.story);
+  const { clips: initialClips } = buildTimelineClips(initialFrames, voiceDurationByRef);
+  const resolvedAudio = resolveAudioClips(project.audioClips ?? [], initialClips);
+  const resolvedById = new Map(resolvedAudio.map((rc) => [rc.id, rc]));
+
+  // Case A: Sound-only drag (pure millisecond precision!)
+  if (!hasVideo && !hasCaptions && hasAudio) {
+    const audioSet = new Set(selection.audioClipIds);
+    const moving = resolvedAudio.filter((rc) => audioSet.has(rc.id));
+    if (!moving.length) return { project, selection };
+
+    const minStartMs = Math.min(...moving.map((rc) => rc.startMs));
+    const clampedDeltaMs = Math.max(-minStartMs, deltaMs);
+    if (Math.abs(clampedDeltaMs) < 0.0001 && !copy) {
+      return { project, selection };
+    }
+
+    const existing = project.audioClips ?? [];
+    if (copy) {
+      const copies: AudioClip[] = [];
+      for (const rc of moving) {
+        const base: AudioClip = {
+          ...stripResolvedAudioFields(rc),
+          id: `ac-${rc.lane}-${crypto.randomUUID().slice(0, 8)}`,
+        };
+        copies.push(reanchorAudioClipToMs(base, Math.max(0, rc.startMs + clampedDeltaMs), initialClips));
+      }
+      return {
+        project: {
+          ...project,
+          audioClips: [...existing, ...copies],
+          updatedAt: Date.now(),
+        },
+        selection: {
+          ...EMPTY_MULTI_SELECTION,
+          audioClipIds: copies.map((c) => c.id),
+        },
+      };
+    }
+
+    const nextAudio = existing.map((ac) => {
+      if (!audioSet.has(ac.id)) return ac;
+      const rc = resolvedById.get(ac.id);
+      if (!rc) return ac;
+      return reanchorAudioClipToMs(ac, Math.max(0, rc.startMs + clampedDeltaMs), initialClips);
+    });
+
+    return {
+      project: { ...project, audioClips: nextAudio, updatedAt: Date.now() },
+      selection,
+    };
+  }
+
+  // Case B: Video clips included (with or without co-selected sounds/captions)
+  if (hasVideo) {
+    const requestedFrames = Math.round((deltaMs * FPS) / 1000);
+    if (requestedFrames === 0) return { project, selection };
+
+    const story = cloneStory(project.story);
+    ensureAllBeatIds(story);
+    const frames = buildKeyframes(story);
+    const { clips: preClips } = buildTimelineClips(frames, voiceDurationByRef);
+    const videoSet = new Set(selection.pictureIds);
+    const selectedClips = preClips.filter((c) => videoSet.has(c.keyframe.id));
+    if (!selectedClips.length) return { project, selection };
+
+    const firstSelected = selectedClips[0];
+    const lastSelected = selectedClips[selectedClips.length - 1];
+    const firstIdx = preClips.indexOf(firstSelected);
+    const lastIdx = preClips.indexOf(lastSelected);
+    const prevClip = firstIdx > 0 ? preClips[firstIdx - 1] : undefined;
+    const nextClip = lastIdx >= 0 && lastIdx + 1 < preClips.length ? preClips[lastIdx + 1] : undefined;
+
+    let actualFrames = requestedFrames;
+
+    if (requestedFrames > 0) {
+      const chain = captureSceneChain(story);
+      if (prevClip && prevClip.keyframe.beat.gap && prevClip.keyframe.sceneId === firstSelected.keyframe.sceneId) {
+        prevClip.keyframe.beat.durationFrames = prevClip.durationFrames + requestedFrames;
+      } else {
+        const loc = locateBeat(story, firstSelected.keyframe.id);
+        if (!loc) return { project, selection };
+        const gapBeat: BeatLike = {
+          id: uniqueBeatId(story, loc.scene.id),
+          gap: true,
+          durationFrames: requestedFrames,
+          text: "",
+        };
+        loc.scene.dialogueBeats!.splice(loc.index, 0, gapBeat);
+      }
+
+      if (nextClip && nextClip.keyframe.beat.gap) {
+        const absorb = Math.min(requestedFrames, nextClip.durationFrames);
+        const remaining = nextClip.durationFrames - absorb;
+        if (remaining <= 0) {
+          for (const sc of story.scenes) {
+            if (!sc.dialogueBeats?.length) continue;
+            sc.dialogueBeats = sc.dialogueBeats.filter((b) => b !== nextClip.keyframe.beat);
+          }
+        } else {
+          nextClip.keyframe.beat.durationFrames = remaining;
+        }
+      }
+      restoreSceneChain(story, chain);
+    } else {
+      if (!prevClip) return { project, selection };
+      const wantConsume = -requestedFrames;
+      if (prevClip.keyframe.beat.gap) {
+        const consume = Math.min(wantConsume, prevClip.durationFrames);
+        if (consume <= 0) return { project, selection };
+        actualFrames = -consume;
+        const remaining = prevClip.durationFrames - consume;
+        const chain = captureSceneChain(story);
+        if (remaining <= 0) {
+          for (const sc of story.scenes) {
+            if (!sc.dialogueBeats?.length) continue;
+            sc.dialogueBeats = sc.dialogueBeats.filter((b) => b !== prevClip.keyframe.beat);
+          }
+        } else {
+          prevClip.keyframe.beat.durationFrames = remaining;
+        }
+        restoreSceneChain(story, chain);
+      } else {
+        const maxShrink = Math.max(0, prevClip.durationFrames - MIN_CLIP_FRAMES);
+        const consume = Math.min(wantConsume, maxShrink);
+        if (consume <= 0) return { project, selection };
+        actualFrames = -consume;
+        prevClip.keyframe.beat.durationFrames = prevClip.durationFrames - consume;
+      }
+    }
+
+    const actualDeltaMs = (actualFrames * 1000) / FPS;
+    const postFrames = buildKeyframes(story);
+    const { clips: postClips } = buildTimelineClips(postFrames, voiceDurationByRef);
+    const postIdSet = new Set(postClips.map((c) => c.keyframe.id));
+    const audioSet = new Set(selection.audioClipIds);
+
+    let nextAudioClips = project.audioClips;
+    if (Array.isArray(project.audioClips)) {
+      nextAudioClips = project.audioClips.map((ac) => {
+        const preRc = resolvedById.get(ac.id);
+        const preStartMs = preRc?.startMs ?? 0;
+        if (audioSet.has(ac.id)) {
+          return reanchorAudioClipToMs(ac, Math.max(0, preStartMs + actualDeltaMs), postClips);
+        }
+        if (videoSet.has(ac.anchorId)) {
+          return reanchorAudioClipToMs(ac, Math.max(0, preStartMs), postClips);
+        }
+        if (!postIdSet.has(ac.anchorId)) {
+          return reanchorAudioClipToMs(ac, Math.max(0, preStartMs + actualDeltaMs), postClips);
+        }
+        return ac;
+      });
+    }
+
+    return {
+      project: {
+        ...project,
+        story,
+        ...(nextAudioClips ? { audioClips: nextAudioClips } : {}),
+        updatedAt: Date.now(),
+      },
+      selection,
+    };
+  }
+
+  // Case C: Captions (+ optional sounds, no video clips)
+  const deltaFrames = Math.round((deltaMs * FPS) / 1000);
+  let current = project;
+  if (deltaFrames !== 0 && hasCaptions) {
+    const byClip = new Map<string, Set<number>>();
+    for (const item of selection.captions) {
+      if (!Number.isFinite(item.index)) continue;
+      const set = byClip.get(item.frameId) ?? new Set<number>();
+      set.add(item.index);
+      byClip.set(item.frameId, set);
+    }
+    for (const [clipId, idxSet] of byClip) {
+      const kf = initialFrames.find((f) => f.id === clipId);
+      if (!kf) continue;
+      const audioRef = kf.beat.audioUrl;
+      const voiceSec = audioRef ? voiceDurationByRef?.get(audioRef) : undefined;
+      const dur = clipFrames(kf, voiceSec);
+      const caps = effectiveCaptionsForBeat(kf.beat, dur);
+      const shifted = caps.map((cap, idx) => {
+        if (!idxSet.has(idx)) return cap;
+        const len = Math.max(1, cap.outFrame - cap.inFrame);
+        const nextIn = Math.max(0, Math.min(dur - len, cap.inFrame + deltaFrames));
+        return { ...cap, inFrame: nextIn, outFrame: nextIn + len };
+      });
+      current = setBeatCaptions(current, clipId, shifted, dur);
+    }
+  }
+
+  if (hasAudio) {
+    const audioRes = shiftMultiLaneSelection(
+      current,
+      { ...EMPTY_MULTI_SELECTION, audioClipIds: selection.audioClipIds },
+      deltaMs,
+      { copy: false, voiceDurationByRef },
+    );
+    current = audioRes.project;
+  }
+
+  return { project: current, selection };
+}
+
+export interface MultiLaneClipboard {
+  beats: BeatLike[];
+  audioClips: Array<{ clip: AudioClip; relativeMs: number }>;
+  standaloneCaptions: Array<{ caption: BeatCaption; relativeFrames: number }>;
+}
+
+/**
+ * Copies any single-lane or multi-lane selection, preserving exact relative millisecond
+ * offsets between copied items.
+ */
+export function copyMultiSelection(
+  project: ProjectState,
+  selection: MultiLaneSelection,
+  voiceDurationByRef?: ReadonlyMap<string, number>,
+): MultiLaneClipboard | undefined {
+  const frames = buildKeyframes(project.story);
+  const { clips } = buildTimelineClips(frames, voiceDurationByRef);
+  const clipById = new Map(clips.map((c) => [c.keyframe.id, c]));
+  const resolvedAudio = resolveAudioClips(project.audioClips ?? [], clips);
+  const resolvedById = new Map(resolvedAudio.map((rc) => [rc.id, rc]));
+
+  const videoSet = new Set(selection.pictureIds);
+  const copiedBeats = copySelectedBeats(project, selection.pictureIds);
+
+  const selectedAudio = selection.audioClipIds
+    .map((id) => resolvedById.get(id))
+    .filter((rc): rc is NonNullable<typeof rc> => Boolean(rc));
+
+  const standaloneCaps: Array<{ caption: BeatCaption; absStartFrame: number }> = [];
+  for (const item of selection.captions) {
+    if (videoSet.has(item.frameId)) continue;
+    const tc = clipById.get(item.frameId);
+    if (!tc || !Number.isFinite(item.index)) continue;
+    const caps = effectiveCaptionsForBeat(tc.keyframe.beat, tc.durationFrames);
+    const cap = caps[item.index];
+    if (cap) {
+      standaloneCaps.push({
+        caption: { ...cap },
+        absStartFrame: tc.startFrame + cap.inFrame,
+      });
+    }
+  }
+
+  if (!copiedBeats.length && !selectedAudio.length && !standaloneCaps.length) {
+    return undefined;
+  }
+
+  const startTimesMs: number[] = [];
+  for (const id of selection.pictureIds) {
+    const tc = clipById.get(id);
+    if (tc) startTimesMs.push((tc.startFrame * 1000) / FPS);
+  }
+  for (const rc of selectedAudio) {
+    startTimesMs.push(rc.startMs);
+  }
+  for (const sc of standaloneCaps) {
+    startTimesMs.push((sc.absStartFrame * 1000) / FPS);
+  }
+
+  const anchorZeroMs = startTimesMs.length > 0 ? Math.min(...startTimesMs) : 0;
+  const anchorZeroFrame = Math.round((anchorZeroMs * FPS) / 1000);
+
+  return {
+    beats: copiedBeats,
+    audioClips: selectedAudio.map((rc) => ({
+      clip: stripResolvedAudioFields(rc),
+      relativeMs: rc.startMs - anchorZeroMs,
+    })),
+    standaloneCaptions: standaloneCaps.map((sc) => ({
+      caption: sc.caption,
+      relativeFrames: Math.max(0, sc.absStartFrame - anchorZeroFrame),
+    })),
+  };
+}
+
+/**
+ * Pastes a `MultiLaneClipboard` at `playheadFrame`, keeping relative millisecond times of
+ * pasted sounds intact and anchoring each pasted sound to the picture clip under it.
+ */
+export function pasteMultiSelectionAt(
+  project: ProjectState,
+  clipboard: MultiLaneClipboard,
+  playheadFrame: number,
+  voiceDurationByRef?: ReadonlyMap<string, number>,
+): { project: ProjectState; selection: MultiLaneSelection } | undefined {
+  if (
+    !clipboard.beats.length &&
+    !clipboard.audioClips.length &&
+    !clipboard.standaloneCaptions.length
+  ) {
+    return undefined;
+  }
+
+  let current = project;
+  let insertedVideoIds: string[] = [];
+
+  if (clipboard.beats.length > 0) {
+    const pastedBeats = pasteKeyframesAt(current, clipboard.beats, playheadFrame, voiceDurationByRef);
+    if (pastedBeats) {
+      current = pastedBeats.project;
+      insertedVideoIds = pastedBeats.insertedIds;
+    }
+  }
+
+  const postFrames = buildKeyframes(current.story);
+  const { clips: postClips } = buildTimelineClips(postFrames, voiceDurationByRef);
+  if (!postClips.length) return undefined;
+
+  const baseMs = (Math.max(0, Math.round(playheadFrame)) * 1000) / FPS;
+  const insertedAudioIds: string[] = [];
+
+  if (clipboard.audioClips.length > 0) {
+    const newAudio: AudioClip[] = clipboard.audioClips.map(({ clip, relativeMs }) => {
+      const fresh: AudioClip = {
+        ...clip,
+        id: `ac-${clip.lane}-${crypto.randomUUID().slice(0, 8)}`,
+      };
+      insertedAudioIds.push(fresh.id);
+      return reanchorAudioClipToMs(fresh, Math.max(0, baseMs + relativeMs), postClips);
+    });
+    current = {
+      ...current,
+      audioClips: [...(current.audioClips ?? []), ...newAudio],
+      updatedAt: Date.now(),
+    };
+  }
+
+  const insertedCaptions: Array<{ frameId: string; index: number }> = [];
+  if (clipboard.standaloneCaptions.length > 0) {
+    for (const sc of clipboard.standaloneCaptions) {
+      const targetFrame = Math.max(0, Math.round(playheadFrame) + sc.relativeFrames);
+      const host =
+        postClips.find((c) => targetFrame >= c.startFrame && targetFrame < c.endFrame) ||
+        postClips[postClips.length - 1];
+      if (!host) continue;
+      const localIn = Math.max(0, Math.min(host.durationFrames - 1, targetFrame - host.startFrame));
+      const len = Math.max(1, sc.caption.outFrame - sc.caption.inFrame);
+      const localOut = Math.min(host.durationFrames, localIn + len);
+      const existing = effectiveCaptionsForBeat(host.keyframe.beat, host.durationFrames);
+      const nextCaps = [...existing, { text: sc.caption.text, inFrame: localIn, outFrame: localOut }];
+      current = setBeatCaptions(current, host.keyframe.id, nextCaps, host.durationFrames);
+      insertedCaptions.push({ frameId: host.keyframe.id, index: nextCaps.length - 1 });
+    }
+  }
+
+  return {
+    project: current,
+    selection: {
+      pictureIds: insertedVideoIds,
+      captions: insertedCaptions,
+      audioClipIds: insertedAudioIds,
+      keyframes: [],
+    },
+  };
+}
+

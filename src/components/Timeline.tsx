@@ -17,7 +17,24 @@ import {
   type TrackId,
   type TrackMixMap,
 } from "../core/previewAudio";
-import { formatTimecode, MIN_CLIP_FRAMES } from "../core/timing";
+import {
+  combineMarqueeSelections,
+  EMPTY_MULTI_SELECTION,
+  formatMsTimecode,
+  hitTestMarqueeBox,
+  type AudioClip,
+  type AudioLaneId,
+  type MultiLaneSelection,
+  type ResolvedAudioClip,
+  type SelectedKeyframeDiamond,
+  type TimelineLaneBands,
+} from "../core/audioClips";
+import type { BeatCaption } from "../core/captions";
+import { FPS, formatTimecode, MIN_CLIP_FRAMES } from "../core/timing";
+import { CaptionLane, type SelectedCaptionState } from "./CaptionLane";
+import type { InspectorTab } from "./Inspector";
+import { decodeDraggedAsset } from "./MediaBin";
+import { Tracks } from "./Tracks";
 import {
   clipAtFrame,
   moveKeyToFrame,
@@ -40,10 +57,6 @@ import {
   type TransitionAlignment,
   type TransitionKind,
 } from "../sequence/transitions";
-import type { BeatCaption } from "../core/captions";
-import { CaptionLane, type SelectedCaptionState } from "./CaptionLane";
-import type { InspectorTab } from "./Inspector";
-import { Tracks } from "./Tracks";
 
 const TRACK_HEADERS: ReadonlyArray<{ id: TrackId; label: string; icon: string }> = [
   { id: "video", label: "Video", icon: "▣" },
@@ -96,8 +109,23 @@ export interface TimelineProps {
   onPaste: () => void;
   onSplit: () => void;
   onDelete: () => void;
+  onExecuteDelete?: (ripple: boolean) => void;
   onMoveCue: (kind: "music" | "ambience" | "sfx", sourceId: string, targetId: string) => void;
   onDropFile: (file: File, frameId: string) => void;
+  onDropImageAsset?: (ref: string, frameId: string) => void;
+  onDropAudioAsset?: (lane: AudioLaneId, ref: string, dropStartMs: number) => void;
+  resolvedAudioClips?: ResolvedAudioClip[];
+  audioDurations?: ReadonlyMap<string, number>;
+  multiSelection?: MultiLaneSelection;
+  onSetMultiSelection?: (selection: MultiLaneSelection, primaryFrameId?: string, targetFrame?: number) => void;
+  onClearAllSelection?: () => void;
+  onSelectAudioClip?: (clip: ResolvedAudioClip, additive: boolean, targetFrame?: number) => void;
+  onPreviewUpdateAudioClip?: (clipId: string, updated: AudioClip) => void;
+  onShiftSelectionPreview?: (deltaMs: number) => void;
+  onCommitSelectionShift?: (deltaMs: number, copy: boolean, label?: string) => void;
+  onSelectKeyframeDiamond?: (diamond: SelectedKeyframeDiamond, additive: boolean) => void;
+  mediaBinOpen?: boolean;
+  onToggleMediaBin?: () => void;
   showCaptions?: boolean;
   onToggleShowCaptions?: () => void;
   selectedCaption?: SelectedCaptionState | null;
@@ -126,7 +154,7 @@ export interface TimelineProps {
 }
 
 const MIN_PX_PER_FRAME = 0.08;
-const MAX_PX_PER_FRAME = 16;
+const MAX_PX_PER_FRAME = 160;
 const DEFAULT_PX_PER_FRAME = 1.6;
 const TICK_INTERVALS = [1, 2, 4, 6, 12, 24, 48, 120, 240, 360, 720, 1440, 2880, 7200];
 
@@ -174,8 +202,22 @@ export function Timeline({
   onPaste,
   onSplit,
   onDelete,
-  onMoveCue,
+  onExecuteDelete,
   onDropFile,
+  onDropImageAsset,
+  onDropAudioAsset,
+  resolvedAudioClips = [],
+  audioDurations,
+  multiSelection = EMPTY_MULTI_SELECTION,
+  onSetMultiSelection,
+  onClearAllSelection,
+  onSelectAudioClip,
+  onPreviewUpdateAudioClip,
+  onShiftSelectionPreview,
+  onCommitSelectionShift,
+  onSelectKeyframeDiamond,
+  mediaBinOpen = false,
+  onToggleMediaBin,
   showCaptions = true,
   onToggleShowCaptions,
   selectedCaption = null,
@@ -215,7 +257,29 @@ export function Timeline({
   } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const captionsLaneRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const audioLaneRefs = useRef<Partial<Record<AudioLaneId, HTMLDivElement | null>>>({});
+  const audioLaneRefSetters = useMemo<
+    Partial<Record<AudioLaneId, (el: HTMLDivElement | null) => void>>
+  >(
+    () => ({
+      voice: (el) => {
+        audioLaneRefs.current.voice = el;
+      },
+      sfx: (el) => {
+        audioLaneRefs.current.sfx = el;
+      },
+      music: (el) => {
+        audioLaneRefs.current.music = el;
+      },
+      ambience: (el) => {
+        audioLaneRefs.current.ambience = el;
+      },
+    }),
+    [],
+  );
   const scrubbingRef = useRef(false);
   const initialCenteredRef = useRef(false);
   const pxPerFrameRef = useRef(pxPerFrame);
@@ -386,6 +450,29 @@ export function Timeline({
     return list;
   }, [minVisibleFrame, maxVisibleFrame, totalFrames, majorStep, minorStep, pxPerFrame]);
 
+  // Sub-frame millisecond ticks when zoomed far in (Section A.4)
+  const subFrameMsTicks = useMemo(() => {
+    const pxPerMs = (pxPerFrame * FPS) / 1000;
+    if (pxPerMs < 0.75) return [] as Array<{ ms: number; leftPx: number; label?: string }>;
+    const stepMs = pxPerMs >= 8 ? 2 : pxPerMs >= 3 ? 5 : 10;
+    const minMs = Math.max(0, Math.floor(((minVisibleFrame * 1000) / FPS) / stepMs) * stepMs);
+    const maxMs = Math.min((totalFrames * 1000) / FPS, (maxVisibleFrame * 1000) / FPS);
+    const out: Array<{ ms: number; leftPx: number; label?: string }> = [];
+    for (let ms = minMs; ms <= maxMs; ms += stepMs) {
+      // Skip if right on top of a whole-frame tick
+      const nearestFrameMs = (Math.round((ms * FPS) / 1000) * 1000) / FPS;
+      if (Math.abs(ms - nearestFrameMs) < 0.8) continue;
+      const showLabel = ms % (stepMs * 5) === 0 && stepMs * 5 * pxPerMs >= 52;
+      out.push({
+        ms,
+        leftPx: ms * pxPerMs,
+        label: showLabel ? `.${String(ms % 1000).padStart(3, "0")}ms` : undefined,
+      });
+      if (out.length >= 450) break;
+    }
+    return out;
+  }, [pxPerFrame, minVisibleFrame, maxVisibleFrame, totalFrames]);
+
   const rawFrameFromClientX = useCallback(
     (clientX: number): number => {
       const el = scrollRef.current;
@@ -490,19 +577,43 @@ export function Timeline({
     ],
   );
 
-  // Marquee drag over empty track space
+  // Multi-lane marquee box-select over empty space on ANY lane (Section C)
   const marqueeSession = useRef<{
     startX: number;
     startY: number;
-    additive: boolean;
-    baseIds: string[];
+    startClientX: number;
+    startClientY: number;
+    moved: boolean;
+    mode: "replace" | "add" | "subtract";
+    baseSelection: MultiLaneSelection;
+    bands: TimelineLaneBands;
   } | null>(null);
 
+  const measureLaneBands = useCallback((): TimelineLaneBands => {
+    const canvasEl = canvasRef.current;
+    if (!canvasEl) return {};
+    const cRect = canvasEl.getBoundingClientRect();
+    const bandOf = (el: HTMLElement | null | undefined) => {
+      if (!el) return undefined;
+      const r = el.getBoundingClientRect();
+      return { top: r.top - cRect.top + 3, bottom: r.bottom - cRect.top - 3 };
+    };
+    return {
+      captions: bandOf(captionsLaneRef.current),
+      video: bandOf(trackRef.current),
+      voice: bandOf(audioLaneRefs.current.voice),
+      sfx: bandOf(audioLaneRefs.current.sfx),
+      music: bandOf(audioLaneRefs.current.music),
+      ambience: bandOf(audioLaneRefs.current.ambience),
+    };
+  }, []);
+
   const beginMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
     const targetEl = event.target as HTMLElement | null;
     if (
       targetEl?.closest(
-        ".timeline-clip, .timeline-transition-box, .timeline-roll-handle, .transition-kind-popover",
+        ".timeline-ruler, .timeline-playhead, .timeline-clip, .caption-block, .audio-clip-box, .timeline-transition-box, .timeline-roll-handle, .transition-kind-popover, button, input, textarea, select",
       )
     ) {
       return;
@@ -510,57 +621,77 @@ export function Timeline({
     event.preventDefault();
     setTransitionPopover(null);
     const scrollEl = scrollRef.current;
-    const trackEl = trackRef.current;
-    if (!scrollEl || !trackEl) return;
-    const trackRect = trackEl.getBoundingClientRect();
+    const canvasEl = canvasRef.current;
+    if (!scrollEl || !canvasEl) return;
+    const canvasRect = canvasEl.getBoundingClientRect();
     const x = event.clientX - scrollEl.getBoundingClientRect().left + scrollEl.scrollLeft;
-    const y = event.clientY - trackRect.top;
-    const additive = event.shiftKey || event.ctrlKey || event.metaKey;
+    const y = event.clientY - canvasRect.top;
+    const mode: "replace" | "add" | "subtract" = event.altKey
+      ? "subtract"
+      : event.shiftKey || event.ctrlKey || event.metaKey
+        ? "add"
+        : "replace";
+
     marqueeSession.current = {
       startX: x,
       startY: y,
-      additive,
-      baseIds: additive ? [...selectedFrameIds] : [],
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      moved: false,
+      mode,
+      baseSelection: multiSelection,
+      bands: measureLaneBands(),
     };
-    setMarquee({ x1: x, y1: y, x2: x, y2: y });
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const moveMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
     const session = marqueeSession.current;
     const scrollEl = scrollRef.current;
-    const trackEl = trackRef.current;
-    if (!session || !scrollEl || !trackEl) return;
-    const trackRect = trackEl.getBoundingClientRect();
+    const canvasEl = canvasRef.current;
+    if (!session || !scrollEl || !canvasEl) return;
+    const dx = event.clientX - session.startClientX;
+    const dy = event.clientY - session.startClientY;
+    if (!session.moved && Math.hypot(dx, dy) < 4) return;
+    session.moved = true;
+
+    const canvasRect = canvasEl.getBoundingClientRect();
     const x = event.clientX - scrollEl.getBoundingClientRect().left + scrollEl.scrollLeft;
-    const y = event.clientY - trackRect.top;
-    setMarquee({ x1: session.startX, y1: session.startY, x2: x, y2: y });
+    const y = event.clientY - canvasRect.top;
+    const rect = { x1: session.startX, y1: session.startY, x2: x, y2: y };
+    setMarquee(rect);
 
-    const minX = Math.min(session.startX, x);
-    const maxX = Math.max(session.startX, x);
-    const minFrame = minX / pxPerFrame;
-    const maxFrame = maxX / pxPerFrame;
-
-    // Clips span y = 14 .. trackHeight - 10; if box touches clip vertical band (or spans horizontally)
-    const minY = Math.min(session.startY, y);
-    const maxY = Math.max(session.startY, y);
-    const touchesClipBand = maxY >= 12 && minY <= trackRect.height - 10;
-    const hitIds = touchesClipBand
-      ? clips
-          .filter((c) => c.endFrame >= minFrame && c.startFrame <= maxFrame)
-          .map((c) => c.keyframe.id)
-      : [];
-
-    const combined = [...new Set([...session.baseIds, ...hitIds])];
-    if (combined.length > 0) {
-      const primary = combined.includes(selectedFrameId) ? selectedFrameId : combined[0];
-      onSetSelection(combined, primary);
+    const hit = hitTestMarqueeBox(
+      rect,
+      session.bands,
+      clips,
+      resolvedAudioClips,
+      pxPerFrame,
+    );
+    const combined = combineMarqueeSelections(session.baseSelection, hit, session.mode);
+    if (onSetMultiSelection) {
+      const primary =
+        combined.pictureIds.includes(selectedFrameId)
+          ? selectedFrameId
+          : combined.pictureIds[0];
+      onSetMultiSelection(combined, primary);
+    } else if (combined.pictureIds.length > 0) {
+      const primary = combined.pictureIds.includes(selectedFrameId)
+        ? selectedFrameId
+        : combined.pictureIds[0];
+      onSetSelection(combined.pictureIds, primary);
     }
   };
 
-  const endMarquee = () => {
+  const endMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const session = marqueeSession.current;
     marqueeSession.current = null;
     setMarquee(null);
+    if (!session) return;
+    if (!session.moved && session.mode === "replace") {
+      onClearAllSelection?.();
+      onScrub(frameFromClientX(event.clientX));
+    }
   };
 
   // Cut Roll Edit session
@@ -728,13 +859,25 @@ export function Timeline({
         </div>
 
         <div className="timeline-edit-tools">
+          {onToggleMediaBin && (
+            <button
+              type="button"
+              className={`button button-quiet ${mediaBinOpen ? "is-active-tool" : ""}`}
+              data-testid="media-bin-toggle"
+              aria-pressed={mediaBinOpen}
+              onClick={onToggleMediaBin}
+              title="Toggle Media Bin (drag pictures onto shots or gaps, sounds onto audio lanes)"
+            >
+              ▣ Bin
+            </button>
+          )}
           <button
             type="button"
             className={`button button-quiet ${snapEnabled ? "is-active-tool" : ""}`}
             data-testid="snap-toggle"
             aria-pressed={snapEnabled}
             onClick={onToggleSnap}
-            title="Toggle magnetic snapping within 8px (N)"
+            title="Toggle magnetic snapping within 8px (N) — hold Ctrl/Cmd to ignore"
           >
             🧲 Snap (N)
           </button>
@@ -751,16 +894,22 @@ export function Timeline({
             type="button"
             className="button button-quiet"
             onClick={onCopy}
-            title="Copy selected clips (Ctrl/Cmd+C)"
+            title="Copy selected items across lanes (Ctrl/Cmd+C)"
           >
-            Copy{selectedFrameIds.length > 1 ? ` (${selectedFrameIds.length})` : ""}
+            Copy
+            {multiSelection.pictureIds.length +
+              multiSelection.audioClipIds.length +
+              multiSelection.captions.length >
+            1
+              ? ` (${multiSelection.pictureIds.length + multiSelection.audioClipIds.length + multiSelection.captions.length})`
+              : ""}
           </button>
           <button
             type="button"
             className="button button-quiet"
             disabled={!hasClipboard}
             onClick={onPaste}
-            title="Paste copied clips at playhead (Ctrl/Cmd+V)"
+            title="Paste copied items at playhead (Ctrl/Cmd+V)"
           >
             Paste
           </button>
@@ -787,24 +936,25 @@ export function Timeline({
           <button
             type="button"
             className="button button-quiet danger-quiet"
-            onClick={() => {
-              if (selectedCaption && selectedCaption.indices.length > 0 && onDeleteCaptions) {
+            data-testid="toolbar-delete-btn"
+            onClick={(event) => {
+              if (onExecuteDelete) {
+                onExecuteDelete(event.shiftKey);
+              } else if (selectedCaption && selectedCaption.indices.length > 0 && onDeleteCaptions) {
                 onDeleteCaptions();
               } else {
                 onDelete();
               }
             }}
-            title={
-              selectedCaption && selectedCaption.indices.length > 0
-                ? "Delete selected caption(s) (Delete)"
-                : "Delete selected clip(s) (Delete)"
-            }
+            title="Delete selection (Delete lifts picture to black gap; Shift+Delete ripple-deletes shot & anchored sounds)"
           >
-            {selectedCaption && selectedCaption.indices.length > 0
-              ? `Delete CC${selectedCaption.indices.length > 1 ? ` (${selectedCaption.indices.length})` : ""}`
-              : `Delete${selectedFrameIds.length > 1 ? ` (${selectedFrameIds.length})` : ""}`}
+            Delete
           </button>
-          <span className="timeline-tc-badge" data-testid="timeline-timecode">
+          <span
+            className="timeline-tc-badge"
+            data-testid="timeline-timecode"
+            title={`Millisecond time: ${formatMsTimecode((playheadFrame * 1000) / FPS)}`}
+          >
             <strong>{formatTimecode(playheadFrame)}</strong>
             <i>/</i>
             <span>{formatTimecode(totalFrames)}</span>
@@ -947,7 +1097,18 @@ export function Timeline({
           data-testid="timeline-scroll"
           onScroll={(event) => setScrollLeft(event.currentTarget.scrollLeft)}
         >
-        <div className="timeline-canvas" style={{ width: trackWidth }}>
+        <div
+          ref={canvasRef}
+          className="timeline-canvas"
+          style={{ width: trackWidth }}
+          onPointerDown={beginMarquee}
+          onPointerMove={moveMarquee}
+          onPointerUp={endMarquee}
+          onPointerCancel={() => {
+            marqueeSession.current = null;
+            setMarquee(null);
+          }}
+        >
           <div
             className="timeline-ruler"
             data-testid="timeline-ruler"
@@ -963,6 +1124,17 @@ export function Timeline({
                 style={{ left: tick.frame * pxPerFrame }}
               >
                 {tick.major && <b>{formatTimecode(tick.frame)}</b>}
+              </span>
+            ))}
+
+            {subFrameMsTicks.map((sub) => (
+              <span
+                key={`ms-${sub.ms}`}
+                className="ruler-tick is-subframe"
+                data-testid={sub.label ? `ruler-subtick-${sub.ms}` : undefined}
+                style={{ left: sub.leftPx }}
+              >
+                {sub.label && <i className="ruler-subtick-label">{sub.label}</i>}
               </span>
             ))}
 
@@ -1008,12 +1180,16 @@ export function Timeline({
           </div>
 
           <CaptionLane
+            laneRef={(el) => {
+              captionsLaneRef.current = el;
+            }}
             visibleClips={visibleClips}
             pxPerFrame={pxPerFrame}
             playheadFrame={playheadFrame}
             snapEnabled={snapEnabled}
             selectedFrameId={selectedFrameId}
             selectedCaption={selectedCaption}
+            multiSelectedCaptions={multiSelection.captions}
             rawFrameFromClientX={rawFrameFromClientX}
             onSetSnapGuide={setSnapGuideFrame}
             onSelectCaption={(frameId, captionIndex, extendNeighbour, targetFrame) =>
@@ -1046,15 +1222,14 @@ export function Timeline({
             ref={trackRef}
             className={`timeline-picture-track ${videoSilenced ? "is-silenced" : ""}`}
             data-testid="picture-track"
-            onPointerDown={beginMarquee}
-            onPointerMove={moveMarquee}
-            onPointerUp={endMarquee}
-            onPointerCancel={endMarquee}
           >
             {visibleClips.map((clip) => {
               const rawSrc = resolveMedia(clip.keyframe.picture);
               const imageThumb =
-                rawSrc && !rawSrc.startsWith("gradient:") && !rawSrc.startsWith("emoji:")
+                !clip.keyframe.beat.gap &&
+                rawSrc &&
+                !rawSrc.startsWith("gradient:") &&
+                !rawSrc.startsWith("emoji:")
                   ? rawSrc
                   : undefined;
               const prevClip = clip.index > 0 ? clips[clip.index - 1] : undefined;
@@ -1067,6 +1242,8 @@ export function Timeline({
                 ? maxTransitionFramesForCut(prevClip, clip, rawAlign)
                 : 0;
               const cutTrans = prevClip ? readCutTransition(clip.keyframe, maxTransFrames) : undefined;
+              const hasCoSelectedOtherLanes =
+                multiSelection.audioClipIds.length > 0 || multiSelection.captions.length > 0;
 
               return (
                 <Fragment key={`clip-wrap-${clip.keyframe.sceneId}:${clip.keyframe.id}:${clip.index}`}>
@@ -1076,8 +1253,13 @@ export function Timeline({
                     pxPerFrame={pxPerFrame}
                     snapEnabled={snapEnabled}
                     isSelected={selectedFrameId === clip.keyframe.id}
-                    isMulti={selectedFrameIds.includes(clip.keyframe.id)}
+                    isMulti={
+                      selectedFrameIds.includes(clip.keyframe.id) ||
+                      multiSelection.pictureIds.includes(clip.keyframe.id)
+                    }
                     selectedFrameIds={selectedFrameIds}
+                    selectedDiamonds={multiSelection.keyframes}
+                    hasCoSelectedOtherLanes={hasCoSelectedOtherLanes}
                     thumbSrc={imageThumb}
                     rawFrameFromClientX={rawFrameFromClientX}
                     getSnapTargetsForWindow={getSnapTargetsForWindow}
@@ -1092,8 +1274,12 @@ export function Timeline({
                     onDragEnd={onDragEnd}
                     onTrimPreview={onTrimPreview}
                     onMoveClips={onMoveClips}
+                    onShiftSelectionPreview={onShiftSelectionPreview}
+                    onCommitSelectionShift={onCommitSelectionShift}
                     onAnimationPreview={onAnimationPreview}
+                    onSelectKeyframeDiamond={onSelectKeyframeDiamond}
                     onDropFile={onDropFile}
+                    onDropImageAsset={onDropImageAsset}
                   />
 
                   {prevClip && cutTrans && (
@@ -1471,35 +1657,58 @@ export function Timeline({
               </div>
             )}
 
-            {marquee && (
-              <div
-                className="timeline-marquee-box"
-                data-testid="timeline-marquee-box"
-                style={{
-                  left: Math.min(marquee.x1, marquee.x2),
-                  top: Math.min(marquee.y1, marquee.y2),
-                  width: Math.abs(marquee.x2 - marquee.x1),
-                  height: Math.abs(marquee.y2 - marquee.y1),
-                }}
-              />
-            )}
           </div>
 
           <Tracks
             clips={clips}
+            resolvedAudioClips={resolvedAudioClips}
+            selectedAudioClipIds={multiSelection.audioClipIds}
             totalFrames={totalFrames}
+            playheadFrame={playheadFrame}
             pxPerFrame={pxPerFrame}
+            scrollLeft={scrollLeft}
+            viewportWidth={viewportWidth}
             minVisibleFrame={minVisibleFrame}
             maxVisibleFrame={maxVisibleFrame}
-            selectedFrameId={selectedFrameId}
-            musicDurations={musicDurations}
+            snapEnabled={snapEnabled}
+            noteMarkers={noteMarkers}
+            audioDurations={audioDurations ?? musicDurations}
             trackMix={effectiveMix}
-            onSelect={(id, startFrame, audioTab) => {
-              onSetSelection([id], id, startFrame);
-              if (audioTab) onFocusInspectorTab?.(audioTab);
+            resolveMedia={resolveMedia}
+            laneRefs={audioLaneRefSetters}
+            onSetSnapGuide={setSnapGuideFrame}
+            onSelectAudioClip={(clip, additive, targetFrame) => {
+              onSelectAudioClip?.(clip, additive, targetFrame);
+              onFocusInspectorTab?.(clip.lane);
             }}
-            onMoveCue={onMoveCue}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onPreviewUpdateAudioClip={(clipId, updated) =>
+              onPreviewUpdateAudioClip?.(clipId, updated)
+            }
+            onShiftAudioDragPreview={(deltaMs) => onShiftSelectionPreview?.(deltaMs)}
+            onCommitAudioDrag={(deltaMs, copy) =>
+              onCommitSelectionShift?.(
+                deltaMs,
+                copy,
+                copy ? "Sound clip copied" : "Sound clip moved",
+              )
+            }
+            onDropAudioAsset={onDropAudioAsset}
           />
+
+          {marquee && (
+            <div
+              className="timeline-marquee-box"
+              data-testid="timeline-marquee-box"
+              style={{
+                left: Math.min(marquee.x1, marquee.x2),
+                top: Math.min(marquee.y1, marquee.y2),
+                width: Math.abs(marquee.x2 - marquee.x1),
+                height: Math.abs(marquee.y2 - marquee.y1),
+              }}
+            />
+          )}
 
           {snapGuideFrame !== null && (
             <div
@@ -1544,6 +1753,8 @@ function ClipItem({
   isSelected,
   isMulti,
   selectedFrameIds,
+  selectedDiamonds = [],
+  hasCoSelectedOtherLanes = false,
   thumbSrc,
   rawFrameFromClientX,
   getSnapTargetsForWindow,
@@ -1556,8 +1767,12 @@ function ClipItem({
   onDragEnd,
   onTrimPreview,
   onMoveClips,
+  onShiftSelectionPreview,
+  onCommitSelectionShift,
   onAnimationPreview,
+  onSelectKeyframeDiamond,
   onDropFile,
+  onDropImageAsset,
 }: {
   clip: TimelineClip;
   clips: TimelineClip[];
@@ -1566,6 +1781,8 @@ function ClipItem({
   isSelected: boolean;
   isMulti: boolean;
   selectedFrameIds: string[];
+  selectedDiamonds?: ReadonlyArray<SelectedKeyframeDiamond>;
+  hasCoSelectedOtherLanes?: boolean;
   thumbSrc?: string;
   rawFrameFromClientX: (clientX: number) => number;
   getSnapTargetsForWindow: (
@@ -1591,17 +1808,26 @@ function ClipItem({
   onDragEnd: (label: string) => void;
   onTrimPreview: (frameId: string, durationFrames: number) => void;
   onMoveClips: (frameIds: string[], destination: ReorderDestination) => void;
+  onShiftSelectionPreview?: (deltaMs: number) => void;
+  onCommitSelectionShift?: (deltaMs: number, copy: boolean, label?: string) => void;
   onAnimationPreview: (frameId: string, animation: BeatAnimation | undefined) => void;
+  onSelectKeyframeDiamond?: (diamond: SelectedKeyframeDiamond, additive: boolean) => void;
   onDropFile: (file: File, frameId: string) => void;
+  onDropImageAsset?: (ref: string, frameId: string) => void;
 }) {
   const kf = clip.keyframe;
+  const isGap = Boolean(kf.beat.gap);
   const width = Math.max(3, clip.durationFrames * pxPerFrame);
   const left = clip.startFrame * pxPerFrame;
-  const isVoiceCut = clip.voiceFrames > 0 && clip.durationFrames < clip.voiceFrames;
+  const isVoiceCut = !isGap && clip.voiceFrames > 0 && clip.durationFrames < clip.voiceFrames;
   const picture = kf.picture || "";
-  const bgFallback = picture.startsWith("gradient:")
-    ? picture.slice(9)
-    : storyboardGradient(picture).slice(9);
+  const bgFallback = isGap
+    ? undefined
+    : picture.startsWith("gradient:")
+      ? picture.slice(9)
+      : storyboardGradient(picture).slice(9);
+
+  const [dropHover, setDropHover] = useState(false);
 
   const moveSession = useRef<{
     startX: number;
@@ -1609,6 +1835,8 @@ function ClipItem({
     moved: boolean;
     shiftKey: boolean;
     modKey: boolean;
+    multiShiftMode: boolean;
+    lastDeltaMs: number;
     lastSlot?: { targetSceneId: string; targetBeatIndex: number; indicatorFrame: number };
   } | null>(null);
 
@@ -1633,6 +1861,8 @@ function ClipItem({
     <div
       className={[
         "timeline-clip",
+        isGap ? "is-gap" : "",
+        dropHover ? "is-drop-hover" : "",
         isSelected ? "is-selected" : "",
         isMulti ? "is-multi" : "",
         isVoiceCut ? "is-voice-cut" : "",
@@ -1642,10 +1872,11 @@ function ClipItem({
       style={{
         left,
         width,
-        background: thumbSrc ? undefined : bgFallback,
+        background: isGap || thumbSrc ? undefined : bgFallback,
       }}
       data-testid={`timeline-clip-${kf.id}`}
       data-frame-id={kf.id}
+      data-gap={isGap ? "true" : "false"}
       data-scene-id={kf.sceneId}
       data-scene-mark={kf.mark}
       data-start-frame={clip.startFrame}
@@ -1656,8 +1887,11 @@ function ClipItem({
         event.stopPropagation();
         const modKey = event.ctrlKey || event.metaKey;
         const shiftKey = event.shiftKey;
+        const multiShiftMode = Boolean(
+          hasCoSelectedOtherLanes && isMulti && onShiftSelectionPreview && onCommitSelectionShift,
+        );
         let movingIds = selectedFrameIds;
-        if (!shiftKey && !modKey && !selectedFrameIds.includes(kf.id)) {
+        if (!multiShiftMode && !shiftKey && !modKey && !selectedFrameIds.includes(kf.id)) {
           movingIds = [kf.id];
           onSetSelection([kf.id], kf.id);
         }
@@ -1668,6 +1902,8 @@ function ClipItem({
           moved: false,
           shiftKey,
           modKey,
+          multiShiftMode,
+          lastDeltaMs: 0,
         };
       }}
       onPointerMove={(event) => {
@@ -1675,12 +1911,24 @@ function ClipItem({
         if (!session) return;
         const dx = event.clientX - session.startX;
         if (!session.moved && Math.abs(dx) < 5) return;
-        session.moved = true;
+        if (!session.moved) {
+          session.moved = true;
+          if (session.multiShiftMode) onDragStart();
+        }
 
+        if (session.multiShiftMode) {
+          const deltaFrames = Math.round(dx / pxPerFrame);
+          const deltaMs = (deltaFrames * 1000) / FPS;
+          session.lastDeltaMs = deltaMs;
+          onShiftSelectionPreview?.(deltaMs);
+          return;
+        }
+
+        const effectiveSnap = snapEnabled && !(event.ctrlKey || event.metaKey);
         const rawFrame = rawFrameFromClientX(event.clientX);
         const excludeSet = event.altKey ? undefined : new Set(session.movingIds);
         const targets = getSnapTargetsForWindow(rawFrame, excludeSet);
-        const snapped = snapFrame(rawFrame, targets, pxPerFrame, snapEnabled);
+        const snapped = snapFrame(rawFrame, targets, pxPerFrame, effectiveSnap);
         onSetSnapGuide(snapped.snapped ? snapped.frame : null);
 
         const slot = insertionSlotAtFrame(clips, snapped.frame);
@@ -1702,7 +1950,9 @@ function ClipItem({
         onSetSnapGuide(null);
         onSetMoveOverlay(null);
         if (!session) return;
-        if (session.moved && session.lastSlot) {
+        if (session.moved && session.multiShiftMode) {
+          onCommitSelectionShift?.(session.lastDeltaMs, false, "Selection moved");
+        } else if (session.moved && session.lastSlot) {
           onMoveClips(session.movingIds, {
             targetSceneId: session.lastSlot.targetSceneId,
             targetBeatIndex: session.lastSlot.targetBeatIndex,
@@ -1713,51 +1963,62 @@ function ClipItem({
         }
       }}
       onPointerCancel={() => {
+        const session = moveSession.current;
         moveSession.current = null;
         onSetSnapGuide(null);
         onSetMoveOverlay(null);
+        if (session?.moved && session.multiShiftMode) onDragEnd("");
       }}
-      onDragOver={(event) => event.preventDefault()}
+      onDragOver={(event) => {
+        event.preventDefault();
+        if (!dropHover) setDropHover(true);
+      }}
+      onDragLeave={() => setDropHover(false)}
       onDrop={(event) => {
         event.preventDefault();
+        event.stopPropagation();
+        setDropHover(false);
+        const draggedAsset = decodeDraggedAsset(event);
+        if (draggedAsset && draggedAsset.kind === "image" && onDropImageAsset) {
+          onDropImageAsset(draggedAsset.ref, kf.id);
+          return;
+        }
         const file = [...event.dataTransfer.files].find((f) => f.type.startsWith("image/"));
         if (file) onDropFile(file, kf.id);
       }}
       title={
-        isVoiceCut
-          ? `SC ${kf.mark} / ${kf.number} — Picture (${clip.durationFrames}f) ends before voice (${clip.voiceFrames}f)`
-          : `SC ${kf.mark} / ${kf.number} · ${formatTimecode(clip.startFrame)} (${clip.durationFrames}f) — drag to move, Alt+drag to copy`
+        isGap
+          ? `Gap · drop a picture (${clip.durationFrames}f · ${formatTimecode(clip.startFrame)}) — press Delete to close gap`
+          : isVoiceCut
+            ? `SC ${kf.mark} / ${kf.number} — Picture (${clip.durationFrames}f) ends before voice (${clip.voiceFrames}f)`
+            : `SC ${kf.mark} / ${kf.number} · ${formatTimecode(clip.startFrame)} (${clip.durationFrames}f) — drag to move, Alt+drag to copy`
       }
     >
       {thumbSrc && <img className="timeline-clip-thumb" src={thumbSrc} alt="" loading="lazy" decoding="async" />}
 
-      {width >= 18 && (
-        <div className="timeline-clip-overlay">
-          <span className="timeline-clip-mark">{kf.mark}</span>
-          {kf.beat.audioUrl && width >= 38 && (
-            <span className="timeline-clip-vox-badge" title={`Voice: ${kf.beat.audioUrl}`}>
-              ◉
-            </span>
-          )}
-          {width >= 52 && (
-            <span className="timeline-clip-label">
-              {pictureLabel(picture, true, kf.speaker || "No picture")}
-            </span>
-          )}
+      {isGap ? (
+        <div className="timeline-gap-label" data-testid={`gap-label-${kf.id}`}>
+          <span>Gap · drop a picture</span>
         </div>
+      ) : (
+        width >= 18 && (
+          <div className="timeline-clip-overlay">
+            <span className="timeline-clip-mark">{kf.mark}</span>
+            {kf.beat.audioUrl && width >= 38 && (
+              <span className="timeline-clip-vox-badge" title={`Voice: ${kf.beat.audioUrl}`}>
+                ◉
+              </span>
+            )}
+            {width >= 52 && (
+              <span className="timeline-clip-label">
+                {pictureLabel(picture, true, kf.speaker || "No picture")}
+              </span>
+            )}
+          </div>
+        )
       )}
 
-      {clip.voiceFrames > 0 && (
-        <div
-          className={`timeline-clip-voice ${isVoiceCut ? "is-cut" : ""}`}
-          data-testid={`voice-bar-${kf.id}`}
-          style={{
-            width: `${Math.min(100, (clip.voiceFrames / Math.max(1, clip.durationFrames)) * 100)}%`,
-          }}
-        />
-      )}
-
-      {isSelected && anim && (
+      {(isSelected || selectedDiamonds.some((d) => d.frameId === kf.id)) && anim && (
         <div className="timeline-clip-keyframes">
           {(["zoom", "x", "y"] as const).map((prop) =>
             (anim[prop] ?? []).map((key) => {
@@ -1766,14 +2027,17 @@ function ClipItem({
                 5,
                 Math.min(Math.max(5, width - 11), (clampedFrame + 0.5) * pxPerFrame),
               );
+              const isDiamondSelected = selectedDiamonds.some(
+                (d) => d.frameId === kf.id && d.prop === prop && d.frame === key.frame,
+              );
               return (
                 <button
                   type="button"
                   key={`${prop}-${key.frame}`}
-                  className={`clip-key-diamond prop-${prop}`}
+                  className={`clip-key-diamond prop-${prop} ${isDiamondSelected ? "is-selected" : ""}`}
                   data-testid={`clip-diamond-${prop}-${key.frame}`}
                   style={{ left: keyLeftPx }}
-                  title={`${prop}: ${key.value} @ +${key.frame}f (${key.easing})`}
+                  title={`${prop}: ${key.value} @ +${key.frame}f (${key.easing}) — click to select, Delete to remove`}
                   onClick={(event) => event.stopPropagation()}
                   onPointerDown={(event) => {
                     event.preventDefault();
@@ -1793,13 +2057,14 @@ function ClipItem({
                     if (!session) return;
                     const dx = event.clientX - session.startX;
                     if (Math.abs(dx) > 2) session.moved = true;
+                    const effectiveSnap = snapEnabled && !(event.ctrlKey || event.metaKey);
                     const rawAbsFrame = clip.startFrame + session.initialFrame + dx / pxPerFrame;
                     const targets = getSnapTargetsForWindow(rawAbsFrame, undefined, false, {
                       clipId: kf.id,
                       prop: session.prop,
                       frame: session.initialFrame,
                     });
-                    const snapped = snapFrame(rawAbsFrame, targets, pxPerFrame, snapEnabled);
+                    const snapped = snapFrame(rawAbsFrame, targets, pxPerFrame, effectiveSnap);
                     onSetSnapGuide(snapped.snapped ? snapped.frame : null);
                     const nextLocal = Math.max(
                       0,
@@ -1827,6 +2092,10 @@ function ClipItem({
                       onDragEnd(`${session.prop} keyframe moved`);
                     } else {
                       onDragEnd("");
+                      onSelectKeyframeDiamond?.(
+                        { frameId: kf.id, prop: session.prop, frame: session.initialFrame },
+                        event.shiftKey,
+                      );
                       onScrub(
                         clip.startFrame + Math.min(Math.max(0, clip.durationFrames - 1), session.initialFrame),
                       );
@@ -1870,8 +2139,9 @@ function ClipItem({
         onPointerMove={(event) => {
           const session = trimSession.current;
           if (!session) return;
+          const effectiveSnap = snapEnabled && !(event.ctrlKey || event.metaKey);
           const rawEndFrame = session.initialEndFrame + (event.clientX - session.startX) / pxPerFrame;
-          const snapped = snapFrame(rawEndFrame, session.targets, pxPerFrame, snapEnabled);
+          const snapped = snapFrame(rawEndFrame, session.targets, pxPerFrame, effectiveSnap);
           onSetSnapGuide(snapped.snapped ? snapped.frame : null);
           const nextDuration = Math.max(MIN_CLIP_FRAMES, snapped.frame - session.startFrame);
           onTrimPreview(kf.id, nextDuration);

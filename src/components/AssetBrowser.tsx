@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { encodeDraggedAsset } from "./MediaBin";
 
 export interface BrowserAsset {
   id: string;
@@ -106,6 +107,16 @@ export function AssetBrowser({ title, kind, items, onSelect, onClose }: AssetBro
                       className={`asset-browser-row ${hovered?.id === asset.id ? "is-hovered" : ""} ${asset.missing ? "is-missing" : ""}`}
                       key={asset.id}
                       style={{ height: ITEM_HEIGHT }}
+                      draggable={!asset.missing}
+                      onDragStart={(e) => {
+                        if (!asset.missing) {
+                          encodeDraggedAsset(e, {
+                            kind,
+                            ref: asset.ref,
+                            name: asset.name,
+                          });
+                        }
+                      }}
                       onMouseEnter={() => { setHovered(asset); previewAudio(asset); }}
                       onMouseLeave={stopAudio}
                       onClick={() => !asset.missing && onSelect(asset)}
