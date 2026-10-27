@@ -1,0 +1,3013 @@
+@import "tailwindcss";
+@import "./fonts.css";
+@import "@xyflow/react/dist/style.css";
+
+@theme {
+  --font-pulp: "Josefin Sans", "Helvetica Neue", "Noto Emoji Variable", sans-serif;
+  --font-type: "Newsreader", Georgia, "Noto Emoji Variable", serif;
+  --font-ui: "Josefin Sans", "Helvetica Neue", "Noto Emoji Variable", sans-serif;
+  /* Title-sequence faces, selectable per credits node. */
+  --font-poster: "Bebas Neue", "Oswald", "Noto Emoji Variable", sans-serif;
+  --font-elegant: "Playfair Display", Georgia, "Noto Emoji Variable", serif;
+  --font-epic: "Cinzel", "Times New Roman", "Noto Emoji Variable", serif;
+  --font-modern: "Josefin Sans", "Helvetica Neue", "Noto Emoji Variable", sans-serif;
+  --color-noir-950: #050607;
+  --color-noir-900: #0b0d10;
+  --color-noir-800: #12151a;
+  --color-noir-700: #1b1f26;
+  --color-noir-600: #2a2f38;
+  --color-crimson: #c4573f;
+  --color-neon: #e8a24a;
+  --color-cyan-neon: #6f8fa6;
+  --color-gold: #e8a24a;
+  --color-paper: #ebe6da;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  background: #050607;
+  color: #f2e8d5;
+  font-family: var(--font-ui);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2f38 #0b0d10;
+}
+
+:focus-visible {
+  outline: 1px solid #e8a24a;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ---------- atmospheric overlays ---------- */
+.fx-grain::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  pointer-events: none;
+  z-index: 40;
+  opacity: 0.08;
+  background-image: repeating-radial-gradient(
+    circle at 17% 32%,
+    rgba(255, 255, 255, 0.9) 0 0.6px,
+    transparent 0.9px 2.2px
+  );
+  animation: grain-jitter 0.9s steps(4) infinite;
+}
+.fx-halftone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.55) 1px, transparent 1.5px);
+  background-size: 5px 5px;
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+.fx-vignette::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 31;
+  background: radial-gradient(ellipse at 50% 42%, transparent 45%, rgba(4, 4, 8, 0.85) 100%);
+}
+
+@keyframes grain-jitter {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-2%, 1.4%); }
+  50% { transform: translate(1.6%, -1.8%); }
+  75% { transform: translate(-1.2%, -0.8%); }
+  100% { transform: translate(1%, 1.6%); }
+}
+
+/* ---------- ken burns ---------- */
+.kenburns-a { animation: kenburns-a 38s ease-in-out infinite alternate; }
+.kenburns-b { animation: kenburns-b 44s ease-in-out infinite alternate; }
+@keyframes kenburns-a {
+  from { transform: scale(1.05) translate(0, 0); }
+  to { transform: scale(1.18) translate(-2.5%, -1.5%); }
+}
+@keyframes kenburns-b {
+  from { transform: scale(1.16) translate(2%, 1%); }
+  to { transform: scale(1.04) translate(-1%, -2%); }
+}
+
+/* ---------- particles ---------- */
+.rain-drop {
+  position: absolute;
+  top: -12%;
+  width: 1px;
+  height: 11vh;
+  background: linear-gradient(180deg, transparent, rgba(180, 210, 255, 0.5));
+  animation: rain-fall linear infinite;
+}
+@keyframes rain-fall {
+  to { transform: translateY(125vh); }
+}
+.smoke-puff {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(200, 190, 220, 0.16), transparent 68%);
+  filter: blur(14px);
+  animation: smoke-drift ease-in-out infinite alternate;
+}
+@keyframes smoke-drift {
+  from { transform: translate(-6vw, 3vh) scale(1) rotate(0deg); opacity: 0.5; }
+  to { transform: translate(7vw, -6vh) scale(1.35) rotate(12deg); opacity: 0.9; }
+}
+
+/* Storm: a jagged lightning bolt. Position, height, clip shape, opacity and
+ * transform are randomized inline from React — the class carries the shared
+ * gradient and glow. The box must be WIDE: the bolt's clip-path zigzag is
+ * defined in percentages of this box (x spans ~28–68%), so at the old 3px
+ * width the whole fork collapsed into a ~1.4px sliver and no lightning shape
+ * was visible. The inline translateX(-50%) keeps it centred on its x. */
+.storm-bolt {
+  position: absolute;
+  top: -6%;
+  width: 130px;
+  transform-origin: 50% 0%;
+  background: linear-gradient(180deg, #ffffff, #bfe0ff 70%, rgba(191, 224, 255, 0));
+  filter: drop-shadow(0 0 9px rgba(160, 205, 255, 0.95)) drop-shadow(0 0 22px rgba(120, 170, 240, 0.5));
+}
+
+/* Storm: the sky lighting up around the bolt (a double flicker reads as a real
+ * lightning strike rather than a single toggle). Background (position + colour +
+ * intensity) and duration are randomized inline from React. */
+.storm-flash {
+  position: absolute;
+  inset: 0;
+  animation: storm-flash var(--flash-dur, 0.42s) ease-out both;
+}
+@keyframes storm-flash {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  30%  { opacity: 0.35; }
+  48%  { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+/* ---------- new atmospheric: rain on lens, volumetric shafts, DOF ---------- */
+@keyframes rain-lens-slide {
+  0% { transform: translateY(-24%) translateX(0) rotate(0deg); opacity: 0; }
+  8% { opacity: 1; }
+  22% { transform: translateY(18%) translateX(calc(var(--drift, 0px) * 0.3)) rotate(calc(var(--wobble, 0deg) * 0.2)); }
+  48% { transform: translateY(52%) translateX(calc(var(--drift, 0px) * 0.6)) rotate(calc(var(--wobble, 0deg) * -0.3)); }
+  78% { transform: translateY(92%) translateX(var(--drift, 2px)) rotate(calc(var(--wobble, 0deg) * 0.15)); opacity: 0.9; }
+  100% { transform: translateY(132vh) translateX(calc(var(--drift, 2px) * 1.2)) rotate(0deg) scale(1.08); opacity: 0; }
+}
+@keyframes rain-lens-slide-large {
+  0% { transform: translateY(-28%) translateX(0) scale(1); opacity: 0; }
+  10% { opacity: 1; }
+  35% { transform: translateY(28%) translateX(calc(var(--drift, 0px) * 0.4)) scale(1.02); }
+  68% { transform: translateY(72%) translateX(var(--drift, 1px)) scale(1.04); opacity: 0.85; }
+  100% { transform: translateY(135vh) translateX(calc(var(--drift, 1px) * 1.3)) scale(1.1); opacity: 0; }
+}
+.fx-rain-lens-drop {
+  will-change: transform, opacity;
+  pointer-events: none;
+  /* no screen blend — realistic glass */
+  transform-origin: 50% 100%;
+}
+
+@keyframes light-shaft-flicker {
+  0%, 100% { opacity: 0.18; filter: blur(22px) brightness(1); }
+  12% { opacity: 0.24; filter: blur(20px) brightness(1.12); }
+  34% { opacity: 0.16; filter: blur(24px) brightness(0.92); }
+  56% { opacity: 0.22; filter: blur(22px) brightness(1.08); }
+  78% { opacity: 0.15; filter: blur(23px) brightness(0.95); }
+}
+.light-shaft-flicker {
+  animation: light-shaft-flicker 2.2s ease-in-out infinite;
+}
+
+.plate-dof-active {
+  /* background plate blurs on conversation for depth-of-field */
+  transition: filter 0.45s ease;
+}
+
+/* heat haze shimmer when tension + ember */
+@keyframes heat-haze {
+  0%, 100% { transform: translateX(0) skewX(0); filter: blur(0px); }
+  25% { transform: translateX(1px) skewX(0.3deg); filter: blur(0.3px); }
+  50% { transform: translateX(-0.8px) skewX(-0.2deg); filter: blur(0.2px); }
+  75% { transform: translateX(0.6px) skewX(0.15deg); filter: blur(0.25px); }
+}
+.fx-heat-haze {
+  animation: heat-haze 1.8s ease-in-out infinite;
+}
+
+/* ---------- character sprites ---------- */
+.sprite-sway { animation: sprite-sway 5.4s ease-in-out infinite alternate; transform-origin: 50% 95%; }
+@keyframes sprite-sway {
+  from { transform: rotate(-1.1deg) translateY(0); }
+  50% { transform: rotate(0.4deg) translateY(-3px); }
+  to { transform: rotate(1.2deg) translateY(1px); }
+}
+.sprite-blink { animation: sprite-blink 6.5s steps(1) infinite; }
+@keyframes sprite-blink {
+  0%, 91%, 94.5%, 100% { filter: brightness(1); }
+  92%, 94% { filter: brightness(0.55) contrast(1.15); }
+}
+
+/* ---------- Stage 2D walkable character ---------- */
+.stage2d-idle { animation: stage2d-idle 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes stage2d-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2.5px); }
+}
+.stage2d-walk { animation: stage2d-walk 0.32s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes stage2d-walk {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-4px) rotate(1.5deg); }
+}
+.stage2d-ripple {
+  width: 26px;
+  height: 26px;
+  animation: stage2d-ripple 0.55s ease-out forwards;
+}
+@keyframes stage2d-ripple {
+  0% { opacity: 0.9; box-shadow: 0 0 0 0 rgba(42, 217, 217, 0.5); }
+  100% { opacity: 0; box-shadow: 0 0 0 22px rgba(42, 217, 217, 0); }
+}
+
+/* Cutscene letterbox bars (scripted sequences) — slide in from the edges. */
+.stage-letterbox { animation: stage-letterbox 0.45s ease-out both; }
+@keyframes stage-letterbox {
+  0% { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+.stage-letterbox:first-child { transform-origin: 50% 0; }
+.stage-letterbox:last-child { transform-origin: 50% 100%; }
+
+/* ---------- Stage node — interaction markers ---------- */
+.stage-marker {
+  /* anchored at the marker point (its bottom-centre sits on the ground) */
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Labels are tooltips, not giant invisible hitboxes over other objects. */
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+/* HINT KEY (H) — every marker + NPC chip pulses so the player can see what
+   is interactive. Filter-only: no transforms, so marker layout never jumps. */
+.stage-marker-flash {
+  animation: stage-flash-pulse 0.55s ease-in-out 4;
+}
+@keyframes stage-flash-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(2) drop-shadow(0 0 8px rgba(232, 178, 60, 0.95)); }
+}
+.stage-marker-reticle {
+  width: 13px;
+  height: 13px;
+  rotate: 45deg;
+  border: 1.5px solid rgba(232, 178, 60, 0.95);
+  background: rgba(232, 178, 60, 0.12);
+  box-shadow: 0 0 10px rgba(232, 178, 60, 0.45), inset 0 0 5px rgba(232, 178, 60, 0.3);
+  animation: stage-marker-breathe 2.2s ease-in-out infinite;
+  transition: transform 0.15s ease;
+}
+.stage-marker:hover .stage-marker-reticle,
+.stage-marker:focus-visible .stage-marker-reticle {
+  transform: scale(1.25);
+  background: rgba(232, 178, 60, 0.35);
+}
+@keyframes stage-marker-breathe {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+.stage-marker-locked .stage-marker-reticle {
+  border-color: rgba(160, 160, 170, 0.75);
+  background: rgba(120, 120, 130, 0.12);
+  box-shadow: 0 0 8px rgba(120, 120, 130, 0.3);
+}
+.stage-marker-label {
+  position: absolute;
+  bottom: 100%;
+  left: var(--stage-label-left, 50%);
+  width: max-content;
+  max-width: 34vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-pulp, sans-serif);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f3e7c8;
+  background: rgba(7, 7, 12, 0.92);
+  border: 1px solid rgba(232, 178, 60, 0.4);
+  padding: 3px 8px;
+  opacity: 0;
+  transform: translate(var(--stage-label-shift, -50%), 3px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+}
+.stage-marker:hover .stage-marker-label,
+.stage-marker:focus-visible .stage-marker-label,
+.stage-marker-label-on {
+  opacity: 1;
+  transform: translate(var(--stage-label-shift, -50%), 0);
+}
+.stage-marker-locked .stage-marker-label {
+  color: #b9b9c2;
+  border-color: rgba(160, 160, 170, 0.35);
+}
+
+/* Fitted artwork is deliberately small on a portrait phone. Six long
+   labels cannot occupy a 390px room without covering each other. Compact,
+   numbered pins keep every target visible; opening one shows its full name
+   and verbs. Accessible names never change. Legacy stage layouts opt out. */
+.stage-marker-index { display: none; }
+@media (max-width: 640px) and (orientation: portrait) {
+  [data-room-stage="fitted"] .stage-marker {
+    z-index: 180 !important; /* labels/pins, unlike prop art, are controls */
+    padding: 8px;
+    gap: 0;
+  }
+  [data-room-stage="fitted"] .stage-marker-label,
+  [data-room-stage="fitted"] .stage-marker-reticle { display: none; }
+  [data-room-stage="fitted"] .stage-marker-index {
+    display: inline-flex;
+    width: 28px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dcc38c;
+    border-radius: 50%;
+    background: rgba(7, 12, 15, 0.94);
+    color: #f3e7c8;
+    font: 700 12px/1 system-ui, sans-serif;
+    box-shadow: 0 2px 8px #000b;
+  }
+  [data-room-stage="fitted"] .stage-marker-locked .stage-marker-index {
+    border-style: dashed;
+    border-color: #a0a0aa;
+    color: #b9b9c2;
+  }
+}
+
+/* ---------- Stage node — richer NPC idle reactions ---------- */
+/* Inner handles sway/breathe — no world translate, so outer pos never fights */
+@keyframes npc-look-pulse {
+  0%, 100% { transform: scaleY(1); filter: brightness(1); }
+  50% { transform: scaleY(1.03); filter: brightness(1.08) drop-shadow(0 0 8px rgba(252,211,77,0.25)); }
+}
+@keyframes npc-breathe-idle {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.02); }
+}
+@keyframes npc-sway-idle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(0.6deg); }
+  75% { transform: rotate(-0.6deg); }
+}
+@keyframes npc-fidget-shift {
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(1.5px); }
+  60% { transform: translateX(-1px); }
+}
+
+.npc-looking {
+  filter: brightness(1.08) drop-shadow(0 0 10px rgba(252,211,77,0.22));
+  transition: filter 0.35s ease;
+}
+.npc-looking::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 68%;
+  width: 6px;
+  height: 6px;
+  background: radial-gradient(circle, rgba(252,211,77,0.9), transparent 70%);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.npc-fidget-breathe { animation: npc-breathe-idle 2.8s ease-in-out infinite; }
+.npc-fidget-sway { animation: npc-sway-idle 3.4s ease-in-out infinite; }
+.npc-fidget-bob { animation: npc-breathe-idle 2.2s ease-in-out infinite; }
+.npc-fidget-drift { animation: npc-sway-idle 4.1s ease-in-out infinite; }
+.npc-fidget-pulse { animation: npc-look-pulse 1.8s ease-in-out infinite; }
+
+/* ambient idle say line fades in/out */
+@keyframes npc-say-fade {
+  0% { opacity: 0; transform: translateX(-50%) translateY(6px) scaleX(var(--flip, 1)); }
+  18% { opacity: 1; transform: translateX(-50%) translateY(0) scaleX(var(--flip, 1)); }
+  82% { opacity: 1; transform: translateX(-50%) translateY(0) scaleX(var(--flip, 1)); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-4px) scaleX(var(--flip, 1)); }
+}
+
+/* ---------- Stage node — caption bar (subtitle line, auto-fades) ---------- */
+.stage-caption {
+  animation: stage-caption-in 0.3s ease-out both;
+}
+@keyframes stage-caption-in {
+  /* The bar lives at the TOP of the plate now — it drops in from above. */
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- neon ---------- */
+.neon-flicker { animation: neon-flicker 4.2s linear infinite; }
+@keyframes neon-flicker {
+  0%, 18%, 22%, 62%, 64%, 100% {
+    text-shadow: 0 0 6px #e8a24a, 0 0 22px #e8a24a, 0 0 46px rgba(232, 162, 74, 0.7);
+    opacity: 1;
+  }
+  19%, 63% { text-shadow: none; opacity: 0.55; }
+}
+.neon-cyan {
+  text-shadow: 0 0 6px #2ad9d9, 0 0 20px rgba(42, 217, 217, 0.8);
+}
+
+/* ---------- hotspots ---------- */
+.hotspot-box {
+  border: 1.5px dashed rgba(232, 162, 74, 0);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.hotspot-box:hover,
+.hotspot-box:focus-visible {
+  border-color: rgba(232, 162, 74, 0.85);
+  box-shadow: 0 0 18px rgba(232, 162, 74, 0.45), inset 0 0 24px rgba(232, 162, 74, 0.12);
+  background: rgba(232, 162, 74, 0.06);
+}
+.cursor-look { cursor: zoom-in; }
+.cursor-take { cursor: grab; }
+.cursor-talk { cursor: help; }
+.cursor-use { cursor: pointer; }
+.cursor-go { cursor: e-resize; }
+
+.typewriter-caret::after {
+  content: "▌";
+  color: #e8b23c;
+  animation: caret-blink 0.8s steps(1) infinite;
+}
+@keyframes caret-blink { 50% { opacity: 0; } }
+
+@keyframes pop-in {
+  from { transform: scale(0.85) translateY(8px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+.pop-in { animation: pop-in 0.28s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+
+@keyframes combine-flash {
+  0% { transform: scale(1); filter: brightness(1); }
+  40% { transform: scale(1.5) rotate(6deg); filter: brightness(2.4) drop-shadow(0 0 18px #e8b23c); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+.combine-flash { animation: combine-flash 0.8s ease both; }
+
+@keyframes slide-up {
+  from { transform: translateY(14px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.slide-up { animation: slide-up 0.3s ease both; }
+
+/* ---------- credits intro ---------- */
+/* Every credits element fades and rises into place; per-element delay is set
+ * inline. The mask on the scroll viewport fades lines in/out at the edges so
+ * the rolling credits look like a real film reel. */
+@keyframes credits-rise {
+  from { opacity: 0; transform: translateY(22px); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.credits-rise {
+  opacity: 0;
+  animation: credits-rise var(--credits-dur, 0.85s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+.credits-title {
+  text-shadow: 0 0 12px rgba(232, 178, 60, 0.28), 0 0 44px rgba(232, 178, 60, 0.22);
+}
+.credits-rule {
+  height: 1px;
+  width: 9rem;
+  margin: 1.35rem auto;
+  background: linear-gradient(90deg, transparent, var(--credits-accent, #e8b23c), transparent);
+}
+.credits-entry-role {
+  font-size: 0.62rem;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  margin-bottom: 0.25rem;
+}
+.credits-entry-name {
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- title-sequence cards ----------
+ * Each credit enters, holds, and leaves so only one is ever on screen. Every
+ * variant keyframes to the same schedule — in by 18%, hold to ~76%, out by
+ * 100% — so the card's total on-screen time (--credits-card-dur) stretches the
+ * HOLD rather than the fades. Swapping motion never changes the timing.
+ *
+ * letter-spacing is animated on the inner .credits-card-line, never on the
+ * flex container, so tracking can breathe without shifting the centre. */
+.credits-card {
+  opacity: 0;
+  animation-duration: var(--credits-card-dur, 3.4s);
+  animation-fill-mode: forwards;
+  animation-timing-function: cubic-bezier(0.33, 0.02, 0.24, 1);
+  will-change: transform, opacity, filter;
+  transform-origin: center center;
+}
+
+/* Rises out of a soft blur — the default, closest to a modern film title. */
+@keyframes credits-blur-rise {
+  0%   { opacity: 0; transform: translateY(16px); filter: blur(7px); }
+  18%  { opacity: 1; transform: translateY(0);    filter: blur(0); }
+  76%  { opacity: 1; transform: translateY(0);    filter: blur(0); }
+  100% { opacity: 0; transform: translateY(-10px); filter: blur(5px); }
+}
+.credits-motion-blur-rise { animation-name: credits-blur-rise; }
+
+/* Tracking pulls in from wide and releases wider — classic prestige-drama
+ * main title. The spacing lives on the line so the block stays centred. */
+@keyframes credits-letterspace {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  76%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes credits-letterspace-line {
+  0%   { letter-spacing: 0.62em; filter: blur(4px); }
+  18%  { letter-spacing: var(--credits-track, 0.12em); filter: blur(0); }
+  76%  { letter-spacing: var(--credits-track, 0.12em); filter: blur(0); }
+  100% { letter-spacing: 0.34em; filter: blur(3px); }
+}
+.credits-motion-letterspace { animation-name: credits-letterspace; }
+.credits-motion-letterspace .credits-card-line {
+  animation: credits-letterspace-line var(--credits-card-dur, 3.4s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+/* Settles down from slightly too large — weighty, cinematic. */
+@keyframes credits-scale-down {
+  0%   { opacity: 0; transform: scale(1.22); filter: blur(6px); }
+  18%  { opacity: 1; transform: scale(1);    filter: blur(0); }
+  76%  { opacity: 1; transform: scale(1);    filter: blur(0); }
+  100% { opacity: 0; transform: scale(0.94); filter: blur(4px); }
+}
+.credits-motion-scale-down { animation-name: credits-scale-down; }
+
+/* Drifts across frame — restless, noir. */
+@keyframes credits-slide {
+  0%   { opacity: 0; transform: translateX(-38px); filter: blur(5px); }
+  18%  { opacity: 1; transform: translateX(0);     filter: blur(0); }
+  76%  { opacity: 1; transform: translateX(0);     filter: blur(0); }
+  100% { opacity: 0; transform: translateX(30px);  filter: blur(4px); }
+}
+.credits-motion-slide { animation-name: credits-slide; }
+
+/* Struggles alight like failing neon, burns steady, then dies. */
+@keyframes credits-flicker {
+  0%   { opacity: 0; }
+  4%   { opacity: 0.7; }
+  7%   { opacity: 0.1; }
+  11%  { opacity: 0.9; }
+  14%  { opacity: 0.25; }
+  18%  { opacity: 1; }
+  76%  { opacity: 1; }
+  82%  { opacity: 0.35; }
+  86%  { opacity: 0.85; }
+  92%  { opacity: 0.12; }
+  100% { opacity: 0; }
+}
+.credits-motion-flicker {
+  animation-name: credits-flicker;
+  animation-timing-function: steps(1, end);
+}
+
+/* Iris — the 1940s optical matte: a circular wipe opens the card out of
+ * black and closes it back in, exactly like a period title/scene change.
+ * The reveal is the clip-path circle; opacity stays 1 for the whole card
+ * so the matte, not the fade, is what the eye reads. */
+@keyframes credits-iris {
+  0%   { opacity: 1; clip-path: circle(0% at 50% 50%); }
+  20%  { opacity: 1; clip-path: circle(74% at 50% 50%); }
+  76%  { opacity: 1; clip-path: circle(74% at 50% 50%); }
+  100% { opacity: 1; clip-path: circle(0% at 50% 50%); }
+}
+.credits-motion-iris {
+  animation-name: credits-iris;
+  animation-timing-function: cubic-bezier(0.4, 0.05, 0.4, 0.95);
+}
+
+/* Plain dissolve — lets the montage do all the work. */
+@keyframes credits-fade {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  76%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.credits-motion-fade { animation-name: credits-fade; }
+
+/* Slams in oversized and snaps to size with a tiny overshoot — the pulp
+ * main-title punch (the Tarantino chapter-card move). Same in/hold/out
+ * schedule as its siblings, so cardSeconds still stretches the hold; the
+ * snap itself resolves by ~30% and the card then sits dead steady. */
+@keyframes credits-slam {
+  0%   { opacity: 0; transform: scale(1.9);  filter: blur(9px); }
+  8%   { opacity: 1; transform: scale(1.9);  filter: blur(9px); }
+  18%  { opacity: 1; transform: scale(0.985); filter: blur(0); }
+  24%  { opacity: 1; transform: scale(1.015); }
+  30%  { opacity: 1; transform: scale(1);    filter: blur(0); }
+  76%  { opacity: 1; transform: scale(1);    filter: blur(0); }
+  100% { opacity: 0; transform: scale(1.04); filter: blur(3px); }
+}
+.credits-motion-slam {
+  animation-name: credits-slam;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Title-level "slam" entrance for the non-cards styles: one short punch,
+ * oversized to size, then it holds (no exit — the layout stays). */
+@keyframes credits-title-slam {
+  0%   { opacity: 0; transform: scale(1.75); filter: blur(8px); }
+  55%  { opacity: 1; transform: scale(0.97); filter: blur(0); }
+  75%  { transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1);    filter: blur(0); }
+}
+.credits-slam-title {
+  opacity: 0;
+  animation: credits-title-slam 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Respect reduced-motion: keep the sequencing and legibility, drop the travel. */
+@media (prefers-reduced-motion: reduce) {
+  .credits-card,
+  .credits-motion-letterspace .credits-card-line {
+    animation-name: credits-fade !important;
+  }
+  .credits-slam-title {
+    animation-name: none !important;
+    opacity: 1 !important;
+  }
+  .hotspot-nudge {
+    animation: none !important;
+    box-shadow: 0 0 0 2px rgba(245, 197, 24, 0.55) !important;
+  }
+  .hotspot-hint {
+    animation: none !important;
+    box-shadow: 0 0 0 2px rgba(42, 217, 217, 0.55) !important;
+  }
+  .hotspot-examine,
+  .hotspot-examining,
+  .examine-box,
+  .examine-fill,
+  .iq-jolt,
+  .iq-steady-creep,
+  .iq-reaction,
+  .iq-stamp,
+  .iq-critical-vignette {
+    animation: none !important;
+  }
+  .iq-reaction,
+  .iq-stamp {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  END-OF-SCENE INVESTIGATION NUDGE                                   */
+/*  While the nudge is live, every searchable hotspot zone breathes    */
+/*  gold on the scene art — a soft swelling ring plus a faint internal */
+/*  glow, so "look around before you go" is answered by the picture    */
+/*  itself pointing at the things worth examining. Exits (goToScene)   */
+/*  never glow: the nudge is about searching, not leaving.             */
+/* ------------------------------------------------------------------ */
+@keyframes hotspot-nudge-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(245, 197, 24, 0.35), inset 0 0 18px rgba(245, 197, 24, 0.06);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 197, 24, 0.8), 0 0 22px rgba(245, 197, 24, 0.35), inset 0 0 26px rgba(245, 197, 24, 0.14);
+  }
+}
+.hotspot-nudge {
+  animation: hotspot-nudge-pulse 1.6s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/*  EXAMINE ZONES (hold to inspect)                                    */
+/*  A dashed gold zone that breathes until the player holds it. While  */
+/*  the hold is in progress the camera zooms onto the zone (in the     */
+/*  background wrapper) and the zone locks in solid gold.              */
+/* ------------------------------------------------------------------ */
+@keyframes examine-zone-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(232, 178, 60, 0.25), inset 0 0 14px rgba(232, 178, 60, 0.04);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(232, 178, 60, 0.6), 0 0 18px rgba(232, 178, 60, 0.25), inset 0 0 20px rgba(232, 178, 60, 0.1);
+  }
+}
+.hotspot-examine {
+  border-color: rgba(232, 178, 60, 0.55);
+  animation: examine-zone-pulse 2.4s ease-in-out infinite;
+}
+.hotspot-examining {
+  border-color: rgba(232, 178, 60, 0.95);
+  animation: none;
+  box-shadow: 0 0 24px rgba(232, 178, 60, 0.5), inset 0 0 26px rgba(232, 178, 60, 0.2);
+}
+
+/* The "EXAMINING" meter box: pops in over the zoomed view, the fill bar
+   shimmers while the hold runs. */
+@keyframes examine-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.examine-box {
+  animation: examine-in 0.25s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.6), 0 0 18px rgba(232, 178, 60, 0.15);
+}
+@keyframes examine-shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.examine-fill {
+  background-image: linear-gradient(90deg, rgba(232, 178, 60, 0.55), #e8b23c 40%, #f6d27c 50%, #e8b23c 60%, rgba(232, 178, 60, 0.55));
+  background-size: 200% 100%;
+  animation: examine-shimmer 1.1s linear infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/*  INTERROGATION PRESSURE GAUGE — the urgency layer                   */
+/*  A press jolts the gauge; the "steadying" creep fills over the       */
+/*  steady window (the moment passing); the suspect's reaction blips in;*/
+/*  the break/clamp stamp slams in like a rubber stamp; and one press   */
+/*  from the break the room closes in red.                             */
+/* ------------------------------------------------------------------ */
+@keyframes iq-jolt {
+  0% { transform: translateX(0); }
+  18% { transform: translateX(-3px); }
+  36% { transform: translateX(3px); }
+  54% { transform: translateX(-2px); }
+  72% { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+.iq-jolt { animation: iq-jolt 0.4s ease; }
+
+/* The steadying creep: a faint gold line creeping right-to-left across the
+   track over the steady window — the suspect is recovering, press or lose
+   the point. Restarted by a key change on each press / steady. */
+@keyframes iq-steady-creep {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+.iq-steady-creep {
+  background: linear-gradient(90deg, rgba(232, 178, 60, 0), rgba(232, 178, 60, 0.55));
+  animation-name: iq-steady-creep;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+/* The suspect's reaction line blips in and out as they're wound up. */
+@keyframes iq-reaction {
+  0% { opacity: 0; transform: translateX(6px); }
+  12% { opacity: 1; transform: translateX(0); }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-4px); }
+}
+.iq-reaction { animation: iq-reaction 2.4s ease forwards; }
+
+/* The break/clamp stamp: slams in oversized and rotated, like a rubber
+   stamp hitting the file. */
+@keyframes iq-stamp {
+  0% { opacity: 0; transform: scale(2.4) rotate(-14deg); }
+  55% { opacity: 1; transform: scale(0.92) rotate(-7deg); }
+  72% { transform: scale(1.06) rotate(-7deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-7deg); }
+}
+.iq-stamp {
+  animation: iq-stamp 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) forwards;
+  text-shadow: 0 0 14px currentColor;
+}
+
+/* Critical (one press from the break): a pulsing crimson edge glow, the
+   room closing in. */
+@keyframes iq-critical-pulse {
+  0%, 100% { opacity: 0.28; }
+  50% { opacity: 0.62; }
+}
+.iq-critical-vignette {
+  background: radial-gradient(ellipse at center, transparent 46%, rgba(226, 59, 78, 0.6) 100%);
+  animation: iq-critical-pulse 1.1s ease-in-out infinite;
+  will-change: opacity;
+}
+
+/* ------------------------------------------------------------------ */
+/*  REVEAL-HOTSPOTS HINT                                                */
+/*  A player-triggered "what can I click?" shimmer over every           */
+/*  interactable zone — the "I'm stuck" nudge. Distinct cyan so it      */
+/*  never reads as the gold end-of-scene investigation nudge above.     */
+/* ------------------------------------------------------------------ */
+@keyframes hotspot-hint-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(42, 217, 217, 0.35), inset 0 0 16px rgba(42, 217, 217, 0.06);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(42, 217, 217, 0.8), 0 0 20px rgba(42, 217, 217, 0.3), inset 0 0 24px rgba(42, 217, 217, 0.12);
+  }
+}
+.hotspot-hint {
+  animation: hotspot-hint-pulse 1.4s ease-in-out infinite;
+  border-color: rgba(42, 217, 217, 0.5) !important;
+}
+
+/* ------------------------------------------------------------------ *
+ *  35MM GATE WEAVE / REGISTRATION JITTER
+ *
+ *  Optically-printed titles were shot on a separate pass and married to
+ *  the picture, so the type never sat perfectly still against the plate.
+ *  Two independent mechanical errors stack up, and they are NOT the same
+ *  motion — which is why one shake animation always reads as fake:
+ *
+ *    weave   the film sways in the gate as the sprocket teeth ride the
+ *            slop in the perforations. Slow, smooth, and mostly SIDEWAYS
+ *            (perfs are on the left/right edges, so lateral play is much
+ *            larger than vertical).
+ *    jitter  the pulldown claw drops each frame a hair off register.
+ *            Fast, tiny, and — the detail that sells it — DISCRETE. Film
+ *            snaps to a new position 24 times a second, it never glides,
+ *            so this uses steps() rather than an eased interpolation.
+ *
+ *  Cycle lengths are deliberately coprime-ish (7.3s / 0.5s / 11.7s) so the
+ *  layers never resynchronise into a visible loop.
+ * ------------------------------------------------------------------ */
+
+/* Lateral sway — the dominant, slowest component. */
+@keyframes credits-gate-weave {
+  0%   { transform: translate(calc(var(--gate-amp) * -0.85), calc(var(--gate-amp) * 0.18)); }
+  17%  { transform: translate(calc(var(--gate-amp) * 0.62),  calc(var(--gate-amp) * -0.24)); }
+  33%  { transform: translate(calc(var(--gate-amp) * 1.0),   calc(var(--gate-amp) * 0.12)); }
+  51%  { transform: translate(calc(var(--gate-amp) * -0.34), calc(var(--gate-amp) * 0.3)); }
+  68%  { transform: translate(calc(var(--gate-amp) * -1.0),  calc(var(--gate-amp) * -0.15)); }
+  84%  { transform: translate(calc(var(--gate-amp) * 0.28),  calc(var(--gate-amp) * 0.26)); }
+  100% { transform: translate(calc(var(--gate-amp) * -0.85), calc(var(--gate-amp) * 0.18)); }
+}
+
+/* Per-frame registration error. 12 stops over 0.5s = 24 discrete moves a
+ * second, i.e. one per frame at sound speed. steps(1, end) holds each
+ * position then snaps, exactly like a claw pulldown. */
+@keyframes credits-gate-jitter {
+  0%    { transform: translate(calc(var(--gate-amp) * 0.20), calc(var(--gate-amp) * -0.30)); }
+  8.3%  { transform: translate(calc(var(--gate-amp) * -0.14), calc(var(--gate-amp) * 0.22)); }
+  16.6% { transform: translate(calc(var(--gate-amp) * 0.06), calc(var(--gate-amp) * 0.34)); }
+  25%   { transform: translate(calc(var(--gate-amp) * -0.22), calc(var(--gate-amp) * -0.12)); }
+  33.3% { transform: translate(calc(var(--gate-amp) * 0.16), calc(var(--gate-amp) * 0.08)); }
+  41.6% { transform: translate(calc(var(--gate-amp) * -0.05), calc(var(--gate-amp) * -0.28)); }
+  50%   { transform: translate(calc(var(--gate-amp) * 0.24), calc(var(--gate-amp) * 0.16)); }
+  58.3% { transform: translate(calc(var(--gate-amp) * -0.18), calc(var(--gate-amp) * -0.06)); }
+  66.6% { transform: translate(calc(var(--gate-amp) * 0.09), calc(var(--gate-amp) * 0.28)); }
+  75%   { transform: translate(calc(var(--gate-amp) * -0.26), calc(var(--gate-amp) * 0.04)); }
+  83.3% { transform: translate(calc(var(--gate-amp) * 0.12), calc(var(--gate-amp) * -0.20)); }
+  91.6% { transform: translate(calc(var(--gate-amp) * -0.08), calc(var(--gate-amp) * 0.18)); }
+  100%  { transform: translate(calc(var(--gate-amp) * 0.20), calc(var(--gate-amp) * -0.30)); }
+}
+
+/* A splice passing through the gate: the frame bumps vertically for a
+ * couple of frames and settles. Rare, vertical, and larger than the
+ * jitter — only the "projector" preset runs it. */
+@keyframes credits-gate-splice {
+  0%,  93%  { transform: translateY(0); }
+  94%       { transform: translateY(calc(var(--gate-amp) * -2.6)); }
+  95.5%     { transform: translateY(calc(var(--gate-amp) * 1.7)); }
+  97%       { transform: translateY(calc(var(--gate-amp) * -0.7)); }
+  98.5%     { transform: translateY(calc(var(--gate-amp) * 0.25)); }
+  100%      { transform: translateY(0); }
+}
+
+.credits-gate,
+.credits-gate-jitter,
+.credits-gate-splice {
+  /* Promote to its own layer: these run for the whole title sequence and
+   * compositing them on the GPU keeps the type crisp while it moves. */
+  will-change: transform;
+}
+
+.credits-gate {
+  animation: credits-gate-weave var(--gate-weave-dur, 7.3s) ease-in-out infinite;
+}
+.credits-gate-jitter {
+  animation: credits-gate-jitter var(--gate-jitter-dur, 0.5s) steps(1, end) infinite;
+}
+.credits-gate-splice {
+  animation: credits-gate-splice var(--gate-splice-dur, 11.7s) linear infinite;
+}
+
+/* Amplitude presets. --gate-amp is the lateral peak; every other axis is a
+ * fraction of it in the keyframes above. */
+.credits-gate-subtle    { --gate-amp: 0.6px; }
+.credits-gate-worn      { --gate-amp: 1.3px; }
+.credits-gate-projector { --gate-amp: 2.2px; --gate-weave-dur: 5.9s; --gate-jitter-dur: 0.5s; }
+
+/* Mechanical vibration is precisely the kind of involuntary motion this
+ * preference exists to suppress. Stop all three layers dead. */
+@media (prefers-reduced-motion: reduce) {
+  .credits-gate,
+  .credits-gate-jitter,
+  .credits-gate-splice {
+    animation: none !important;
+  }
+}
+
+/* Rolling credits: the track slides up through a masked viewport. The gradient
+ * mask fades content at the top and bottom, which also hides the loop's snap. */
+.credits-scroll-viewport {
+  position: relative;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 80%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 80%, transparent 100%);
+}
+.credits-scroll-track {
+  animation: credits-scroll var(--credits-scroll-dur, 24s) linear infinite;
+  will-change: transform;
+}
+@keyframes credits-scroll {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(-100%); }
+}
+
+@keyframes marquee-tilt {
+  from { transform: rotate(-0.6deg) scale(1); }
+  to { transform: rotate(0.6deg) scale(1.01); }
+}
+
+/* ---------- cinematic scene image transitions ---------- */
+
+/* Pan: authored drift controlled by frame panX/panY sliders */
+@keyframes cin-pan {
+  0%   { transform: scale(1.12) translate(calc(var(--cin-pan-x, 0%) * -0.5), calc(var(--cin-pan-y, 0%) * -0.5)); }
+  100% { transform: scale(1.16) translate(var(--cin-pan-x, 0%), var(--cin-pan-y, 0%)); }
+}
+.cin-pan {
+  animation: cin-pan var(--cin-pan-dur, 14s) ease-in-out forwards;
+  will-change: transform;
+}
+
+/* Zoom-hold: accelerates in to focal point then holds completely still */
+@keyframes cin-zoom-hold {
+  0%   { transform: scale(1.0) translate(0%, 0%); opacity: 1; }
+  80%  { transform: var(--cin-zoom-end); opacity: 1; }
+  100% { transform: var(--cin-zoom-end); opacity: 1; }
+}
+.cin-zoom-hold {
+  animation: cin-zoom-hold var(--cin-zoom-dur, 8s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: transform;
+}
+
+/* Static: no movement at all */
+.cin-static {
+  transform: scale(1);
+}
+
+/* Handheld shake: a jittery handheld-camera feel, amplitude/rotation driven
+ * by --cin-shake-amt / --cin-shake-rot. The image is scaled up a touch so the
+ * jitter never exposes the edges. */
+@keyframes cin-shake {
+  0%, 100% { transform: translate(0, 0) scale(1.06) rotate(0deg); }
+  10%      { transform: translate(var(--cin-shake-amt, 3px), calc(var(--cin-shake-amt, 3px) * -0.6)) scale(1.06) rotate(var(--cin-shake-rot, 0.35deg)); }
+  24%      { transform: translate(calc(var(--cin-shake-amt, 3px) * -0.9), calc(var(--cin-shake-amt, 3px) * 0.4)) scale(1.06) rotate(calc(var(--cin-shake-rot, 0.35deg) * -0.7)); }
+  38%      { transform: translate(calc(var(--cin-shake-amt, 3px) * 0.5), var(--cin-shake-amt, 3px)) scale(1.06) rotate(calc(var(--cin-shake-rot, 0.35deg) * 0.5)); }
+  52%      { transform: translate(calc(var(--cin-shake-amt, 3px) * -0.6), calc(var(--cin-shake-amt, 3px) * -0.8)) scale(1.06) rotate(calc(var(--cin-shake-rot, 0.35deg) * -0.4)); }
+  66%      { transform: translate(calc(var(--cin-shake-amt, 3px) * 0.7), calc(var(--cin-shake-amt, 3px) * 0.3)) scale(1.06) rotate(calc(var(--cin-shake-rot, 0.35deg) * 0.8)); }
+  80%      { transform: translate(calc(var(--cin-shake-amt, 3px) * -0.4), calc(var(--cin-shake-amt, 3px) * 0.5)) scale(1.06) rotate(calc(var(--cin-shake-rot, 0.35deg) * -0.6)); }
+  92%      { transform: translate(calc(var(--cin-shake-amt, 3px) * 0.2), calc(var(--cin-shake-amt, 3px) * -0.3)) scale(1.06) rotate(var(--cin-shake-rot, 0.35deg)); }
+}
+.cin-shake {
+  animation: cin-shake var(--cin-shake-dur, 0.5s) linear infinite;
+  will-change: transform;
+}
+
+/* Rail/dolly track: the camera slides laterally across the image. --cin-dolly-dir
+ * flips the direction; --cin-dolly-vert adds an optional vertical drift so a
+ * dolly can read as a diagonal/crane pan. The layer is set to
+ * `background-size: auto 122%` so a wide image has room to travel. */
+@keyframes cin-dolly {
+  0%   { transform: translateX(calc(var(--cin-dolly-dist, 8%) * -1 * var(--cin-dolly-dir, 1))) translateY(calc(var(--cin-dolly-vert, 0%) * -1)); }
+  100% { transform: translateX(calc(var(--cin-dolly-dist, 8%) * var(--cin-dolly-dir, 1))) translateY(var(--cin-dolly-vert, 0%)); }
+}
+.cin-dolly {
+  animation: cin-dolly var(--cin-dolly-dur, 10s) ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* Vertigo / dolly-zoom: the background eases between a start and end scale
+ * (push in, pull out, or both) with an optional soft-focus blur. The foreground
+ * subject is rendered as a sibling layer, so it stays sharp while the world
+ * zooms and blurs behind it. */
+@keyframes cin-dolly-zoom {
+  0%   { transform: scale(var(--cin-dolly-zoom-from, 1)); filter: var(--cin-grade-filter-clean); }
+  100% { transform: scale(var(--cin-dolly-zoom-to, 1.35)); filter: var(--cin-grade-filter); }
+}
+.cin-dolly-zoom {
+  animation: cin-dolly-zoom var(--cin-dolly-zoom-dur, 8s) ease-in-out infinite alternate;
+  will-change: transform, filter;
+}
+.cin-dolly-zoom-push,
+.cin-dolly-zoom-pull {
+  animation: cin-dolly-zoom var(--cin-dolly-zoom-dur, 8s) ease-in-out forwards;
+  will-change: transform, filter;
+}
+
+/* Foreground overlay zoom: push in (or pull out) toward the foreground's anchor
+ * point. The base scale and target zoom are supplied as custom properties from
+ * React; transform-origin is the anchor, so the focused point stays put while
+ * the subject scales around it. */
+@keyframes cin-fg-zoom {
+  from { transform: scale(var(--fg-base, 1)); }
+  to   { transform: scale(calc(var(--fg-base, 1) * var(--fg-zoom, 1))); }
+}
+.fg-zoom {
+  animation: cin-fg-zoom var(--fg-zoom-dur, 8s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: transform;
+}
+
+/* Dim overlay */
+.cin-dim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: rgba(0, 0, 0, var(--cin-dim, 0));
+  transition: background 1.2s ease;
+}
+
+/* Animated light glow — additive (screen) blend so it brightens whatever is
+ * behind it, with a smooth sine-wave opacity breath so it reads as living light
+ * (a lamp, neon sign, or window glow) instead of a static shape. Each light is
+ * its own layer, styled through the --glow-* custom properties. */
+@keyframes glow-breathe {
+  0%, 100% { opacity: calc(var(--glow-intensity, 0.5) * (1 - var(--glow-amp, 0.5))); }
+  50%      { opacity: var(--glow-intensity, 0.5); }
+}
+
+/* Depth-map camera (DepthParallax.tsx): a WebGL redraw of the plate that sits
+   inside the plate's cinematic layer, under its glows, flares, wash and dim. */
+.depth-parallax {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.cin-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    ellipse var(--glow-size, 40%) var(--glow-size, 40%) at var(--glow-pos, 50% 50%),
+    var(--glow-col, #e8b23c) 0%,
+    transparent 78%
+  );
+  animation: glow-breathe var(--glow-dur, 2.8s) ease-in-out infinite;
+  will-change: opacity;
+}
+
+/* ==========================================================================
+   Dynamic Lens Flare Cinematic Effect
+   Additive optical lens simulation with anamorphic streaks, starburst rays,
+   chromatic ghost reflections along the optical axis, and dynamic shimmer.
+   ========================================================================== */
+
+@keyframes cin-flare-shimmer {
+  0%, 100% {
+    opacity: calc(var(--flare-intensity, 0.75) * (1 - var(--flare-pulse-amp, 0.2)));
+    transform: scale(calc(1 - var(--flare-pulse-amp, 0.2) * 0.06));
+  }
+  50% {
+    opacity: var(--flare-intensity, 0.75);
+    transform: scale(calc(1 + var(--flare-pulse-amp, 0.2) * 0.06));
+  }
+}
+
+@keyframes cin-streak-shimmer {
+  0%, 100% {
+    opacity: calc(var(--streak-intensity, 0.85) * (1 - var(--flare-pulse-amp, 0.2) * 0.35));
+    transform: translate(-50%, -50%) rotate(var(--streak-angle, 0deg)) scaleX(0.96) scaleY(0.92);
+  }
+  50% {
+    opacity: var(--streak-intensity, 0.85);
+    transform: translate(-50%, -50%) rotate(var(--streak-angle, 0deg)) scaleX(1.04) scaleY(1.08);
+  }
+}
+
+@keyframes cin-starburst-twinkle {
+  0%, 100% {
+    opacity: calc(var(--starburst-intensity, 0.6) * (1 - var(--flare-pulse-amp, 0.2) * 0.4));
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.95);
+  }
+  50% {
+    opacity: var(--starburst-intensity, 0.6);
+    transform: translate(-50%, -50%) rotate(3.5deg) scale(1.05);
+  }
+}
+
+@keyframes cin-ghost-float {
+  0%, 100% {
+    transform: translate(-50%, -50%) translate(0, 0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(calc(var(--ghost-dx, 0px) * 0.08), calc(var(--ghost-dy, 0px) * 0.08));
+  }
+}
+
+.cin-lensflare-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  mix-blend-mode: screen;
+  z-index: 4;
+}
+
+.cin-flare-core-group {
+  position: absolute;
+  left: var(--flare-x, 50%);
+  top: var(--flare-y, 30%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: cin-flare-shimmer var(--flare-pulse-dur, 2.8s) ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.cin-flare-corona {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--flare-core-size, 40vw);
+  height: var(--flare-core-size, 40vw);
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at center,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.7) 0%,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.25) 35%,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.08) 60%,
+    transparent 80%
+  );
+  filter: blur(2px);
+}
+
+.cin-flare-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at center,
+    #ffffff 0%,
+    rgba(255, 255, 255, 0.95) 25%,
+    var(--flare-col, #38bdf8) 60%,
+    transparent 85%
+  );
+  box-shadow: 0 0 16px #ffffff, 0 0 32px var(--flare-col, #38bdf8), 0 0 60px var(--flare-col, #38bdf8);
+}
+
+.cin-flare-streak-container {
+  position: absolute;
+  left: var(--flare-x, 50%);
+  top: var(--flare-y, 30%);
+  pointer-events: none;
+  animation: cin-streak-shimmer var(--flare-pulse-dur, 2.8s) ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.cin-flare-laser {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 240vw;
+  height: calc(2.5px * var(--streak-width, 1));
+  transform: translate(-50%, -50%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.2) 12%,
+    rgba(255, 255, 255, 0.7) 35%,
+    #ffffff 50%,
+    rgba(255, 255, 255, 0.7) 65%,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.2) 88%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 8px #ffffff,
+    0 0 20px var(--flare-col, #38bdf8),
+    0 0 45px var(--flare-col, #38bdf8);
+}
+
+.cin-flare-streak-wide {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200vw;
+  height: calc(34px * var(--streak-width, 1));
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.45) 0%,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.15) 45%,
+    transparent 80%
+  );
+  filter: blur(4px);
+}
+
+.cin-flare-streak-diffuse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260vw;
+  height: calc(75px * var(--streak-width, 1));
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.2) 0%,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.05) 55%,
+    transparent 85%
+  );
+  filter: blur(8px);
+}
+
+.cin-flare-starburst-group {
+  position: absolute;
+  left: var(--flare-x, 50%);
+  top: var(--flare-y, 30%);
+  pointer-events: none;
+  animation: cin-starburst-twinkle calc(var(--flare-pulse-dur, 2.8s) * 1.2) ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.cin-flare-ray {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(550px, 85vw);
+  height: 2.2px;
+  transform: translate(-50%, -50%) rotate(var(--ray-rot, 0deg));
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.15) 20%,
+    rgba(255, 255, 255, 0.8) 45%,
+    #ffffff 50%,
+    rgba(255, 255, 255, 0.8) 55%,
+    rgba(var(--flare-rgb, 56, 189, 248), 0.15) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 6px var(--flare-col, #38bdf8);
+}
+
+.cin-flare-ghost-element {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: cin-ghost-float var(--flare-pulse-dur, 2.8s) ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Rainbow / Chromatic Halo ring */
+.cin-flare-halo-rainbow {
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at center,
+    transparent 54%,
+    rgba(56, 189, 248, 0.35) 62%,
+    rgba(52, 211, 153, 0.3) 68%,
+    rgba(251, 191, 36, 0.35) 75%,
+    rgba(244, 63, 94, 0.38) 82%,
+    transparent 90%
+  );
+  filter: blur(1.5px);
+}
+
+/* Multi-bladed aperture shape */
+.cin-flare-aperture-shape {
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cin-flare-core-group,
+  .cin-flare-streak-container,
+  .cin-flare-starburst-group,
+  .cin-flare-ghost-element {
+    animation: none !important;
+  }
+}
+
+/* ---------- studio / xyflow tweaks ---------- */
+.react-flow { background: #0b0d10; }
+.react-flow__attribution { background: #12151a; color: #a69fb4; font-size: 10px; }
+.react-flow__handle {
+  width: 11px;
+  height: 11px;
+  border: 2px solid #050607;
+}
+.react-flow__edge-path { stroke-width: 2.2; }
+.react-flow__node.selected .scene-card { outline: 1px solid #e8a24a; outline-offset: 2px; }
+
+.corkboard {
+  /* Author-uploaded evidence board (public/assets/UI/evidence_board.jpg) with a
+   * subtle darkening for card legibility, falling back to the old wood texture
+   * if the image is ever missing. */
+  background:
+    linear-gradient(rgba(7, 7, 12, 0.16), rgba(7, 7, 12, 0.16)),
+    url("/assets/UI/evidence_board.jpg") center / cover no-repeat,
+    radial-gradient(rgba(0, 0, 0, 0.22) 1px, transparent 1.8px),
+    linear-gradient(135deg, #7a5230, #5e3d22 55%, #6b4629);
+  background-size: auto, cover, 7px 7px, 100% 100%;
+}
+
+/* ---------- mini-games ---------- */
+
+/* quick-time prompt: countdown ring around a QTE choice button. The ring
+ * depletes clockwise as the clock runs down (a conic gradient driven by
+ * --qte-pct). When --qte-critical is set the ring pulses crimson.
+ * The dial is drawn on a ::before so the perforation mask can't also erase the
+ * centred choice number (the old `mask` on the whole element hid that label). */
+@keyframes qte-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(226, 59, 78, 0.7); }
+  50% { box-shadow: 0 0 0 6px rgba(226, 59, 78, 0); }
+}
+.qte-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qte-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(var(--qte-col, #e8b23c) var(--qte-pct, 100%), rgba(255, 255, 255, 0.12) 0);
+  -webkit-mask: radial-gradient(circle at center, transparent 46%, #000 47%);
+  mask: radial-gradient(circle at center, transparent 46%, #000 47%);
+  animation: qte-ring-pulse calc(var(--qte-critical, 0) * 1s + 1s) ease-in-out infinite;
+}
+.qte-ring > span { position: relative; z-index: 1; color: #f2e8d5; }
+
+/* ---------- scene entry transitions & letterbox ---------- */
+
+/* Cinematic location card: the scene title slides into the lower third on
+ * entry, holds, then fades — a cinematic "big text" moment. Keyed by
+ * sceneId+entrySeq so it replays on every new arrival. */
+@keyframes scene-title-card {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.98); letter-spacing: 0.5em; }
+  14%  { opacity: 1; transform: translateY(0) scale(1); }
+  30%  { letter-spacing: 0.3em; }
+  78%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+.scene-title-card {
+  animation: scene-title-card 3.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+/* Heat / risk vignette: a pulsing crimson edge glow that appears once the
+ * player is close to a bust (or hits the HEAT perk), so danger reads on screen
+ * even before the trapdoor fires. */
+@keyframes heat-vignette-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+.heat-vignette {
+  background:
+    radial-gradient(ellipse at center, transparent 52%, rgba(226, 59, 78, 0.55) 100%);
+  animation: heat-vignette-pulse 2.2s ease-in-out infinite;
+  will-change: opacity;
+}
+
+/* Fade: a simple dissolve. Driven by [data-transitioning="1"]. */
+.scene-fade {
+  opacity: 1;
+  transition: opacity var(--scene-transition-ms, 500ms) ease;
+}
+.scene-fade[data-transitioning="0"] { opacity: 0; }
+
+/* Dissolve: the overlay carries the next scene's picture (not black) and fades in over this scene, the plate swaps
+   underneath it, and it fades out over the same picture: one picture crossfades into the next with no black between. */
+.scene-dissolve {
+  opacity: 1;
+  transition: opacity var(--scene-transition-ms, 500ms) ease-in-out;
+}
+.scene-dissolve[data-transitioning="0"] { opacity: 0; }
+
+/* Fade to black first, then reveal — a dip through black. */
+.scene-fade-black {
+  opacity: 1;
+  transition: opacity var(--scene-transition-ms, 500ms) ease-in;
+}
+.scene-fade-black[data-transitioning="0"] { opacity: 0; transition-timing-function: ease-out; }
+
+/* Cut: instant. */
+.scene-cut { opacity: 0; }
+.scene-cut[data-transitioning="1"] { opacity: 1; }
+
+/* Letterbox bars (cinematic black bands top & bottom). */
+.letterbox-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--letterbox-h, 9%);
+  background: #000;
+  z-index: 1;
+  transition: height 0.5s ease;
+}
+.letterbox-top { top: 0; }
+.letterbox-bottom { bottom: 0; }
+
+/* "X will remember that" impact card. */
+@keyframes remember-card {
+  0% { opacity: 0; transform: translateY(10px) scale(0.96); filter: blur(2px); }
+  12% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  82% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-6px) scale(1.02); filter: blur(1px); }
+}
+.remember-card {
+  animation: remember-card 2.6s ease both;
+}
+
+/* ---------- episodic structure: title cards, recaps, teasers ---------- */
+
+/* The episode title card assembles itself the way a TV cold-open does: the
+ * kicker fades in, the number stamps, the title slides up under it, a rule
+ * draws across, then the tagline settles. Each element is staggered so the
+ * card reads as a designed sequence rather than one blunt fade. */
+@keyframes title-card-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes title-card-stamp {
+  0%   { opacity: 0; transform: scale(1.5); filter: blur(6px); letter-spacing: 1em; }
+  60%  { opacity: 1; transform: scale(0.98); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); letter-spacing: 0.5em; }
+}
+@keyframes title-card-rise {
+  0%   { opacity: 0; transform: translateY(26px); letter-spacing: 0.34em; }
+  100% { opacity: 1; transform: translateY(0); letter-spacing: normal; }
+}
+@keyframes title-card-rule {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+@keyframes title-card-plate {
+  from { transform: scale(1.12); }
+  to   { transform: scale(1); }
+}
+.title-card-plate  { animation: title-card-plate 9s ease-out both; will-change: transform; }
+.title-card-kicker { animation: title-card-fade 0.9s ease 0.15s both; }
+.title-card-number { animation: title-card-stamp 0.85s cubic-bezier(0.2, 0.9, 0.3, 1) 0.5s both; }
+.title-card-title  { animation: title-card-rise 1s cubic-bezier(0.22, 0.61, 0.36, 1) 0.9s both; }
+.title-card-rule   { animation: title-card-rule 0.7s ease 1.5s both; transform-origin: center; }
+.title-card-tagline{ animation: title-card-fade 1s ease 1.9s both; }
+
+/* Recap / teaser beats: each line cuts in like a trailer card. */
+@keyframes recap-line {
+  0%   { opacity: 0; transform: translateY(12px) scale(0.99); filter: blur(3px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.recap-line { animation: recap-line 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+
+/* The still behind a recap beat drifts, so archive footage never sits dead. */
+@keyframes recap-still {
+  from { transform: scale(1.14) translateX(-1.5%); }
+  to   { transform: scale(1.02) translateX(1.5%); }
+}
+.recap-still { animation: recap-still 6s ease-out both; will-change: transform; }
+
+/* hard-fail shake (lockpick slip, shootout miss, wrong safe combo) */
+@keyframes mini-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+.mini-shake { animation: mini-shake 0.32s ease; }
+
+/* muzzle flash on the shootout lane */
+@keyframes muzzle-flash {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+}
+.muzzle-flash {
+  animation: muzzle-flash 0.18s ease-out forwards;
+}
+
+/* soft glow pulse for safe dial / cipher center */
+@keyframes glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(232, 178, 60, 0.4)); }
+  50% { filter: drop-shadow(0 0 14px rgba(232, 178, 60, 0.9)); }
+}
+.glow-pulse { animation: glow-pulse 2.2s ease-in-out infinite; }
+
+/* memory match: 3D card flip */
+.memory-card { perspective: 700px; }
+.memory-card-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+.memory-card-inner.flipped { transform: rotateY(180deg); }
+.memory-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.memory-face.back { transform: rotateY(180deg); }
+
+/* tail mini-game: drifting fog */
+@keyframes fog-drift {
+  from { transform: translateX(-12%); opacity: 0.5; }
+  to { transform: translateX(12%); opacity: 0.9; }
+}
+.fog-drift { animation: fog-drift 7s ease-in-out infinite alternate; }
+
+/* film-noir titleplate for mini-game panels */
+.mini-kicker {
+  font-family: var(--font-pulp);
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+}
+
+/* ---------- dramatic scene entry transitions — fixed: proper in/out keyframes ---------- */
+@keyframes iris-in { from { clip-path: circle(0% at 50% 50%); } to { clip-path: circle(150% at 50% 50%); } }
+@keyframes iris-out { from { clip-path: circle(150% at 50% 50%); } to { clip-path: circle(0% at 50% 50%); } }
+.scene-iris { background: #000; }
+.scene-iris[data-transitioning="1"] { animation: iris-in var(--scene-transition-ms, 600ms) cubic-bezier(0.7,0,0.3,1) both; }
+/* Reveal: the black matte closes back to a point, opening the incoming scene
+ * through a shrinking 1940s iris — the exact inverse of the cover above, so
+ * the two halves are one continuous iris (was: an instant clip to 0% plus a
+ * 0.2s opacity fade, i.e. no iris on the way out at all). */
+.scene-iris[data-transitioning="0"] { animation: iris-out var(--scene-transition-ms, 600ms) cubic-bezier(0.7,0,0.3,1) both; }
+
+@keyframes wipe-left-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes wipe-left-out { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes wipe-right-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes wipe-right-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes wipe-up-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes wipe-up-out { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+@keyframes wipe-down-in { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+@keyframes wipe-down-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
+
+.scene-wipe-left { background: #000; }
+.scene-wipe-left[data-transitioning="1"] { animation: wipe-left-in var(--scene-transition-ms, 600ms) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+.scene-wipe-left[data-transitioning="0"] { animation: wipe-left-out var(--scene-transition-ms, 600ms) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+
+.scene-wipe-right { background: #000; }
+.scene-wipe-right[data-transitioning="1"] { animation: wipe-right-in var(--scene-transition-ms, 600ms) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+.scene-wipe-right[data-transitioning="0"] { animation: wipe-right-out var(--scene-transition-ms, 600ms) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+
+.scene-wipe-up { background: #000; }
+.scene-wipe-up[data-transitioning="1"] { animation: wipe-up-in var(--scene-transition-ms, 600ms) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+.scene-wipe-up[data-transitioning="0"] { animation: wipe-up-out var(--scene-transition-ms, 600ms) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+
+.scene-wipe-down { background: #000; }
+.scene-wipe-down[data-transitioning="1"] { animation: wipe-down-in var(--scene-transition-ms, 600ms) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+.scene-wipe-down[data-transitioning="0"] { animation: wipe-down-out var(--scene-transition-ms, 600ms) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+
+/* SLIDE / ZOOM carry the destination scene's BACKGROUND ART inside the
+ * overlay (the React layer renders it), so these gradients are only a
+ * fallback behind the art (and the cover's shadow lead-in). The cover ramps
+ * to FULL opacity partway through the move, so the new scene reads as a push
+ * over the old plate rather than a crossfade — and at the swap the art is
+ * pixel-identical to the freshly-mounted plate (same cinematic frame). */
+@keyframes slide-left-in {
+  0%   { transform: translateX(55%) scale(1.06); opacity: 0; }
+  45%  { opacity: 1; }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+@keyframes slide-right-in {
+  0%   { transform: translateX(-55%) scale(1.06); opacity: 0; }
+  45%  { opacity: 1; }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+@keyframes zoom-in {
+  0%   { transform: scale(1.32); opacity: 0; }
+  50%  { opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+/* The reveal must NOT re-slide the art: at the swap the overlay's image IS
+ * the plate's image, so sliding it would double-expose the same frame. A
+ * plain fade settles the plate instead (characters + letterbox emerge) with
+ * no ghosting — the art is already identical, so the dissolve reads as the
+ * frame landing, not as a second wipe. */
+@keyframes scene-art-reveal { from { opacity: 1; } to { opacity: 0; } }
+
+.scene-slide-left { background: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.94) 48%, rgba(0,0,0,0.55) 78%, rgba(0,0,0,0) 100%); }
+.scene-slide-left[data-transitioning="1"] { animation: slide-left-in var(--scene-transition-ms, 600ms) cubic-bezier(0.22,0.61,0.36,1) both; }
+.scene-slide-left[data-transitioning="0"] { animation: scene-art-reveal var(--scene-transition-ms, 600ms) ease both; }
+
+.scene-slide-right { background: linear-gradient(270deg, #000 0%, rgba(0,0,0,0.94) 48%, rgba(0,0,0,0.55) 78%, rgba(0,0,0,0) 100%); }
+.scene-slide-right[data-transitioning="1"] { animation: slide-right-in var(--scene-transition-ms, 600ms) cubic-bezier(0.22,0.61,0.36,1) both; }
+.scene-slide-right[data-transitioning="0"] { animation: scene-art-reveal var(--scene-transition-ms, 600ms) ease both; }
+
+/* Zoom is a LENS: the destination art scales in from 1.32 with the rim
+ * gradient tightening behind it, so the swap happens behind the new scene
+ * itself — a zoom never reads as "the screen went black for a moment". */
+.scene-zoom { background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 16%, rgba(0,0,0,0.55) 42%, rgba(0,0,0,0.92) 68%, #000 100%); }
+.scene-zoom[data-transitioning="1"] { animation: zoom-in var(--scene-transition-ms, 700ms) cubic-bezier(0.2,0.8,0.2,1) both; }
+.scene-zoom[data-transitioning="0"] { animation: scene-art-reveal var(--scene-transition-ms, 700ms) ease both; }
+
+@keyframes scene-glitch-anim {
+  0% { clip-path: inset(0 0 0 0); transform: translateX(0) skewX(0); filter: none; opacity: 1; }
+  12% { clip-path: inset(12% 0 68% 0); transform: translateX(-6px) skewX(4deg); filter: hue-rotate(80deg) contrast(1.4); }
+  24% { clip-path: inset(40% 0 22% 0); transform: translateX(8px) skewX(-5deg); filter: hue-rotate(-40deg) saturate(1.8); }
+  36% { clip-path: inset(2% 0 78% 0); transform: translateX(-4px) skewX(2deg); filter: contrast(1.6) brightness(1.2); }
+  48% { clip-path: inset(68% 0 8% 0); transform: translateX(6px) skewX(-3deg); filter: hue-rotate(120deg); }
+  60% { clip-path: inset(28% 0 38% 0); transform: translateX(-2px) skewX(1deg); opacity: 0.9; }
+  72% { clip-path: inset(0 0 0 0); transform: translateX(0) skewX(0); filter: none; opacity: 1; }
+  84% { clip-path: inset(8% 0 72% 0); transform: translateX(3px) skewX(-1deg); opacity: 0.85; }
+  100% { clip-path: inset(0 0 0 0); transform: translateX(0) skewX(0); opacity: 0; filter: blur(2px); }
+}
+.scene-glitch { background: #000; }
+.scene-glitch[data-transitioning="1"] { animation: scene-glitch-anim var(--scene-transition-ms, 700ms) steps(1) both; }
+.scene-glitch[data-transitioning="0"] { opacity: 0; }
+
+@keyframes scene-burn-anim {
+  0% { opacity: 1; background: #000; filter: brightness(1); }
+  18% { opacity: 1; background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(255,180,60,0.9), rgba(255,120,20,0.6) 40%, #000 75%); filter: brightness(2.4) saturate(1.8) blur(1px); }
+  38% { opacity: 1; background: radial-gradient(ellipse 90% 70% at 50% 50%, rgba(255,210,90,0.85), rgba(255,90,10,0.5) 55%, #000 85%); filter: brightness(2.8) saturate(2) blur(2px); }
+  68% { opacity: 0.9; background: radial-gradient(ellipse 120% 90% at 50% 50%, rgba(255,240,180,0.6), rgba(255,100,0,0.3) 60%, transparent 88%); filter: brightness(1.8) blur(3px); }
+  100% { opacity: 0; background: transparent; filter: brightness(1) blur(8px); }
+}
+.scene-burn { background: #000; }
+.scene-burn[data-transitioning="1"] { animation: scene-burn-anim var(--scene-transition-ms, 800ms) ease-in-out both; }
+.scene-burn[data-transitioning="0"] { opacity: 0; }
+
+/* ---------- per-beat replacement background transitions ---------- */
+@keyframes beatbg-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes beatbg-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes beatbg-slide-left { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes beatbg-slide-right { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes beatbg-iris-in { from { clip-path: circle(0% at 50% 50%); } to { clip-path: circle(150% at 50% 50%); } }
+@keyframes beatbg-black-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes beatbg-wipe-left-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes beatbg-wipe-right-in { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+@keyframes beatbg-wipe-up-in { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes beatbg-wipe-down-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes beatbg-zoom-in { from { opacity: 0; transform: scale(1.22); } to { opacity: 1; transform: scale(1); } }
+@keyframes beatbg-glitch-in {
+  0% { opacity: 0; transform: translateX(-14px) skewX(8deg); filter: hue-rotate(90deg) contrast(1.6); }
+  18% { opacity: 1; transform: translateX(10px) skewX(-6deg); }
+  34% { transform: translateX(-8px) skewX(4deg); filter: hue-rotate(-30deg) saturate(1.6); }
+  52% { transform: translateX(5px) skewX(-2deg); }
+  72% { transform: translateX(-3px) skewX(1deg); }
+  100% { opacity: 1; transform: translateX(0) skewX(0); filter: none; }
+}
+@keyframes beatbg-burn-in {
+  0% { opacity: 0; filter: brightness(3) saturate(2) blur(10px); }
+  28% { opacity: 1; filter: brightness(2.2) saturate(1.8) blur(2px); }
+  100% { opacity: 1; filter: brightness(1) saturate(1) blur(0); }
+}
+
+.beatbg-in-cut { }
+.beatbg-in-fade,
+.beatbg-in-crossfade { animation: beatbg-fade-in var(--beatbg-speed, 0.5s) ease both; }
+.beatbg-in-slide-left { animation: beatbg-slide-left var(--beatbg-speed, 0.5s) ease both; }
+.beatbg-in-slide-right { animation: beatbg-slide-right var(--beatbg-speed, 0.5s) ease both; }
+.beatbg-in-iris-in,
+.beatbg-in-iris { animation: beatbg-iris-in var(--beatbg-speed, 0.5s) ease both; }
+.beatbg-in-fade-black { animation: beatbg-fade-in var(--beatbg-speed, 0.5s) ease both; }
+.beatbg-in-wipe-left { animation: beatbg-wipe-left-in var(--beatbg-speed, 0.6s) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+.beatbg-in-wipe-right { animation: beatbg-wipe-right-in var(--beatbg-speed, 0.6s) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+.beatbg-in-wipe-up { animation: beatbg-wipe-up-in var(--beatbg-speed, 0.6s) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+.beatbg-in-wipe-down { animation: beatbg-wipe-down-in var(--beatbg-speed, 0.6s) cubic-bezier(0.78,0.14,0.15,0.86) both; }
+.beatbg-in-zoom { animation: beatbg-zoom-in var(--beatbg-speed, 0.7s) cubic-bezier(0.22,0.61,0.36,1) both; }
+.beatbg-in-glitch { animation: beatbg-glitch-in var(--beatbg-speed, 0.6s) ease both; }
+.beatbg-in-burn { animation: beatbg-burn-in var(--beatbg-speed, 0.8s) ease both; }
+.beatbg-out { animation: beatbg-fade-out var(--beatbg-speed, 0.5s) ease both; }
+.beatbg-black { animation: beatbg-black-out var(--beatbg-speed, 0.5s) ease both; }
+
+/* ---------- smart ambient particles ---------- */
+@keyframes fog-drift-smart {
+  0% { transform: translateX(calc(var(--fog-dir, 1) * -10%)) translateY(0) scaleX(1); opacity: 0.45; }
+  50% { transform: translateX(calc(var(--fog-dir, 1) * 4%)) translateY(-2%) scaleX(1.08); opacity: 0.85; }
+  100% { transform: translateX(calc(var(--fog-dir, 1) * 14%)) translateY(1%) scaleX(1.02); opacity: 0.55; }
+}
+.fog-bank {
+  animation: fog-drift-smart var(--fog-dur, 18s) ease-in-out infinite alternate;
+  will-change: transform, opacity;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/* dust motes are canvas, but provide fallback css motes for reduced motion */
+@keyframes mote-float {
+  0% { transform: translateY(0) translateX(0) scale(1); opacity: 0.2; }
+  50% { transform: translateY(-18px) translateX(6px) scale(1.15); opacity: 0.7; }
+  100% { transform: translateY(-36px) translateX(-4px) scale(0.9); opacity: 0.15; }
+}
+
+/* ---------- HUD polish: entrance, shimmer, stagger ---------- */
+@keyframes hud-enter {
+  0% { opacity: 0; transform: translateY(10px) scale(0.98); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes hud-corner-draw {
+  0% { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes hud-shimmer-sweep {
+  0% { transform: translateX(-120%) skewX(-12deg); opacity: 0; }
+  20% { opacity: 0.6; }
+  100% { transform: translateX(180%) skewX(-12deg); opacity: 0; }
+}
+@keyframes meter-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes choice-stagger-in {
+  0% { opacity: 0; transform: translateY(8px) translateX(-4px); }
+  100% { opacity: 1; transform: translateY(0) translateX(0); }
+}
+@keyframes toast-slide-up {
+  0% { opacity: 0; transform: translateY(14px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.hud-frame {
+  animation: hud-enter 0.42s cubic-bezier(0.22,0.61,0.36,1) both;
+}
+.hud-frame::before {
+  /* gold corner brackets, drawn with the border-box so they sit ON the
+     border. Painted on ::before (their own layer) so hud-corner-draw can
+     scale them in independently of the frame body; direct children sit on
+     top via `> * { z-index: 1 }`. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: hud-corner-draw 0.5s cubic-bezier(0.22,0.61,0.36,1) 0.15s both;
+  background-image:
+    linear-gradient(var(--hud-line), var(--hud-line)),
+    linear-gradient(var(--hud-line), var(--hud-line)),
+    linear-gradient(var(--hud-line), var(--hud-line)),
+    linear-gradient(var(--hud-line), var(--hud-line)),
+    linear-gradient(var(--hud-line), var(--hud-line)),
+    linear-gradient(var(--hud-line), var(--hud-line)),
+    linear-gradient(var(--hud-line), var(--hud-line)),
+    linear-gradient(var(--hud-line), var(--hud-line));
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  background-clip: border-box;
+  background-position:
+    0 0, 100% 0, 0 100%, 100% 100%,
+    0 0, 100% 0, 0 100%, 100% 100%;
+  background-size:
+    16px 2px, 16px 2px, 16px 2px, 16px 2px,
+    2px 16px, 2px 16px, 2px 16px, 2px 16px;
+}
+.hud-btn {
+  position: relative;
+  overflow: hidden;
+}
+.hud-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 20%, rgba(232,178,60,0.28) 50%, transparent 80%);
+  transform: translateX(-130%);
+  transition: transform 0.55s ease;
+  pointer-events: none;
+}
+.hud-btn:hover::after {
+  transform: translateX(130%);
+}
+
+.hud-meter-fill {
+  position: relative;
+  overflow: hidden;
+}
+.hud-meter-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+  background-size: 200% 100%;
+  animation: meter-shimmer 2.2s ease-in-out infinite;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.choice-btn {
+  animation: choice-stagger-in 0.38s cubic-bezier(0.22,0.61,0.36,1) both;
+}
+.choice-btn:nth-child(1) { animation-delay: 0.04s; }
+.choice-btn:nth-child(2) { animation-delay: 0.11s; }
+.choice-btn:nth-child(3) { animation-delay: 0.18s; }
+.choice-btn:nth-child(4) { animation-delay: 0.25s; }
+.choice-btn:nth-child(5) { animation-delay: 0.32s; }
+
+.hud-toast {
+  animation: toast-slide-up 0.36s cubic-bezier(0.22,0.61,0.36,1) both;
+}
+.hud-toast:nth-child(2) { animation-delay: 0.06s; }
+.hud-toast:nth-child(3) { animation-delay: 0.12s; }
+
+.hud-chip {
+  position: relative;
+}
+.hud-chip::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(90deg, transparent, rgba(232,178,60,0.18), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.hud-chip:hover::before { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+  /* Explicit overrides for engine-critical motion */
+  .cin-shake {
+    animation: none !important;
+    transform: none !important;
+  }
+  .qte-ring::before {
+    animation: none !important;
+  }
+  .heat-vignette {
+    animation: none !important;
+    opacity: 0.35 !important;
+  }
+  .letterbox-bar {
+    animation: none !important;
+    transition: none !important;
+  }
+  .scene-fade,
+  .scene-fade-black,
+  .scene-iris,
+  .scene-wipe-left,
+  .scene-wipe-right,
+  .scene-wipe-up,
+  .scene-wipe-down,
+  .scene-slide-left,
+  .scene-slide-right,
+  .scene-zoom,
+  .scene-glitch,
+  .scene-burn {
+    transition: none !important;
+    animation: none !important;
+  }
+  .beatbg-in-fade,
+  .beatbg-in-crossfade,
+  .beatbg-in-slide-left,
+  .beatbg-in-slide-right,
+  .beatbg-in-iris-in,
+  .beatbg-in-iris,
+  .beatbg-in-fade-black,
+  .beatbg-in-wipe-left,
+  .beatbg-in-wipe-right,
+  .beatbg-in-wipe-up,
+  .beatbg-in-wipe-down,
+  .beatbg-in-zoom,
+  .beatbg-in-glitch,
+  .beatbg-in-burn,
+  .beatbg-in-cut,
+  .beatbg-out,
+  .beatbg-black {
+    animation: none !important;
+    transition: none !important;
+  }
+  .hud-frame,
+  .choice-btn,
+  .hud-toast,
+  .fog-bank,
+  .npc-looking,
+  .npc-fidget-breathe,
+  .npc-fidget-sway,
+  .npc-fidget-bob,
+  .npc-fidget-drift,
+  .npc-fidget-pulse {
+    animation: none !important;
+  }
+  .parallax-plate,
+  .parallax-fg,
+  .parallax-mid {
+    transform: none !important;
+    transition: none !important;
+  }
+  .cin-dolly,
+  .cin-zoom,
+  .cin-pan,
+  .cin-zoom-hold,
+  .cin-dolly-zoom,
+  .cin-dolly-zoom-push,
+  .cin-dolly-zoom-pull {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ *  ROUTE FLOWCHART
+ *  Node boxes scale/fade in on a spine; connectors draw themselves
+ *  downward; ghost branches fan out afterwards.
+ * ------------------------------------------------------------------ */
+
+@keyframes fc-row-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fc-row { animation: fc-row-in 420ms cubic-bezier(0.22, 0.85, 0.3, 1) both; }
+
+/* the box itself pops slightly proud of the row */
+@keyframes fc-box-in {
+  0%   { opacity: 0; transform: scale(0.94) translateX(-8px); filter: blur(3px); }
+  70%  { transform: scale(1.012) translateX(0); }
+  100% { opacity: 1; transform: scale(1) translateX(0); filter: blur(0); }
+}
+.fc-box {
+  animation: fc-box-in 460ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  /* faint scanline weave so the box reads as a printed case-file card
+     rather than a flat div */
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.028) 0px,
+    rgba(255, 255, 255, 0.028) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+/* a soft bloom keyed to the node's accent, set inline via --fc-accent */
+.fc-box::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  box-shadow: 0 0 18px -4px var(--fc-accent, transparent);
+  opacity: 0.55;
+}
+
+/* junction marker snaps in fractionally ahead of its box */
+@keyframes fc-dot-in {
+  from { opacity: 0; transform: rotate(45deg) scale(0.3); }
+  to   { opacity: 1; transform: rotate(45deg) scale(1); }
+}
+.fc-dot { animation: fc-dot-in 300ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+
+/* connector grows from this node down to the next */
+@keyframes fc-link-draw {
+  from { height: 0; opacity: 0; }
+  to   { height: calc(100% - 30px); opacity: 0.5; }
+}
+/* a highlight travelling down the connector as the next node arrives */
+.fc-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 14px;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.75), transparent);
+  animation: fc-travel 900ms ease-in 160ms both;
+}
+@keyframes fc-travel {
+  from { top: -14px; opacity: 0; }
+  20%  { opacity: 1; }
+  to   { top: 100%; opacity: 0; }
+}
+
+.fc-link {
+  height: calc(100% - 30px);
+  animation: fc-link-draw 400ms ease-out 200ms both;
+}
+
+/* roads not taken arrive after the decision, as they do in hindsight */
+@keyframes fc-ghost-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.fc-ghost { animation: fc-ghost-in 400ms ease-out both; }
+
+/* timed-out junctions keep pulsing — the decision that made itself */
+@keyframes fc-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(214, 40, 57, 0.55); }
+  50%      { box-shadow: 0 0 0 7px rgba(214, 40, 57, 0); }
+}
+.fc-pulse { animation: fc-pulse 2.2s ease-out infinite; }
+
+/* the interstitial fades up over the scene it interrupts */
+@keyframes fc-screen-in { from { opacity: 0; } to { opacity: 1; } }
+.fc-screen { animation: fc-screen-in 420ms ease-out both; }
+
+/* Continue only invites the eye once the chart has finished drawing */
+@keyframes fc-continue-in {
+  from { opacity: 0.35; }
+  to   { opacity: 1; }
+}
+.fc-continue { animation: fc-continue-in 500ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-row, .fc-box, .fc-dot, .fc-link, .fc-ghost, .fc-screen, .fc-continue {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+  .fc-pulse { animation: none; }
+  .fc-link::after { animation: none; display: none; }
+}
+
+/* ================================================================== *
+ *  BRANCHING ROUTE MAP (React Flow)
+ * ================================================================== */
+
+.rm-screen {
+  animation: rm-screen-in 420ms ease both;
+}
+@keyframes rm-screen-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.rm-node {
+  width: 190px;
+  border: 1px solid;
+  background: rgba(10, 11, 14, 0.92);
+  padding: 9px 11px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55);
+  cursor: default;
+}
+.rm-node.rm-missed { background: rgba(10, 11, 14, 0.55); }
+
+.rm-pre { opacity: 0; transform: scale(0.9); }
+.rm-in  { animation: rm-node-in 460ms cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+@keyframes rm-node-in {
+  from { opacity: 0; transform: scale(0.9) translateX(-10px); filter: blur(5px); }
+  to   { opacity: 1; transform: scale(1) translateX(0); filter: blur(0); }
+}
+
+.rm-label {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 11px;
+  line-height: 1.32;
+  letter-spacing: 0.01em;
+}
+.rm-badge {
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: 8px;
+  letter-spacing: 0.24em;
+  margin-bottom: 3px;
+}
+.rm-current {
+  margin-top: 5px;
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: 8px;
+  letter-spacing: 0.24em;
+  color: #fff;
+  animation: rm-pulse 1.8s ease-in-out infinite;
+}
+@keyframes rm-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+.rm-taken { box-shadow: 0 0 22px rgba(232, 182, 71, 0.14), 0 6px 22px rgba(0, 0, 0, 0.55); }
+
+/* React Flow's handles are structural here — the map is read-only. */
+.rm-handle { opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+
+.rm-continue { animation: rm-node-in 420ms ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-screen, .rm-in, .rm-continue { animation: none; }
+  .rm-pre { opacity: 1; transform: none; }
+  .rm-current { animation: none; }
+}
+
+@layer components {
+.hud-btn[data-color="cyan"] { color: rgb(42 217 217 / 0.9); border-color: rgb(42 217 217 / 0.4); }
+.hud-btn[data-color="neon"] { color: rgb(232 162 74 / 0.95); border-color: rgb(232 162 74 / 0.45); background: rgb(232 162 74 / 0.08); }
+.hud-btn[data-color="crimson"] { color: rgb(226 59 78 / 0.95); border-color: rgb(226 59 78 / 0.45); }
+.hud-btn[data-active="true"] {
+  color: var(--color-gold);
+  border-color: rgb(232 178 60 / 0.55);
+  background: rgb(232 178 60 / 0.08);
+}
+
+/* =====================================================================
+ *  IN-GAME HUD — "projection room marquee"
+ *
+ *  One shared language for every floating control so the HUD reads as a
+ *  single designed surface instead of a pile of differently-bordered
+ *  chips: translucent noir plate, hairline rule, gold corner brackets
+ *  (like a viewfinder / film slate), and ticket-style buttons.
+ *  Behavior is untouched — these are purely presentational classes.
+ * ===================================================================== */
+
+.hud-frame {
+  --hud-line: rgb(232 178 60 / 0.45);
+  --hud-ink: rgb(242 232 213 / 0.14);
+  position: relative;
+  border: 1px solid var(--hud-ink);
+  background-color: rgb(8 8 13 / 0.9);
+  /* The eight corner-bracket gradients live on ::before (see .hud-frame::before
+   * in the HUD polish section above), so the hud-corner-draw animation has an
+   * element of its own to draw them in. They used to sit on the frame itself,
+   * where the animation could never target them. */
+  backdrop-filter: blur(10px) saturate(0.92);
+  box-shadow:
+    0 14px 44px rgb(0 0 0 / 0.55),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+.hud-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 0%, rgb(255 255 255 / 0.05) 12%, transparent 30%),
+    radial-gradient(120% 90% at 50% 0%, rgb(232 178 60 / 0.06), transparent 55%);
+}
+.hud-frame > * { position: relative; z-index: 1; }
+
+/* gold variant — "important" surfaces (case file, menus) */
+.hud-frame-gold { --hud-line: rgb(232 178 60 / 0.8); --hud-ink: rgb(232 178 60 / 0.32); }
+
+/* section header inside a frame */
+.hud-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-pulp);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+.hud-kicker::before,
+.hud-kicker::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, rgb(232 178 60 / 0.4));
+}
+.hud-kicker::after {
+  background: linear-gradient(90deg, rgb(232 178 60 / 0.4), transparent);
+}
+.hud-kicker-left::before { display: none; }
+.hud-kicker-left::after { flex: 0 0 1.25rem; }
+
+/* hairline divider */
+.hud-rule {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, rgb(242 232 213 / 0.22), transparent);
+}
+
+/* ticket-style buttons */
+.hud-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid rgb(242 232 213 / 0.16);
+  background: rgb(20 20 31 / 0.62);
+  color: rgb(242 232 213 / 0.85);
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color 140ms ease, border-color 140ms ease,
+    background-color 140ms ease, transform 140ms ease;
+}
+.hud-btn:hover:not(:disabled) {
+  color: var(--color-gold);
+  border-color: rgb(232 178 60 / 0.55);
+  background: rgb(232 178 60 / 0.1);
+}
+.hud-btn:active:not(:disabled) { transform: translateY(1px); }
+.hud-btn:disabled { opacity: 0.32; cursor: not-allowed; }
+
+/* small status tag inside a strip */
+.hud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-left: 2px solid var(--color-gold);
+  background: rgb(20 20 31 / 0.55);
+  padding: 2px 8px;
+  font-family: var(--font-pulp);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(242 232 213 / 0.8);
+  white-space: nowrap;
+}
+.hud-chip[data-kind="good"] { border-left-color: var(--color-gold); color: rgb(232 178 60 / 0.9); }
+.hud-chip[data-kind="info"] { border-left-color: var(--color-cyan-neon); color: rgb(42 217 217 / 0.9); }
+.hud-chip[data-kind="warn"] { border-left-color: var(--color-crimson); color: rgb(226 59 78 / 0.9); }
+
+/* menu dropdown */
+.hud-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 7px 12px;
+  text-align: left;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(242 232 213 / 0.78);
+  transition: background-color 120ms ease, color 120ms ease, padding-left 120ms ease;
+}
+.hud-menu-item:hover { background: rgb(232 178 60 / 0.08); color: var(--color-gold); padding-left: 16px; }
+.hud-menu-item .hud-menu-arrow { opacity: 0; margin-left: auto; color: var(--color-gold); transition: opacity 120ms ease; }
+.hud-menu-item:hover .hud-menu-arrow { opacity: 1; }
+
+/* toast/notice ticket */
+.hud-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-left-width: 2px;
+  background: linear-gradient(90deg, rgb(20 20 31 / 0.92), rgb(8 8 13 / 0.85));
+  backdrop-filter: blur(8px);
+  padding: 7px 10px;
+  font-family: var(--font-type);
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 8px 26px rgb(0 0 0 / 0.45);
+  color: rgb(242 232 213 / 0.85);
+}
+.hud-toast[data-kind="fail"] { border-left-color: var(--color-crimson); color: rgb(255 190 190 / 0.95); }
+.hud-toast[data-kind="success"] { border-left-color: var(--color-gold); color: rgb(255 226 160 / 0.95); }
+.hud-toast[data-kind="info"] { border-left-color: var(--color-cyan-neon); color: rgb(220 248 248 / 0.92); }
+
+/* scene-actions list rows */
+.hud-action {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgb(242 232 213 / 0.1);
+  background: rgb(20 20 31 / 0.4);
+  padding: 6px 9px;
+  text-align: left;
+  font-family: var(--font-type);
+  font-size: 12px;
+  color: rgb(242 232 213 / 0.78);
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+.hud-action:hover:not(:disabled) {
+  border-color: rgb(232 162 74 / 0.45);
+  background: rgb(232 162 74 / 0.07);
+  color: var(--color-paper);
+}
+.hud-action:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ------------------------------------------------------------------ */
+/*  cinema subtitle frame — the bottom dialogue panel's live chrome   */
+/* ------------------------------------------------------------------ */
+
+/* Shimmering hairline across the top of the subtitle column: a slow
+   gold light sweep, like the top edge of a film frame catching light. */
+@keyframes subframe-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.subframe-line {
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(232, 178, 60, 0.15) 30%, rgba(232, 178, 60, 0.85) 50%, rgba(232, 178, 60, 0.15) 70%, transparent 100%);
+  background-size: 220% 100%;
+  animation: subframe-shimmer 5s linear infinite;
+  pointer-events: none;
+}
+
+/* Viewfinder corner ticks — the column reads as a framed shot, not a box. */
+.subframe-tick {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border: 0 solid rgba(232, 178, 60, 0.38);
+  pointer-events: none;
+}
+.subframe-tick.tl { top: -1px; left: 3%; border-top-width: 1px; border-left-width: 1px; }
+.subframe-tick.tr { top: -1px; right: 3%; border-top-width: 1px; border-right-width: 1px; }
+.subframe-tick.bl { bottom: -5px; left: 3%; border-bottom-width: 1px; border-left-width: 1px; }
+.subframe-tick.br { bottom: -5px; right: 3%; border-bottom-width: 1px; border-right-width: 1px; }
+
+/* The subtitle column breathes in when a scene lands. */
+@keyframes prose-enter {
+  0% { opacity: 0; transform: translateY(7px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.prose-enter { animation: prose-enter 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+/* Speaker nameplate: slides down a hair, tracking settles in, then the
+   accent bars light up. Keyed per beat so each new speaker re-announces. */
+@keyframes nameplate-in {
+  0% { opacity: 0; transform: translateY(-4px); letter-spacing: 0.5em; }
+  100% { opacity: 1; transform: translateY(0); letter-spacing: 0.35em; }
+}
+.nameplate-in { animation: nameplate-in 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+/* Interrogation: the "★ broke" stamp flashes gold when the suspect cracks,
+   then settles into a steady glow. */
+@keyframes broke-flash {
+  0% { opacity: 0; text-shadow: 0 0 0 rgba(232, 178, 60, 0); transform: scale(1.4); }
+  45% { opacity: 1; text-shadow: 0 0 18px rgba(232, 178, 60, 0.9); transform: scale(1); }
+  100% { opacity: 1; text-shadow: 0 0 8px rgba(232, 178, 60, 0.5); transform: scale(1); }
+}
+.broke-flash { animation: broke-flash 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+/* Continue affordance: a pill that glows softly while it waits. */
+@keyframes continue-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 178, 60, 0); border-color: rgba(232, 178, 60, 0.4); }
+  50% { box-shadow: 0 0 16px 0 rgba(232, 178, 60, 0.22); border-color: rgba(232, 178, 60, 0.75); }
+}
+.continue-pill {
+  border: 1px solid rgba(232, 178, 60, 0.4);
+  background: rgba(232, 178, 60, 0.07);
+  color: var(--color-gold);
+  font-family: var(--font-pulp);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+  animation: pop-in 0.3s cubic-bezier(0.2, 1.4, 0.4, 1) both, continue-glow 2.4s ease-in-out 0.5s infinite;
+}
+.continue-pill:hover {
+  background: rgba(232, 178, 60, 0.16);
+  color: #ffd97a;
+  transform: translateY(-1px);
+}
+
+/* Beat controls (back / continue / speak): quiet ghost buttons that
+   fill with the accent colour on hover. */
+.beat-ctl {
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgb(242 232 213 / 0.5);
+  font-family: var(--font-pulp);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: color 130ms ease, border-color 130ms ease, background-color 130ms ease;
+}
+.beat-ctl:hover:not(:disabled) {
+  color: var(--color-paper);
+  border-color: rgba(242, 232, 213, 0.25);
+  background: rgba(242, 232, 213, 0.06);
+}
+.beat-ctl.beat-ctl-primary { color: rgb(232 162 74 / 0.85); }
+.beat-ctl.beat-ctl-primary:hover:not(:disabled) {
+  color: #ff7ac0;
+  border-color: rgba(232, 162, 74, 0.5);
+  background: rgba(232, 162, 74, 0.08);
+}
+.beat-ctl:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Choice buttons: a light sheen sweeps across on hover. */
+.choice-btn { position: relative; overflow: hidden; }
+.choice-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.07) 50%, transparent 58%);
+  transform: translateX(-130%);
+  transition: transform 0.55s ease;
+  pointer-events: none;
+}
+.choice-btn:hover::after { transform: translateX(130%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .subframe-line, .nameplate-in, .prose-enter, .broke-flash, .choice-btn::after { animation: none !important; transition: none !important; }
+  .continue-pill { animation: pop-in 0.01s both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-btn, .hud-menu-item, .hud-action { transition: none; }
+}
+
+/* colored button variants (kept in CSS so they win over the base ticket) */
+.hud-frame-crimson { --hud-line: rgb(226 59 78 / 0.7); --hud-ink: rgb(226 59 78 / 0.3); }
+
+}
+
+/* ---------- cinematic colour grades ----------
+ * Grade filters live on the plate itself so they grade the moving image.
+ * dolly-zoom keyframes own `filter` for the blur, so those classes bake the
+ * grade filter in via a blur-aware variant; every other mode sets it inline
+ * from React (see cinematicLayer). */
+.cin-grade-nolan-imax { filter: saturate(0.82) contrast(1.18) brightness(0.97) hue-rotate(-8deg); }
+.cin-grade-tarantino-35mm { filter: saturate(1.35) contrast(1.28) brightness(1.02) sepia(0.12) hue-rotate(-6deg); }
+.cin-grade-spielberg-golden { filter: saturate(1.14) contrast(1.05) brightness(1.06) sepia(0.2) hue-rotate(-4deg); }
+.cin-grade-noir-1940s { filter: grayscale(1) contrast(1.35) brightness(0.92); }
+
+/* The split-tone wash: a div laid over the plate (grade wash), so it also
+ * covers video cutscene backgrounds which can't take CSS filters. */
+.grade-wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  opacity: var(--grade-wash-op, 0.85);
+  mix-blend-mode: var(--grade-wash-blend, soft-light);
+  transition: opacity 1s ease;
+}
+
+/* ---------- film stock emulation ---------- */
+/* Weave on the plate; grain/halation are pseudo-elements and the exposure flicker is a veil, so no
+ * extra DOM is needed in the no-grade case.
+ *
+ * The plate itself is NEVER faded. Its opacity used to flicker (0.95 to 1, every 0.38 s), and a plate
+ * that is not fully opaque shows whatever is underneath it: in the film that is the scene's own picture
+ * (a different shot, ungraded) behind every beat picture, so the "35mm print" made the main background
+ * flicker over the beat images. The flicker is now a black veil above the plate (.film-flicker): it
+ * dims the plate by the same amount and reveals nothing. The weave is scaled up a hair so a half-pixel
+ * shift never exposes the plate's own edge either. */
+.film-grade {
+  animation: film-gate-weave var(--film-weave-dur, 3.4s) ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes film-gate-weave {
+  0%   { transform: translate(0.4px, -0.3px) scale(1.004); }
+  50%  { transform: translate(-0.5px, 0.3px) scale(1.004); }
+  100% { transform: translate(0.3px, 0.4px) scale(1.004); }
+}
+/* Exposure flicker: a black veil on top of the film-graded plate (rendered by CinematicOverlays; it only
+ * animates where the plate carries .film-grade, so a video cutscene's overlays stay as they were). */
+.film-flicker {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  background: #000;
+  opacity: 0;
+}
+.film-grade > .film-flicker {
+  animation: film-flicker var(--film-flicker-dur, 0.38s) steps(2, end) infinite;
+}
+@keyframes film-flicker {
+  0%   { opacity: 0; }
+  40%  { opacity: var(--film-flicker-amp, 0.05); }
+  60%  { opacity: 0; }
+  100% { opacity: calc(var(--film-flicker-amp, 0.05) * 0.6); }
+}
+/* Halation bloom: warm light bleed around highlights, like a print's silver
+ * halide glow. Painted once over the grade. */
+.film-grade::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  opacity: calc(var(--film-strength, 0.7) * 0.22);
+  background: radial-gradient(ellipse at 50% 110%, rgba(255, 226, 170, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% -10%, rgba(255, 244, 214, 0.28) 0%, transparent 60%);
+  mix-blend-mode: screen;
+}
+/* Moving grain: denser and looser than the global ambient grain. */
+.film-grade::after {
+  content: "";
+  position: absolute;
+  inset: -60%;
+  pointer-events: none;
+  z-index: 4;
+  opacity: calc(var(--film-strength, 0.7) * 0.16);
+  background-image: repeating-radial-gradient(
+    circle at 21% 37%,
+    rgba(255, 255, 255, 0.95) 0 0.7px,
+    transparent 1px 2.4px
+  );
+  animation: film-grain-jitter 0.5s steps(3) infinite;
+}
+@keyframes film-grain-jitter {
+  0%   { transform: translate(0, 0); }
+  33%  { transform: translate(-2.4%, 1.6%); }
+  66%  { transform: translate(2.2%, -1.4%); }
+  100% { transform: translate(-1%, 2%); }
+}
+/* Occasional scratch/dust pass. */
+.film-scratches {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  opacity: calc(var(--film-strength, 0.7) * 0.5);
+  background:
+    linear-gradient(90deg, transparent 0 18%, rgba(255,255,255,0.05) 18.4%, transparent 18.9%),
+    linear-gradient(90deg, transparent 0 71%, rgba(255,255,255,0.04) 71.3%, transparent 71.7%),
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,0.10) 0 0.5px, transparent 1.2px),
+    radial-gradient(circle at 62% 64%, rgba(255,255,255,0.08) 0 0.6px, transparent 1.4px);
+  background-repeat: no-repeat;
+  animation: film-scratch-flicker 7s steps(1) infinite;
+}
+@keyframes film-scratch-flicker {
+  0%, 88% { opacity: 0; }
+  89%, 90% { opacity: calc(var(--film-strength, 0.7) * 0.5); }
+  91%, 96% { opacity: 0; }
+  97%, 98% { opacity: calc(var(--film-strength, 0.7) * 0.35); }
+  99%, 100% { opacity: 0; }
+}
+
+/* ---------- pointer parallax depth ---------- */
+/* The tracker sets --par-x / --par-y on the stage root as -1..1 offsets.
+ * Each plane reads its own travel distance (plate slowest, subject fastest). */
+.parallax-plate {
+  transform: translate3d(calc(var(--par-x, 0) * var(--par-bg, 0px) * -1), calc(var(--par-y, 0) * var(--par-bg, 0px) * -1), 0) scale(1.09);
+  transition: transform 0.25s ease-out;
+  will-change: transform;
+}
+.parallax-mid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  transform: translate3d(calc(var(--par-x, 0) * var(--plane-shift, 10px) * -0.6), calc(var(--par-y, 0) * var(--plane-shift, 10px) * -0.6), 0) scale(1.06);
+  transition: transform 0.22s ease-out;
+  will-change: transform;
+}
+.parallax-fg {
+  transform: translate3d(calc(var(--par-x, 0) * var(--par-fg, 0px)), calc(var(--par-y, 0) * var(--par-fg, 0px)), 0);
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+/* Idle sway when no pointer has moved (also covers touch devices). The
+ * --par-bg scale factor comes from parallaxStyle, which the STAGE root sets;
+ * children inherit custom properties. */
+@keyframes parallax-idle {
+  0%, 100% { translate: 0 0; }
+  50% { translate: calc(var(--par-bg, 0px) * 0.22) calc(var(--par-bg, 0px) * -0.12); }
+}
+.parallax-idle { animation: parallax-idle 9s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .film-grade,
+  .film-grade::after,
+  .film-grade > .film-flicker,
+  .film-scratches,
+  .parallax-plate,
+  .parallax-mid,
+  .parallax-fg,
+  .parallax-idle {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* ---------- in-game text size scale (set via --ingame-text-scale) ----------
+ * The reading prose normally uses fixed rem sizes (text-xl/2xl cinematic,
+ * text-sm/base classic subtitles). Consume the scale variable here so the
+ * author's text-size choice resizes both modes in lock-step. */
+.ingame-prose {
+  font-size: calc(1.18rem * var(--ingame-text-scale, 1));
+  line-height: 1.45;
+}
+@media (min-width: 768px) {
+  .ingame-prose {
+    font-size: calc(1.42rem * var(--ingame-text-scale, 1));
+  }
+}
+.ingame-prose-classic {
+  font-size: calc(0.92rem * var(--ingame-text-scale, 1));
+  line-height: 1.65;
+}
+@media (min-width: 768px) {
+  .ingame-prose-classic {
+    font-size: calc(1.02rem * var(--ingame-text-scale, 1));
+  }
+}
+
+/* Minimal HUD: hide the secondary chrome (menu text labels collapse, the
+ * scene/lead readouts and auto-advance countdowns fade) for a cleaner frame.
+ * Core controls (menu button, choices) remain. */
+.ingame-minimal-hud .hud-chrome,
+.ingame-minimal-hud .hud-lead {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.ingame-minimal-hud:hover .hud-chrome,
+.ingame-minimal-hud:hover .hud-lead {
+  opacity: 1;
+}
+
+/* ================================================================== */
+/*  SPRITE ANIMATION PRESETS — idle motion with no extra art           */
+/*                                                                     */
+/*  Each preset is one CSS class driven by two custom properties the    */
+/*  renderer writes: --anim-dur (the loop period) and --anim-amp        */
+/*  (amplitude). Transform-origin is the sprite's feet, so a sway       */
+/*  leans from the ground instead of pivoting at its middle.           */
+/* ================================================================== */
+.anim-bob,
+.anim-sway,
+.anim-pulse,
+.anim-drift,
+.anim-flutter,
+.anim-float,
+.anim-spin,
+.anim-shake,
+.anim-breathe {
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.anim-flicker,
+.anim-pulse {
+  will-change: opacity, filter;
+}
+
+.anim-bob { animation: anim-bob var(--anim-dur, 3.2s) ease-in-out infinite; }
+@keyframes anim-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(calc(-3px * var(--anim-amp, 1))); }
+}
+
+.anim-sway { animation: anim-sway var(--anim-dur, 4s) ease-in-out infinite; }
+@keyframes anim-sway {
+  0%, 100% { transform: rotate(calc(-2deg * var(--anim-amp, 1))); }
+  50% { transform: rotate(calc(2deg * var(--anim-amp, 1))); }
+}
+
+.anim-pulse { animation: anim-pulse var(--anim-dur, 1.6s) ease-in-out infinite; }
+@keyframes anim-pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(calc(1 + 0.04 * var(--anim-amp, 1))); filter: brightness(calc(1 + 0.25 * var(--anim-amp, 1))); }
+}
+
+.anim-drift { animation: anim-drift var(--anim-dur, 9s) ease-in-out infinite; }
+@keyframes anim-drift {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(calc(6px * var(--anim-amp, 1)), calc(-4px * var(--anim-amp, 1))); }
+  50% { transform: translate(calc(2px * var(--anim-amp, 1)), calc(-8px * var(--anim-amp, 1))); }
+  75% { transform: translate(calc(-5px * var(--anim-amp, 1)), calc(-3px * var(--anim-amp, 1))); }
+}
+
+.anim-flutter { animation: anim-flutter var(--anim-dur, 0.5s) ease-in-out infinite; }
+@keyframes anim-flutter {
+  0%, 100% { transform: scaleY(1) rotate(calc(-3deg * var(--anim-amp, 1))); }
+  50% { transform: scaleY(calc(1 - 0.12 * var(--anim-amp, 1))) rotate(calc(3deg * var(--anim-amp, 1))); }
+}
+
+.anim-float { animation: anim-float var(--anim-dur, 6s) ease-in-out infinite; }
+@keyframes anim-float {
+  0%, 100% { transform: translate(0, 0) rotate(calc(-1.5deg * var(--anim-amp, 1))); }
+  33% { transform: translate(calc(3px * var(--anim-amp, 1)), calc(-6px * var(--anim-amp, 1))) rotate(calc(1deg * var(--anim-amp, 1))); }
+  66% { transform: translate(calc(-2px * var(--anim-amp, 1)), calc(-2px * var(--anim-amp, 1))) rotate(calc(2deg * var(--anim-amp, 1))); }
+}
+
+.anim-spin { animation: anim-spin var(--anim-dur, 12s) linear infinite; }
+@keyframes anim-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.anim-shake { animation: anim-shake var(--anim-dur, 0.9s) ease-in-out infinite; }
+@keyframes anim-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(calc(-1.5px * var(--anim-amp, 1)), calc(1px * var(--anim-amp, 1))); }
+  40% { transform: translate(calc(1.5px * var(--anim-amp, 1)), calc(-1px * var(--anim-amp, 1))); }
+  60% { transform: translate(calc(-1px * var(--anim-amp, 1)), 0); }
+  80% { transform: translate(calc(1px * var(--anim-amp, 1)), calc(1px * var(--anim-amp, 1))); }
+}
+
+.anim-breathe { animation: anim-breathe var(--anim-dur, 5s) ease-in-out infinite; }
+@keyframes anim-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(calc(1 + 0.02 * var(--anim-amp, 1))); }
+}
+
+/* Flicker is deliberately irregular: a repeating on/off beat reads as a
+   machine; uneven steps read as a failing tube. */
+.anim-flicker { animation: anim-flicker var(--anim-dur, 5.5s) steps(1, end) infinite; }
+@keyframes anim-flicker {
+  0%, 8%, 10%, 38%, 40%, 62%, 64%, 100% { opacity: 1; filter: brightness(1); }
+  9%, 39%, 63% { opacity: calc(1 - 0.55 * var(--anim-amp, 1)); filter: brightness(0.55); }
+  70% { opacity: calc(1 - 0.25 * var(--anim-amp, 1)); filter: brightness(0.8); }
+  72% { opacity: calc(1 - 0.7 * var(--anim-amp, 1)); filter: brightness(0.4); }
+  74% { opacity: 1; filter: brightness(1); }
+}
+
+/* ---------------------------------------------------------------------
+   INVENTORY CONTAINER ("container" mode) — a pouch / case / saddlebag
+   sprite the items sit INSIDE. The pop is deliberately springy: a bag
+   being opened, not a panel being shown.
+   --------------------------------------------------------------------- */
+.inv-container {
+  animation: inv-pop 240ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+@keyframes inv-pop {
+  0% { opacity: 0; transform: translateY(14px) scale(0.92) rotate(-1.5deg); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.02) rotate(0.4deg); }
+  100% { opacity: 1; transform: none; }
+}
+.inv-container img { user-select: none; }
+.inv-container button {
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+.inv-container button:hover {
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------------------------------------------------------------------
+   RIDE MINIGAME (highway chase) — the scrolling road,
+   the oncoming traffic and the rider's bike are styled here so the
+   RideGame component can stay lean. All motion is CSS/RAF-driven.
+   --------------------------------------------------------------------- */
+.road-scroll {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgb(242 232 213 / 0.22) 0px,
+    rgb(242 232 213 / 0.22) 34px,
+    transparent 34px,
+    transparent 88px
+  );
+  background-size: 100% 88px;
+  animation: road-scroll 0.55s linear infinite;
+}
+@keyframes road-scroll {
+  from { background-position: 0 0; }
+  to { background-position: 0 88px; }
+}
+/* AUTHORED ROAD ART (RideConfig.roadImage) — the same march-toward-you as
+   .road-scroll, but driving a real tiling image. The tile is sized to half
+   the frame height and scrolled exactly one tile per cycle, so a seamless
+   plate loops with no visible jump. Duration is set inline from the ride's
+   `speed`. */
+.ride-road {
+  animation: ride-road-scroll 0.8s linear infinite;
+}
+@keyframes ride-road-scroll {
+  from { background-position: 0 0; }
+  to { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ride-road { animation: none; }
+}
+
+/* Oncoming traffic sways slightly as it bears down on you. */
+.road-traffic {
+  animation: road-sway 0.7s ease-in-out infinite;
+}
+@keyframes road-sway {
+  0%, 100% { transform: translateX(0) scale(1); }
+  50% { transform: translateX(3px) scale(1.05); }
+}
+/* The bike leans into its lane changes. */
+.road-vehicle {
+  transition: transform 150ms ease-out;
+}
+/* The crash: the bike goes over in its lane, then settles. */
+.road-crash {
+  animation: road-crash 0.5s cubic-bezier(0.3, 0, 0.4, 1) both;
+}
+@keyframes road-crash {
+  0% { transform: rotate(0deg) translateY(0); opacity: 1; }
+  40% { transform: rotate(70deg) translateY(8px); opacity: 1; }
+  100% { transform: rotate(95deg) translateY(26px); opacity: 0.55; }
+}
+
+/* ------------------------------------------------------------------ */
+/*  CANVAS NODE RESIZING                                               */
+/*                                                                     */
+/*  The default ReactFlow handles are small white squares pinned at    */
+/*  every corner and edge midpoint. On a dark card they read as        */
+/*  detached dots floating around the node — and at 5px they are a     */
+/*  fiddly target. We drop the visible mark entirely: the node itself  */
+/*  is the affordance, and the handles become invisible oversized      */
+/*  grips so the corners and edges are simply draggable.               */
+/* ------------------------------------------------------------------ */
+
+/* All eight handles: no visible mark at all, just a generous invisible grip.
+   The card's own border already shows where the edges and corners are, so a
+   bead or a bracket on top of it is redundant decoration. Corners get a square
+   grip, edges a long thin one, and every one of them is bigger than the 5px
+   vendor default, so the drag is easier to catch than it was when it was
+   visible. */
+.scarlet-resizer.react-flow__resize-control.handle {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  opacity: 1;
+}
+.scarlet-resizer.react-flow__resize-control.handle.top:not(.left):not(.right),
+.scarlet-resizer.react-flow__resize-control.handle.bottom:not(.left):not(.right) {
+  width: 40px;
+  height: 12px;
+}
+.scarlet-resizer.react-flow__resize-control.handle.left:not(.top):not(.bottom),
+.scarlet-resizer.react-flow__resize-control.handle.right:not(.top):not(.bottom) {
+  width: 12px;
+  height: 40px;
+}
+
+/* Studio: readable, keyboard-visible controls and a stacked touch layout. */
+.studio-shell :is(button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #ff7ac0;
+  outline-offset: 2px;
+}
+.studio-shell .tb-select { max-width: min(290px, 90vw); }
+.studio-shell .tb-input { min-width: 140px; }
+.studio-shell .btn-tool, .studio-shell .btn-go, .studio-shell .btn-ok { min-height: 28px; }
+.studio-inspector [role="tab"] { font-size: 10px; min-height: 32px; }
+.studio-inspector [role="tab"][aria-selected="true"] { box-shadow: inset 0 -2px #e8a24a; }
+@media (max-width: 740px) {
+  .studio-workspace { flex-direction: column; overflow: hidden; }
+  .studio-canvas { flex: 1; min-height: 0; }
+  .studio-inspector { flex: 1; min-height: 0; width: 100% !important; max-width: none !important; }
+  .studio-workspace[data-mobile-pane="editor"] .studio-canvas,
+  .studio-workspace[data-mobile-pane="map"] .studio-inspector,
+  .studio-inspector-resize, .studio-inspector-expand { display: none; }
+  .studio-scene-nav > span:first-child { display: none; }
+  .studio-scene-nav input, .studio-scene-nav select { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-shell *, .studio-shell *::before, .studio-shell *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+.studio-inspector .font-pulp, .studio-scene-nav .font-pulp { font-family: Oswald, ui-sans-serif, system-ui, sans-serif; font-weight: 500; }
+.studio-inspector .font-type { font-family: ui-sans-serif, system-ui, sans-serif; }
+.studio-inspector .text-\[8px\] { font-size: 10px; }
+.studio-inspector .text-\[9px\] { font-size: 11px; }
+.studio-inspector .text-\[10px\] { font-size: 12px; }
+
+.studio-inspector .font-pulp, .studio-scene-nav .font-pulp { font-family: Oswald, "Noto Emoji Variable", sans-serif; }
+.studio-inspector .font-type { font-family: ui-sans-serif, system-ui, "Noto Emoji Variable", sans-serif; }
+
+/* Navigation takes a few compact rows, not most of the authoring surface. */
+.studio-tab-row { display: flex; overflow-x: auto; scrollbar-width: thin; }
+.studio-tab-row [role="tab"] { flex: 1 0 74px; min-height: 36px; line-height: 1.3; }
+.studio-inspector [data-minimized="true"] .studio-coach-kicker,
+.studio-inspector [data-minimized="true"] [aria-label="Game-building progress"] { display: none; }
+.studio-secondary-toolbar { display: contents; }
+.studio-only-mobile, .studio-toolbar > .studio-only-mobile.btn-tool { display: none; }
+@media (max-width: 740px) {
+  .studio-only-desktop { display: none; }
+  .studio-only-mobile, .studio-toolbar > .studio-only-mobile.btn-tool { display: block; }
+  .studio-toolbar > .tb-sep { display: none; }
+  .studio-secondary-toolbar { display: none; }
+  .studio-secondary-toolbar[data-expanded="true"] { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; }
+  .studio-toolbar .tb-status { font-size: 9px; }
+  .studio-save-reminder { gap: 6px; padding: 6px 10px; }
+  .studio-mobile-view { display: flex; gap: 4px; padding: 5px 10px; border-bottom: 1px solid #303040; background: #101018; }
+  .studio-mobile-view button { flex: 1; min-height: 30px; font: 12px/1.3 system-ui, sans-serif; color: #bbb5bf; border: 1px solid #303040; border-radius: 3px; }
+  .studio-mobile-view button[aria-pressed="true"] { color: #ff7ac0; background: #e8a24a10; border-color: #e8a24a70; }
+}
+
+/* ------------------------------------------------------------------ *
+ *  ANIMATIC MODE (src/game/animatic.tsx): the picture with its captions burned in and no controls. Sizes are in vh so
+ *  a 720p and a 1080p export frame the words the same way.
+ * ------------------------------------------------------------------ */
+[data-animatic] [data-animatic-hide] { display: none !important; }
+[data-animatic] { cursor: none; }
+.animatic-caption {
+  position: absolute;
+  left: 50%;
+  bottom: 2.1vh;
+  z-index: 70;
+  width: min(86%, 78em);
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  white-space: pre-line;
+  animation: animatic-caption-in 0.18s ease-out both;
+}
+.animatic-speaker {
+  margin-bottom: 0.35vh;
+  font-family: var(--font-pulp);
+  font-size: 1.9vh;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #e8b23c;
+  text-shadow: 0 0 0.4em #000, 0 0.1em 0.2em #000;
+}
+.animatic-subtitle {
+  font-family: var(--font-elegant);
+  font-size: 3.3vh;
+  font-weight: 600;
+  line-height: 1.22;
+  color: #fff;
+  text-shadow: 0 0 0.18em #000, 0 0.06em 0.12em #000, 0 0 0.7em rgba(0, 0, 0, 0.85);
+}
+.animatic-description {
+  display: inline-block;
+  padding: 0.3vh 1.1vh;
+  border-radius: 0.4vh;
+  background: rgba(6, 6, 9, 0.55);
+  font-family: var(--font-elegant);
+  font-size: 2.75vh;
+  font-style: italic;
+  line-height: 1.3;
+  color: #efe7d6;
+  text-shadow: 0 0.06em 0.14em #000;
+}
+.animatic-mark {
+  position: absolute;
+  top: 1.6vh;
+  right: 1.6vh;
+  z-index: 71;
+  padding: 0.35vh 0.9vh;
+  border-radius: 0.4vh;
+  background: rgba(0, 0, 0, 0.6);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.75vh;
+  line-height: 1.35;
+  text-align: right;
+  color: #ffd27a;
+  pointer-events: none;
+}
+.animatic-mark-pic { font-size: 1.45vh; color: rgba(240, 232, 214, 0.85); }
+.animatic-heading {
+  position: absolute;
+  top: 5%;
+  left: 4%;
+  z-index: 70;
+  padding-left: 1.1vh;
+  border-left: 0.3vh solid rgba(232, 178, 60, 0.85);
+  font-family: var(--font-pulp);
+  font-size: 2.6vh;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(240, 232, 214, 0.95);
+  text-shadow: 0 0 0.5em #000, 0 0.1em 0.2em #000;
+  pointer-events: none;
+  animation: animatic-caption-in 0.3s ease-out both;
+}
+@keyframes animatic-caption-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animatic-end {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  font-family: var(--font-elegant);
+  font-size: 4vh;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(240, 232, 214, 0.9);
+  animation: animatic-caption-in 1.6s ease-out both;
+}
