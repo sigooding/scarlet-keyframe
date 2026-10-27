@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { CinematicOverlays, LightGlow, LensFlareLayer, cinematicLayer } from "../../vendor/scarlet-reel/cinematicRenderer";
-import { Particles, type ParticleKind } from "../../vendor/scarlet-reel/game/AmbientParticles";
+import { cinematicLayer } from "../../vendor/scarlet-reel/cinematicRenderer";
 import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
+import {
+  FrameCinematicOverlays,
+  FrameGrainOverlay,
+  FrameLensFlareLayer,
+  FrameLightGlow,
+} from "./FrameCinematicOverlays";
 import { FrameDepthParallaxLayer } from "./FrameDepthParallax";
+import { FrameParticles, type ParticleKind } from "./FrameParticles";
 import {
   activeCaptionAtLocalFrame,
   DEFAULT_CAPTION_STYLE,
@@ -13,7 +19,7 @@ import {
 } from "../core/captions";
 import type { BeatAnimation, KenBurnsBox, Keyframe } from "../core/model";
 import { pictureLabel, storyboardGradient } from "../core/helpers";
-import { clipFrames, formatTimecode } from "../core/timing";
+import { clipFrames, formatTimecode, FPS } from "../core/timing";
 import {
   applyKenBurnsBoxes,
   applyPoseAtPlayhead,
@@ -180,9 +186,8 @@ export function CinematicPreview({
   const cinematic = frame.beat.gap
     ? {}
     : ((effectiveFrameCinematic(frame) || {}) as Record<string, any>);
-  const ownOverlay = [cinematic.vignette ? "fx-vignette" : "", cinematic.grain ? "fx-grain" : ""]
-    .filter(Boolean)
-    .join(" ");
+  const ownOverlay = cinematic.vignette ? "fx-vignette" : "";
+  const previewTimeSec = (presetFrame ?? localFrame) / FPS;
 
   const style = normalizeCaptionStyle(captionStyle ?? DEFAULT_CAPTION_STYLE);
   const resolvedClipDuration =
@@ -643,6 +648,7 @@ export function CinematicPreview({
             >
               <ShotLayer
                 frame={item.shotFrame}
+                seedId={item.keyId}
                 localFrame={item.shotLocalFrame}
                 presetFrame={item.shotPresetFrame}
                 carriedStartPose={item.shotCarriedStartPose}
@@ -657,6 +663,7 @@ export function CinematicPreview({
           ));
         })()}
       </div>
+      <FrameGrainOverlay active={!frame.beat.gap && Boolean(cinematic.grain)} timeSec={previewTimeSec} />
 
       {/* Onion skin overlay: previous and next clips' pictures at 30% opacity */}
       {showOnionSkin && (prevOnionSrc || nextOnionSrc) && (
@@ -1332,8 +1339,9 @@ export function CinematicPreview({
 
 function ShotLayer({
   frame,
+  seedId,
   localFrame,
-  presetFrame: _presetFrame,
+  presetFrame,
   carriedStartPose,
   imageSrc,
   imagePosition,
@@ -1343,6 +1351,7 @@ function ShotLayer({
   forceUncropped = false,
 }: {
   frame: Keyframe;
+  seedId: string;
   localFrame: number;
   presetFrame: number;
   carriedStartPose?: Partial<EvaluatedPose>;
@@ -1357,6 +1366,9 @@ function ShotLayer({
   const anim = frame.beat.animation;
   const rawPose = evaluate(frame, localFrame, carriedStartPose);
   const clampedPose = clampPoseToPictureEdges(rawPose);
+  const timeSec = presetFrame / FPS;
+  const particleSeed = seedId || frame.id;
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const picture = frame.picture || "";
   const isGradient = picture.startsWith("gradient:");
@@ -1364,18 +1376,33 @@ function ShotLayer({
   const videoSrc = videoValue ? resolveMedia(videoValue) : undefined;
   const plateUrl = isGradient ? picture : imageSrc || storyboardGradient(picture);
 
-  // Keyframes are the sole camera: Scarlet Reel presets never run on the plate.
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || !videoSrc) return;
+    const targetSec = Math.max(0, localFrame / FPS);
+    if (Number.isFinite(vid.duration) && vid.duration > 0) {
+      vid.currentTime = targetSec % vid.duration;
+    } else {
+      vid.currentTime = targetSec;
+    }
+  }, [localFrame, videoSrc]);
+
+  // Keyframes are the sole camera: Scarlet Reel presets & CSS film-grade animations never run on the plate.
   const effectiveCinematic = useMemo<Record<string, any>>(
     () => ({ ...cinematic, mode: "static" as const, shakeAmount: 0 }),
     [cinematic],
+  );
+  const plateLayerCinematic = useMemo<Record<string, any>>(
+    () => ({ ...effectiveCinematic, filmGrade: false }),
+    [effectiveCinematic],
   );
   const ungradedCinematic = useMemo<Record<string, any>>(
     () => ({ ...effectiveCinematic, colorGrade: undefined, filmGrade: false }),
     [effectiveCinematic],
   );
   const layer = useMemo(
-    () => cinematicLayer(effectiveCinematic, plateUrl),
-    [effectiveCinematic, plateUrl],
+    () => cinematicLayer(plateLayerCinematic, plateUrl),
+    [plateLayerCinematic, plateUrl],
   );
   const ungradedLayer = useMemo(
     () => cinematicLayer(ungradedCinematic, plateUrl),
@@ -1543,6 +1570,7 @@ function ShotLayer({
     >
       {videoSrc ? (
         <video
+          ref={videoRef}
           className="cin-preview-video"
           src={videoSrc}
           style={{
@@ -1550,10 +1578,9 @@ function ShotLayer({
             animation: "none",
             transition: "none",
           }}
-          autoPlay
           muted
-          loop
           playsInline
+          preload="auto"
         />
       ) : hasGradeLayerSplit ? (
         <>
@@ -1647,15 +1674,17 @@ function ShotLayer({
             opacity: clampedGradeStrength,
           }}
         >
-          <CinematicOverlays cinematic={effectiveCinematic} />
+          <FrameCinematicOverlays cinematic={effectiveCinematic} timeSec={timeSec} />
         </div>
       ) : (
-        <CinematicOverlays cinematic={effectiveCinematic} />
+        <FrameCinematicOverlays cinematic={effectiveCinematic} timeSec={timeSec} />
       )}
-      <LightGlow cinematic={effectiveCinematic} />
-      <LensFlareLayer cinematic={effectiveCinematic} />
-      <Particles
+      <FrameLightGlow cinematic={effectiveCinematic} timeSec={timeSec} />
+      <FrameLensFlareLayer cinematic={effectiveCinematic} timeSec={timeSec} />
+      <FrameParticles
         kind={particleKind}
+        seed={particleSeed}
+        timeSec={timeSec}
         soundOn={soundOn}
         cinematic={effectiveCinematic}
         ambientAudio={frame.scene.ambientAudio}

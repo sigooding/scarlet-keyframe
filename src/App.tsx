@@ -196,7 +196,6 @@ declare global {
       getActiveCaption: () => BeatCaption | undefined;
       exportSrtText: (sceneId?: string) => string;
       exportVttText: (sceneId?: string) => string;
-      syncAnimations: (seconds: number) => void;
     };
   }
 }
@@ -334,7 +333,6 @@ export default function App() {
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
   const dragBaseProjectRef = useRef<ProjectState | null>(null);
   const dragBaseSelectionRef = useRef<MultiLaneSelection>(EMPTY_MULTI_SELECTION);
-  const animationClockRef = useRef(new WeakMap<Animation, number>());
 
   useEffect(() => {
     projectRef.current = project;
@@ -1786,7 +1784,16 @@ export default function App() {
               curSel.keyframes.length === 0 &&
               curSel.pictureIds.length <= 1
             ) {
+              selectedIdsRef.current = [hit.keyframe.id];
               setSelectedFrameIds([hit.keyframe.id]);
+              const nextSel: MultiLaneSelection = {
+                pictureIds: [hit.keyframe.id],
+                captions: [],
+                audioClipIds: [],
+                keyframes: [],
+              };
+              multiSelectionRef.current = nextSel;
+              setMultiSelection(nextSel);
             }
           }
         }
@@ -2649,18 +2656,6 @@ export default function App() {
           ),
         );
         return makeCaptionsVtt(subset, durs, FPS);
-      },
-      syncAnimations: (seconds) => {
-        const now = seconds * 1000;
-        for (const animation of document.getAnimations()) {
-          if (!animationClockRef.current.has(animation)) animationClockRef.current.set(animation, now);
-          try {
-            animation.pause();
-            animation.currentTime = now - (animationClockRef.current.get(animation) || 0);
-          } catch {
-            /* finished animation */
-          }
-        }
       },
     };
     return () => {

@@ -1,10 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import bundledAudioDurations from "../data/audio-durations.json";
 import bundledFilm from "../data/nobodys-witness-film.json";
 import {
   computeDepthCameraUniforms,
   PUSH_NEAR_FAR_RATIO,
 } from "../components/FrameDepthParallax";
+import {
+  computeParticlePositions,
+  computeRainLensDrops,
+  type ParticleKind,
+} from "../components/FrameParticles";
 import {
   EMPTY_MULTI_SELECTION,
 } from "../core/audioClips";
@@ -1089,5 +1094,79 @@ describe("sequence time & animation", () => {
     }
     expect(checkedCarriedCuts).toBeGreaterThan(50);
   });
+
+  it("Particles: produces identical positions for the same seed and time without calling Math.random", () => {
+    const spy = vi.spyOn(Math, "random").mockImplementation(() => {
+      throw new Error("Math.random must never be called by FrameParticles");
+    });
+
+    try {
+      const kinds: ParticleKind[] = [
+        "rain",
+        "drizzle",
+        "storm",
+        "snow",
+        "dust",
+        "motes",
+        "ember",
+        "ash",
+        "fireflies",
+      ];
+
+      for (const kind of kinds) {
+        const directAt2s = computeParticlePositions({
+          seed: "nw_b9",
+          timeSec: 2.0,
+          kind,
+          width: 960,
+          height: 540,
+        });
+        expect(directAt2s.length).toBeGreaterThan(0);
+
+        // Scrub away (forward and backward) and come back to exact 2.0s:
+        computeParticlePositions({ seed: "nw_b9", timeSec: 9.5, kind, width: 960, height: 540 });
+        computeParticlePositions({ seed: "nw_b9", timeSec: 0.25, kind, width: 960, height: 540 });
+
+        const afterScrubAt2s = computeParticlePositions({
+          seed: "nw_b9",
+          timeSec: 2.0,
+          kind,
+          width: 960,
+          height: 540,
+        });
+        expect(afterScrubAt2s).toEqual(directAt2s);
+
+        // Next frame (2.0 + 1/24s) moves particles deterministically
+        const nextFramePts = computeParticlePositions({
+          seed: "nw_b9",
+          timeSec: 2.0 + 1 / 24,
+          kind,
+          width: 960,
+          height: 540,
+        });
+        expect(nextFramePts).not.toEqual(directAt2s);
+
+        // Different clip seed produces a distinct particle layout
+        const otherSeedPts = computeParticlePositions({
+          seed: "nw_b26",
+          timeSec: 2.0,
+          kind,
+          width: 960,
+          height: 540,
+        });
+        expect(otherSeedPts).not.toEqual(directAt2s);
+      }
+
+      // Lens rain droplets are also 100% deterministic for (seed, timeSec)
+      const lensA = computeRainLensDrops({ seed: "nw_b9", timeSec: 41.6667, intensity: 1.2 });
+      const lensAway = computeRainLensDrops({ seed: "nw_b9", timeSec: 12.0, intensity: 1.2 });
+      const lensB = computeRainLensDrops({ seed: "nw_b9", timeSec: 41.6667, intensity: 1.2 });
+      expect(lensB).toEqual(lensA);
+      expect(lensAway.drops).not.toEqual(lensA.drops);
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });
+
 

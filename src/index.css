@@ -885,20 +885,17 @@ kbd {
   overflow: hidden;
 }
 
-@keyframes cin-preview-camera-move {
-  from {
-    transform: scale(var(--edit-start-scale, 1)) translate(var(--edit-start-x, 0%), var(--edit-start-y, 0%));
-  }
-  to {
-    transform: scale(var(--edit-end-scale, 1)) translate(var(--edit-end-x, 0%), var(--edit-end-y, 0%));
-  }
-}
-
-.cin-preview-camera-active {
-  animation-name: cin-preview-camera-move;
-  animation-duration: var(--edit-duration, 8s);
-  animation-timing-function: var(--edit-easing, ease-in-out);
-  animation-fill-mode: both;
+/* Frame-driven viewer guarantee: every visual element, pseudo-element, overlay,
+ * light, lens flare, grain, depth canvas, and particle inside `.cin-preview`
+ * derives strictly from frame time — zero CSS animations or transitions. */
+.cin-preview,
+.cin-preview *,
+.cin-preview::before,
+.cin-preview::after,
+.cin-preview *::before,
+.cin-preview *::after {
+  animation: none !important;
+  transition: none !important;
 }
 
 .cin-preview-plate,

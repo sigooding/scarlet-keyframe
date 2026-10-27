@@ -1035,4 +1035,86 @@ describe("App and studio windows", () => {
     expect(kbPlayingHtml).not.toContain('data-testid="ken-burns-start-box"');
     expect(kbPlayingHtml).toContain("scale(2)");
   });
+
+  it("drives grain, film overlays, lights, lens flare, and lens rain from frame time with zero CSS animations", () => {
+    const project = createProjectState(
+      parseImportPayload(
+        {
+          id: "frame-fx-test",
+          title: "Frame FX",
+          startSceneId: "s1",
+          scenes: [
+            {
+              id: "s1",
+              background: "/film/img/s1/332-the-sedan-blocks-the-lane.jpg",
+              particles: "rain",
+              cinematic: {
+                mode: "static",
+                colorGrade: "midnight-teal",
+                filmGrade: true,
+                grain: true,
+                lights: [
+                  {
+                    x: 40,
+                    y: 35,
+                    color: "#ffc56b",
+                    size: 20,
+                    intensity: 0.6,
+                    pulseSeconds: 2.4,
+                    pulseAmount: 0.8,
+                  },
+                ],
+                lensFlare: {
+                  preset: "anamorphic-blue",
+                  x: 42,
+                  y: 48,
+                  intensity: 0.65,
+                  pulseSeconds: 2.0,
+                  pulseAmount: 0.5,
+                },
+              },
+              dialogueBeats: [{ id: "fx-beat-1", text: "Headlights in rain.", durationFrames: 96 }],
+            },
+          ],
+        },
+        "fx.json",
+      ),
+    );
+    const kf = buildKeyframes(project.story)[0];
+    const renderAt = (f: number) =>
+      renderToStaticMarkup(
+        <CinematicPreview
+          frame={kf}
+          localFrame={f}
+          presetFrame={f}
+          shotKeyId={kf.id}
+          imageSrc="/film/img/s1/332-the-sedan-blocks-the-lane.jpg"
+          resolveMedia={(r) => r}
+          playing={false}
+          soundOn={false}
+          showCaption={true}
+          showMark={true}
+        />,
+      );
+
+    const htmlAt0 = renderAt(0);
+    const htmlAt17First = renderAt(17);
+    const htmlAt61 = renderAt(61);
+    const htmlAt17Again = renderAt(17);
+
+    // Identical markup for the same frame before and after scrubbing elsewhere
+    expect(htmlAt17Again).toBe(htmlAt17First);
+    expect(htmlAt17First).not.toBe(htmlAt0);
+    expect(htmlAt61).not.toBe(htmlAt17First);
+
+    // Frame-driven elements present, legacy CSS animation classes absent on plate/viewer
+    expect(htmlAt17First).toContain('data-testid="frame-grain-overlay"');
+    expect(htmlAt17First).toContain('data-testid="frame-light-0"');
+    expect(htmlAt17First).toContain('data-testid="frame-lens-flare"');
+    expect(htmlAt17First).toContain('data-testid="frame-rain-lens"');
+    expect(htmlAt17First).toContain('data-testid="frame-particles-rain"');
+    expect(htmlAt17First).not.toContain("fx-grain");
+    expect(htmlAt17First).not.toContain('class="cin-preview-plate cin-static film-grade');
+  });
 });
+

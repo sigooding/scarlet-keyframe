@@ -360,7 +360,7 @@ export function FrameDepthParallaxLayer({
       alpha: false,
       antialias: false,
       premultipliedAlpha: false,
-      preserveDrawingBuffer: false,
+      preserveDrawingBuffer: true,
     });
     if (!gl) return;
 
