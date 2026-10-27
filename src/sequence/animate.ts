@@ -9,7 +9,12 @@ import type {
   Keyframe,
 } from "../core/model";
 import { clipFrames, FPS, formatTimecode, MIN_CLIP_FRAMES, sceneProseFrames } from "../core/timing";
+import {
+  computePictureRunsForFrames,
+  type PictureRunInfo,
+} from "./cameraPresets";
 
+export * from "./cameraPresets";
 export type { BeatAnimation, BeatAnimValues, CubicBezierTuple, KenBurnsBox, Key, KeyEasing };
 export { clipFrames, FPS, formatTimecode, MIN_CLIP_FRAMES };
 
@@ -177,6 +182,7 @@ export interface TimelineClip {
   voiceFrames: number;
   voiceInFrame: number;
   voiceOutFrame: number;
+  carriedStartPose?: EvaluatedPose;
 }
 
 export type AnimatableClip =
@@ -203,10 +209,14 @@ function extractAuthoredDepthAmount(clip: AnimatableClip): number {
   if ("keyframe" in clip && clip.keyframe) {
     raw =
       clip.keyframe.beat?.cinematic?.depthAmount ??
+      clip.keyframe.cinematic?.depthAmount ??
       clip.keyframe.scene?.cinematic?.depthAmount;
   } else if ("beat" in clip && clip.beat && typeof clip.beat === "object") {
     const kf = clip as Keyframe;
-    raw = kf.beat?.cinematic?.depthAmount ?? kf.scene?.cinematic?.depthAmount;
+    raw =
+      kf.beat?.cinematic?.depthAmount ??
+      kf.cinematic?.depthAmount ??
+      kf.scene?.cinematic?.depthAmount;
   } else if ("cinematic" in clip && (clip as BeatLike).cinematic) {
     raw = (clip as BeatLike).cinematic?.depthAmount;
   }
@@ -427,9 +437,28 @@ function sortedKeys(keys: Key[]): Key[] {
   return keys;
 }
 
-export function evaluateChannel(keys: Key[] | undefined, localFrame: number, fallback: number): number {
+export function evaluateChannel(
+  keys: Key[] | undefined,
+  localFrame: number,
+  fallback: number,
+  carriedStartValue?: number,
+): number {
   if (!keys || keys.length === 0) return fallback;
-  const ordered = sortedKeys(keys);
+  let ordered = sortedKeys(keys);
+  if (
+    ordered[0].frame > 0 &&
+    typeof carriedStartValue === "number" &&
+    Number.isFinite(carriedStartValue)
+  ) {
+    ordered = [
+      {
+        frame: 0,
+        value: carriedStartValue,
+        easing: ordered[0].easing === "hold" ? "hold" : "ease-in-out",
+      },
+      ...ordered,
+    ];
+  }
   if (localFrame <= ordered[0].frame) return ordered[0].value;
   const last = ordered[ordered.length - 1];
   if (localFrame >= last.frame) return last.value;
@@ -449,30 +478,54 @@ export function evaluateChannel(keys: Key[] | undefined, localFrame: number, fal
   return last.value;
 }
 
-function fallbackForProp(anim: BeatAnimation | undefined, prop: AnimProp, clip: AnimatableClip): number {
+function fallbackForProp(
+  anim: BeatAnimation | undefined,
+  prop: AnimProp,
+  clip: AnimatableClip,
+  carriedStartValue?: number,
+): number {
   const plain = anim?.values?.[prop];
   if (typeof plain === "number" && Number.isFinite(plain)) {
     return clampPropValue(prop, plain);
   }
+  if (typeof carriedStartValue === "number" && Number.isFinite(carriedStartValue)) {
+    return clampPropValue(prop, carriedStartValue);
+  }
   return defaultValueForProp(prop, clip);
 }
 
-export function evaluate(clip: AnimatableClip, localFrame: number): EvaluatedPose {
+export function evaluate(
+  clip: AnimatableClip,
+  localFrame: number,
+  carriedStartPose?: Partial<EvaluatedPose>,
+): EvaluatedPose {
   const anim = extractAnimation(clip);
-  return {
-    zoom: evaluateChannel(anim?.zoom, localFrame, fallbackForProp(anim, "zoom", clip)),
-    x: evaluateChannel(anim?.x, localFrame, fallbackForProp(anim, "x", clip)),
-    y: evaluateChannel(anim?.y, localFrame, fallbackForProp(anim, "y", clip)),
-    rotation: evaluateChannel(anim?.rotation, localFrame, fallbackForProp(anim, "rotation", clip)),
-    opacity: evaluateChannel(anim?.opacity, localFrame, fallbackForProp(anim, "opacity", clip)),
-    blur: evaluateChannel(anim?.blur, localFrame, fallbackForProp(anim, "blur", clip)),
-    exposure: evaluateChannel(anim?.exposure, localFrame, fallbackForProp(anim, "exposure", clip)),
-    gradeStrength: evaluateChannel(
-      anim?.gradeStrength,
+  const inherited =
+    carriedStartPose ??
+    (clip && typeof clip === "object" && "carriedStartPose" in clip
+      ? clip.carriedStartPose
+      : undefined);
+
+  const evalProp = (prop: AnimProp): number => {
+    const carriedVal = inherited?.[prop];
+    return evaluateChannel(
+      anim?.[prop],
       localFrame,
-      fallbackForProp(anim, "gradeStrength", clip),
-    ),
-    depthAmount: evaluateChannel(anim?.depthAmount, localFrame, fallbackForProp(anim, "depthAmount", clip)),
+      fallbackForProp(anim, prop, clip, carriedVal),
+      carriedVal,
+    );
+  };
+
+  return {
+    zoom: evalProp("zoom"),
+    x: evalProp("x"),
+    y: evalProp("y"),
+    rotation: evalProp("rotation"),
+    opacity: evalProp("opacity"),
+    blur: evalProp("blur"),
+    exposure: evalProp("exposure"),
+    gradeStrength: evalProp("gradeStrength"),
+    depthAmount: evalProp("depthAmount"),
   };
 }
 
@@ -1329,7 +1382,32 @@ export function buildTimelineClips(
     cursor += duration;
     return clip;
   });
+
+  // Carried clips showing the same picture inherit the previous clip's ending pose by default.
+  for (let i = 1; i < clips.length; i += 1) {
+    const prev = clips[i - 1];
+    const cur = clips[i];
+    const kf = cur.keyframe;
+    const prevKf = prev.keyframe;
+    if (
+      !kf.beat.gap &&
+      !prevKf.beat.gap &&
+      Boolean(kf.carried) &&
+      Boolean(kf.picture) &&
+      kf.picture === prevKf.picture
+    ) {
+      cur.carriedStartPose = evaluate(prev, Math.max(0, prev.durationFrames - 1));
+    }
+  }
+
   return { clips, totalFrames: cursor };
+}
+
+export function computePictureRuns(clips: ReadonlyArray<TimelineClip>): PictureRunInfo[] {
+  return computePictureRunsForFrames(
+    clips.map((c) => c.keyframe),
+    clips.map((c) => c.durationFrames),
+  );
 }
 
 export function clipAtFrame(clips: TimelineClip[], frameNumber: number): TimelineClip | undefined {

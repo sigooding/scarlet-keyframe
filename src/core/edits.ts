@@ -24,7 +24,7 @@ import type {
   SceneLike,
   StoryLike,
 } from "./model";
-import { buildKeyframes, runningSceneIds } from "./model";
+import { buildKeyframes, convertStoryCameraMovesToKeyframes, runningSceneIds } from "./model";
 import { clipFrames, FPS, MIN_CLIP_FRAMES } from "./timing";
 import {
   buildTimelineClips,
@@ -389,6 +389,16 @@ export function splitKeyframeAt(
   };
 }
 
+export function convertProjectCameraMovesToKeyframes(
+  project: ProjectState,
+  voiceDurations?: ReadonlyMap<string, number>,
+): ProjectState {
+  const story = cloneStory(project.story);
+  const converted = convertStoryCameraMovesToKeyframes(story, voiceDurations);
+  if (converted <= 0) return project;
+  return { ...project, story, updatedAt: Date.now() };
+}
+
 export function insertKeyframeAfter(project: ProjectState, frameId: string): { project: ProjectState; insertedId: string } | undefined {
   const story = cloneStory(project.story);
   const location = locateBeat(story, frameId);
@@ -402,6 +412,8 @@ export function insertKeyframeAfter(project: ProjectState, frameId: string): { p
   delete nextBeat.backgroundRevert;
   delete nextBeat.audioUrl;
   delete nextBeat.sfxUrl;
+  delete nextBeat.animation;
+  delete nextBeat.cinematic;
   delete location.beat.afterBeatTargetSceneId;
   delete location.beat.afterBeatDelaySeconds;
   delete location.beat.afterBeatMode;

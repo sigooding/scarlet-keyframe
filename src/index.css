@@ -6019,6 +6019,62 @@ kbd {
   border-top: none;
 }
 
+.anim-preset-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.anim-preset-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.anim-preset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.anim-preset-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 196px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  background: rgba(14, 17, 23, 0.98);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.72);
+  z-index: 220;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.anim-preset-menu > button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  text-align: left;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.anim-preset-menu > button:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+}
+
+
 
 
 

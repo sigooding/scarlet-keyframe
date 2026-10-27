@@ -64,6 +64,7 @@ import {
   addNoteMarker,
   canMergeKeyframes,
   cloneStory as cloneProjectStory,
+  convertProjectCameraMovesToKeyframes,
   copyEffectBlock,
   copyMultiSelection,
   copySelectedBeats,
@@ -130,9 +131,10 @@ import {
   applyKenBurnsBoxes,
   buildTimelineClips,
   clipAtFrame,
+  computePictureRuns,
   copySelectedKeyframes,
+  effectiveFrameCinematic,
   evaluate,
-  hasAnimationKeyframes,
   nextKeyframeFrameOnClip,
   pasteClipAnimationOnto,
   pasteCopiedKeyframesAt,
@@ -396,7 +398,9 @@ export default function App() {
           };
           statusLabel = "AUTOSAVED PROJECT";
         } else {
-          const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json");
+          const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json", {
+            voiceDurations: initialVoiceDurations,
+          });
           const contextual = { ...imported, story: applyStudioMusicSync(imported.story, sourceEdits) };
           initialProject = createProjectState(contextual, [], sourceEdits);
           statusLabel = "FILM READY";
@@ -467,38 +471,7 @@ export default function App() {
     }
   }, [totalFrames, playheadFrame]);
 
-  const pictureRuns = useMemo(() => {
-    const runs: Array<{ runKeyId: string; runStartFrame: number }> = [];
-    for (let i = 0; i < clips.length; i += 1) {
-      const clip = clips[i];
-      const kf = clip.keyframe;
-      const prev = i > 0 ? clips[i - 1] : undefined;
-      const cin = (kf.beat.cinematic || kf.scene.cinematic || {}) as Record<string, any>;
-      const prevCin = prev
-        ? ((prev.keyframe.beat.cinematic || prev.keyframe.scene.cinematic || {}) as Record<
-            string,
-            any
-          >)
-        : undefined;
-      const canContinueRun =
-        Boolean(prev) &&
-        !kf.beat.gap &&
-        !prev!.keyframe.beat.gap &&
-        Boolean(kf.carried) &&
-        kf.picture === prev!.keyframe.picture &&
-        !hasAnimationKeyframes(kf) &&
-        !hasAnimationKeyframes(prev!.keyframe) &&
-        String(cin.mode ?? "pan") === String(prevCin?.mode ?? "pan") &&
-        String(cin.depthMap ?? "") === String(prevCin?.depthMap ?? "") &&
-        String(cin.depthMotion ?? "") === String(prevCin?.depthMotion ?? "");
-      if (canContinueRun) {
-        runs.push(runs[i - 1]);
-      } else {
-        runs.push({ runKeyId: kf.id, runStartFrame: clip.startFrame });
-      }
-    }
-    return runs;
-  }, [clips]);
+  const pictureRuns = useMemo(() => computePictureRuns(clips), [clips]);
 
   const activeClip = useMemo(
     () => clipAtFrame(clips, playheadFrame) || clips[0],
@@ -1461,7 +1434,7 @@ export default function App() {
 
   async function handleImportFile(file: File): Promise<void> {
     const raw = await file.text();
-    const imported = parseImportPayload(raw, file.name);
+    const imported = parseImportPayload(raw, file.name, { voiceDurations });
     const sourceEdits = projectRef.current?.sourceEdits;
     const story =
       imported.story.id === "nobodys-witness-film" && sourceEdits
@@ -2603,9 +2576,12 @@ export default function App() {
           effectiveCaptions: effectiveCaptionsForBeat(frame.beat, hit.durationFrames),
           speaker: frame.speaker,
           picture: frame.picture,
+          carried: frame.carried,
+          cinematic: effectiveFrameCinematic(frame),
           animation: frame.beat.animation,
           transition: trans,
-          poseAtStart: evaluate(frame, 0),
+          poseAtStart: evaluate(hit, 0),
+          poseAtEnd: evaluate(hit, Math.max(0, hit.durationFrames - 1)),
           audioUrl: frame.beat.audioUrl,
           sfxUrl: frame.beat.sfxUrl,
           musicUrl: frame.scene.musicUrl || frame.scene.sceneAudioUrl,
@@ -3153,7 +3129,7 @@ export default function App() {
       const kf = clips[i].keyframe;
       if (!kf || kf.beat.gap) continue;
       const pic = resolveMedia(kf.picture);
-      const rawCin = (kf.beat.cinematic || kf.scene.cinematic || {}) as Record<string, any>;
+      const rawCin = (effectiveFrameCinematic(kf) || {}) as Record<string, any>;
       const resolvedCin = {
         ...rawCin,
         depthMap: resolveMedia(rawCin.depthMap),
@@ -3340,6 +3316,12 @@ export default function App() {
         onMissing={() => setMissingOpen(true)}
         editLabel={editLabel}
         totalDuration={totalSeconds}
+        onConvertAllToKeyframes={() =>
+          editProject(
+            (current) => convertProjectCameraMovesToKeyframes(current, voiceDurations),
+            "Converted all camera moves to keyframes",
+          )
+        }
       />
 
       <div className={`editor-body ${curveEditor ? "has-curve-editor" : ""}`}>
@@ -3553,6 +3535,7 @@ export default function App() {
                   localFrame={viewerLocalFrame}
                   presetFrame={viewerPresetFrame}
                   shotKeyId={viewerShotKeyId}
+                  carriedStartPose={activeClip?.carriedStartPose}
                   clipDurationFrames={activeClip?.durationFrames}
                   playheadFrame={playheadFrame}
                   totalFrames={totalFrames}
@@ -3783,6 +3766,18 @@ export default function App() {
             }
             onJumpPrevKeyframe={jumpPrevKeyframe}
             onJumpNextKeyframe={jumpNextKeyframe}
+            carriedStartPose={selectedClip?.carriedStartPose}
+            presetOffsetFrames={
+              selectedClip && pictureRuns[selectedClip.index]
+                ? Math.max(0, selectedClip.startFrame - pictureRuns[selectedClip.index].runStartFrame)
+                : 0
+            }
+            onConvertAllToKeyframes={() =>
+              editProject(
+                (current) => convertProjectCameraMovesToKeyframes(current, voiceDurations),
+                "Converted all camera moves to keyframes",
+              )
+            }
             onPlayVoice={() => {
               if (activeAudioClip && activeAudioClip.lane === "voice") {
                 webAudioEngine.previewClip(activeAudioClip, resolveMedia);

@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
+import bundledAudioDurations from "../data/audio-durations.json";
+import bundledFilm from "../data/nobodys-witness-film.json";
+import {
+  computeDepthCameraUniforms,
+  PUSH_NEAR_FAR_RATIO,
+} from "../components/FrameDepthParallax";
 import {
   EMPTY_MULTI_SELECTION,
 } from "../core/audioClips";
 import {
+  convertProjectCameraMovesToKeyframes,
   executeDeleteSelection,
+  insertKeyframeAfter,
   mergeKeyframes,
   setBeatAnimation,
   splitKeyframeAt,
@@ -15,11 +23,15 @@ import { clipFrames, FPS, formatTimecode, keyframeDuration } from "../core/timin
 import {
   applyKenBurnsBoxes,
   applyPoseAtPlayhead,
+  buildStarterPresetAnimation,
   buildTimelineClips,
   clampKenBurnsBox,
   clampPoseToPictureEdges,
+  computePictureRuns,
   copySelectedKeyframes,
+  effectiveFrameCinematic,
   evaluate,
+  evaluateLegacyShotMove,
   hasAnimationKeyframes,
   kenBurnsBoxFromDrag,
   kenBurnsBoxToPose,
@@ -762,6 +774,320 @@ describe("sequence time & animation", () => {
     expect(framesAfterMerge.map((f) => f.id)).toEqual(["dup_id", "sc2_b", "sc4:dup_id"]);
     expect(framesAfterMerge[0].picture).toBe("img/s1.png");
     expect(framesAfterMerge[0].beat.durationFrames).toBe(48 + 36);
+  });
+
+  it("converts pan, zoom-hold, dolly, depth truck, and depth push shots within 1% at frame 0, middle, and end", () => {
+    const voiceDurations = new Map<string, number>(
+      Object.entries(bundledAudioDurations as Record<string, number>),
+    );
+    const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json", {
+      voiceDurations,
+    });
+    const frames = buildKeyframes(imported.story);
+    const { clips } = buildTimelineClips(frames, voiceDurations);
+    const runs = computePictureRuns(clips);
+
+    const pickClip = (pred: (c: (typeof clips)[number]) => boolean) => {
+      const hit = clips.find((c) => c.durationFrames >= 36 && pred(c));
+      expect(hit).toBeDefined();
+      return hit!;
+    };
+
+    const panClip = pickClip((c) => {
+      const cin = effectiveFrameCinematic(c.keyframe);
+      return Boolean(cin && !cin.depthMap && (cin.mode ?? "pan") === "pan");
+    });
+    const zoomHoldClip = pickClip((c) => {
+      const cin = effectiveFrameCinematic(c.keyframe);
+      return Boolean(cin && !cin.depthMap && cin.mode === "zoom-hold");
+    });
+    const dollyClip = pickClip((c) => {
+      const cin = effectiveFrameCinematic(c.keyframe);
+      return Boolean(cin && cin.mode === "dolly");
+    });
+    const depthTruckClip = pickClip((c) => {
+      const cin = effectiveFrameCinematic(c.keyframe);
+      return Boolean(cin?.depthMap && (cin.depthMotion ?? "truck") === "truck");
+    });
+    const depthPushClip = pickClip((c) => {
+      const cin = effectiveFrameCinematic(c.keyframe);
+      return Boolean(cin?.depthMap && cin.depthMotion === "push");
+    });
+
+    for (const [label, clip] of [
+      ["pan", panClip],
+      ["zoom-hold", zoomHoldClip],
+      ["dolly", dollyClip],
+      ["depth truck", depthTruckClip],
+      ["depth push", depthPushClip],
+    ] as const) {
+      const cin = effectiveFrameCinematic(clip.keyframe);
+      const run = runs[clip.index];
+      const offsetFrames = Math.max(0, clip.startFrame - run.runStartFrame);
+      const lastFrame = Math.max(0, clip.durationFrames - 1);
+      const midFrame = Math.floor(lastFrame / 2);
+
+      for (const f of [0, midFrame, lastFrame]) {
+        const legacy = evaluateLegacyShotMove(cin, clip.keyframe.picture, (offsetFrames + f) / FPS)!;
+        expect(legacy, `${label} legacy move should exist`).toBeTruthy();
+        const actual = evaluate(clip, f);
+
+        const zoomRelErr = Math.abs(actual.zoom - legacy.zoom) / Math.max(1, Math.abs(legacy.zoom));
+        // `x` and `y` are percentages of the 100%-wide/tall frame, so `Math.abs(a - b) / 100` is frame fraction.
+        const xFrameErr = Math.abs(actual.x - legacy.x) / 100;
+        const yFrameErr = Math.abs(actual.y - legacy.y) / 100;
+
+        expect(zoomRelErr, `${label} zoom error at frame ${f}`).toBeLessThan(0.01);
+        expect(xFrameErr, `${label} x error at frame ${f}`).toBeLessThan(0.01);
+        expect(yFrameErr, `${label} y error at frame ${f}`).toBeLessThan(0.01);
+      }
+    }
+  });
+
+  it("Convert all to keyframes preserves hand-edited keyframes, leaves no-move/new shots still, and undoes in one step", () => {
+    const voiceDurations = new Map<string, number>(
+      Object.entries(bundledAudioDurations as Record<string, number>),
+    );
+    const rawImported = parseImportPayload(bundledFilm, "nobodys-witness-film.json", {
+      convertCameraMoves: false,
+    });
+    let project = createProjectState(rawImported);
+
+    const initialFrames = buildKeyframes(project.story);
+    const handTarget = initialFrames.find((f) => Boolean(effectiveFrameCinematic(f)?.depthMap))!;
+    const staticNoMoveTarget = initialFrames.find((f) => {
+      const cin = effectiveFrameCinematic(f);
+      return !cin || (cin.mode === "static" && !cin.depthMap);
+    })!;
+
+    // Hand-edit one shot prior to conversion
+    const customHandAnim = {
+      zoom: [
+        { frame: 0, value: 1.15, easing: "linear" as const },
+        { frame: 30, value: 1.55, easing: "ease-in-out" as const },
+      ],
+      x: [{ frame: 0, value: -7.5, easing: "linear" as const }],
+    };
+    project = setBeatAnimation(project, handTarget.id, customHandAnim);
+
+    const history = new UndoHistory<ProjectState>();
+    const convertedProject = convertProjectCameraMovesToKeyframes(project, voiceDurations);
+    expect(convertedProject).not.toBe(project);
+    history.record(project);
+
+    const afterConvertFrames = buildKeyframes(convertedProject.story);
+    const handAfter = afterConvertFrames.find((f) => f.id === handTarget.id)!;
+    expect(handAfter.beat.animation).toEqual(customHandAnim);
+
+    const staticAfter = afterConvertFrames.find((f) => f.id === staticNoMoveTarget.id)!;
+    expect(hasAnimationKeyframes(staticAfter)).toBe(false);
+
+    // Newly inserted shots start with no keyframes (still picture)
+    const insertedRes = insertKeyframeAfter(convertedProject, staticAfter.id)!;
+    const insertedFrame = buildKeyframes(insertedRes.project.story).find(
+      (f) => f.id === insertedRes.insertedId,
+    )!;
+    expect(hasAnimationKeyframes(insertedFrame)).toBe(false);
+    expect(insertedFrame.beat.animation).toBeUndefined();
+
+    // "Start from preset" writes editable keyframes onto a still shot
+    const presetAnim = buildStarterPresetAnimation("zoom-hold", insertedFrame, 48);
+    expect(presetAnim?.zoom?.length).toBeGreaterThanOrEqual(2);
+
+    // One undo step undoes the entire film-wide conversion!
+    const undone = history.undo(convertedProject)!;
+    expect(undone).toBe(project);
+    const undoneFrames = buildKeyframes(undone.story);
+    expect(undoneFrames.find((f) => f.id === handTarget.id)!.beat.animation).toEqual(customHandAnim);
+    const uneditedMoving = undoneFrames.find(
+      (f) => f.id !== handTarget.id && Boolean(effectiveFrameCinematic(f)?.depthMap),
+    )!;
+    expect(hasAnimationKeyframes(uneditedMoving)).toBe(false);
+  });
+
+  it("maps keyframed zoom, x/y, and depthAmount to depth shader uniforms without exposing edges", () => {
+    const clip = {
+      keyframe: {
+        cinematic: { depthMap: "/film/depth/s1/shot/depth.png", depthAmount: 0.4 },
+        beat: {
+          cinematic: { depthMap: "/film/depth/s1/shot/depth.png", depthAmount: 0.4 },
+          animation: {
+            zoom: [
+              { frame: 0, value: 1.0, easing: "linear" as const },
+              { frame: 48, value: 1.24, easing: "linear" as const },
+            ],
+            x: [
+              { frame: 0, value: -6, easing: "linear" as const },
+              { frame: 48, value: 6, easing: "linear" as const },
+            ],
+            y: [
+              { frame: 0, value: -3, easing: "linear" as const },
+              { frame: 48, value: 3, easing: "linear" as const },
+            ],
+            depthAmount: [
+              { frame: 0, value: 0.2, easing: "linear" as const },
+              { frame: 48, value: 0.8, easing: "linear" as const },
+            ],
+          },
+        },
+        scene: {},
+      },
+    } as any;
+
+    const pose0 = evaluate(clip, 0);
+    const pose48 = evaluate(clip, 48);
+    expect(pose0.depthAmount).toBeCloseTo(0.2, 6);
+    expect(pose48.depthAmount).toBeCloseTo(0.8, 6);
+    expect(pose48.depthAmount).not.toBeCloseTo(pose0.depthAmount, 2);
+
+    // At baseline depthAmount (0.4), zoom becomes push in exact PUSH_NEAR / PUSH_FAR ratio (3:1)
+    const pureZoomUni = computeDepthCameraUniforms({
+      zoom: 1.2,
+      x: 0,
+      y: 0,
+      amount: 0.4,
+      authoredAmount: 0.4,
+      focus: 0.5,
+    });
+    expect(pureZoomUni.uZoom[0]).toBeCloseTo(1.2, 6);
+    expect(pureZoomUni.uZoom[1] - 1).toBeCloseTo((1.2 - 1) * PUSH_NEAR_FAR_RATIO, 6);
+
+    // Check every frame 0..48: source(uv, d) stays inside [0, 1]^2 for all corners uv in {0,1}^2 and d in {0, 0.5, 1}
+    for (let f = 0; f <= 48; f += 6) {
+      const p = evaluate(clip, f);
+      const uni = computeDepthCameraUniforms({
+        zoom: p.zoom,
+        x: p.x,
+        y: p.y,
+        amount: p.depthAmount,
+        authoredAmount: 0.4,
+        focus: 0.35,
+      });
+      for (const d of [0, 0.35, 0.7, 1]) {
+        const z = uni.uZoom[0] + (uni.uZoom[1] - uni.uZoom[0]) * d;
+        const reach = d - uni.uFocus;
+        for (const uvx of [0, 1]) {
+          const sx = uni.uCenter[0] + (uvx - uni.uShift[0] * reach - uni.uCenter[0]) / z;
+          expect(sx).toBeGreaterThanOrEqual(-1e-6);
+          expect(sx).toBeLessThanOrEqual(1 + 1e-6);
+        }
+        for (const uvy of [0, 1]) {
+          const sy = uni.uCenter[1] + (uvy - uni.uShift[1] * reach - uni.uCenter[1]) / z;
+          expect(sy).toBeGreaterThanOrEqual(-1e-6);
+          expect(sy).toBeLessThanOrEqual(1 + 1e-6);
+        }
+      }
+    }
+  });
+
+  it("keeps carried picture poses continuous across cuts (within one frame's movement)", () => {
+    // 1. Hand-keyframed clip followed by carried clips (both unkeyframed and partially keyframed)
+    const carriedProject = createProjectState(
+      parseImportPayload(
+        {
+          id: "carried-continuity",
+          title: "Carried Continuity",
+          startSceneId: "s1",
+          scenes: [
+            {
+              id: "s1",
+              background: "/film/img/s1/shared.jpg",
+              dialogueBeats: [
+                {
+                  id: "c1",
+                  text: "Beat one",
+                  durationFrames: 48,
+                  animation: {
+                    zoom: [
+                      { frame: 0, value: 1.0, easing: "linear" },
+                      { frame: 47, value: 1.32, easing: "linear" },
+                    ],
+                    x: [
+                      { frame: 0, value: 0, easing: "linear" },
+                      { frame: 47, value: -5, easing: "linear" },
+                    ],
+                  },
+                },
+                {
+                  id: "c2",
+                  text: "Beat two (carried, no own keyframes)",
+                  durationFrames: 48,
+                },
+                {
+                  id: "c3",
+                  text: "Beat three (carried, only end keyframe at +47f)",
+                  durationFrames: 48,
+                  animation: {
+                    zoom: [{ frame: 47, value: 1.5, easing: "linear" }],
+                    x: [{ frame: 47, value: -8, easing: "linear" }],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        "carried.json",
+      ),
+    );
+
+    const { clips: cClips } = buildTimelineClips(buildKeyframes(carriedProject.story));
+    const endC1 = evaluate(cClips[0], 47);
+    const startC2 = evaluate(cClips[1], 0);
+    expect(startC2.zoom).toBeCloseTo(endC1.zoom, 6);
+    expect(startC2.x).toBeCloseTo(endC1.x, 6);
+
+    const endC2 = evaluate(cClips[1], 47);
+    const startC3 = evaluate(cClips[2], 0);
+    const frame1C3 = evaluate(cClips[2], 1);
+    expect(startC3.zoom).toBeCloseTo(endC2.zoom, 6);
+    expect(startC3.x).toBeCloseTo(endC2.x, 6);
+    expect(frame1C3.zoom).toBeGreaterThan(startC3.zoom);
+
+    // 2. Converted film carried runs: continuous `presetFrame` even with keyframes, and pose delta across cut <= 1 frame's movement
+    const voiceDurations = new Map<string, number>(
+      Object.entries(bundledAudioDurations as Record<string, number>),
+    );
+    const importedFilm = parseImportPayload(bundledFilm, "nobodys-witness-film.json", {
+      voiceDurations,
+    });
+    const { clips: filmClips } = buildTimelineClips(
+      buildKeyframes(importedFilm.story),
+      voiceDurations,
+    );
+    const runs = computePictureRuns(filmClips);
+
+    let checkedCarriedCuts = 0;
+    for (let i = 1; i < filmClips.length; i += 1) {
+      const prev = filmClips[i - 1];
+      const cur = filmClips[i];
+      if (runs[i].runKeyId !== runs[i - 1].runKeyId) continue;
+
+      // Continuous `presetFrame` across the cut even though both clips have keyframes!
+      const prevLastPreset = prev.startFrame - runs[i - 1].runStartFrame + (prev.durationFrames - 1);
+      const curFirstPreset = cur.startFrame - runs[i].runStartFrame + 0;
+      expect(curFirstPreset).toBe(prevLastPreset + 1);
+
+      const pPrevEnd = evaluate(prev, prev.durationFrames - 1);
+      const pPrevPenult = evaluate(prev, Math.max(0, prev.durationFrames - 2));
+      const pCurStart = evaluate(cur, 0);
+      const pCurNext = evaluate(cur, Math.min(cur.durationFrames - 1, 1));
+
+      const stepZoom = Math.max(
+        Math.abs(pPrevEnd.zoom - pPrevPenult.zoom),
+        Math.abs(pCurNext.zoom - pCurStart.zoom),
+        0.002,
+      );
+      const stepX = Math.max(
+        Math.abs(pPrevEnd.x - pPrevPenult.x),
+        Math.abs(pCurNext.x - pCurStart.x),
+        0.05,
+      );
+
+      expect(Math.abs(pCurStart.zoom - pPrevEnd.zoom)).toBeLessThanOrEqual(stepZoom * 1.5);
+      expect(Math.abs(pCurStart.x - pPrevEnd.x)).toBeLessThanOrEqual(stepX * 1.5);
+      checkedCarriedCuts += 1;
+    }
+    expect(checkedCarriedCuts).toBeGreaterThan(50);
   });
 });
 

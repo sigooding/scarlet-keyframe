@@ -1,4 +1,5 @@
 import type { AudioClip } from "./audioClips";
+import { convertFramesCameraMovesToKeyframes } from "../sequence/cameraPresets";
 import type { BeatCaption, CaptionStyle } from "./captions";
 
 export type AnyRecord = Record<string, any>;
@@ -158,6 +159,7 @@ export interface Keyframe {
   number: number;
   beat: BeatLike;
   scene: SceneLike;
+  cinematic?: AnyRecord;
   picture?: string;
   pictureSource: "beat" | "scene" | "carried" | "none";
   carried: boolean;
@@ -171,6 +173,11 @@ export interface ImportedStory {
   assets: AnyRecord[];
   missing: string[];
   sourceName: string;
+}
+
+export interface ParseImportOptions {
+  convertCameraMoves?: boolean;
+  voiceDurations?: ReadonlyMap<string, number>;
 }
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -197,7 +204,19 @@ export function parseStoryText(text: string): unknown {
   }
 }
 
-export function parseImportPayload(value: unknown, sourceName: string): ImportedStory {
+export function convertStoryCameraMovesToKeyframes(
+  story: StoryLike,
+  voiceDurations?: ReadonlyMap<string, number>,
+): number {
+  const frames = buildKeyframes(story);
+  return convertFramesCameraMovesToKeyframes(frames, voiceDurations);
+}
+
+export function parseImportPayload(
+  value: unknown,
+  sourceName: string,
+  options?: ParseImportOptions,
+): ImportedStory {
   const payload = typeof value === "string" ? parseStoryText(value) : value;
   if (!isRecord(payload)) throw new Error("The import must contain a Story object or a PortableStoryBundle.");
   const bundle = isRecord(payload.story) && Array.isArray(payload.story.scenes);
@@ -214,8 +233,12 @@ export function parseImportPayload(value: unknown, sourceName: string): Imported
     const assetId = assetIdFromReference(ref);
     if (assetId && !availableAssetIds.has(assetId)) missing.push(`asset:${assetId}`);
   }
+  const clonedStory = clone(story);
+  if (options?.convertCameraMoves !== false) {
+    convertStoryCameraMovesToKeyframes(clonedStory, options?.voiceDurations);
+  }
   return {
-    story: clone(story),
+    story: clonedStory,
     audioClips,
     assets: clone(assets),
     missing: [...new Set(missing)],
@@ -305,20 +328,31 @@ export function buildKeyframes(story: StoryLike): Keyframe[] {
   const frames: Keyframe[] = [];
   const seenIds = new Set<string>();
   let carriedPicture: string | undefined;
+  let carriedCinematic: AnyRecord | undefined;
 
   orderedIds.forEach((sceneId, sceneIndex) => {
     const scene = sceneById.get(sceneId)!;
     const beats = scene.dialogueBeats ?? [];
     const scenePicture = typeof scene.background === "string" ? scene.background : undefined;
     let activePicture = scenePicture || carriedPicture;
+    let heldBeatCinematic: AnyRecord | undefined = scenePicture ? undefined : carriedCinematic;
 
     beats.forEach((beat, beatIndex) => {
       const isGap = beat.gap === true;
       if (!isGap) {
-        if (beat.backgroundRevert) activePicture = scenePicture || carriedPicture;
-        if (typeof beat.background === "string" && beat.background) activePicture = beat.background;
+        if (beat.backgroundRevert) {
+          activePicture = scenePicture || carriedPicture;
+          heldBeatCinematic = scenePicture ? undefined : carriedCinematic;
+        }
+        if (typeof beat.background === "string" && beat.background) {
+          activePicture = beat.background;
+          heldBeatCinematic = beat.cinematic;
+        }
       }
       const picture = isGap ? undefined : activePicture || scenePicture || carriedPicture;
+      const effectiveCinematic = isGap
+        ? undefined
+        : beat.cinematic || heldBeatCinematic || scene.cinematic;
       const pictureSource = isGap
         ? "none"
         : beat.background
@@ -340,13 +374,22 @@ export function buildKeyframes(story: StoryLike): Keyframe[] {
         number: beatIndex + 1,
         beat,
         scene,
+        cinematic: effectiveCinematic,
         picture,
         pictureSource,
         carried: isGap ? false : pictureSource !== "beat",
         speaker: speakerLabel(story, beat.characterId),
         text: String(beat.text || ""),
       });
-      if (picture) carriedPicture = picture;
+      if (!isGap) {
+        if (beat.background && beat.backgroundHold === false) {
+          activePicture = scenePicture || carriedPicture;
+          heldBeatCinematic = scenePicture ? undefined : carriedCinematic;
+        } else if (picture) {
+          carriedPicture = picture;
+          carriedCinematic = effectiveCinematic;
+        }
+      }
     });
   });
 

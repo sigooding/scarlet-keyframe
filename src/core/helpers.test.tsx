@@ -19,7 +19,10 @@ import { evaluateMissingMedia, normalizeMediaPath } from "./media";
 import { applyStudioMusicSync, buildKeyframes, createProjectState, parseImportPayload } from "./model";
 import { writeStudioPatch } from "./patch";
 import { extractKnownMusicDurations } from "./previewAudio";
-import { buildTimelineClips } from "../sequence/animate";
+import {
+  buildStarterPresetAnimation,
+  buildTimelineClips,
+} from "../sequence/animate";
 
 describe("helper functions", () => {
   it("slug turns titles into clean filenames", () => {
@@ -349,17 +352,22 @@ describe("App and studio windows", () => {
     expect(html77a).not.toContain("gradient:linear-gradient");
   });
 
-  it("applies direct translate/scale transform and disables Scarlet Reel camera preset only on clips with keyframes", () => {
+  it("drives each shot from a single keyframe camera only and never double-transforms plate or missing card", () => {
     const baseFrame = frames.find((frame) => frame.mark === "77") || frames[0];
     const resolveMedia = () => undefined;
 
-    const presetFrame = {
+    // A shot with no keyframes is a still picture even if `cinematic.mode` is set.
+    const unkeyframedFrame = {
       ...baseFrame,
-      beat: { ...baseFrame.beat, cinematic: { ...baseFrame.beat.cinematic, mode: "pan" } },
+      beat: {
+        ...baseFrame.beat,
+        animation: undefined,
+        cinematic: { ...baseFrame.beat.cinematic, mode: "pan" },
+      },
     };
-    const presetHtml = renderToStaticMarkup(
+    const stillHtml = renderToStaticMarkup(
       <CinematicPreview
-        frame={presetFrame}
+        frame={unkeyframedFrame}
         localFrame={12}
         resolveMedia={resolveMedia}
         playing={true}
@@ -368,12 +376,14 @@ describe("App and studio windows", () => {
         showMark={true}
       />,
     );
-    expect(presetHtml).toContain('class="cin-preview-plate cin-pan"');
+    expect(stillHtml).not.toContain('class="cin-preview-plate cin-pan');
+    expect(stillHtml).toContain("cin-preview-plate cin-static");
+    expect(stillHtml).toContain('data-testid="cinematic-camera" style="transform:none');
 
     const keyframedFrame = {
-      ...presetFrame,
+      ...unkeyframedFrame,
       beat: {
-        ...presetFrame.beat,
+        ...unkeyframedFrame.beat,
         animation: {
           zoom: [
             { frame: 0, value: 1, easing: "linear" as const },
@@ -394,9 +404,12 @@ describe("App and studio windows", () => {
         showMark={true}
       />,
     );
-    expect(keyframedHtml).not.toContain('class="cin-preview-plate cin-pan"');
-    expect(keyframedHtml).toContain('class="cin-preview-plate cin-static"');
-    expect(keyframedHtml).toContain("translate(-10%, 0%) scale(1.25)");
+    expect(keyframedHtml).not.toContain('class="cin-preview-plate cin-pan');
+    expect(keyframedHtml).toContain("cin-preview-plate cin-static");
+    // Applied once on `.cin-preview-camera`, while `.cin-preview-plate` and `.cin-preview-missing` have `transform:none`
+    const matches = keyframedHtml.match(/translate\(-10%, 0%\) scale\(1\.25\)/g) ?? [];
+    expect(matches).toHaveLength(1);
+    expect(keyframedHtml).toContain('class="cin-preview-missing" style="transform:none;animation:none;transition:none"');
     expect(keyframedHtml).toContain("animation:none");
     expect(keyframedHtml).toContain("transition:none");
   });
@@ -570,13 +583,25 @@ describe("App and studio windows", () => {
     const { clips } = buildTimelineClips(frames);
     const resolveMedia = () => undefined;
     const outgoingClip = clips[0];
+    const baseIncomingKf = {
+      ...clips[1].keyframe,
+      beat: {
+        ...clips[1].keyframe.beat,
+        cinematic: { mode: "pan", panDistance: 6, zoomDuration: 10 },
+      },
+    };
+    const convertedAnim = buildStarterPresetAnimation(
+      "authored",
+      baseIncomingKf,
+      clips[1].durationFrames,
+    );
     const incomingClip = {
       ...clips[1],
       keyframe: {
-        ...clips[1].keyframe,
+        ...baseIncomingKf,
         beat: {
-          ...clips[1].keyframe.beat,
-          cinematic: { mode: "pan", panDistance: 6, zoomDuration: 10 },
+          ...baseIncomingKf.beat,
+          animation: convertedAnim,
         },
       },
     };
@@ -618,68 +643,124 @@ describe("App and studio windows", () => {
       />,
     );
 
-    const extractIncomingTransform = (markup: string): string => {
-      const plateIdx = markup.indexOf('data-testid="cinematic-plate"');
-      expect(plateIdx).toBeGreaterThan(0);
-      const tagStart = markup.lastIndexOf("<div", plateIdx);
-      const tagEnd = markup.indexOf(">", plateIdx);
+    const extractIncomingCameraTransform = (markup: string): string => {
+      const camIdx = markup.indexOf('data-testid="cinematic-camera"');
+      expect(camIdx).toBeGreaterThan(0);
+      const tagStart = markup.lastIndexOf("<div", camIdx);
+      const tagEnd = markup.indexOf(">", camIdx);
       const tag = markup.slice(tagStart, tagEnd);
       const match = tag.match(/transform:([^;"]+)/);
       return match ? match[1] : "";
     };
 
-    const tDuring = extractIncomingTransform(duringTransitionHtml);
-    const tSteady = extractIncomingTransform(sameFrameNoTransitionHtml);
+    const tDuring = extractIncomingCameraTransform(duringTransitionHtml);
+    const tSteady = extractIncomingCameraTransform(sameFrameNoTransitionHtml);
 
-    // Transform during transition and without transition at the same localFrame must match identically (never snap to scale(1))
     expect(tDuring).toBeTruthy();
     expect(tDuring).toBe(tSteady);
     expect(tDuring).toContain("scale(1.12");
   });
 
-  it("keeps depth-map shots at 1.00x fallback and applies keyframe camera moves to the camera wrapper across transitions", () => {
+  it("keeps plate and depth canvas transforms equal at frames 0, 12, and 48 and updates depthAmount on every frame", () => {
     const { clips } = buildTimelineClips(frames);
-    const outgoingClip = {
-      ...clips[0],
-      keyframe: {
-        ...clips[0].keyframe,
-        picture: "/film/img/s1/shot-a.jpg",
-        beat: {
-          ...clips[0].keyframe.beat,
-          cinematic: {
-            mode: "zoom-hold",
-            depthMap: "/film/depth/s1/shot-a/depth.png",
-            depthMotion: "push",
-          },
-          animation: {
-            zoom: [
-              { frame: 0, value: 1, easing: "linear" as const },
-              { frame: 48, value: 1.4, easing: "linear" as const },
-            ],
-            x: [
-              { frame: 0, value: 0, easing: "linear" as const },
-              { frame: 48, value: 6, easing: "linear" as const },
-            ],
-          },
+    const depthKeyframe = {
+      ...clips[0].keyframe,
+      picture: "/film/img/s1/shot-a.jpg",
+      cinematic: {
+        mode: "zoom-hold",
+        depthMap: "/film/depth/s1/shot-a/depth.png",
+        depthMotion: "push",
+        depthAmount: 0.4,
+      },
+      beat: {
+        ...clips[0].keyframe.beat,
+        cinematic: {
+          mode: "zoom-hold",
+          depthMap: "/film/depth/s1/shot-a/depth.png",
+          depthMotion: "push",
+          depthAmount: 0.4,
+        },
+        animation: {
+          zoom: [
+            { frame: 0, value: 1, easing: "linear" as const },
+            { frame: 48, value: 1.4, easing: "linear" as const },
+          ],
+          x: [
+            { frame: 0, value: 0, easing: "linear" as const },
+            { frame: 48, value: 6, easing: "linear" as const },
+          ],
+          y: [
+            { frame: 0, value: 0, easing: "linear" as const },
+            { frame: 48, value: -4, easing: "linear" as const },
+          ],
+          rotation: [
+            { frame: 0, value: 0, easing: "linear" as const },
+            { frame: 48, value: 2, easing: "linear" as const },
+          ],
+          depthAmount: [
+            { frame: 0, value: 0.2, easing: "linear" as const },
+            { frame: 48, value: 0.8, easing: "linear" as const },
+          ],
         },
       },
     };
+    const outgoingClip = { ...clips[0], keyframe: depthKeyframe };
     const incomingClip = clips[1];
     const resolveMedia = (v: string | undefined) => v;
 
-    const steadyHtml = renderToStaticMarkup(
-      <CinematicPreview
-        frame={outgoingClip.keyframe}
-        localFrame={24}
-        imageSrc="/film/img/s1/shot-a.jpg"
-        resolveMedia={resolveMedia}
-        playing={false}
-        soundOn={false}
-        showCaption={false}
-        showMark={true}
-      />,
-    );
+    const extractTagStyleProp = (markup: string, marker: string, prop: string): string => {
+      const idx = markup.indexOf(marker);
+      expect(idx).toBeGreaterThan(0);
+      const start = markup.lastIndexOf("<", idx);
+      const end = markup.indexOf(">", idx);
+      const tag = markup.slice(start, end);
+      const match = tag.match(new RegExp(`${prop}:([^;"]+)`));
+      return match ? match[1] : "";
+    };
 
+    const extractDataAttr = (markup: string, attr: string): string => {
+      const m = markup.match(new RegExp(`${attr}="([^"]+)"`));
+      return m ? m[1] : "";
+    };
+
+    const depthAmountsByFrame: number[] = [];
+    for (const testFrame of [0, 12, 48]) {
+      const html = renderToStaticMarkup(
+        <CinematicPreview
+          frame={depthKeyframe}
+          localFrame={testFrame}
+          imageSrc="/film/img/s1/shot-a.jpg"
+          resolveMedia={resolveMedia}
+          playing={false}
+          soundOn={false}
+          showCaption={false}
+          showMark={true}
+        />,
+      );
+
+      const cameraTransform = extractTagStyleProp(html, 'data-testid="cinematic-camera"', "transform");
+      const plateTransform = extractTagStyleProp(html, 'data-testid="cinematic-plate"', "transform");
+      const canvasTransform = extractTagStyleProp(html, 'class="depth-parallax"', "transform");
+
+      // Plate and canvas sit inside the same `.cin-preview-camera` wrapper and have equal transforms.
+      expect(plateTransform).toBe("none");
+      expect(canvasTransform).toBe("none");
+      expect(`${cameraTransform}|${plateTransform}`).toBe(`${cameraTransform}|${canvasTransform}`);
+
+      // Wrapper rotates only (never double-applies translate/scale).
+      expect(cameraTransform).not.toContain("translate(");
+      expect(cameraTransform).toContain("rotate(");
+
+      depthAmountsByFrame.push(Number(extractDataAttr(html, "data-depth-amount")));
+    }
+
+    // `depthAmount` changes across frames 0 -> 12 -> 48 (`0.2 -> 0.35 -> 0.8`).
+    expect(depthAmountsByFrame[0]).toBeCloseTo(0.2, 4);
+    expect(depthAmountsByFrame[1]).toBeCloseTo(0.35, 4);
+    expect(depthAmountsByFrame[2]).toBeCloseTo(0.8, 4);
+    expect(depthAmountsByFrame[2]).not.toBeCloseTo(depthAmountsByFrame[0], 2);
+
+    // Also equal during a dissolve transition.
     const transitionHtml = renderToStaticMarkup(
       <CinematicPreview
         frame={incomingClip.keyframe}
@@ -695,7 +776,7 @@ describe("App and studio windows", () => {
         transition={{
           kind: "dissolve",
           alignment: "at-cut",
-          progress: 0,
+          progress: 0.5,
           cutFrame: incomingClip.startFrame,
           startFrame: incomingClip.startFrame,
           endFrame: incomingClip.startFrame + 12,
@@ -707,11 +788,17 @@ describe("App and studio windows", () => {
         }}
       />,
     );
-
-    // Keyframe pose at frame 24/48 -> zoom 1.2, x 3% wraps the depth camera identically in steady & outgoing transition states
-    expect(steadyHtml).toContain("translate(3%, 0%) scale(1.2)");
-    expect(transitionHtml).toContain("translate(3%, 0%) scale(1.2)");
-    expect(transitionHtml).toContain('class="depth-parallax"');
+    const outPlateTransform = extractTagStyleProp(
+      transitionHtml,
+      'data-testid="cinematic-plate-outgoing"',
+      "transform",
+    );
+    const outCanvasTransform = extractTagStyleProp(
+      transitionHtml,
+      'class="depth-parallax"',
+      "transform",
+    );
+    expect(outPlateTransform).toBe(outCanvasTransform);
   });
 
   it("applies animated opacity, blur, exposure, rotation, and gradeStrength directly to the viewer style", () => {

@@ -28,15 +28,20 @@ import {
   ANIM_PROP_META,
   ANIM_PROPS,
   applyPoseAtPlayhead,
+  buildStarterPresetAnimation,
   clampPoseToPictureEdges,
+  describeAuthoredMove,
+  effectiveFrameCinematic,
   evaluate,
   hasAnimationKeyframes,
   hasPlainValues,
   setKeyEasingAtFrame,
   setSliderValueAtFrame,
+  STARTER_PRESET_OPTIONS,
   toggleKeyAtFrame,
   type AnimProp,
   type EvaluatedPose,
+  type StarterPresetId,
 } from "../sequence/animate";
 import { mapTransitionKind } from "../sequence/transitions";
 
@@ -182,6 +187,9 @@ interface InspectorProps {
   onOpenCurveEditor?: (prop: AnimProp) => void;
   onJumpPrevKeyframe?: () => void;
   onJumpNextKeyframe?: () => void;
+  carriedStartPose?: Partial<EvaluatedPose>;
+  presetOffsetFrames?: number;
+  onConvertAllToKeyframes?: () => void;
 }
 
 const TRANSITIONS = ["cut", "dissolve", "dip-to-black", "wipe-left", "wipe-right"];
@@ -213,6 +221,23 @@ export function Inspector(props: InspectorProps) {
   const { project, frame, localFrame, clipDurationFrames } = props;
   const [fallbackTab, setFallbackTab] = useState<InspectorTab>("clip");
   const [jsonError, setJsonError] = useState("");
+  const [presetMenuOpen, setPresetMenuOpen] = useState(false);
+  const presetMenuWrapRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!presetMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (
+        presetMenuWrapRef.current &&
+        e.target instanceof Node &&
+        !presetMenuWrapRef.current.contains(e.target)
+      ) {
+        setPresetMenuOpen(false);
+      }
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [presetMenuOpen]);
 
   const currentTab = props.activeTab ?? fallbackTab;
   const selectTab = (tab: InspectorTab) => {
@@ -224,9 +249,26 @@ export function Inspector(props: InspectorProps) {
   const beat = frame.beat;
   const scene = frame.scene;
   const animation = beat.animation;
-  const pose = evaluate(frame, localFrame);
+  const pose = evaluate(frame, localFrame, props.carriedStartPose);
   const animated = hasAnimationKeyframes(frame);
   const hasPlain = hasPlainValues(frame);
+  const effectiveCin = effectiveFrameCinematic(frame);
+  const hasDepthMap = Boolean(
+    effectiveCin?.depthMap &&
+      frame.picture &&
+      !frame.picture.startsWith("video:") &&
+      !frame.picture.startsWith("gradient:") &&
+      String(effectiveCin?.mode ?? "pan") !== "dolly",
+  );
+  const authoredMoveLabel = describeAuthoredMove(effectiveCin, frame.picture);
+
+  const applyStarterPreset = (presetId: StarterPresetId, label: string) => {
+    const nextAnim = buildStarterPresetAnimation(presetId, frame, clipDurationFrames, {
+      presetOffsetFrames: props.presetOffsetFrames ?? 0,
+    });
+    props.onSetAnimation(nextAnim, `Started from preset: ${label}`);
+    setPresetMenuOpen(false);
+  };
 
   const musicUrl = String(scene.musicUrl || scene.sceneAudioUrl || "");
   const ambParsed = parseAmbienceSpec(scene.ambientAudio);
@@ -995,8 +1037,75 @@ export function Inspector(props: InspectorProps) {
               <SectionTitle
                 number="03"
                 title="Animation"
-                status={animated ? "KEYFRAMED" : hasPlain ? "PLAIN" : "PRESET"}
+                status={animated ? "KEYFRAMED" : hasPlain ? "PLAIN" : "STILL"}
               />
+              <div className="anim-preset-toolbar">
+                <div className="anim-preset-dropdown" ref={presetMenuWrapRef}>
+                  <button
+                    type="button"
+                    className={`field-reset anim-preset-btn ${presetMenuOpen ? "is-active-pill" : ""}`}
+                    data-testid="start-from-preset-btn"
+                    disabled={Boolean(beat.gap)}
+                    aria-expanded={presetMenuOpen}
+                    onClick={() => setPresetMenuOpen((open) => !open)}
+                    title="Write a camera preset or depth move's keyframes onto this shot as an editable starting point"
+                  >
+                    <span>Start from preset</span>
+                    <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true">
+                      <path
+                        d="M2,3.5 L5,6.8 L8,3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  {presetMenuOpen && (
+                    <div
+                      className="anim-preset-menu"
+                      data-testid="start-from-preset-menu"
+                      role="menu"
+                    >
+                      {authoredMoveLabel && (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          data-testid="preset-option-authored"
+                          onClick={() =>
+                            applyStarterPreset("authored", `Shot move (${authoredMoveLabel})`)
+                          }
+                        >
+                          Shot move: {authoredMoveLabel}
+                        </button>
+                      )}
+                      {STARTER_PRESET_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          role="menuitem"
+                          data-testid={`preset-option-${opt.id}`}
+                          onClick={() => applyStarterPreset(opt.id, opt.label)}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {props.onConvertAllToKeyframes && (
+                  <button
+                    type="button"
+                    className="field-reset anim-convert-all-btn"
+                    data-testid="convert-all-keyframes-btn"
+                    onClick={props.onConvertAllToKeyframes}
+                    title="Convert every un-keyframed preset or depth move in this project into editable keyframes (single undo step)"
+                  >
+                    Convert all to keyframes
+                  </button>
+                )}
+              </div>
               <div className="anim-section-bar">
                 <span>
                   Clip frame <strong>+{localFrame}f</strong> / {Math.max(0, clipDurationFrames - 1)}f
@@ -1020,7 +1129,7 @@ export function Inspector(props: InspectorProps) {
                     onClick={() => props.onJumpToLocalFrame(0)}
                     title="Jump playhead to clip start (frame 0)"
                   >
-                    ∣◀ Start
+                    Start
                   </button>
                   <button
                     type="button"
@@ -1046,7 +1155,7 @@ export function Inspector(props: InspectorProps) {
                     onClick={() => props.onJumpToLocalFrame(Math.max(0, clipDurationFrames - 1))}
                     title="Jump playhead to clip end"
                   >
-                    End ▶∣
+                    End
                   </button>
                   {(animated || hasPlain || Boolean(animation?.kenBurns)) && (
                     <button
@@ -1076,6 +1185,7 @@ export function Inspector(props: InspectorProps) {
                     value={pose[prop]}
                     pose={pose}
                     hasPicture={!beat.gap && Boolean(frame.picture)}
+                    hasDepthMap={hasDepthMap}
                     localFrame={localFrame}
                     animation={animation}
                     onSetAnimation={props.onSetAnimation}
@@ -1089,8 +1199,8 @@ export function Inspector(props: InspectorProps) {
               })}
               <p className="preview-only-note">
                 {animated
-                  ? "Keyframes active: evaluated directly by frame. Use ▸ on the clip or ∿ to open the Curve Editor."
-                  : "Add ◆ keyframes on any property to animate directly by frame."}
+                  ? "Keyframes active: evaluated directly by frame. Expand clip lanes or click the curve icon to edit curves."
+                  : "Still picture: add keyframes on any channel or choose Start from preset above."}
               </p>
             </section>
 
@@ -1303,6 +1413,7 @@ function AnimationChannelControl({
   value,
   pose,
   hasPicture,
+  hasDepthMap,
   localFrame,
   animation,
   onSetAnimation,
@@ -1322,6 +1433,7 @@ function AnimationChannelControl({
   value: number;
   pose: EvaluatedPose;
   hasPicture: boolean;
+  hasDepthMap?: boolean;
   localFrame: number;
   animation: BeatAnimation | undefined;
   onSetAnimation: (animation: BeatAnimation | undefined, label: string) => void;
@@ -1435,6 +1547,7 @@ function AnimationChannelControl({
           let next: BeatAnimation | undefined;
           if (
             hasPicture &&
+            !hasDepthMap &&
             (prop === "zoom" || prop === "x" || prop === "y" || prop === "rotation")
           ) {
             const candidate = {

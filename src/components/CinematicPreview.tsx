@@ -13,20 +13,21 @@ import {
 } from "../core/captions";
 import type { BeatAnimation, KenBurnsBox, Keyframe } from "../core/model";
 import { pictureLabel, storyboardGradient } from "../core/helpers";
-import { clipFrames, FPS, formatTimecode } from "../core/timing";
+import { clipFrames, formatTimecode } from "../core/timing";
 import {
   applyKenBurnsBoxes,
   applyPoseAtPlayhead,
   clampKenBurnsBox,
   clampPoseToPictureEdges,
   clampPropValue,
+  effectiveFrameCinematic,
   evaluate,
-  hasAnimationKeyframes,
   hasCustomTransform,
   kenBurnsBoxFromDrag,
   minZoomForRotation,
   poseToKenBurnsBox,
   zoomPoseAroundPointer,
+  type EvaluatedPose,
 } from "../sequence/animate";
 import type { ActiveTransition } from "../sequence/transitions";
 
@@ -35,6 +36,7 @@ export interface CinematicPreviewProps {
   localFrame?: number;
   presetFrame?: number;
   shotKeyId?: string;
+  carriedStartPose?: Partial<EvaluatedPose>;
   clipDurationFrames?: number;
   playheadFrame?: number;
   totalFrames?: number;
@@ -91,6 +93,7 @@ export function CinematicPreview({
   localFrame = 0,
   presetFrame,
   shotKeyId,
+  carriedStartPose,
   clipDurationFrames,
   playheadFrame = 0,
   totalFrames = 0,
@@ -176,7 +179,7 @@ export function CinematicPreview({
 
   const cinematic = frame.beat.gap
     ? {}
-    : ((frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>);
+    : ((effectiveFrameCinematic(frame) || {}) as Record<string, any>);
   const ownOverlay = [cinematic.vignette ? "fx-vignette" : "", cinematic.grain ? "fx-grain" : ""]
     .filter(Boolean)
     .join(" ");
@@ -214,11 +217,31 @@ export function CinematicPreview({
     !isFullscreen &&
     !showKenBurnsBoxes;
 
-  const currentEvaluatedPose = useMemo(() => evaluate(frame, localFrame), [frame, localFrame]);
-  const currentClampedPose = useMemo(
-    () => clampPoseToPictureEdges(currentEvaluatedPose),
-    [currentEvaluatedPose],
+  const viewerCin = effectiveFrameCinematic(frame);
+  const hasViewerDepth = Boolean(
+    viewerCin?.depthMap &&
+      imageSrc &&
+      !String(frame.picture || "").startsWith("video:") &&
+      !String(frame.picture || "").startsWith("gradient:") &&
+      String(viewerCin?.mode ?? "pan") !== "dolly",
   );
+
+  const currentEvaluatedPose = useMemo(
+    () => evaluate(frame, localFrame, carriedStartPose),
+    [frame, localFrame, carriedStartPose],
+  );
+  const currentClampedPose = useMemo(() => {
+    if (hasViewerDepth) {
+      return {
+        zoom: Math.max(1, currentEvaluatedPose.zoom),
+        x: clampPropValue("x", currentEvaluatedPose.x),
+        y: clampPropValue("y", currentEvaluatedPose.y),
+        rotation: clampPropValue("rotation", currentEvaluatedPose.rotation),
+        clamped: currentEvaluatedPose.zoom < 1,
+      };
+    }
+    return clampPoseToPictureEdges(currentEvaluatedPose);
+  }, [currentEvaluatedPose, hasViewerDepth]);
   const poseHitsEdge =
     hasEditablePicture &&
     hasCustomTransform(frame) &&
@@ -228,6 +251,8 @@ export function CinematicPreview({
   const latestRef = useRef({
     frame,
     localFrame,
+    carriedStartPose,
+    hasViewerDepth,
     canDirectFrame,
     onDragStart,
     onDragEnd,
@@ -237,6 +262,8 @@ export function CinematicPreview({
   latestRef.current = {
     frame,
     localFrame,
+    carriedStartPose,
+    hasViewerDepth,
     canDirectFrame,
     onDragStart,
     onDragEnd,
@@ -280,8 +307,16 @@ export function CinematicPreview({
       const normX = (event.clientX - rect.left) / rect.width;
       const normY = (event.clientY - rect.top) / rect.height;
 
-      const curRaw = evaluate(state.frame, state.localFrame);
-      const curPose = clampPoseToPictureEdges(curRaw);
+      const curRaw = evaluate(state.frame, state.localFrame, state.carriedStartPose);
+      const curPose = state.hasViewerDepth
+        ? {
+            zoom: Math.max(1, curRaw.zoom),
+            x: curRaw.x,
+            y: curRaw.y,
+            rotation: curRaw.rotation,
+            clamped: false,
+          }
+        : clampPoseToPictureEdges(curRaw);
       const factor = Math.exp(-event.deltaY * 0.0018);
       const targetZoom = curPose.zoom * factor;
 
@@ -464,12 +499,20 @@ export function CinematicPreview({
 
         const rawX = session.initialPose.x + (dxPx / session.rectWidth) * 100;
         const rawY = session.initialPose.y + (dyPx / session.rectHeight) * 100;
-        const clamped = clampPoseToPictureEdges({
-          zoom: session.initialPose.zoom,
-          x: rawX,
-          y: rawY,
-          rotation: session.initialPose.rotation,
-        });
+        const clamped = hasViewerDepth
+          ? {
+              zoom: Math.max(1, session.initialPose.zoom),
+              x: clampPropValue("x", rawX),
+              y: clampPropValue("y", rawY),
+              rotation: session.initialPose.rotation,
+              clamped: false,
+            }
+          : clampPoseToPictureEdges({
+              zoom: session.initialPose.zoom,
+              x: rawX,
+              y: rawY,
+              rotation: session.initialPose.rotation,
+            });
 
         if (clamped.clamped) {
           triggerEdgeWarning(
@@ -546,6 +589,7 @@ export function CinematicPreview({
                   shotFrame: transition.outgoingClip.keyframe,
                   shotLocalFrame: transition.outLocalFrame,
                   shotPresetFrame: outgoingPresetFrame ?? transition.outLocalFrame,
+                  shotCarriedStartPose: transition.outgoingClip.carriedStartPose,
                   shotImageSrc: outgoingImageSrc,
                   shotImagePosition: outgoingImagePosition,
                   shotSoundOn: soundOn,
@@ -560,6 +604,7 @@ export function CinematicPreview({
                   shotFrame: transition.incomingClip.keyframe,
                   shotLocalFrame: transition.inLocalFrame,
                   shotPresetFrame: incomingPresetFrame ?? transition.inLocalFrame,
+                  shotCarriedStartPose: transition.incomingClip.carriedStartPose,
                   shotImageSrc: incomingImageSrc,
                   shotImagePosition: incomingImagePosition,
                   shotSoundOn: false,
@@ -581,6 +626,7 @@ export function CinematicPreview({
                   shotFrame: frame,
                   shotLocalFrame: localFrame,
                   shotPresetFrame: presetFrame ?? localFrame,
+                  shotCarriedStartPose: carriedStartPose,
                   shotImageSrc: imageSrc,
                   shotImagePosition: imagePosition,
                   shotSoundOn: soundOn,
@@ -599,6 +645,7 @@ export function CinematicPreview({
                 frame={item.shotFrame}
                 localFrame={item.shotLocalFrame}
                 presetFrame={item.shotPresetFrame}
+                carriedStartPose={item.shotCarriedStartPose}
                 imageSrc={item.shotImageSrc}
                 imagePosition={item.shotImagePosition}
                 resolveMedia={resolveMedia}
@@ -1286,7 +1333,8 @@ export function CinematicPreview({
 function ShotLayer({
   frame,
   localFrame,
-  presetFrame,
+  presetFrame: _presetFrame,
+  carriedStartPose,
   imageSrc,
   imagePosition,
   resolveMedia,
@@ -1297,6 +1345,7 @@ function ShotLayer({
   frame: Keyframe;
   localFrame: number;
   presetFrame: number;
+  carriedStartPose?: Partial<EvaluatedPose>;
   imageSrc?: string;
   imagePosition?: string;
   resolveMedia: (value: string | undefined) => string | undefined;
@@ -1304,24 +1353,10 @@ function ShotLayer({
   plateTestId: string;
   forceUncropped?: boolean;
 }) {
-  const cinematic = (frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>;
+  const cinematic = (effectiveFrameCinematic(frame) || {}) as Record<string, any>;
   const anim = frame.beat.animation;
-  const hasKeyframes = hasAnimationKeyframes(frame);
-  const hasCustomCamera = hasCustomTransform(frame);
-  const rawPose = evaluate(frame, localFrame);
+  const rawPose = evaluate(frame, localFrame, carriedStartPose);
   const clampedPose = clampPoseToPictureEdges(rawPose);
-  const pose = {
-    ...rawPose,
-    zoom: clampedPose.zoom,
-    x: clampedPose.x,
-    y: clampedPose.y,
-    rotation: clampedPose.rotation,
-  };
-  const firstFrameDepthAmount =
-    anim?.depthAmount?.length || typeof anim?.values?.depthAmount === "number"
-      ? evaluate(frame, 0).depthAmount
-      : undefined;
-  const tSec = Math.max(0, hasCustomCamera ? localFrame : presetFrame) / FPS;
 
   const picture = frame.picture || "";
   const isGradient = picture.startsWith("gradient:");
@@ -1329,14 +1364,12 @@ function ShotLayer({
   const videoSrc = videoValue ? resolveMedia(videoValue) : undefined;
   const plateUrl = isGradient ? picture : imageSrc || storyboardGradient(picture);
 
-  const effectiveCinematic = useMemo(
-    () =>
-      hasCustomCamera || forceUncropped
-        ? { ...cinematic, mode: "static", shakeAmount: 0 }
-        : cinematic,
-    [cinematic, hasCustomCamera, forceUncropped],
+  // Keyframes are the sole camera: Scarlet Reel presets never run on the plate.
+  const effectiveCinematic = useMemo<Record<string, any>>(
+    () => ({ ...cinematic, mode: "static" as const, shakeAmount: 0 }),
+    [cinematic],
   );
-  const ungradedCinematic = useMemo(
+  const ungradedCinematic = useMemo<Record<string, any>>(
     () => ({ ...effectiveCinematic, colorGrade: undefined, filmGrade: false }),
     [effectiveCinematic],
   );
@@ -1350,24 +1383,48 @@ function ShotLayer({
   );
 
   const hasDepth = Boolean(
-    cinematic.depthMap && imageSrc && !videoSrc && String(cinematic.mode ?? "pan") !== "dolly",
+    !forceUncropped &&
+      cinematic.depthMap &&
+      imageSrc &&
+      !videoSrc &&
+      !isGradient &&
+      String(cinematic.mode ?? "pan") !== "dolly",
   );
 
   const hasRotation =
     Boolean(anim?.rotation?.length) ||
     typeof anim?.values?.rotation === "number" ||
-    pose.rotation !== 0;
-  // Frame-deterministic plate transform: never flips mode across transitions and never relies on CSS @keyframes!
-  const keyframeTransform = hasRotation
-    ? `translate(${pose.x}%, ${pose.y}%) scale(${pose.zoom}) rotate(${pose.rotation}deg)`
-    : `translate(${pose.x}%, ${pose.y}%) scale(${pose.zoom})`;
-  const plateTransform = forceUncropped
-    ? "scale(1)"
-    : hasCustomCamera
-      ? keyframeTransform
-      : hasDepth
-        ? "scale(1)"
-        : evaluatePresetPlateTransform(cinematic, tSec);
+    rawPose.rotation !== 0;
+
+  const hasCameraMove =
+    hasCustomTransform(frame) ||
+    hasRotation ||
+    rawPose.zoom !== 1 ||
+    rawPose.x !== 0 ||
+    rawPose.y !== 0;
+
+  // Apply the camera transform ONCE:
+  // - Non-depth shots: wrapper carries translate/scale/rotate; plate & missing card stay `transform: none`.
+  // - Depth shots: `zoom`/`x`/`y` drive `FrameDepthParallaxLayer` shader (`uZoom`/`uShift`),
+  //   wrapper carries `rotation` only, and both plate & `<canvas>` stay `transform: none`.
+  let cameraWrapperTransform = "none";
+  if (!forceUncropped) {
+    if (hasDepth) {
+      if (hasRotation) {
+        const rotCover = minZoomForRotation(clampedPose.rotation);
+        cameraWrapperTransform =
+          rotCover > 1.0001
+            ? `scale(${Number(rotCover.toFixed(6))}) rotate(${clampedPose.rotation}deg)`
+            : `rotate(${clampedPose.rotation}deg)`;
+      }
+    } else if (hasCameraMove) {
+      cameraWrapperTransform = hasRotation
+        ? `translate(${clampedPose.x}%, ${clampedPose.y}%) scale(${clampedPose.zoom}) rotate(${clampedPose.rotation}deg)`
+        : `translate(${clampedPose.x}%, ${clampedPose.y}%) scale(${clampedPose.zoom})`;
+    }
+  }
+
+  const plateTransform = "none";
 
   const basePlateStyle = imagePosition
     ? { ...layer.style, backgroundPosition: imagePosition }
@@ -1389,9 +1446,9 @@ function ShotLayer({
     transition: "none",
   };
 
-  const clampedOpacity = clamp01(pose.opacity);
-  const clampedBlur = Math.max(0, pose.blur);
-  const clampedGradeStrength = clamp01(pose.gradeStrength);
+  const clampedOpacity = clamp01(rawPose.opacity);
+  const clampedBlur = Math.max(0, rawPose.blur);
+  const clampedGradeStrength = clamp01(rawPose.gradeStrength);
   const hasGradeLayerSplit =
     (Boolean(anim?.gradeStrength?.length) || clampedGradeStrength < 1) &&
     Boolean(effectiveCinematic.colorGrade || effectiveCinematic.filmGrade);
@@ -1400,22 +1457,25 @@ function ShotLayer({
   if (Boolean(anim?.blur?.length) || clampedBlur > 0) {
     filterParts.push(`blur(${Number(clampedBlur.toFixed(4))}px)`);
   }
-  if (Boolean(anim?.exposure?.length) || pose.exposure !== 0) {
-    const brightness = Number(Math.pow(2, pose.exposure).toFixed(6));
+  if (Boolean(anim?.exposure?.length) || rawPose.exposure !== 0) {
+    const brightness = Number(Math.pow(2, rawPose.exposure).toFixed(6));
     filterParts.push(`brightness(${brightness})`);
   }
   const cameraFilter = filterParts.length > 0 ? filterParts.join(" ") : undefined;
   const cameraOpacity =
     Boolean(anim?.opacity?.length) || clampedOpacity !== 1 ? clampedOpacity : undefined;
 
-  const effectiveDepthAmount =
-    firstFrameDepthAmount !== undefined ? clamp01(firstFrameDepthAmount) : cinematic.depthAmount;
+  const currentDepthAmount = clamp01(rawPose.depthAmount);
+  const authoredDepthAmount =
+    typeof cinematic.depthAmount === "number" && Number.isFinite(cinematic.depthAmount)
+      ? clamp01(cinematic.depthAmount)
+      : 0.4;
 
   const resolvedCinematic = useMemo(
     () =>
       ({
         ...effectiveCinematic,
-        depthAmount: effectiveDepthAmount,
+        depthAmount: currentDepthAmount,
         depthMap: resolveMedia(cinematic.depthMap),
         depthPlate: resolveMedia(cinematic.depthPlate),
         depthCutouts: Array.isArray(cinematic.depthCutouts)
@@ -1427,7 +1487,7 @@ function ShotLayer({
       }) as unknown as CinematicSettings,
     [
       effectiveCinematic,
-      effectiveDepthAmount,
+      currentDepthAmount,
       cinematic.depthMap,
       cinematic.depthPlate,
       cinematic.depthCutouts,
@@ -1435,17 +1495,15 @@ function ShotLayer({
     ],
   );
 
+  const gradeClass =
+    clampedGradeStrength > 0.001 &&
+    effectiveCinematic.colorGrade &&
+    effectiveCinematic.colorGrade !== "none"
+      ? `cin-grade-${effectiveCinematic.colorGrade}`
+      : "";
+
   const particleKind = (frame.beat.particles ?? frame.scene.particles ?? "none") as ParticleKind;
   const particleConfig = frame.beat.particleConfig ?? frame.scene.particleConfig;
-  const cameraWrapperTransform = forceUncropped
-    ? undefined
-    : hasCustomCamera
-      ? hasDepth
-        ? keyframeTransform
-        : undefined
-      : evaluateCameraWrapperTransform(cinematic, tSec);
-  void hasKeyframes;
-
   const shotName = pictureLabel(picture, false, "No picture on this keyframe");
 
   if (frame.beat.gap) {
@@ -1537,11 +1595,16 @@ function ShotLayer({
           </div>
         </div>
       )}
-      {cinematic.depthMap && imageSrc && !videoSrc && (
+      {hasDepth && (
         <FrameDepthParallaxLayer
           cinematic={resolvedCinematic}
-          picture={plateUrl || imageSrc}
-          tSec={tSec}
+          picture={plateUrl || imageSrc || ""}
+          zoom={Math.max(1, rawPose.zoom)}
+          x={rawPose.x}
+          y={rawPose.y}
+          depthAmount={currentDepthAmount}
+          authoredDepthAmount={authoredDepthAmount}
+          gradeClassName={gradeClass}
         />
       )}
       {cinematic.foregroundImage && (
@@ -1602,168 +1665,8 @@ function ShotLayer({
   );
 }
 
-function parsePosition(value: unknown): { x: number; y: number } {
-  const [x, y] = String(value || "50% 50%")
-    .split(/\s+/)
-    .map((part) => Number.parseFloat(part));
-  return {
-    x: Number.isFinite(x) ? x : 50,
-    y: Number.isFinite(y) ? y : 50,
-  };
-}
-
 function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
 }
 
-function easeInOutQuad(t: number): number {
-  const u = clamp01(t);
-  return u * u * (3 - 2 * u);
-}
-
-function easeOutCubic(t: number): number {
-  const u = clamp01(t);
-  return 1 - Math.pow(1 - u, 3);
-}
-
-function pingPong01(cycles: number): number {
-  const mod = ((cycles % 2) + 2) % 2;
-  return mod <= 1 ? mod : 2 - mod;
-}
-
-const SHAKE_STOPS: ReadonlyArray<{ p: number; x: number; y: number; r: number }> = [
-  { p: 0.0, x: 0, y: 0, r: 0 },
-  { p: 0.1, x: 1, y: -0.6, r: 1 },
-  { p: 0.24, x: -0.9, y: 0.4, r: -0.7 },
-  { p: 0.38, x: 0.5, y: 1, r: 0.5 },
-  { p: 0.52, x: -0.6, y: -0.8, r: -0.4 },
-  { p: 0.66, x: 0.7, y: 0.3, r: 0.8 },
-  { p: 0.8, x: -0.4, y: 0.5, r: -0.6 },
-  { p: 0.92, x: 0.2, y: -0.3, r: 1 },
-  { p: 1.0, x: 0, y: 0, r: 0 },
-];
-
-/**
- * Deterministic 24 fps frame evaluation of Scarlet Reel preset camera modes (`pan`, `zoom-hold`,
- * `dolly`, `dolly-zoom`, `shake`, `static`) so transitions never reset or snap CSS `@keyframes`.
- */
-function evaluatePresetPlateTransform(cinematic: Record<string, any>, tSec: number): string {
-  const mode = String(cinematic.mode ?? "pan");
-  const zoomDur = Math.max(0.1, Number(cinematic.zoomDuration) || 8);
-
-  if (mode === "static") {
-    return "scale(1)";
-  }
-
-  if (mode === "zoom-hold") {
-    const focal = parsePosition(cinematic.focalPoint);
-    const endX = (50 - focal.x) * 0.14;
-    const endY = (50 - focal.y) * 0.14;
-    const u = easeOutCubic(tSec / (0.8 * zoomDur));
-    const scale = 1 + 0.22 * u;
-    const tx = endX * u;
-    const ty = endY * u;
-    return `scale(${scale.toFixed(4)}) translate(${tx.toFixed(3)}%, ${ty.toFixed(3)}%)`;
-  }
-
-  if (mode === "dolly") {
-    const dollyDur = Math.max(1, Number(cinematic.dollyDuration) || 10);
-    const dist = Math.max(0, Number(cinematic.dollyDistance ?? 8));
-    const dir = cinematic.dollyDirection === "left" ? -1 : 1;
-    const vert = Math.max(0, Math.min(8, Number(cinematic.dollyVertical ?? 0)));
-    const u = easeInOutQuad(pingPong01(tSec / dollyDur));
-    const tx = (-dist * dir) + 2 * dist * dir * u;
-    const ty = -vert + 2 * vert * u;
-    return `translateX(${tx.toFixed(3)}%) translateY(${ty.toFixed(3)}%)`;
-  }
-
-  if (mode === "dolly-zoom") {
-    const dzDur = Math.max(1, Number(cinematic.dollyZoomDuration) || 8);
-    const amount = Math.max(1, Number(cinematic.dollyZoomAmount) || 1.35);
-    const dir = String(cinematic.dollyZoomDirection ?? "both");
-    const fromScale = dir === "pull" ? amount : 1;
-    const toScale = dir === "pull" ? 1 : amount;
-    const u =
-      dir === "push" || dir === "pull"
-        ? easeInOutQuad(tSec / dzDur)
-        : easeInOutQuad(pingPong01(tSec / dzDur));
-    const scale = fromScale + (toScale - fromScale) * u;
-    return `scale(${scale.toFixed(4)})`;
-  }
-
-  if (mode === "shake") {
-    const shake = Math.max(0, Math.min(1, Number(cinematic.shakeAmount ?? 0.5)));
-    const shakeAmtPx = shake * 6;
-    const shakeRotDeg = Number(cinematic.shakeRotation ?? shake * 0.7);
-    const shakeDur = Math.max(0.1, Number(cinematic.shakeDuration) || 0.5);
-    const phase = ((tSec / shakeDur) % 1 + 1) % 1;
-    let sx = 0;
-    let sy = 0;
-    let sr = 0;
-    for (let i = 0; i < SHAKE_STOPS.length - 1; i += 1) {
-      const a = SHAKE_STOPS[i];
-      const b = SHAKE_STOPS[i + 1];
-      if (phase >= a.p && phase <= b.p) {
-        const w = b.p > a.p ? (phase - a.p) / (b.p - a.p) : 0;
-        sx = (a.x + (b.x - a.x) * w) * shakeAmtPx;
-        sy = (a.y + (b.y - a.y) * w) * shakeAmtPx;
-        sr = (a.r + (b.r - a.r) * w) * shakeRotDeg;
-        break;
-      }
-    }
-    return `translate(${sx.toFixed(2)}px, ${sy.toFixed(2)}px) scale(1.06) rotate(${sr.toFixed(3)}deg)`;
-  }
-
-  // Default mode === "pan": 0% scale(1.12) translate(-0.5*panX, 0) -> 100% scale(1.16) translate(panX, 0)
-  const panDur = Math.max(0.1, Number(cinematic.zoomDuration) || 14);
-  const panDist = Math.max(0, Number(cinematic.panDistance ?? 0));
-  const panX = cinematic.panDirection === "left" ? -panDist : panDist;
-  const u = easeInOutQuad(tSec / panDur);
-  const scale = 1.12 + 0.04 * u;
-  const tx = -0.5 * panX + 1.5 * panX * u;
-  return `scale(${scale.toFixed(4)}) translate(${tx.toFixed(3)}%, 0%)`;
-}
-
-function evaluateCameraWrapperTransform(
-  cinematic: Record<string, any>,
-  tSec: number,
-): string | undefined {
-  const hasEditMove = Boolean(
-    cinematic.startZoom !== undefined ||
-      cinematic.endZoom !== undefined ||
-      cinematic.zoom !== undefined ||
-      cinematic.startFocalPoint ||
-      cinematic.endFocalPoint,
-  );
-  if (!hasEditMove) return undefined;
-
-  const startScaleRaw = Number(cinematic.startZoom ?? cinematic.zoom ?? 1);
-  const endScaleRaw = Number(cinematic.endZoom ?? cinematic.zoom ?? 1);
-  const startScale = Number.isFinite(startScaleRaw) && startScaleRaw > 0 ? startScaleRaw : 1;
-  const endScale = Number.isFinite(endScaleRaw) && endScaleRaw > 0 ? endScaleRaw : 1;
-  const startPoint = parsePosition(cinematic.startFocalPoint || cinematic.focalPoint);
-  const endPoint = parsePosition(cinematic.endFocalPoint || cinematic.focalPoint);
-  const startX = (50 - startPoint.x) * 0.14;
-  const startY = (50 - startPoint.y) * 0.14;
-  const endX = (50 - endPoint.x) * 0.14;
-  const endY = (50 - endPoint.y) * 0.14;
-
-  const dur = Math.max(0.1, Number(cinematic.zoomDuration) || 8);
-  const easingName = String(cinematic.easing || "ease-in-out");
-  const rawT = clamp01(tSec / dur);
-  const u =
-    easingName === "linear"
-      ? rawT
-      : easingName === "ease-out"
-        ? easeOutCubic(rawT)
-        : easeInOutQuad(rawT);
-
-  const scale = startScale + (endScale - startScale) * u;
-  const tx = startX + (endX - startX) * u;
-  const ty = startY + (endY - startY) * u;
-  if (Math.abs(scale - 1) < 1e-4 && Math.abs(tx) < 1e-4 && Math.abs(ty) < 1e-4) {
-    return undefined;
-  }
-  return `scale(${scale.toFixed(4)}) translate(${tx.toFixed(3)}%, ${ty.toFixed(3)}%)`;
-}
 

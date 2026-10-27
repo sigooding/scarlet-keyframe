@@ -19,6 +19,7 @@ export interface TopbarProps {
   onMissing: () => void;
   editLabel: string;
   totalDuration: number;
+  onConvertAllToKeyframes?: () => void;
 }
 
 function formatTotalRuntime(seconds: number): string {
@@ -44,6 +45,7 @@ export function Topbar({
   onMissing,
   editLabel,
   totalDuration,
+  onConvertAllToKeyframes,
 }: TopbarProps) {
   const statusTone = saveStatus.includes("FAILED")
     ? "is-danger"
@@ -107,6 +109,16 @@ export function Topbar({
       </div>
 
       <div className="topbar-actions">
+        {onConvertAllToKeyframes && (
+          <button
+            className="button button-quiet"
+            data-testid="topbar-convert-all-keyframes-btn"
+            onClick={onConvertAllToKeyframes}
+            title="Convert all preset and depth moves in this project into editable keyframes (one undo step)"
+          >
+            Convert all to keyframes
+          </button>
+        )}
         <button className="button button-quiet" onClick={onImport}>
           Import
         </button>

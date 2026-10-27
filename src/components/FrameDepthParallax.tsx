@@ -5,10 +5,103 @@ import type { CinematicSettings, DepthCutout } from "../../vendor/scarlet-reel/t
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-const PUSH_FAR = 0.12;
-const PUSH_NEAR = 0.36;
-const TRUCK = 0.08;
+export const PUSH_FAR = 0.12;
+export const PUSH_NEAR = 0.36;
+export const PUSH_NEAR_FAR_RATIO = PUSH_NEAR / PUSH_FAR;
 const MAX_CUTOUTS = 4;
+
+export interface DepthCameraUniforms {
+  uZoom: [number, number];
+  uShift: [number, number];
+  uFocus: number;
+  uCenter: [number, number];
+  amount: number;
+}
+
+export interface DepthCameraInput {
+  zoom: number;
+  x: number;
+  y: number;
+  amount?: number;
+  authoredAmount?: number;
+  focus?: number;
+  center?: [number, number];
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+function roundAttr(v: number): number {
+  if (!Number.isFinite(v) || Math.abs(v) < 1e-9) return 0;
+  const r = Math.round(v * 100000) / 100000;
+  return Object.is(r, -0) ? 0 : r;
+}
+
+export function centreFromFocalPoint(focalPoint?: string): [number, number] {
+  const [x, y] = (focalPoint ?? "50% 50%").split(/\s+/).map((v) => parseFloat(v));
+  const c = (v: number) => (Number.isFinite(v) ? clamp(v, 0, 100) / 100 : 0.5);
+  return [c(x), 1 - c(y)];
+}
+
+/**
+ * Pure keyframe-pose-to-shader mapping for 2.5D depth shots:
+ * - `x`/`y` become the parallax shift `uShift` (with `vUv` bottom-up -> `uShift.y = -y/100`)
+ * - `zoom` becomes the push: far layers take `zoom`, near layers zoom more in `PUSH_NEAR / PUSH_FAR` ratio
+ * - `overscan` guarantees `source(uv, d) ∈ [0, 1]²` for all `uv ∈ [0, 1]²` and `d ∈ [0, 1]` (zero edge exposure)
+ */
+export function computeDepthCameraUniforms(input: DepthCameraInput): DepthCameraUniforms {
+  const curAmount = clamp(
+    typeof input.amount === "number" && Number.isFinite(input.amount) ? input.amount : 0.4,
+    0,
+    1,
+  );
+  const baseAmount =
+    typeof input.authoredAmount === "number" &&
+    Number.isFinite(input.authoredAmount) &&
+    input.authoredAmount > 1e-4
+      ? clamp(input.authoredAmount, 0.05, 1)
+      : 0.4;
+  const depthScale = curAmount / baseAmount;
+
+  const focusVal = clamp(
+    typeof input.focus === "number" && Number.isFinite(input.focus) ? input.focus : 0.5,
+    0,
+    1,
+  );
+  const center: [number, number] = input.center
+    ? [clamp(input.center[0], 0.1, 0.9), clamp(input.center[1], 0.1, 0.9)]
+    : [0.5, 0.5];
+
+  const reach = Math.max(focusVal, 1 - focusVal);
+  const rawX = Number.isFinite(input.x) ? input.x : 0;
+  const rawY = Number.isFinite(input.y) ? input.y : 0;
+  const shiftX = (rawX / 100) * depthScale;
+  const shiftY = -(rawY / 100) * depthScale;
+
+  const pushFar = Math.max(1, Number.isFinite(input.zoom) ? input.zoom : 1);
+  const nearRatio = 1 + (PUSH_NEAR_FAR_RATIO - 1) * depthScale;
+  const pushNear = 1 + (pushFar - 1) * nearRatio;
+
+  const minMarginX = Math.max(0.1, Math.min(center[0], 1 - center[0]));
+  const minMarginY = Math.max(0.1, Math.min(center[1], 1 - center[1]));
+  const normShift = Math.max(
+    (reach * Math.abs(shiftX)) / minMarginX,
+    (reach * Math.abs(shiftY)) / minMarginY,
+  );
+  const overscan = Math.max(
+    1 / Math.max(0.5, 1 - normShift),
+    1 + normShift,
+  );
+
+  return {
+    uZoom: [pushFar * overscan, pushNear * overscan],
+    uShift: [shiftX, shiftY],
+    uFocus: focusVal,
+    uCenter: center,
+    amount: curAmount,
+  };
+}
 
 const VERTEX = `
 attribute vec2 aPos;
@@ -119,16 +212,42 @@ function compile(gl: WebGLRenderingContext, type: number, source: string): WebGL
   return gl.getShaderParameter(sh, gl.COMPILE_STATUS) ? sh : null;
 }
 
-function upload(gl: WebGLRenderingContext, unit: number, src: TexImageSource, premultiply: boolean) {
+function upload(
+  gl: WebGLRenderingContext,
+  unit: number,
+  tex: WebGLTexture,
+  src: TexImageSource,
+  premultiply: boolean,
+) {
   gl.activeTexture(gl.TEXTURE0 + unit);
-  gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+  gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiply);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
-  gl.texParameteri(gl.TEXTURE_2D, gl.LINEAR === gl.LINEAR ? gl.TEXTURE_MIN_FILTER : gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
+function uploadSolid(gl: WebGLRenderingContext, unit: number, tex: WebGLTexture, byteVal = 0) {
+  gl.activeTexture(gl.TEXTURE0 + unit);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    1,
+    1,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    new Uint8Array([byteVal, byteVal, byteVal, 255]),
+  );
 }
 
 function fitted(img: HTMLImageElement, w: number, h: number): HTMLCanvasElement {
@@ -146,37 +265,32 @@ function fitted(img: HTMLImageElement, w: number, h: number): HTMLCanvasElement 
   return c;
 }
 
-const easeInOut = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, x)));
-const settle = (t: number, seconds: number) => {
-  const x = Math.max(0, Math.min(1, t / seconds));
-  const lead = Math.min(1, t / 0.6);
-  return (1 - (1 - x) ** 3) * lead * lead * (3 - 2 * lead);
-};
-
-function centre(focalPoint?: string): [number, number] {
-  const [x, y] = (focalPoint ?? "50% 50%").split(/\s+/).map((v) => parseFloat(v));
-  const clamp = (v: number) => (Number.isFinite(v) ? Math.max(0, Math.min(100, v)) / 100 : 0.5);
-  return [clamp(x), 1 - clamp(y)];
-}
-
 /**
- * Deterministic 24 fps 2.5D depth-map camera driven directly by `tSec = localFrame / 24`
- * (never wall-clock `performance.now()`), with cached decoded images so transitions and
- * scrubs draw synchronously on frame 0 without flashing or resetting camera progress.
+ * Deterministic 24 fps 2.5D depth-map camera driven solely by the shot's keyframe pose
+ * (`zoom`, `x`, `y`, and per-frame `depthAmount`), with progressive picture upload so
+ * there is zero jump while depth images finish loading.
  */
 export function FrameDepthParallaxLayer({
   cinematic,
   picture,
-  tSec,
+  zoom = 1,
+  x = 0,
+  y = 0,
+  depthAmount,
+  authoredDepthAmount,
+  gradeClassName,
 }: {
   cinematic?: CinematicSettings;
   picture: string;
-  tSec: number;
+  zoom?: number;
+  x?: number;
+  y?: number;
+  depthAmount?: number;
+  authoredDepthAmount?: number;
+  gradeClassName?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const drawAtTimeRef = useRef<((timeSec: number) => void) | null>(null);
-  const latestTimeRef = useRef(tSec);
-  latestTimeRef.current = tSec;
+  const drawFrameRef = useRef<(() => void) | null>(null);
 
   const on = hasDepthParallax(cinematic, picture);
   const depthMap = cinematic?.depthMap;
@@ -185,38 +299,57 @@ export function FrameDepthParallaxLayer({
     .filter((k) => k.image)
     .slice(0, MAX_CUTOUTS);
   const cutKey = cutouts.map((k) => `${k.image}@${k.depth}`).join(",");
-  const amount = Math.max(0, Math.min(1, cinematic?.depthAmount ?? 0.4));
-  const amountRef = useRef(amount);
-  amountRef.current = amount;
-  const motion = cinematic?.depthMotion ?? "truck";
-  const seconds = Math.max(2, cinematic?.depthSeconds ?? 14);
-  const direction = cinematic?.depthDirection === "left" ? -1 : 1;
-  const focus = Math.max(
+
+  const effectiveAmount = clamp(
+    typeof depthAmount === "number" && Number.isFinite(depthAmount)
+      ? depthAmount
+      : (cinematic?.depthAmount ?? 0.4),
     0,
-    Math.min(
-      1,
-      cinematic?.depthFocus ??
-        (cutouts.length ? cutouts.reduce((s, k) => s + k.depth, 0) / cutouts.length : 0.5),
-    ),
+    1,
+  );
+  const baseAuthoredAmount =
+    typeof authoredDepthAmount === "number" && Number.isFinite(authoredDepthAmount)
+      ? authoredDepthAmount
+      : (cinematic?.depthAmount ?? 0.4);
+
+  const amountRef = useRef(effectiveAmount);
+  amountRef.current = effectiveAmount;
+
+  const poseRef = useRef({ zoom, x, y, authoredAmount: baseAuthoredAmount });
+  poseRef.current = { zoom, x, y, authoredAmount: baseAuthoredAmount };
+
+  const focus = clamp(
+    cinematic?.depthFocus ??
+      (cutouts.length ? cutouts.reduce((s, k) => s + k.depth, 0) / cutouts.length : 0.5),
+    0,
+    1,
   );
   const focal = cinematic?.focalPoint;
+  const useFocalCenter =
+    cinematic?.depthMotion === "push" && Math.abs(x) < 1e-5 && Math.abs(y) < 1e-5;
+  const center: [number, number] = useFocalCenter ? centreFromFocalPoint(focal) : [0.5, 0.5];
+
+  const uniforms = computeDepthCameraUniforms({
+    zoom,
+    x,
+    y,
+    amount: effectiveAmount,
+    authoredAmount: baseAuthoredAmount,
+    focus,
+    center,
+  });
 
   const isSynchronouslyCached = (() => {
     if (!on || !depthMap || typeof window === "undefined") return false;
+    const picSrc = assetBackground(picture);
     const plateSrc = assetBackground(plate || picture);
-    const depthSrc = assetUrl(depthMap);
-    const cutSrcs = cutouts.map((k) => assetUrl(k.image));
-    return Boolean(
-      getCachedImage(plateSrc) &&
-        getCachedImage(depthSrc) &&
-        cutSrcs.every((s) => Boolean(getCachedImage(s))),
-    );
+    return Boolean(getCachedImage(picSrc) || getCachedImage(plateSrc));
   })();
 
   const [ready, setReady] = useState(isSynchronouslyCached);
 
   useIsomorphicLayoutEffect(() => {
-    drawAtTimeRef.current = null;
+    drawFrameRef.current = null;
     if (!on || !depthMap) {
       setReady(false);
       return;
@@ -242,7 +375,8 @@ export function FrameDepthParallaxLayer({
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
     gl.useProgram(prog);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const aPos = gl.getAttribLocation(prog, "aPos");
     gl.enableVertexAttribArray(aPos);
@@ -251,89 +385,137 @@ export function FrameDepthParallaxLayer({
     const u = (name: string) => gl.getUniformLocation(prog, name);
     const uZoom = u("uZoom");
     const uShift = u("uShift");
+    const uCenter = u("uCenter");
     const uDepthScale = u("uDepthScale");
+    const uCuts = u("uCuts");
+    const uCutDepth = u("uCutDepth");
     gl.uniform1i(u("uPlate"), 0);
     gl.uniform1i(u("uDepth"), 1);
     ["uCut0", "uCut1", "uCut2", "uCut3"].forEach((name, i) => gl.uniform1i(u(name), 2 + i));
     gl.uniform1f(u("uFocus"), focus);
-    gl.uniform2f(
-      u("uCenter"),
-      ...(motion === "push" ? centre(focal) : ([0.5, 0.5] as [number, number])),
-    );
+
+    const plateTex = gl.createTexture();
+    const depthTex = gl.createTexture();
+    const cutTex = [
+      gl.createTexture(),
+      gl.createTexture(),
+      gl.createTexture(),
+      gl.createTexture(),
+    ];
+    if (!plateTex || !depthTex || cutTex.some((t) => !t)) return;
+
+    // Seed flat d=0 depth immediately so the base picture draws at the exact keyframed
+    // `zoom` / `x` / `y` before `depthMap` or `cutouts` arrive (zero jump when depth loads).
+    uploadSolid(gl, 0, plateTex, 0);
+    uploadSolid(gl, 1, depthTex, 0);
+    for (let i = 0; i < MAX_CUTOUTS; i += 1) {
+      uploadSolid(gl, 2 + i, cutTex[i]!, 0);
+    }
+    gl.uniform1i(uCuts, 0);
+    gl.uniform4f(uCutDepth, 0, 0, 0, 0);
 
     const layers = [...cutouts].sort((a, b) => a.depth - b.depth);
-    gl.uniform1i(u("uCuts"), layers.length);
-    const depths = [0, 1, 2, 3].map((i) => Math.max(0, Math.min(1, layers[i]?.depth ?? 0)));
-    gl.uniform4f(u("uCutDepth"), depths[0], depths[1], depths[2], depths[3]);
+    const sortedDepths = [0, 1, 2, 3].map((i) => clamp(layers[i]?.depth ?? 0, 0, 1));
 
-    const reach = Math.max(focus, 1 - focus);
-    const overscanFor = (slide: number) => 1 / Math.max(0.5, 1 - 2 * reach * Math.abs(slide));
+    let activePlateImg: HTMLImageElement | null = null;
+    let activeDepthImg: HTMLImageElement | null = null;
+    let activeCutImgs: HTMLImageElement[] = [];
+    let fullDepthReady = false;
+    let uploadedKey = "";
 
-    let images: { plate: HTMLImageElement; depth: HTMLImageElement; cuts: HTMLImageElement[] } | null = null;
-    let size = "";
-
-    const prepare = () => {
-      if (!images) return;
+    const syncTextures = () => {
+      if (!activePlateImg) return false;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = Math.max(1, Math.round((canvas.clientWidth || 960) * dpr));
       const h = Math.max(1, Math.round((canvas.clientHeight || 540) * dpr));
-      if (`${w}x${h}` === size) return;
-      size = `${w}x${h}`;
+      const stateKey = `${w}x${h}|${activePlateImg.src}|${activeDepthImg ? "d1" : "d0"}|${activeCutImgs.length}`;
+      if (stateKey === uploadedKey) return true;
+      uploadedKey = stateKey;
       canvas.width = w;
       canvas.height = h;
       gl.viewport(0, 0, w, h);
-      upload(gl, 0, fitted(images.plate, w, h), false);
-      upload(gl, 1, images.depth, false);
-      images.cuts.forEach((img, i) => upload(gl, 2 + i, fitted(img, w, h), true));
+      upload(gl, 0, plateTex, fitted(activePlateImg, w, h), false);
+      if (activeDepthImg) {
+        upload(gl, 1, depthTex, activeDepthImg, false);
+      } else {
+        uploadSolid(gl, 1, depthTex, 0);
+      }
+      if (activeCutImgs.length > 0) {
+        activeCutImgs.forEach((img, i) => upload(gl, 2 + i, cutTex[i]!, fitted(img, w, h), true));
+        gl.uniform1i(uCuts, activeCutImgs.length);
+        gl.uniform4f(uCutDepth, sortedDepths[0], sortedDepths[1], sortedDepths[2], sortedDepths[3]);
+      } else {
+        gl.uniform1i(uCuts, 0);
+      }
       const ca = w / h;
-      const ia = images.plate.naturalWidth / Math.max(1, images.plate.naturalHeight);
+      const ia = activePlateImg.naturalWidth / Math.max(1, activePlateImg.naturalHeight);
       gl.uniform2f(uDepthScale, ca > ia ? 1 : ca / ia, ca > ia ? ia / ca : 1);
+      return true;
     };
 
-    const drawFrameAt = (timeSec: number) => {
-      if (!alive || !images) return;
-      prepare();
+    const drawFrame = () => {
+      if (!alive || !activePlateImg) return;
+      if (!syncTextures()) return;
+      const curPose = poseRef.current;
       const curAmount = amountRef.current;
-      const t = Math.max(0, timeSec);
-      let zoomFar = 1;
-      let zoomNear = 1;
-      let slide = 0;
-      if (motion === "push") {
-        const p = settle(t, seconds);
-        zoomFar = 1 + curAmount * PUSH_FAR * p;
-        zoomNear = 1 + curAmount * PUSH_NEAR * p;
-      } else if (motion === "truck") {
-        slide = curAmount * TRUCK * settle(t, seconds) * direction;
-        zoomFar = zoomNear = overscanFor(slide);
-      } else {
-        const grow = easeInOut(t / 2);
-        slide = curAmount * TRUCK * 0.5 * grow * Math.sin((2 * Math.PI * t) / seconds) * direction;
-        zoomFar = zoomNear = overscanFor(curAmount * TRUCK * 0.5 * grow);
-      }
-      gl.uniform2f(uZoom, zoomFar, zoomNear);
-      gl.uniform2f(uShift, slide, 0);
+      const curCenter: [number, number] =
+        cinematic?.depthMotion === "push" &&
+        Math.abs(curPose.x) < 1e-5 &&
+        Math.abs(curPose.y) < 1e-5
+          ? centreFromFocalPoint(focal)
+          : [0.5, 0.5];
+      const uni = computeDepthCameraUniforms({
+        zoom: curPose.zoom,
+        x: curPose.x,
+        y: curPose.y,
+        amount: curAmount,
+        authoredAmount: curPose.authoredAmount,
+        focus,
+        center: curCenter,
+      });
+      gl.uniform2f(uCenter, uni.uCenter[0], uni.uCenter[1]);
+      gl.uniform2f(uZoom, uni.uZoom[0], uni.uZoom[1]);
+      gl.uniform2f(uShift, uni.uShift[0], uni.uShift[1]);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
+    drawFrameRef.current = drawFrame;
+
+    const picSrc = assetBackground(picture);
     const plateSrc = assetBackground(plate || picture);
     const depthSrc = assetUrl(depthMap);
     const cutSrcs = layers.map((k) => assetUrl(k.image));
 
     const cachedPlate = getCachedImage(plateSrc);
+    const cachedPic = getCachedImage(picSrc);
     const cachedDepth = getCachedImage(depthSrc);
     const cachedCuts = cutSrcs.map((s) => getCachedImage(s));
 
     if (cachedPlate && cachedDepth && cachedCuts.every(Boolean)) {
-      images = {
-        plate: cachedPlate,
-        depth: cachedDepth,
-        cuts: cachedCuts as HTMLImageElement[],
-      };
-      drawAtTimeRef.current = drawFrameAt;
-      drawFrameAt(latestTimeRef.current);
+      activePlateImg = cachedPlate;
+      activeDepthImg = cachedDepth;
+      activeCutImgs = cachedCuts as HTMLImageElement[];
+      fullDepthReady = true;
+      drawFrame();
       setReady(true);
     } else {
-      setReady(false);
+      // Draw `picture` immediately at keyframed zoom/shift if cached or as soon as it arrives
+      if (cachedPic) {
+        activePlateImg = cachedPic;
+        drawFrame();
+        setReady(true);
+      } else {
+        setReady(false);
+        loadCachedImage(picSrc)
+          .then((picImg) => {
+            if (!alive || fullDepthReady) return;
+            activePlateImg = picImg;
+            drawFrame();
+            setReady(true);
+          })
+          .catch(() => {});
+      }
+
       Promise.all([
         loadCachedImage(plateSrc),
         loadCachedImage(depthSrc),
@@ -341,23 +523,23 @@ export function FrameDepthParallaxLayer({
       ])
         .then(([plateImg, depthImg, ...cutImgs]) => {
           if (!alive) return;
-          images = { plate: plateImg, depth: depthImg, cuts: cutImgs };
-          drawAtTimeRef.current = drawFrameAt;
-          drawFrameAt(latestTimeRef.current);
+          fullDepthReady = true;
+          activePlateImg = plateImg;
+          activeDepthImg = depthImg;
+          activeCutImgs = cutImgs;
+          drawFrame();
           setReady(true);
         })
         .catch(() => {
-          /* fallback still plate remains visible underneath */
+          /* progressive base picture or fallback plate remains visible */
         });
     }
 
     const ro =
       typeof ResizeObserver !== "undefined"
         ? new ResizeObserver(() => {
-            size = "";
-            if (alive && drawAtTimeRef.current) {
-              drawAtTimeRef.current(latestTimeRef.current);
-            }
+            uploadedKey = "";
+            if (alive) drawFrame();
           })
         : null;
     ro?.observe(canvas);
@@ -365,41 +547,51 @@ export function FrameDepthParallaxLayer({
     const onLost = (e: Event) => {
       e.preventDefault();
       alive = false;
-      drawAtTimeRef.current = null;
+      drawFrameRef.current = null;
       setReady(false);
     };
     canvas.addEventListener("webglcontextlost", onLost);
 
     return () => {
       alive = false;
-      drawAtTimeRef.current = null;
+      drawFrameRef.current = null;
       ro?.disconnect();
       canvas.removeEventListener("webglcontextlost", onLost);
-      window.setTimeout(() => {
-        if (!canvas.isConnected) {
-          gl.getExtension("WEBGL_lose_context")?.loseContext();
-        }
-      }, 0);
+      gl.deleteTexture(plateTex);
+      gl.deleteTexture(depthTex);
+      for (const t of cutTex) {
+        if (t) gl.deleteTexture(t);
+      }
+      if (buf) gl.deleteBuffer(buf);
+      gl.deleteProgram(prog);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [on, picture, depthMap, plate, cutKey, focus, motion, seconds, direction, focal]);
+  }, [on, picture, depthMap, plate, cutKey, focus, focal]);
 
   useIsomorphicLayoutEffect(() => {
-    if (drawAtTimeRef.current) {
-      drawAtTimeRef.current(tSec);
-    }
-  }, [tSec, amount]);
+    drawFrameRef.current?.();
+  }, [zoom, x, y, effectiveAmount, baseAuthoredAmount]);
 
   if (!on) return null;
   return (
     <canvas
-      key={`${picture}|${depthMap}|${plate}|${cutKey}|${focus}|${motion}|${seconds}|${direction}|${focal}`}
+      key={`${picture}|${depthMap}|${plate}|${cutKey}|${focus}|${focal}`}
       ref={canvasRef}
-      className="depth-parallax"
+      className={`depth-parallax ${gradeClassName || ""}`.trim()}
       data-depth-ready={ready ? "1" : "0"}
       data-depth-for={picture.replace(/^.*\//, "")}
+      data-depth-amount={roundAttr(uniforms.amount)}
+      data-u-zoom={`${roundAttr(uniforms.uZoom[0])},${roundAttr(uniforms.uZoom[1])}`}
+      data-u-shift={`${roundAttr(uniforms.uShift[0])},${roundAttr(uniforms.uShift[1])}`}
       aria-hidden
-      style={{ opacity: ready ? 1 : 0, transition: "none", animation: "none" }}
+      style={{
+        opacity: ready ? 1 : 0,
+        transform: "none",
+        transition: "none",
+        animation: "none",
+      }}
     />
   );
 }
