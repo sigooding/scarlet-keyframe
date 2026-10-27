@@ -11,6 +11,8 @@ const __dirname = path.dirname(__filename);
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss(), viteSingleFile()],
+  // The editor is served behind a proxied preview host, so accept whatever host it is opened on.
+  server: { host: true, allowedHosts: true },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
