@@ -4,6 +4,7 @@ import { DepthParallaxLayer } from "../../vendor/scarlet-reel/game/DepthParallax
 import { Particles, type ParticleKind } from "../../vendor/scarlet-reel/game/AmbientParticles";
 import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
 import type { Keyframe } from "../core/model";
+import { evaluate, hasAnimation } from "../sequence/animate";
 
 interface CinematicPreviewProps {
   frame: Keyframe;
@@ -14,6 +15,7 @@ interface CinematicPreviewProps {
   soundOn: boolean;
   showCaption: boolean;
   showMark: boolean;
+  localFrame: number;
   setFocalPoint?: (value: string) => void;
 }
 
@@ -26,6 +28,7 @@ export function CinematicPreview({
   soundOn,
   showCaption,
   showMark,
+  localFrame,
   setFocalPoint,
 }: CinematicPreviewProps) {
   const cinematic = (frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>;
@@ -62,6 +65,20 @@ export function CinematicPreview({
   } as CSSProperties;
   const ownOverlay = [cinematic.vignette ? "fx-vignette" : "", cinematic.grain ? "fx-grain" : ""].filter(Boolean).join(" ");
 
+  // Zoom and position keys replace the Scarlet Reel camera preset for this clip. The transform is set
+  // straight from the frame number: no CSS animation, no transition, so scrubbing and playback agree.
+  const animated = hasAnimation(frame);
+  const transform = animated ? evaluate(frame, localFrame) : undefined;
+  const cameraStyle = transform
+    ? {
+        ...extensionStyle,
+        transform: `translate(${transform.x}%, ${transform.y}%) scale(${transform.zoom})`,
+        animation: "none",
+        transition: "none",
+      }
+    : extensionStyle;
+  const cameraActive = !animated && playing && Boolean(cinematic.startZoom || cinematic.endZoom || cinematic.easing);
+
   return (
     <div
       className={`cin-preview ${ownOverlay}`}
@@ -74,7 +91,14 @@ export function CinematicPreview({
         setFocalPoint(`${Math.round(x)}% ${Math.round(y)}%`);
       }}
     >
-      <div className={`cin-preview-camera ${playing && (cinematic.startZoom || cinematic.endZoom || cinematic.easing) ? "cin-preview-camera-active" : ""}`} style={extensionStyle}>
+      <div
+        className={`cin-preview-camera ${cameraActive ? "cin-preview-camera-active" : ""} ${animated ? "cin-preview-camera-keyed" : ""}`}
+        style={cameraStyle}
+        data-animation={animated ? `${localFrame}` : undefined}
+        data-zoom={transform ? transform.zoom.toFixed(3) : undefined}
+        data-offset-x={transform ? transform.x.toFixed(2) : undefined}
+        data-offset-y={transform ? transform.y.toFixed(2) : undefined}
+      >
         {videoSrc ? (
           <video className="cin-preview-video" src={videoSrc} autoPlay muted loop playsInline />
         ) : (

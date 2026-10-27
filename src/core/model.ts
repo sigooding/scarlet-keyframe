@@ -1,3 +1,5 @@
+import type { ClipAnimation } from "../sequence/animate";
+
 export type AnyRecord = Record<string, any>;
 
 export interface StoryLike extends AnyRecord {
@@ -26,6 +28,9 @@ export interface BeatLike extends AnyRecord {
   cinematic?: AnyRecord;
   audioUrl?: string;
   sfxUrl?: string;
+  // Timeline edits: the clip's length in frames and its zoom/position keyframes.
+  durationFrames?: number;
+  animation?: ClipAnimation;
 }
 
 export interface ProjectAsset {

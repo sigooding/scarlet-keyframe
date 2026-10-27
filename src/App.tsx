@@ -1,19 +1,46 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
 import { CinematicPreview } from "./components/CinematicPreview";
 import { Inspector } from "./components/Inspector";
+import { CropModal, ExportModal, MissingMediaModal, SnapshotModal } from "./components/Modals";
 import { Timeline } from "./components/Timeline";
+import { Topbar } from "./components/Topbar";
 import { Tracks } from "./components/Tracks";
 import { applyStudioMusicSync, buildKeyframes, collectImageReferences, collectMediaReferences, createProjectState, parseImportPayload, runningOrderDiagnostics, type AnyRecord, type ProjectAsset, type ProjectState } from "./core/model";
-import { cloneStory as cloneProjectStory, copyEffectBlock, deleteKeyframe, duplicateKeyframe, insertKeyframeAfter, moveSfxCue, pasteEffectBlock, reorderKeyframe, resetEffectField, setBeatField, setEffectField, setPicture, setSceneField, type EffectBlock } from "./core/edits";
+import {
+  cloneStory as cloneProjectStory,
+  copyEffectBlock,
+  deleteKeyframe,
+  duplicateKeyframe,
+  insertKeyframeAfter,
+  moveAnimationKey,
+  moveSfxCue,
+  pasteEffectBlock,
+  reorderKeyframe,
+  resetEffectField,
+  setAnimationEasing,
+  setAnimationValue,
+  setBeatField,
+  setClipDuration,
+  setEffectField,
+  setPicture,
+  setSceneField,
+  splitClip,
+  toggleAnimationKey,
+  type EffectBlock,
+} from "./core/edits";
 import { buildPortableBundle } from "./core/exportBundle";
-import { createUploadAsset, dataUrlToBlob, evaluateMissingMedia, folderFilePath, normalizeMediaPath, referencedPath } from "./core/media";
+import { downloadText, slug } from "./core/files";
+import { createUploadAsset, dataUrlToBlob, evaluateMissingMedia, folderFilePath, measureAudioDuration, normalizeMediaPath, referencedPath } from "./core/media";
+import { GestureHistory } from "./core/gesture";
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, saveActiveProject } from "./core/storage";
-import { formatTime, keyframeDuration, makeSrt, untilNextMusicBeat } from "./core/timing";
+import { clipFrames, FPS, makeSrt, timecode } from "./core/timing";
 import { writeStudioPatch } from "./core/patch";
 import { PreviewAudioController } from "./core/previewAudio";
 import type { StudioPatchResult } from "./core/patch";
+import { evaluate, type AnimationProperty, type Easing } from "./sequence/animate";
+import { buildSequence, clipAtFrame, clipById, localFrameOf } from "./sequence/sequence";
 import { audio } from "../vendor/scarlet-reel/audio";
 import bundledFilm from "./data/nobodys-witness-film.json";
 import bundledEdits from "./data/studio-edits.json";
@@ -32,11 +59,15 @@ declare global {
       getDuration: (frameId: string) => number;
       getFrame: (frameId: string) => AnyRecord | undefined;
       syncAnimations: (seconds: number) => void;
+      getPlayhead: () => number;
+      getTotalFrames: () => number;
+      clipAt: (absoluteFrame: number) => AnyRecord | undefined;
     };
   }
 }
 
 const history = new UndoHistory<ProjectState>(100);
+const gestures = new GestureHistory<ProjectState>(history);
 const audioController = new PreviewAudioController();
 
 export default function App() {
@@ -48,8 +79,8 @@ export default function App() {
   const [folderFiles, setFolderFiles] = useState<Map<string, File>>(new Map());
   const [folderLabel, setFolderLabel] = useState("");
   const [objectUrls, setObjectUrls] = useState<Map<string, string>>(new Map());
-  const [selectedFrameId, setSelectedFrameId] = useState("");
-  const [selectedFrameIds, setSelectedFrameIds] = useState<string[]>([]);
+  // Time is whole frames at 24 fps. The playhead is the single position on the sequence.
+  const [playhead, setPlayhead] = useState(0);
   const [copiedEffects, setCopiedEffects] = useState<EffectBlock | null>(null);
   const [historyVersion, setHistoryVersion] = useState(0);
   const [saveStatus, setSaveStatus] = useState("LOADING");
@@ -60,8 +91,6 @@ export default function App() {
   const [playback, setPlayback] = useState(false);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [playSpeed, setPlaySpeed] = useState(1);
-  const [frameProgress, setFrameProgress] = useState(0);
-  const [frameDuration, setFrameDuration] = useState(0);
   const [showCaptions, setShowCaptions] = useState(true);
   const [showMarks, setShowMarks] = useState(true);
   const [soundOn, setSoundOn] = useState(true);
@@ -79,18 +108,23 @@ export default function App() {
   const [marksExport, setMarksExport] = useState(true);
   const [snapshotName, setSnapshotName] = useState("");
   const [snapshotModal, setSnapshotModal] = useState(false);
-  const [, setFilterState] = useState(0);
   const importInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const lastSceneRef = useRef("");
+  const lastVoiceClipRef = useRef("");
   const voiceDurationCache = useRef(new Map<string, number>());
   const animationClockRef = useRef(new WeakMap<Animation, number>());
+  const playheadRef = useRef(0);
 
   useEffect(() => {
     projectRef.current = project;
   }, [project]);
+
+  useEffect(() => {
+    playheadRef.current = playhead;
+  }, [playhead]);
 
   useEffect(() => {
     window.__sw_audio = audio;
@@ -124,10 +158,7 @@ export default function App() {
           };
           repaired.missing = evaluateMissingMedia(repaired, new Map(), paths);
           setProject(repaired);
-          const frames = buildKeyframes(repaired.story);
-          const start = frames.find((frame) => frame.mark === "77") || frames[0];
-          setSelectedFrameId(start?.id || "");
-          setSelectedFrameIds(start ? [start.id] : []);
+          setPlayhead(startOfScene(repaired, "77"));
           setSaveStatus("AUTOSAVED PROJECT");
         } else {
           const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json");
@@ -135,10 +166,7 @@ export default function App() {
           const next = createProjectState(contextual, [], sourceEdits);
           next.missing = evaluateMissingMedia(next, new Map(), paths);
           setProject(next);
-          const frames = buildKeyframes(next.story);
-          const start = frames.find((frame) => frame.mark === "77") || frames[0];
-          setSelectedFrameId(start?.id || "");
-          setSelectedFrameIds(start ? [start.id] : []);
+          setPlayhead(startOfScene(next, "77"));
           setSaveStatus("FILM READY");
         }
       } catch (error) {
@@ -152,8 +180,12 @@ export default function App() {
   }, []);
 
   const frames = useMemo(() => project ? buildKeyframes(project.story) : [], [project?.story]);
-  const selectedFrame = useMemo(() => frames.find((frame) => frame.id === selectedFrameId) || frames[0], [frames, selectedFrameId]);
-  const currentIndex = selectedFrame ? frames.findIndex((frame) => frame.id === selectedFrame.id) : 0;
+  const sequence = useMemo(() => buildSequence(frames), [frames]);
+  const totalFrames = sequence.totalFrames;
+  const currentClip = useMemo(() => clipAtFrame(sequence.clips, playhead), [sequence, playhead]);
+  const selectedFrame = currentClip?.frame ?? frames[0];
+  const localFrame = currentClip ? localFrameOf(currentClip, playhead) : 0;
+  const currentIndex = currentClip?.index ?? 0;
   const currentAssetId = selectedFrame?.picture?.startsWith("asset:") ? selectedFrame.picture.slice(6) : "";
   const currentPictureAsset = project?.assets.find((asset) => asset.id === currentAssetId);
   const currentImagePosition = currentPictureAsset?.crop ? `${currentPictureAsset.crop.x}% ${currentPictureAsset.crop.y}%` : undefined;
@@ -201,6 +233,13 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [project]);
 
+  // The playhead always stays on a real frame of the sequence.
+  useEffect(() => {
+    if (totalFrames <= 0) return;
+    if (playhead > totalFrames - 1) setPlayhead(totalFrames - 1);
+    else if (playhead < 0) setPlayhead(0);
+  }, [totalFrames, playhead]);
+
   const applyProject = useCallback((next: ProjectState, label: string) => {
     const previous = projectRef.current;
     if (!previous || next === previous) return;
@@ -217,6 +256,27 @@ export default function App() {
     if (!current) return;
     applyProject(update(current), label);
   }, [applyProject]);
+
+  /* A drag is one undo step: the state before the gesture is recorded once, when the gesture ends. */
+  const beginGesture = useCallback(() => {
+    gestures.begin(projectRef.current);
+  }, []);
+
+  const updateGesture = useCallback((update: (current: ProjectState) => ProjectState) => {
+    const current = projectRef.current;
+    if (!current) return;
+    const next = update(current);
+    if (next === current) return;
+    projectRef.current = next;
+    setProject(next);
+    setSaveStatus("UNSAVED CHANGES");
+  }, []);
+
+  const endGesture = useCallback((label: string) => {
+    if (!gestures.commit(projectRef.current)) return;
+    setHistoryVersion((value) => value + 1);
+    setEditLabel(label);
+  }, []);
 
   const undo = useCallback(() => {
     const current = projectRef.current;
@@ -240,20 +300,21 @@ export default function App() {
     setHistoryVersion((value) => value + 1);
   }, []);
 
-  const selectFrame = useCallback((frameId: string, extend: boolean) => {
-    setSelectedFrameId(frameId);
-    setSelectedFrameIds((current) => {
-      if (!extend) return [frameId];
-      return current.includes(frameId) ? current.filter((id) => id !== frameId) : [...current, frameId];
-    });
-    setFrameProgress(0);
-  }, []);
+  const seek = useCallback((absoluteFrame: number, pause = true) => {
+    const clamped = Math.max(0, Math.min(Math.max(0, totalFrames - 1), Math.round(absoluteFrame)));
+    setPlayhead(clamped);
+    if (pause && playback) {
+      setPlayback(false);
+      audioController.stopAll();
+      lastVoiceClipRef.current = "";
+    }
+  }, [playback, totalFrames]);
 
-  const selectRelative = useCallback((delta: number) => {
-    if (!frames.length) return;
-    const next = Math.max(0, Math.min(frames.length - 1, currentIndex + delta));
-    selectFrame(frames[next].id, false);
-  }, [frames, currentIndex, selectFrame]);
+  const selectRelativeClip = useCallback((delta: number) => {
+    if (!sequence.clips.length) return;
+    const index = Math.max(0, Math.min(sequence.clips.length - 1, currentIndex + delta));
+    seek(sequence.clips[index].start);
+  }, [currentIndex, seek, sequence.clips]);
 
   const setFocalPoint = useCallback((value: string) => {
     if (!selectedFrame) return;
@@ -307,8 +368,8 @@ export default function App() {
       }
     }
     applyProject(next, `${intent.kind === "image" ? "Picture" : "Sound"} uploaded`);
-    setSelectedFrameId(intent.frameId);
-    setSelectedFrameIds([intent.frameId]);
+    const inserted = clipById(buildSequence(buildKeyframes(next.story)).clips, intent.frameId);
+    if (inserted) setPlayhead(inserted.start);
     if (asset.type === "image" && asset.width && asset.height && Math.abs(asset.width / asset.height - 16 / 9) > 0.015) {
       setCropState({ assetId: asset.id, frameId: intent.frameId, x: 50, y: 50 });
     }
@@ -363,10 +424,9 @@ export default function App() {
     setHistoryVersion((value) => value + 1);
     projectRef.current = next;
     setProject(next);
-    const ordered = buildKeyframes(next.story);
-    const start = ordered.find((frame) => frame.mark === "77") || ordered[0];
-    setSelectedFrameId(start?.id || "");
-    setSelectedFrameIds(start ? [start.id] : []);
+    setPlayhead(startOfScene(next, "77"));
+    setPlayback(false);
+    audioController.stopAll();
     setBrowser(null);
     setExportOpen(false);
     setEditLabel(`Imported ${file.name}`);
@@ -453,79 +513,86 @@ export default function App() {
     return [...output.values()].sort((a, b) => a.folder.localeCompare(b.folder) || a.name.localeCompare(b.name));
   }, [project, resolveMedia, folderFiles]);
 
-  const openPlayback = useCallback(() => {
-    if (!project || !selectedFrame) return;
+  /* ---------------------------------------------------------------- *
+   * Playback: the playhead advances at 24 fps; voices and sounds play  *
+   * exactly as they did per keyframe before.                           *
+   * ---------------------------------------------------------------- */
+
+  const togglePlayback = useCallback(() => {
     if (playback) {
       setPlayback(false);
       audioController.stopAll();
+      lastVoiceClipRef.current = "";
       return;
     }
+    if (!project || !currentClip) return;
     audioController.unlock();
     setDirection(1);
     setPlaySpeed(1);
-    setFrameProgress(0);
     lastSceneRef.current = "";
-    void audioController.startFrom(project.story, selectedFrame.sceneId, resolveMedia);
+    lastVoiceClipRef.current = "";
+    void audioController.startFrom(project.story, currentClip.frame.sceneId, resolveMedia);
     setPlayback(true);
-  }, [playback, project, resolveMedia, selectedFrame]);
+  }, [currentClip, playback, project, resolveMedia]);
 
   useEffect(() => {
-    if (!playback || !selectedFrame || !project) return;
+    if (!playback || totalFrames <= 0) return;
+    let raf = 0;
+    let last = performance.now();
+    let accumulator = 0;
+    let position = playheadRef.current;
+    const step = (now: number) => {
+      const delta = Math.min(250, Math.max(0, now - last));
+      last = now;
+      accumulator += delta * playSpeed;
+      const advance = Math.floor(accumulator / (1000 / FPS));
+      if (advance > 0) {
+        accumulator -= advance * (1000 / FPS);
+        position += advance * direction;
+        if (position < 0) {
+          setPlayhead(0);
+          setPlayback(false);
+          audioController.stopAll();
+          return;
+        }
+        if (position > totalFrames - 1) {
+          setPlayhead(totalFrames - 1);
+          setPlayback(false);
+          audioController.stopAll();
+          return;
+        }
+        setPlayhead(position);
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [playback, playSpeed, direction, totalFrames]);
+
+  // One voice take and one sound effect per clip, started when the playhead enters that clip.
+  useEffect(() => {
+    if (!playback || !currentClip) return;
+    const frame = currentClip.frame;
     let cancelled = false;
-    let timer: number | undefined;
-    let animation: number | undefined;
-    const frame = selectedFrame;
-    const index = frames.findIndex((item) => item.id === frame.id);
     const run = async () => {
       if (lastSceneRef.current !== frame.sceneId) {
         await audioController.enterScene(frame.scene, resolveMedia);
         lastSceneRef.current = frame.sceneId;
       }
       if (cancelled) return;
+      if (lastVoiceClipRef.current === frame.id) return;
+      lastVoiceClipRef.current = frame.id;
+      if (!soundOn || direction < 0) return;
       audioController.playSfx(frame.beat.sfxUrl, frame.beat.sfxVolume, resolveMedia);
-      const voiceSrc = resolveMedia(frame.beat.audioUrl);
-      if (frame.beat.audioUrl && soundOn) audioController.playVoice(frame.beat.audioUrl, resolveMedia, Number(frame.beat.audioOffsetSeconds || 0));
-      let voiceSeconds: number | undefined;
-      if (frame.beat.audioUrl && voiceSrc) voiceSeconds = await measureAudioDuration(voiceSrc, voiceDurationCache.current);
-      if (cancelled) return;
-      let duration = keyframeDuration(frame, voiceSeconds, 1);
-      const nextIndex = index + direction;
-      const nextFrame = frames[nextIndex];
-      let syncWait = 0;
-      const sync = frame.scene.musicSync;
-      if (direction > 0 && nextFrame && sync && nextFrame.picture !== frame.picture && nextFrame.sceneId === frame.sceneId) {
-        const projected = audioController.musicPosition + duration;
-        syncWait = untilNextMusicBeat(projected, audioController.musicDuration, sync);
+      if (frame.beat.audioUrl) {
+        audioController.playVoice(frame.beat.audioUrl, resolveMedia, Number(frame.beat.audioOffsetSeconds || 0));
+        const src = resolveMedia(frame.beat.audioUrl);
+        if (src) void measureAudioDuration(src, voiceDurationCache.current);
       }
-      duration += syncWait;
-      setFrameDuration(duration);
-      setFrameProgress(0);
-      const start = performance.now();
-      const tick = (now: number) => {
-        if (cancelled) return;
-        setFrameProgress(Math.min(1, (now - start) / (duration * 1000)));
-        animation = requestAnimationFrame(tick);
-      };
-      animation = requestAnimationFrame(tick);
-      timer = window.setTimeout(() => {
-        if (cancelled) return;
-        if (nextIndex < 0 || nextIndex >= frames.length) {
-          setPlayback(false);
-          audioController.stopAll();
-          return;
-        }
-        setSelectedFrameId(frames[nextIndex].id);
-        setSelectedFrameIds([frames[nextIndex].id]);
-      }, Math.max(100, duration * 1000 / playSpeed));
     };
     void run();
-    return () => {
-      cancelled = true;
-      if (timer !== undefined) window.clearTimeout(timer);
-      if (animation !== undefined) cancelAnimationFrame(animation);
-      audioController.stopVoice();
-    };
-  }, [playback, selectedFrameId, frames, project, resolveMedia, soundOn, direction, playSpeed]);
+    return () => { cancelled = true; };
+  }, [playback, currentClip?.frame.id, direction, resolveMedia, soundOn]);
 
   const moveCue = useCallback((kind: "music" | "ambience" | "sfx", sourceId: string, targetId: string) => {
     const current = projectRef.current;
@@ -553,22 +620,127 @@ export default function App() {
     applyProject({ ...current, story: next, updatedAt: Date.now() }, kind === "music" ? "Music cue moved" : "Ambience cue moved");
   }, [applyProject]);
 
+  /* ------------------------------ *
+   * Timeline editing               *
+   * ------------------------------ */
+
+  const trimClip = useCallback((frameId: string, durationFrames: number) => {
+    updateGesture((current) => setClipDuration(current, frameId, durationFrames));
+  }, [updateGesture]);
+
+  const moveKeyframe = useCallback((frameId: string, property: AnimationProperty, from: number, to: number) => {
+    beginGesture();
+    updateGesture((current) => moveAnimationKey(current, frameId, property, from, to));
+    endGesture("Keyframe moved");
+  }, [beginGesture, endGesture, updateGesture]);
+
+  const selectKeyframe = useCallback((frameId: string, keyFrame: number) => {
+    const clip = clipById(sequence.clips, frameId);
+    if (!clip) return;
+    seek(clip.start + Math.min(keyFrame, clip.duration - 1));
+  }, [seek, sequence.clips]);
+
+  const splitCurrent = useCallback(() => {
+    const current = projectRef.current;
+    if (!current || !currentClip) return;
+    const at = playhead - currentClip.start;
+    const result = splitClip(current, currentClip.frame.id, at);
+    if (!result) {
+      setEditLabel("Split needs the playhead at least 6 frames inside the clip");
+      return;
+    }
+    applyProject(result.project, `Clip split at ${timecode(playhead)}`);
+    setPlayhead(currentClip.start + result.at);
+  }, [applyProject, currentClip, playhead]);
+
+  const deleteCurrent = useCallback(() => {
+    const current = projectRef.current;
+    if (!current || !currentClip) return;
+    const index = currentClip.index;
+    const next = deleteKeyframe(current, currentClip.frame.id);
+    if (next === current) return;
+    applyProject(next, "Clip deleted");
+    const after = buildSequence(buildKeyframes(next.story));
+    const target = after.clips[Math.max(0, Math.min(after.clips.length - 1, index))];
+    setPlayhead(target ? target.start : 0);
+  }, [applyProject, currentClip]);
+
+  const duplicateCurrent = useCallback(() => {
+    const current = projectRef.current;
+    if (!current || !currentClip) return;
+    const result = duplicateKeyframe(current, currentClip.frame.id);
+    if (!result) return;
+    applyProject(result.project, "Clip duplicated");
+    const after = buildSequence(buildKeyframes(result.project.story));
+    const inserted = clipById(after.clips, result.insertedId);
+    if (inserted) setPlayhead(inserted.start);
+  }, [applyProject, currentClip]);
+
+  const addKeyframe = useCallback(() => {
+    const current = projectRef.current;
+    if (!current || !currentClip) return;
+    const result = insertKeyframeAfter(current, currentClip.frame.id);
+    if (!result) return;
+    applyProject(result.project, "Clip added and text split");
+    const after = buildSequence(buildKeyframes(result.project.story));
+    const inserted = clipById(after.clips, result.insertedId);
+    if (inserted) setPlayhead(inserted.start);
+    setBrowser({ kind: "image", target: "picture" });
+  }, [applyProject, currentClip]);
+
+  const setAnimationProperty = useCallback((property: AnimationProperty, value: number) => {
+    if (!currentClip) return;
+    const frameId = currentClip.frame.id;
+    const local = localFrame;
+    editProject((current) => setAnimationValue(current, frameId, property, local, value), `${propertyLabel(property)} changed at frame ${local}`);
+  }, [currentClip, editProject, localFrame]);
+
+  const toggleAnimationProperty = useCallback((property: AnimationProperty) => {
+    if (!currentClip) return;
+    const frameId = currentClip.frame.id;
+    const value = evaluate(currentClip.frame, localFrame)[property];
+    editProject((current) => toggleAnimationKey(current, frameId, property, localFrame, value), `${propertyLabel(property)} keyframe toggled at frame ${localFrame}`);
+  }, [currentClip, editProject, localFrame]);
+
+  const setAnimationEasingForProperty = useCallback((property: AnimationProperty, easing: Easing) => {
+    if (!currentClip) return;
+    const frameId = currentClip.frame.id;
+    editProject((current) => setAnimationEasing(current, frameId, property, localFrame, easing), `${propertyLabel(property)} easing: ${easing}`);
+  }, [currentClip, editProject, localFrame]);
+
+  const copyEffects = () => {
+    if (!selectedFrame) return;
+    setCopiedEffects(copyEffectBlock(selectedFrame));
+    setEditLabel("Effects copied");
+  };
+
+  const pasteEffects = () => {
+    if (!project || !copiedEffects || !selectedFrame) return;
+    editProject((current) => pasteEffectBlock(current, [selectedFrame.id], copiedEffects), "Effects pasted");
+  };
+
   useEffect(() => {
     if (!selectedFrame) return;
     window.__frame24 = {
       frameIds: frames.map((frame) => frame.id),
-      setFrame: (frameId) => { setPlayback(false); setSelectedFrameId(frameId); setSelectedFrameIds([frameId]); },
+      setFrame: (frameId) => {
+        const clip = clipById(sequence.clips, frameId);
+        if (!clip) return;
+        setPlayback(false);
+        setPlayhead(clip.start);
+      },
       getDuration: (frameId) => {
         const frame = frames.find((item) => item.id === frameId);
-        return frame ? keyframeDuration(frame) : 0;
+        return frame ? clipFrames(frame) / FPS : 0;
       },
       getFrame: (frameId) => {
         const frame = frames.find((item) => item.id === frameId);
         return frame ? {
           id: frame.id, sceneId: frame.sceneId, mark: frame.mark, number: frame.number,
-          duration: keyframeDuration(frame), text: frame.text, speaker: frame.speaker,
+          clipFrames: clipFrames(frame), seconds: clipFrames(frame) / FPS, text: frame.text, speaker: frame.speaker,
           picture: frame.picture, audioUrl: frame.beat.audioUrl, sfxUrl: frame.beat.sfxUrl,
           musicUrl: frame.scene.musicUrl || frame.scene.sceneAudioUrl, ambientAudio: frame.scene.ambientAudio,
+          animation: frame.beat.animation,
         } : undefined;
       },
       syncAnimations: (seconds) => {
@@ -578,28 +750,45 @@ export default function App() {
           try { animation.pause(); animation.currentTime = now - (animationClockRef.current.get(animation) || 0); } catch { /* finished animation */ }
         }
       },
+      getPlayhead: () => playheadRef.current,
+      getTotalFrames: () => sequence.totalFrames,
+      clipAt: (absoluteFrame) => {
+        const clip = clipAtFrame(sequence.clips, absoluteFrame);
+        return clip ? { id: clip.frame.id, mark: clip.frame.mark, start: clip.start, duration: clip.duration, text: clip.frame.text } : undefined;
+      },
     };
     return () => { delete window.__frame24; };
-  }, [frames, selectedFrame]);
+  }, [frames, selectedFrame, sequence]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      const typing = target && (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable);
+      const tag = target?.tagName ?? "";
       const mod = event.ctrlKey || event.metaKey;
-      if (mod && event.key.toLowerCase() === "s") { event.preventDefault(); void saveNow(); return; }
-      if (mod && event.key.toLowerCase() === "z") { event.preventDefault(); event.shiftKey ? redo() : undo(); return; }
+      // Sliders and toggles are not text entry: Space and the transport keys still work from them.
+      const control = tag === "INPUT" && ["range", "checkbox", "radio", "button", "submit"].includes((target as HTMLInputElement).type);
+      const typing = Boolean(target) && !control && (["INPUT", "TEXTAREA", "SELECT"].includes(tag) || Boolean(target?.isContentEditable));
+      if (mod && event.key.toLowerCase() === "s") { event.preventDefault(); saveNow(); return; }
+      if (mod && event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); return; }
       if (typing) return;
-      if (event.code === "Space") { event.preventDefault(); openPlayback(); }
-      else if (event.key === "ArrowUp") { event.preventDefault(); selectRelative(-1); }
-      else if (event.key === "ArrowDown") { event.preventDefault(); selectRelative(1); }
+      if (event.code === "Space") { event.preventDefault(); togglePlayback(); }
+      else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        seek(playheadRef.current - (event.shiftKey ? FPS : 1));
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        seek(playheadRef.current + (event.shiftKey ? FPS : 1));
+      } else if (event.key === "ArrowUp") { event.preventDefault(); selectRelativeClip(-1); }
+      else if (event.key === "ArrowDown") { event.preventDefault(); selectRelativeClip(1); }
+      else if (event.key.toLowerCase() === "s") { event.preventDefault(); splitCurrent(); }
+      else if (event.key === "Delete" || event.key === "Backspace") { event.preventDefault(); deleteCurrent(); }
       else if (event.key.toLowerCase() === "k") { event.preventDefault(); setPlayback(false); audioController.stopAll(); }
       else if (event.key.toLowerCase() === "j") { event.preventDefault(); setDirection(-1); setPlayback(true); }
       else if (event.key.toLowerCase() === "l") { event.preventDefault(); setDirection(1); setPlaySpeed((speed) => speed >= 4 ? 1 : speed * 2); setPlayback(true); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openPlayback, redo, selectRelative, undo]);
+  }, [deleteCurrent, redo, seek, selectRelativeClip, splitCurrent, togglePlayback, undo]);
 
   function saveNow(): void {
     const current = projectRef.current;
@@ -623,69 +812,8 @@ export default function App() {
     const snapshot = current?.snapshots.find((item) => item.id === snapshotId);
     if (!current || !snapshot) return;
     applyProject({ ...current, story: cloneProjectStory(snapshot.story), updatedAt: Date.now() }, `Restored ${snapshot.name}`);
-    const restored = buildKeyframes(snapshot.story)[0];
-    if (restored) selectFrame(restored.id, false);
-  }
-
-  function addKeyframe(afterFrameId = selectedFrame?.id): void {
-    if (!afterFrameId || !projectRef.current) return;
-    const result = insertKeyframeAfter(projectRef.current, afterFrameId);
-    if (!result) return;
-    applyProject(result.project, "Keyframe added and text split");
-    setSelectedFrameId(result.insertedId);
-    setSelectedFrameIds([result.insertedId]);
-    setBrowser({ kind: "image", target: "picture" });
-  }
-
-  function duplicateCurrent(): void {
-    if (!selectedFrame || !projectRef.current) return;
-    const result = duplicateKeyframe(projectRef.current, selectedFrame.id);
-    if (!result) return;
-    applyProject(result.project, "Keyframe duplicated");
-    setSelectedFrameId(result.insertedId);
-    setSelectedFrameIds([result.insertedId]);
-  }
-
-  function deleteCurrent(): void {
-    if (!selectedFrame || !projectRef.current) return;
-    const oldIndex = currentIndex;
-    const next = deleteKeyframe(projectRef.current, selectedFrame.id);
-    applyProject(next, "Keyframe deleted");
-    const nextFrames = buildKeyframes(next.story);
-    const nearest = nextFrames[Math.max(0, Math.min(nextFrames.length - 1, oldIndex))];
-    setSelectedFrameId(nearest?.id || "");
-    setSelectedFrameIds(nearest ? [nearest.id] : []);
-  }
-
-  function copyEffects(): void {
-    if (!selectedFrame) return;
-    setCopiedEffects(copyEffectBlock(selectedFrame));
-    setEditLabel("Effects copied");
-  }
-
-  function pasteEffects(): void {
-    if (!project || !copiedEffects) return;
-    const targets = selectedFrameIds.filter((id) => id !== selectedFrameId);
-    if (!targets.length) return;
-    editProject((current) => pasteEffectBlock(current, targets, copiedEffects), `Effects pasted to ${targets.length} keyframes`);
-  }
-
-  function reorderDrop(sourceId: string, targetId: string): void {
-    const current = projectRef.current;
-    if (!current || sourceId === targetId) return;
-    const originalFrames = buildKeyframes(current.story);
-    const source = originalFrames.find((frame) => frame.id === sourceId);
-    const target = originalFrames.find((frame) => frame.id === targetId);
-    if (!source || !target || source.sceneId !== target.sceneId) return;
-    const story = cloneProjectStory(current.story);
-    const scene = story.scenes.find((item) => item.id === source.sceneId);
-    if (!scene?.dialogueBeats) return;
-    const from = scene.dialogueBeats.findIndex((beat, index) => String(beat.id || `${scene.id}:${index + 1}`) === sourceId);
-    const to = scene.dialogueBeats.findIndex((beat, index) => String(beat.id || `${scene.id}:${index + 1}`) === targetId);
-    if (from < 0 || to < 0) return;
-    const [beat] = scene.dialogueBeats.splice(from, 1);
-    scene.dialogueBeats.splice(to, 0, beat);
-    applyProject({ ...current, story, updatedAt: Date.now() }, "Keyframe reordered");
+    const restored = buildSequence(buildKeyframes(snapshot.story));
+    setPlayhead(restored.clips[0]?.start ?? 0);
   }
 
   async function exportBundle(): Promise<void> {
@@ -711,10 +839,10 @@ export default function App() {
 
   function exportSrt(): void {
     if (!frames.length) return;
-    const selectedFrames = rangeEnd === null ? frames : frames.slice(Math.min(rangeStart, rangeEnd), Math.max(rangeStart, rangeEnd) + 1);
-    const text = makeSrt(selectedFrames, selectedFrames.map((frame) => keyframeDuration(frame)));
+    const selected = rangeEnd === null ? frames : frames.slice(Math.min(rangeStart, rangeEnd), Math.max(rangeStart, rangeEnd) + 1);
+    const text = makeSrt(selected, selected.map((frame) => clipFrames(frame) / FPS));
     downloadText(text, `${slug(project?.title || "animatic")}.srt`, "text/plain");
-    setExportMessage(`SRT written for ${selectedFrames.length} keyframes.`);
+    setExportMessage(`SRT written for ${selected.length} clips.`);
   }
 
   function saveCrop(): void {
@@ -732,11 +860,11 @@ export default function App() {
 
   const currentImageSrc = selectedFrame ? resolveMedia(selectedFrame.picture) : undefined;
   const diagnostics = project ? runningOrderDiagnostics(project.story) : [];
-  const totalSeconds = frames.reduce((sum, frame) => sum + keyframeDuration(frame), 0);
+  const clipProgress = currentClip ? Math.min(1, localFrame / Math.max(1, currentClip.duration)) : 0;
 
   if (loading) return <div className="loading-screen"><div className="loading-wordmark">FRAME<span>/24</span></div><span>Opening reel…</span></div>;
   if (loadError && !project) return <div className="loading-screen"><div className="loading-wordmark">FRAME<span>/24</span></div><p>{loadError}</p><button className="button button-primary" onClick={() => window.location.reload()}>Reload app</button></div>;
-  if (!project || !selectedFrame) return <div className="loading-screen">No keyframes are available in this project.</div>;
+  if (!project || !selectedFrame || !currentClip) return <div className="loading-screen">No keyframes are available in this project.</div>;
 
   return (
     <div
@@ -749,6 +877,7 @@ export default function App() {
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/*" onChange={(event) => onUploadInput(event, "image")} />
       <input ref={audioInputRef} className="hidden-input" type="file" accept="audio/*" onChange={(event) => onUploadInput(event, "audio")} />
       <input ref={folderInputRef} className="hidden-input" type="file" multiple onChange={handleFolderPick} />
+
       <Topbar
         project={project}
         saveStatus={saveStatus}
@@ -766,27 +895,22 @@ export default function App() {
         missingCount={project.missing.length}
         onMissing={() => setMissingOpen(true)}
         editLabel={editLabel}
-        totalDuration={totalSeconds}
-        totalDuration={totalSeconds}
+        totalDuration={totalFrames}
       />
 
       <div className="workspace-grid">
-        <Timeline
-          frames={frames}
-          selectedFrameId={selectedFrame.id}
-          selectedFrameIds={selectedFrameIds}
-          resolveMedia={resolveMedia}
-          onSelect={selectFrame}
-          onAddAfter={(frameId) => addKeyframe(frameId)}
-          onDropFile={handleTimelineDrop}
-          onReorderDrop={reorderDrop}
-          onFoldScene={() => setFilterState((value) => value + 1)}
-        />
-
         <main className="stage-column">
           <header className="stage-heading">
-            <div className="stage-title-lockup"><span className="scene-index">{String(selectedFrame.mark).startsWith("nw_") ? "SCENE" : "SC"} {selectedFrame.mark}</span><h1>{selectedFrame.scene.title || project.title}</h1><p>{selectedFrame.speaker}<span>·</span>{selectedFrame.text || "No caption on this beat"}</p></div>
-            <div className="stage-heading-actions"><span className="render-tag"><i />SCARLET REEL RENDERER</span><button className={`caption-toggle ${showCaptions ? "is-active" : ""}`} onClick={() => setShowCaptions((value) => !value)}>CC</button><button className={`caption-toggle ${showMarks ? "is-active" : ""}`} onClick={() => setShowMarks((value) => !value)}>MARK</button></div>
+            <div className="stage-title-lockup">
+              <span className="scene-index">{String(selectedFrame.mark).startsWith("nw_") ? "SCENE" : "SC"} {selectedFrame.mark}</span>
+              <h1>{selectedFrame.scene.title || project.title}</h1>
+              <p>{selectedFrame.speaker}<span>·</span>{selectedFrame.text || "No caption on this beat"}</p>
+            </div>
+            <div className="stage-heading-actions">
+              <span className="render-tag"><i />SCARLET REEL RENDERER</span>
+              <button className={`caption-toggle ${showCaptions ? "is-active" : ""}`} onClick={() => setShowCaptions((value) => !value)}>CC</button>
+              <button className={`caption-toggle ${showMarks ? "is-active" : ""}`} onClick={() => setShowMarks((value) => !value)}>MARK</button>
+            </div>
           </header>
           <div className="preview-stage">
             <div className="preview-inner">
@@ -800,30 +924,37 @@ export default function App() {
                 soundOn={soundOn}
                 showCaption={showCaptions}
                 showMark={showMarks}
+                localFrame={localFrame}
                 setFocalPoint={setFocalPoint}
               />
             </div>
-            {playback && <div className="preview-progress"><span style={{ width: `${frameProgress * 100}%` }} /></div>}
-            <span className="preview-resolution">16:9 <i>·</i> PREVIEW</span>
+            <div className="preview-progress"><span style={{ width: `${clipProgress * 100}%` }} /></div>
+            <span className="preview-resolution">16:9 <i>·</i> PREVIEW <i>·</i> <b data-testid="viewer-timecode">{timecode(playhead)}</b></span>
           </div>
           <div className="transport-bar">
             <div className="transport-primary">
-              <button className="transport-button" aria-label="Previous keyframe" onClick={() => selectRelative(-1)}>‹</button>
-              <button className={`transport-play ${playback ? "is-playing" : ""}`} aria-label={playback ? "Pause animatic" : "Play animatic"} onClick={openPlayback}>{playback ? "Ⅱ" : "▶"}</button>
-              <button className="transport-button" aria-label="Next keyframe" onClick={() => selectRelative(1)}>›</button>
-              <span className="transport-time">{formatTime(frameDuration * frameProgress)} <i>/</i> {formatTime(frameDuration)}</span>
+              <button className="transport-button" aria-label="Previous clip" onClick={() => selectRelativeClip(-1)}>‹</button>
+              <button className={`transport-play ${playback ? "is-playing" : ""}`} aria-label={playback ? "Pause" : "Play"} onClick={togglePlayback}>{playback ? "Ⅱ" : "▶"}</button>
+              <button className="transport-button" aria-label="Next clip" onClick={() => selectRelativeClip(1)}>›</button>
+              <span className="transport-time"><strong data-testid="transport-timecode">{timecode(playhead)}</strong> <i>/</i> {timecode(totalFrames)} <em>· {localFrame} / {currentClip.duration}f</em></span>
             </div>
-            <div className="transport-secondary"><button onClick={() => { setDirection(-1); setPlayback(true); }}>J</button><button onClick={() => { setPlayback(false); audioController.stopAll(); }}>K</button><button onClick={() => { setDirection(1); setPlaySpeed((value) => value >= 4 ? 1 : value * 2); setPlayback(true); }}>L</button><span>{playSpeed}×</span><button className={`sound-button ${soundOn ? "" : "is-muted"}`} onClick={() => { setSoundOn((value) => !value); if (soundOn) audioController.stopAll(); }}>♫</button></div>
-            <div className="transport-counter">KF <strong>{String(currentIndex + 1).padStart(4, "0")}</strong><i>/</i>{frames.length.toLocaleString()}</div>
+            <div className="transport-secondary">
+              <button onClick={() => { setDirection(-1); setPlayback(true); }} title="Play backwards">J</button>
+              <button onClick={() => { setPlayback(false); audioController.stopAll(); }} title="Stop">K</button>
+              <button onClick={() => { setDirection(1); setPlaySpeed((value) => value >= 4 ? 1 : value * 2); setPlayback(true); }} title="Play forward / faster">L</button>
+              <span>{playSpeed}×</span>
+              <button className={`sound-button ${soundOn ? "" : "is-muted"}`} onClick={() => { setSoundOn((value) => !value); if (soundOn) audioController.stopAll(); }}>♫</button>
+            </div>
+            <div className="transport-counter">CLIP <strong>{String(currentIndex + 1).padStart(4, "0")}</strong><i>/</i>{sequence.clips.length.toLocaleString()}</div>
           </div>
-          <Tracks frames={frames} selectedFrameId={selectedFrame.id} onSelect={(id) => selectFrame(id, false)} onMoveCue={moveCue} />
+          <Tracks frames={frames} selectedFrameId={selectedFrame.id} onSelect={(id) => { const clip = clipById(sequence.clips, id); if (clip) seek(clip.start); }} onMoveCue={moveCue} />
         </main>
 
         <Inspector
           project={project}
           frame={selectedFrame}
           pictureSrc={currentImageSrc}
-          selectedCount={selectedFrameIds.length}
+          selectedCount={1}
           copied={!!copiedEffects}
           onBrowse={openBrowser}
           onUpload={imageInputRefTarget}
@@ -842,12 +973,40 @@ export default function App() {
           onInsert={addKeyframe}
           onDuplicate={duplicateCurrent}
           onDelete={deleteCurrent}
-          onMove={(delta) => editProject((current) => reorderKeyframe(current, selectedFrame.id, delta), delta < 0 ? "Keyframe moved earlier" : "Keyframe moved later")}
+          onMove={(delta) => editProject((current) => reorderKeyframe(current, selectedFrame.id, delta), delta < 0 ? "Clip moved earlier" : "Clip moved later")}
           onPreviewSfx={() => audioController.playSfx(selectedFrame.beat.sfxUrl, selectedFrame.beat.sfxVolume, resolveMedia)}
+          localFrame={localFrame}
+          clipDuration={currentClip.duration}
+          onAnimationValue={setAnimationProperty}
+          onAnimationToggle={toggleAnimationProperty}
+          onAnimationEasing={setAnimationEasingForProperty}
+        />
+
+        <Timeline
+          frames={frames}
+          selectedFrameId={selectedFrame.id}
+          playhead={playhead}
+          resolveMedia={resolveMedia}
+          onSeek={seek}
+          onSelectClip={(frameId, absoluteFrame) => {
+            const clip = clipById(sequence.clips, frameId);
+            if (!clip) return;
+            seek(Math.max(clip.start, Math.min(clip.end - 1, absoluteFrame)));
+          }}
+          onTrimStart={beginGesture}
+          onTrim={trimClip}
+          onTrimEnd={endGesture}
+          onMoveKeyframe={moveKeyframe}
+          onSelectKeyframe={selectKeyframe}
+          onDropFile={handleTimelineDrop}
         />
       </div>
 
-      <footer className="app-footer"><span><b>FRAME/24</b> · STRAIGHT-THROUGH ANIMATIC EDITOR</span><span>{diagnostics.length ? `${diagnostics.length} RUN-ORDER NOTE${diagnostics.length === 1 ? "" : "S"}` : "RUNNING ORDER VERIFIED"}</span><span>SPACE PLAY · ↑ / ↓ KEYFRAME · ⌘Z UNDO</span></footer>
+      <footer className="app-footer">
+        <span><b>FRAME/24</b> · KEYFRAME VIDEO EDITOR</span>
+        <span>{diagnostics.length ? `${diagnostics.length} RUN-ORDER NOTE${diagnostics.length === 1 ? "" : "S"}` : "RUNNING ORDER VERIFIED"}</span>
+        <span>SPACE PLAY · ←/→ FRAME · S SPLIT · ⌫ DELETE · ⌘Z UNDO</span>
+      </footer>
       {dragOver && <div className="drop-overlay"><div><span>＋</span><strong>DROP A STILL</strong><small>Original bytes are stored in this project</small></div></div>}
 
       {browser && <AssetBrowser title={browser.target === "picture" || browser.target === "scenePicture" || browser.target === "depthMap" || browser.target === "foregroundImage" ? "Choose a picture" : browser.target === "voice" ? "Choose a voice take" : browser.target === "sfx" ? "Choose a sound effect" : "Choose a music cue"} kind={browser.kind} items={browser.kind === "image" ? imageBrowserItems : audioBrowserItems} onSelect={chooseBrowserAsset} onClose={() => setBrowser(null)} />}
@@ -881,5 +1040,14 @@ export default function App() {
       {loadError && <div className="toast-message" role="status"><span>{loadError}</span><button onClick={() => setLoadError("")}>×</button></div>}
     </div>
   );
+}
 
+function propertyLabel(property: AnimationProperty): string {
+  return property === "zoom" ? "Zoom" : property === "x" ? "Position X" : "Position Y";
+}
+
+function startOfScene(project: ProjectState, mark: string): number {
+  const sequence = buildSequence(buildKeyframes(project.story));
+  const clip = sequence.clips.find((candidate) => candidate.frame.mark === mark) ?? sequence.clips[0];
+  return clip ? clip.start : 0;
 }

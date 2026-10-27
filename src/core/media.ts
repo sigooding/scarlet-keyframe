@@ -132,3 +132,23 @@ async function imageDimensions(blob: Blob): Promise<{ width: number; height: num
     return undefined;
   }
 }
+
+// Voice takes are measured once per source, so playback and the timeline agree on their length.
+export function measureAudioDuration(src: string | undefined, cache?: Map<string, number>): Promise<number> {
+  if (!src) return Promise.resolve(0);
+  const cached = cache?.get(src);
+  if (cached !== undefined) return Promise.resolve(cached);
+  if (typeof Audio === "undefined") return Promise.resolve(0);
+  return new Promise((resolve) => {
+    const element = new Audio();
+    element.preload = "metadata";
+    const settle = (duration: number) => {
+      const safe = Number.isFinite(duration) && duration > 0 ? duration : 0;
+      cache?.set(src, safe);
+      resolve(safe);
+    };
+    element.addEventListener("loadedmetadata", () => settle(element.duration), { once: true });
+    element.addEventListener("error", () => settle(0), { once: true });
+    element.src = src;
+  });
+}

@@ -83,9 +83,9 @@ export function Tracks({ frames, selectedFrameId, onSelect, onMoveCue }: TracksP
         <div className="track-lane effects-lane" style={{ minWidth: totalWidth }} onDragOver={(event) => event.preventDefault()} onDrop={dropCue}>
           <div className="lane-label"><i>✳</i><span>EFFECTS</span></div>
           <div className="lane-content">
-            {sfxCues.map((frame) => {
+            {sfxCues.map((frame, cueIndex) => {
               const left = (positionById.get(frame.id) || 0) * 100;
-              return <button className={`sfx-cue ${selectedFrameId === frame.id ? "is-selected" : ""}`} key={`sfx-${frame.id}`} style={{ left: `${left}%` }} draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-frame24-cue", `sfx|${frame.id}`); event.dataTransfer.effectAllowed = "move"; }} onClick={() => onSelect(frame.id)} title={`${frame.mark} / beat ${frame.number}: ${frame.beat.sfxUrl}`}><i />{basename(String(frame.beat.sfxUrl))}</button>;
+              return <button className={`sfx-cue ${selectedFrameId === frame.id ? "is-selected" : ""}`} key={`sfx-${frame.id}-${cueIndex}`} style={{ left: `${left}%` }} draggable onDragStart={(event) => { event.dataTransfer.setData("application/x-frame24-cue", `sfx|${frame.id}`); event.dataTransfer.effectAllowed = "move"; }} onClick={() => onSelect(frame.id)} title={`${frame.mark} / beat ${frame.number}: ${frame.beat.sfxUrl}`}><i />{basename(String(frame.beat.sfxUrl))}</button>;
             })}
             {sfxCues.length === 0 && <span className="lane-empty">No sound effect markers</span>}
           </div>

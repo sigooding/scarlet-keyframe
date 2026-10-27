@@ -2,6 +2,19 @@ import { useState } from "react";
 import { CINEMATIC_GROUPS, type CinematicField } from "../core/cinematicSchema";
 import { getEffectValue } from "../core/edits";
 import type { Keyframe, ProjectState } from "../core/model";
+import { timecode } from "../core/timing";
+import {
+  ANIMATION_PROPERTIES,
+  ANIMATION_RANGES,
+  EASINGS,
+  animationOf,
+  easingAt,
+  evaluate,
+  keyAt,
+  sortedKeys,
+  type AnimationProperty,
+  type Easing,
+} from "../sequence/animate";
 
 interface InspectorProps {
   project: ProjectState;
@@ -24,6 +37,11 @@ interface InspectorProps {
   onDelete: () => void;
   onMove: (delta: -1 | 1) => void;
   onPreviewSfx: () => void;
+  localFrame: number;
+  clipDuration: number;
+  onAnimationValue: (property: AnimationProperty, value: number) => void;
+  onAnimationToggle: (property: AnimationProperty) => void;
+  onAnimationEasing: (property: AnimationProperty, easing: Easing) => void;
 }
 
 const TRANSITIONS = ["cut", "fade", "crossfade", "fade-black", "slide-left", "slide-right", "iris-in", "iris", "wipe-left", "wipe-right", "wipe-up", "wipe-down", "zoom", "glitch", "burn"];
@@ -69,8 +87,62 @@ export function Inspector(props: InspectorProps) {
           <div className="move-actions"><button onClick={() => props.onMove(-1)}>↑ Move earlier</button><button onClick={() => props.onMove(1)}>↓ Move later</button></div>
         </section>
 
+        <section className="inspector-section animation-section">
+          <SectionTitle number="03" title="Animation" status={`FRAME ${props.localFrame}`} />
+          <p className="inspector-note animation-intro">
+            Zoom and position keyframes for this clip, at {timecode(props.localFrame)} into its {props.clipDuration} frames.
+            A diamond adds a keyframe at the playhead, or removes the one already there.
+          </p>
+          {ANIMATION_PROPERTIES.map((property) => {
+            const animation = animationOf(frame);
+            const keys = animation?.[property] ?? [];
+            const value = evaluate(frame, props.localFrame)[property];
+            const here = keyAt(keys, props.localFrame);
+            const range = ANIMATION_RANGES[property];
+            const label = property === "zoom" ? "Zoom" : property === "x" ? "Position X" : "Position Y";
+            const suffix = property === "zoom" ? "×" : "%";
+            return (
+              <div className="anim-row" key={property} data-testid={`anim-${property}`}>
+                <div className="anim-row-head">
+                  <span className="control-label">{label}</span>
+                  <output data-testid={`anim-value-${property}`}>{value.toFixed(property === "zoom" ? 2 : 1)}{suffix}</output>
+                  <button
+                    className={`anim-diamond ${here ? "is-keyed" : ""}`}
+                    data-testid={`anim-diamond-${property}`}
+                    title={here ? `Remove the ${label} keyframe at frame ${props.localFrame}` : `Add a ${label} keyframe at frame ${props.localFrame}`}
+                    onClick={() => props.onAnimationToggle(property)}
+                    aria-pressed={Boolean(here)}
+                  >◆</button>
+                </div>
+                <input
+                  type="range"
+                  data-testid={`anim-slider-${property}`}
+                  min={range.min}
+                  max={range.max}
+                  step={range.step}
+                  value={value}
+                  onChange={(event) => props.onAnimationValue(property, Number(event.target.value))}
+                />
+                <div className="anim-row-foot">
+                  <span>{keys.length ? `${keys.length} key${keys.length === 1 ? "" : "s"}${keys.length > 1 ? ` · ${sortedKeys(keys).map((key) => key.frame).join(", ")}` : ""}` : "no keys yet"}</span>
+                  <select
+                    data-testid={`anim-easing-${property}`}
+                    value={here ? here.easing : easingAt(keys, props.localFrame)}
+                    disabled={!here}
+                    title={here ? "Easing of the keyframe at the playhead" : "Put the playhead on a keyframe to change its easing"}
+                    onChange={(event) => props.onAnimationEasing(property, event.target.value as Easing)}
+                  >
+                    {EASINGS.map((easing) => <option key={easing} value={easing}>{easing}</option>)}
+                  </select>
+                </div>
+              </div>
+            );
+          })}
+          <p className="preview-only-note">A clip with animation keyframes does not also play its Scarlet Reel camera preset.</p>
+        </section>
+
         <details className="inspector-details" open>
-          <summary><SectionTitle number="03" title="Camera & effects" status="SCARLET REEL" /></summary>
+          <summary><SectionTitle number="04" title="Camera & effects" status="SCARLET REEL" /></summary>
           <div className="effect-intro">Controls mirror the vendored Scarlet Reel cinematic settings. Click the preview to place the focal point.</div>
           {CINEMATIC_GROUPS.map((group) => (
             <details className="effect-group" key={group.id} open={group.id === "camera" || group.id === "depth"}>
@@ -111,7 +183,7 @@ export function Inspector(props: InspectorProps) {
         </details>
 
         <details className="inspector-details">
-          <summary><SectionTitle number="04" title="Sound" status={beat.audioUrl ? "VOICE" : "SILENT"} /></summary>
+          <summary><SectionTitle number="05" title="Sound" status={beat.audioUrl ? "VOICE" : "SILENT"} /></summary>
           <div className="sound-control">
             <label className="control-label">Voice take</label>
             <div className="audio-ref-row"><span>{beat.audioUrl?.split("/").pop() || "No voice take"}</span><button onClick={props.onPlayVoice} disabled={!beat.audioUrl}>▶</button></div>
@@ -129,7 +201,7 @@ export function Inspector(props: InspectorProps) {
         </details>
 
         <details className="inspector-details">
-          <summary><SectionTitle number="05" title="Scene group" status={frame.mark} /></summary>
+          <summary><SectionTitle number="06" title="Scene group" status={frame.mark} /></summary>
           <label className="control-label">Scene heading</label>
           <textarea className="inspector-textarea" value={String(scene.prose || "")} onChange={(event) => props.onSetScene("prose", event.target.value)} rows={3} />
           <div className="control-row"><span className="control-label">Scene plate</span><button className="button button-text" onClick={() => props.onBrowse("image", "scenePicture")}>Choose</button></div>

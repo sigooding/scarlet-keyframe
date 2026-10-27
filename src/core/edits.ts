@@ -1,5 +1,18 @@
 import type { AnyRecord, BeatLike, Keyframe, ProjectState, StoryLike } from "./model";
 import { buildKeyframes } from "./model";
+import { clipFrames, MIN_CLIP_FRAMES } from "./timing";
+import {
+  ANIMATION_PROPERTIES,
+  animationOf,
+  isEmptyAnimation,
+  keyAt,
+  splitAnimation,
+  withKey,
+  withoutKey,
+  type AnimationProperty,
+  type ClipAnimation,
+  type Easing,
+} from "../sequence/animate";
 
 export interface EffectBlock {
   cinematic?: AnyRecord;
@@ -243,4 +256,176 @@ function deletePath(target: AnyRecord, path: string): void {
     if (parent == null) return;
   }
   delete parent[parts[parts.length - 1]];
+}
+
+/* ------------------------------------------------------------------ *
+ * Timeline editing: trim, split and zoom/position animation keyframes  *
+ * ------------------------------------------------------------------ */
+
+// Trim: set the clip's length in frames. Everything after it ripples to a new start.
+export function setClipDuration(project: ProjectState, frameId: string, durationFrames: number): ProjectState {
+  const rounded = Math.max(MIN_CLIP_FRAMES, Math.round(durationFrames));
+  const frame = buildKeyframes(project.story).find((candidate) => candidate.id === frameId);
+  if (!frame) return project;
+  if (clipFrames(frame) === rounded && Number(frame.beat.durationFrames) === rounded) return project;
+  return updateBeat(project, frameId, (beat) => { beat.durationFrames = rounded; });
+}
+
+// Split: the first clip ends at the playhead, the second gets the rest, the same picture and no text.
+// Each half keeps its own zoom/position keys, re-timed to its own start.
+export function splitClip(
+  project: ProjectState,
+  frameId: string,
+  atLocalFrame: number,
+): { project: ProjectState; firstId: string; secondId: string; at: number } | undefined {
+  const frames = buildKeyframes(project.story);
+  const frame = frames.find((candidate) => candidate.id === frameId);
+  if (!frame) return undefined;
+  const total = clipFrames(frame);
+  const at = Math.round(Number.isFinite(atLocalFrame) ? atLocalFrame : 0);
+  if (at < MIN_CLIP_FRAMES || total - at < MIN_CLIP_FRAMES) return undefined;
+
+  const story = cloneStory(project.story);
+  const location = locateBeat(story, frameId);
+  if (!location) return undefined;
+
+  const [firstAnimation, secondAnimation] = splitAnimation(animationOf(frame), at);
+  const secondBeat = JSON.parse(JSON.stringify(location.beat)) as BeatLike;
+  secondBeat.id = uniqueBeatId(story, location.scene.id);
+  secondBeat.text = "";
+  secondBeat.durationFrames = total - at;
+  delete secondBeat.audioUrl;
+  delete secondBeat.audioOffsetSeconds;
+  delete secondBeat.sfxUrl;
+  delete secondBeat.sfxVolume;
+  delete secondBeat.afterBeatTargetSceneId;
+  delete secondBeat.afterBeatDelaySeconds;
+  delete secondBeat.holdSeconds;
+  // The second half keeps the picture that was on screen at the cut.
+  if (frame.picture) {
+    secondBeat.background = frame.picture;
+    secondBeat.backgroundRevert = false;
+    secondBeat.backgroundHold = true;
+  } else {
+    delete secondBeat.background;
+  }
+  applyAnimation(secondBeat, secondAnimation);
+  applyAnimation(location.beat, firstAnimation);
+  location.beat.durationFrames = at;
+
+  location.scene.dialogueBeats!.splice(location.index + 1, 0, secondBeat);
+  return {
+    project: { ...project, story, updatedAt: Date.now() },
+    firstId: String(location.beat.id || frameId),
+    secondId: String(secondBeat.id),
+    at,
+  };
+}
+
+// Move a slider: change the key at the playhead, otherwise add one if the property is already animated.
+export function setAnimationValue(
+  project: ProjectState,
+  frameId: string,
+  property: AnimationProperty,
+  localFrame: number,
+  value: number,
+): ProjectState {
+  return writeAnimation(project, frameId, (animation) => {
+    const frame = Math.max(0, Math.round(localFrame));
+    const keys = animation[property] ?? [];
+    const existing = keyAt(keys, frame);
+    if (existing) {
+      existing.value = value;
+      return true;
+    }
+    if (!keys.length) return false;
+    animation[property] = withKey(keys, frame, value, "linear");
+    return true;
+  });
+}
+
+// The diamond: add a key at the playhead, or remove the one that is already there.
+export function toggleAnimationKey(
+  project: ProjectState,
+  frameId: string,
+  property: AnimationProperty,
+  localFrame: number,
+  value: number,
+): ProjectState {
+  return writeAnimation(project, frameId, (animation) => {
+    const frame = Math.max(0, Math.round(localFrame));
+    const keys = animation[property] ?? [];
+    if (keyAt(keys, frame)) {
+      const next = withoutKey(keys, frame);
+      if (next.length) animation[property] = next;
+      else delete animation[property];
+      return true;
+    }
+    animation[property] = withKey(keys, frame, value, "linear");
+    return true;
+  });
+}
+
+export function setAnimationEasing(
+  project: ProjectState,
+  frameId: string,
+  property: AnimationProperty,
+  localFrame: number,
+  easing: Easing,
+): ProjectState {
+  return writeAnimation(project, frameId, (animation) => {
+    const key = keyAt(animation[property], Math.round(localFrame));
+    if (!key) return false;
+    key.easing = easing;
+    return true;
+  });
+}
+
+export function moveAnimationKey(
+  project: ProjectState,
+  frameId: string,
+  property: AnimationProperty,
+  fromFrame: number,
+  toFrame: number,
+): ProjectState {
+  return writeAnimation(project, frameId, (animation) => {
+    const keys = animation[property] ?? [];
+    const key = keyAt(keys, Math.round(fromFrame));
+    if (!key) return false;
+    const target = Math.max(0, Math.round(toFrame));
+    if (target === key.frame) return false;
+    // A key that lands on another one replaces it; the list stays sorted.
+    const others = keys.filter((item) => item !== key && item.frame !== target);
+    animation[property] = [...others, { frame: target, value: key.value, easing: key.easing }].sort((a, b) => a.frame - b.frame);
+    return true;
+  });
+}
+
+export function clearAnimation(project: ProjectState, frameId: string): ProjectState {
+  return updateBeat(project, frameId, (beat) => { delete beat.animation; });
+}
+
+function applyAnimation(beat: BeatLike, animation: ClipAnimation | undefined): void {
+  if (animation && !isEmptyAnimation(animation)) beat.animation = animation;
+  else delete beat.animation;
+}
+
+// Run an animation edit on one beat; the project is only rebuilt when something actually changed.
+function writeAnimation(
+  project: ProjectState,
+  frameId: string,
+  mutate: (animation: ClipAnimation) => boolean,
+): ProjectState {
+  const story = cloneStory(project.story);
+  const location = locateBeat(story, frameId);
+  if (!location) return project;
+  const current = animationOf({ beat: location.beat });
+  const animation: ClipAnimation = {};
+  for (const property of ANIMATION_PROPERTIES) {
+    const keys = current?.[property];
+    if (keys?.length) animation[property] = keys.map((key) => ({ ...key }));
+  }
+  if (!mutate(animation)) return project;
+  applyAnimation(location.beat, animation);
+  return { ...project, story, updatedAt: Date.now() };
 }
