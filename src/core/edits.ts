@@ -11,7 +11,12 @@ import type {
 import { buildKeyframes, runningSceneIds } from "./model";
 import { clipFrames, FPS, MIN_CLIP_FRAMES } from "./timing";
 import { buildTimelineClips, normalizeAnimation, splitAnimation, type TimelineClip } from "../sequence/animate";
-import { DEFAULT_TRANSITION_FRAMES, type TransitionKind } from "../sequence/transitions";
+import {
+  DEFAULT_TRANSITION_FRAMES,
+  mapTransitionKind,
+  type TransitionAlignment,
+  type TransitionKind,
+} from "../sequence/transitions";
 
 export interface EffectBlock {
   cinematic?: AnyRecord;
@@ -191,14 +196,28 @@ export function setCutTransition(
   incomingFrameId: string,
   kind: TransitionKind,
   durationFrames = DEFAULT_TRANSITION_FRAMES,
+  alignment?: TransitionAlignment,
 ): ProjectState {
   return updateBeat(project, incomingFrameId, (beat) => {
+    const wasCut = mapTransitionKind(beat.backgroundTransition) === "cut";
     beat.backgroundTransition = kind;
     if (kind === "cut") {
       beat.backgroundTransitionSpeed = 0;
+      delete beat.backgroundTransitionAlign;
+      delete beat.transitionUserAdded;
     } else {
+      if (wasCut || alignment === "centred") {
+        beat.transitionUserAdded = true;
+      }
       const safeFrames = Math.max(1, Math.round(durationFrames));
       beat.backgroundTransitionSpeed = Number((safeFrames / FPS).toFixed(6));
+      if (alignment !== undefined) {
+        if (alignment === "centred" && beat.transitionUserAdded) {
+          beat.backgroundTransitionAlign = "centred";
+        } else {
+          delete beat.backgroundTransitionAlign;
+        }
+      }
     }
   });
 }

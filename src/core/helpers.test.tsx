@@ -13,9 +13,10 @@ import { Topbar } from "../components/Topbar";
 import { Tracks } from "../components/Tracks";
 import film from "../data/nobodys-witness-film.json";
 import edits from "../data/studio-edits.json";
-import { downloadText, measureAudioDuration, slug } from "./helpers";
+import { downloadText, measureAudioDuration, pictureLabel, slug } from "./helpers";
 import { applyStudioMusicSync, buildKeyframes, createProjectState, parseImportPayload } from "./model";
 import { writeStudioPatch } from "./patch";
+import { extractKnownMusicDurations } from "./previewAudio";
 import { buildTimelineClips } from "../sequence/animate";
 
 describe("helper functions", () => {
@@ -23,6 +24,12 @@ describe("helper functions", () => {
     expect(slug("Nobody's Witness")).toBe("nobodys-witness");
     expect(slug("  Scene 77A: Cut #2! ")).toBe("scene-77a-cut-2");
     expect(slug("")).toBe("animatic");
+  });
+
+  it("pictureLabel labels gradient placeholders as 'No picture'", () => {
+    expect(pictureLabel("gradient:linear-gradient(#000,#000)", true)).toBe("No picture");
+    expect(pictureLabel("gradient:linear-gradient(#000,#000)", false)).toBe("No picture");
+    expect(pictureLabel("/film/img/s78/88-the-waiting-room.jpg", true)).toBe("88-the-waiting-room");
   });
 
   it("downloadText creates an anchor download and revokes the object URL", () => {
@@ -270,6 +277,62 @@ describe("App and studio windows", () => {
     expect(workspaceHtml).toContain("SC 77");
     expect(workspaceHtml).toContain("Animation");
     expect(workspaceHtml).toContain("CLIP INSPECTOR");
+    for (const id of ["video", "voice", "sfx", "music", "ambience"]) {
+      expect(workspaceHtml).toContain(`data-testid="track-header-${id}"`);
+      expect(workspaceHtml).toContain(`data-testid="track-mute-${id}"`);
+      expect(workspaceHtml).toContain(`data-testid="track-solo-${id}"`);
+      expect(workspaceHtml).toContain(`data-testid="track-level-${id}"`);
+    }
+    expect(workspaceHtml).toContain('data-testid="lane-voice"');
+    expect(workspaceHtml).toContain('data-testid="lane-sfx"');
+    expect(workspaceHtml).not.toContain("VOX / SFX");
+  });
+
+  it("labels gradient placeholder clips (such as scene 77A) as 'No picture' instead of raw gradient text", () => {
+    const { clips, totalFrames } = buildTimelineClips(frames);
+    const s77aClip = clips.find((clip) => clip.keyframe.mark === "77A")!;
+    expect(s77aClip).toBeDefined();
+    expect(s77aClip.keyframe.picture).toMatch(/^gradient:/);
+
+    const html77a = renderToStaticMarkup(
+      <Timeline
+        clips={clips}
+        totalFrames={totalFrames}
+        playheadFrame={s77aClip.startFrame}
+        selectedFrameId={s77aClip.keyframe.id}
+        selectedFrameIds={[s77aClip.keyframe.id]}
+        snapEnabled={true}
+        noteMarkers={[]}
+        editingMarkerId={null}
+        canSplit={false}
+        hasClipboard={false}
+        musicDurations={extractKnownMusicDurations(edits)}
+        resolveMedia={() => undefined}
+        onToggleSnap={noop}
+        onAddNoteMarker={noop}
+        onUpdateNoteMarker={noop}
+        onDeleteNoteMarker={noop}
+        onCloseMarkerEditor={noop}
+        onEditMarker={noop}
+        onScrub={noop}
+        onSetSelection={noop}
+        onDragStart={noop}
+        onDragEnd={noop}
+        onTrimPreview={noop}
+        onRollPreview={noop}
+        onMoveClips={noop}
+        onSetTransition={noop}
+        onAnimationPreview={noop}
+        onCopy={noop}
+        onPaste={noop}
+        onSplit={noop}
+        onDelete={noop}
+        onMoveCue={noop}
+        onDropFile={noop}
+      />,
+    );
+    expect(html77a).toContain("No picture");
+    expect(html77a).not.toContain("gradient:linear-gradient");
   });
 
   it("applies direct translate/scale transform and disables Scarlet Reel camera preset only on clips with keyframes", () => {

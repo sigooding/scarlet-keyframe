@@ -9,8 +9,14 @@ import {
 } from "react";
 import type { BeatAnimation, NoteMarker } from "../core/model";
 import { insertionSlotAtFrame, type ReorderDestination } from "../core/edits";
-import { storyboardGradient } from "../core/helpers";
+import { pictureLabel, storyboardGradient } from "../core/helpers";
 import { firstLine, sceneLabel } from "../core/model";
+import {
+  createDefaultTrackMix,
+  effectiveTrackLevel,
+  type TrackId,
+  type TrackMixMap,
+} from "../core/previewAudio";
 import { formatTimecode, MIN_CLIP_FRAMES } from "../core/timing";
 import {
   clipAtFrame,
@@ -28,11 +34,21 @@ import {
 import {
   DEFAULT_TRANSITION_FRAMES,
   getTransitionWindow,
+  maxTransitionFramesForCut,
   readCutTransition,
   TRANSITION_KINDS,
+  type TransitionAlignment,
   type TransitionKind,
 } from "../sequence/transitions";
 import { Tracks } from "./Tracks";
+
+const TRACK_HEADERS: ReadonlyArray<{ id: TrackId; label: string; icon: string }> = [
+  { id: "video", label: "Video", icon: "▣" },
+  { id: "voice", label: "Voice", icon: "◉" },
+  { id: "sfx", label: "SFX", icon: "✦" },
+  { id: "music", label: "Music", icon: "♪" },
+  { id: "ambience", label: "Ambience", icon: "≈" },
+];
 
 export interface TimelineProps {
   clips: TimelineClip[];
@@ -45,7 +61,12 @@ export interface TimelineProps {
   editingMarkerId: string | null;
   canSplit: boolean;
   hasClipboard: boolean;
+  musicDurations?: ReadonlyMap<string, number>;
+  trackMix?: TrackMixMap;
   resolveMedia: (value: string | undefined) => string | undefined;
+  onToggleTrackMute?: (track: TrackId) => void;
+  onToggleTrackSolo?: (track: TrackId) => void;
+  onSetTrackLevel?: (track: TrackId, level: number) => void;
   onToggleSnap: () => void;
   onAddNoteMarker: () => void;
   onUpdateNoteMarker: (markerId: string, name: string) => void;
@@ -59,7 +80,13 @@ export interface TimelineProps {
   onTrimPreview: (frameId: string, durationFrames: number) => void;
   onRollPreview: (leftFrameId: string, rightFrameId: string, leftDuration: number, rightDuration: number) => void;
   onMoveClips: (frameIds: string[], destination: ReorderDestination) => void;
-  onSetTransition: (incomingFrameId: string, kind: TransitionKind, durationFrames: number, previewOnly?: boolean) => void;
+  onSetTransition: (
+    incomingFrameId: string,
+    kind: TransitionKind,
+    durationFrames: number,
+    previewOnly?: boolean,
+    alignment?: TransitionAlignment,
+  ) => void;
   onAnimationPreview: (frameId: string, animation: BeatAnimation | undefined) => void;
   onCopy: () => void;
   onPaste: () => void;
@@ -92,7 +119,12 @@ export function Timeline({
   editingMarkerId,
   canSplit,
   hasClipboard,
+  musicDurations,
+  trackMix,
   resolveMedia,
+  onToggleTrackMute,
+  onToggleTrackSolo,
+  onSetTrackLevel,
   onToggleSnap,
   onAddNoteMarker,
   onUpdateNoteMarker,
@@ -116,7 +148,9 @@ export function Timeline({
   onDropFile,
 }: TimelineProps) {
   const [pxPerFrame, setPxPerFrame] = useState(DEFAULT_PX_PER_FRAME);
-  const [scrollLeft, setScrollLeft] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(() =>
+    Math.max(0, playheadFrame * DEFAULT_PX_PER_FRAME - 300),
+  );
   const [viewportWidth, setViewportWidth] = useState(1100);
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -494,6 +528,7 @@ export function Timeline({
   const transResizeSession = useRef<{
     incomingId: string;
     kind: TransitionKind;
+    alignment: TransitionAlignment;
     cutFrame: number;
     maxFrames: number;
     side: "left" | "right";
@@ -501,6 +536,9 @@ export function Timeline({
     startX: number;
     targets: ReturnType<typeof collectSnapTargets>;
   } | null>(null);
+
+  const effectiveMix = useMemo(() => trackMix ?? createDefaultTrackMix(), [trackMix]);
+  const videoSilenced = effectiveTrackLevel(effectiveMix, "video") === 0;
 
   const trackWidth = Math.max(viewportWidth, Math.ceil(totalFrames * pxPerFrame) + 160);
 
@@ -511,13 +549,25 @@ export function Timeline({
         : null,
     [clips, transitionPopover],
   );
-  const popoverSpec = useMemo(
+  const popoverOutgoingClip = useMemo(
     () =>
-      popoverIncomingClip && transitionPopover
-        ? readCutTransition(popoverIncomingClip.keyframe, transitionPopover.maxFrames)
+      popoverIncomingClip && popoverIncomingClip.index > 0
+        ? clips[popoverIncomingClip.index - 1] ?? null
         : null,
-    [popoverIncomingClip, transitionPopover],
+    [clips, popoverIncomingClip],
   );
+  const popoverSpec = useMemo(() => {
+    if (!popoverIncomingClip || !transitionPopover) return null;
+    const rawAlign: TransitionAlignment =
+      popoverIncomingClip.keyframe.beat.transitionUserAdded &&
+      popoverIncomingClip.keyframe.beat.backgroundTransitionAlign === "centred"
+        ? "centred"
+        : "at-cut";
+    const maxLen = popoverOutgoingClip
+      ? maxTransitionFramesForCut(popoverOutgoingClip, popoverIncomingClip, rawAlign)
+      : transitionPopover.maxFrames;
+    return readCutTransition(popoverIncomingClip.keyframe, maxLen);
+  }, [popoverIncomingClip, popoverOutgoingClip, transitionPopover]);
 
   return (
     <section className="timeline-editor" aria-label="Picture timeline" data-testid="picture-timeline">
@@ -713,12 +763,73 @@ export function Timeline({
         </div>
       </header>
 
-      <div
-        ref={scrollRef}
-        className="timeline-scroll-area"
-        data-testid="timeline-scroll"
-        onScroll={(event) => setScrollLeft(event.currentTarget.scrollLeft)}
-      >
+      <div className="timeline-body">
+        <aside className="timeline-track-headers" data-testid="timeline-track-headers" aria-label="Track headers">
+          <div className="track-header-ruler">
+            <span>TRACKS</span>
+          </div>
+          {TRACK_HEADERS.map((header) => {
+            const state = effectiveMix[header.id];
+            const effective = effectiveTrackLevel(effectiveMix, header.id);
+            return (
+              <div
+                key={header.id}
+                className={`track-header-row is-${header.id} ${effective === 0 ? "is-silenced" : ""}`}
+                data-testid={`track-header-${header.id}`}
+              >
+                <div className="track-header-top">
+                  <span className="track-header-title">
+                    <i aria-hidden>{header.icon}</i> {header.label}
+                  </span>
+                  <div className="track-header-btns">
+                    <button
+                      type="button"
+                      className={`track-ms-btn is-mute ${state.mute ? "is-active" : ""}`}
+                      data-testid={`track-mute-${header.id}`}
+                      aria-label={`Mute ${header.label}`}
+                      aria-pressed={state.mute}
+                      title={`Mute ${header.label}`}
+                      onClick={() => onToggleTrackMute?.(header.id)}
+                    >
+                      M
+                    </button>
+                    <button
+                      type="button"
+                      className={`track-ms-btn is-solo ${state.solo ? "is-active" : ""}`}
+                      data-testid={`track-solo-${header.id}`}
+                      aria-label={`Solo ${header.label}`}
+                      aria-pressed={state.solo}
+                      title={`Solo ${header.label}`}
+                      onClick={() => onToggleTrackSolo?.(header.id)}
+                    >
+                      S
+                    </button>
+                  </div>
+                </div>
+                <label className="track-header-level">
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={state.level}
+                    aria-label={`${header.label} level`}
+                    data-testid={`track-level-${header.id}`}
+                    onChange={(event) => onSetTrackLevel?.(header.id, Number(event.target.value))}
+                  />
+                  <span>{Math.round(state.level * 100)}%</span>
+                </label>
+              </div>
+            );
+          })}
+        </aside>
+
+        <div
+          ref={scrollRef}
+          className="timeline-scroll-area"
+          data-testid="timeline-scroll"
+          onScroll={(event) => setScrollLeft(event.currentTarget.scrollLeft)}
+        >
         <div className="timeline-canvas" style={{ width: trackWidth }}>
           <div
             className="timeline-ruler"
@@ -781,15 +892,13 @@ export function Timeline({
 
           <div
             ref={trackRef}
-            className="timeline-picture-track"
+            className={`timeline-picture-track ${videoSilenced ? "is-silenced" : ""}`}
             data-testid="picture-track"
             onPointerDown={beginMarquee}
             onPointerMove={moveMarquee}
             onPointerUp={endMarquee}
             onPointerCancel={endMarquee}
           >
-            <div className="synced-lane-tag picture-lane-tag">▣ VIDEO</div>
-
             {visibleClips.map((clip) => {
               const rawSrc = resolveMedia(clip.keyframe.picture);
               const imageThumb =
@@ -797,8 +906,13 @@ export function Timeline({
                   ? rawSrc
                   : undefined;
               const prevClip = clip.index > 0 ? clips[clip.index - 1] : undefined;
+              const rawAlign: TransitionAlignment =
+                clip.keyframe.beat.transitionUserAdded &&
+                clip.keyframe.beat.backgroundTransitionAlign === "centred"
+                  ? "centred"
+                  : "at-cut";
               const maxTransFrames = prevClip
-                ? 2 * Math.min(prevClip.durationFrames, clip.durationFrames)
+                ? maxTransitionFramesForCut(prevClip, clip, rawAlign)
                 : 0;
               const cutTrans = prevClip ? readCutTransition(clip.keyframe, maxTransFrames) : undefined;
 
@@ -832,18 +946,24 @@ export function Timeline({
 
                   {prevClip && cutTrans && (
                     <>
-                      {/* Transition box centred on the cut */}
+                      {/* Transition box (at-cut by default; centred opt-in on user-added transitions) */}
                       {(() => {
                         const cutFrame = clip.startFrame;
                         const isCut = cutTrans.kind === "cut";
-                        const win = getTransitionWindow(cutFrame, cutTrans.durationFrames);
+                        const win = getTransitionWindow(
+                          cutFrame,
+                          cutTrans.durationFrames,
+                          cutTrans.alignment,
+                        );
                         const rawWidth = cutTrans.durationFrames * pxPerFrame;
                         const width = isCut ? 12 : Math.max(20, rawWidth);
                         const left = isCut
                           ? cutFrame * pxPerFrame - 6
-                          : rawWidth >= 20
-                            ? win.startFrame * pxPerFrame
-                            : cutFrame * pxPerFrame - 10;
+                          : cutTrans.alignment === "centred"
+                            ? rawWidth >= 20
+                              ? win.startFrame * pxPerFrame
+                              : cutFrame * pxPerFrame - 10
+                            : win.startFrame * pxPerFrame;
                         const kindMeta = TRANSITION_KINDS.find((t) => t.kind === cutTrans.kind);
 
                         return (
@@ -852,11 +972,12 @@ export function Timeline({
                             data-testid={`transition-box-${clip.keyframe.id}`}
                             data-transition-kind={cutTrans.kind}
                             data-transition-frames={cutTrans.durationFrames}
+                            data-transition-align={cutTrans.alignment}
                             style={{ left, width }}
                             title={
                               isCut
                                 ? "Cut — double-click to add dissolve, dip to black, or wipe"
-                                : `${kindMeta?.label || cutTrans.kind} (${cutTrans.durationFrames}f) — drag edges to resize, double-click to change`
+                                : `${kindMeta?.label || cutTrans.kind} (${cutTrans.durationFrames}f, ${cutTrans.alignment === "centred" ? "centred" : "at cut"}) — drag edge to resize, double-click to change`
                             }
                             onPointerDown={(e) => e.stopPropagation()}
                             onClick={(e) => e.stopPropagation()}
@@ -870,7 +991,7 @@ export function Timeline({
                               });
                             }}
                           >
-                            {!isCut && (
+                            {!isCut && cutTrans.alignment === "centred" && (
                               <span
                                 className="transition-edge edge-left"
                                 data-testid={`transition-edge-left-${clip.keyframe.id}`}
@@ -881,6 +1002,7 @@ export function Timeline({
                                   transResizeSession.current = {
                                     incomingId: clip.keyframe.id,
                                     kind: cutTrans.kind,
+                                    alignment: cutTrans.alignment,
                                     cutFrame,
                                     maxFrames: Math.max(2, maxTransFrames),
                                     side: "left",
@@ -901,7 +1023,7 @@ export function Timeline({
                                   setSnapGuideFrame(snapped.snapped ? snapped.frame : null);
                                   const half = Math.max(1, Math.round(s.cutFrame - snapped.frame));
                                   const nextLen = Math.max(2, Math.min(s.maxFrames, half * 2));
-                                  onSetTransition(s.incomingId, s.kind, nextLen, true);
+                                  onSetTransition(s.incomingId, s.kind, nextLen, true, s.alignment);
                                 }}
                                 onPointerUp={(e) => {
                                   e.stopPropagation();
@@ -934,8 +1056,9 @@ export function Timeline({
                                   transResizeSession.current = {
                                     incomingId: clip.keyframe.id,
                                     kind: cutTrans.kind,
+                                    alignment: cutTrans.alignment,
                                     cutFrame,
-                                    maxFrames: Math.max(2, maxTransFrames),
+                                    maxFrames: Math.max(1, maxTransFrames),
                                     side: "right",
                                     initialFrames: cutTrans.durationFrames,
                                     startX: e.clientX,
@@ -952,9 +1075,17 @@ export function Timeline({
                                   const rawEdge = rawFrameFromClientX(e.clientX);
                                   const snapped = snapFrame(rawEdge, s.targets, pxPerFrame, snapEnabled);
                                   setSnapGuideFrame(snapped.snapped ? snapped.frame : null);
-                                  const half = Math.max(1, Math.round(snapped.frame - s.cutFrame));
-                                  const nextLen = Math.max(2, Math.min(s.maxFrames, half * 2));
-                                  onSetTransition(s.incomingId, s.kind, nextLen, true);
+                                  if (s.alignment === "centred") {
+                                    const half = Math.max(1, Math.round(snapped.frame - s.cutFrame));
+                                    const nextLen = Math.max(2, Math.min(s.maxFrames, half * 2));
+                                    onSetTransition(s.incomingId, s.kind, nextLen, true, s.alignment);
+                                  } else {
+                                    const nextLen = Math.max(
+                                      1,
+                                      Math.min(s.maxFrames, Math.round(snapped.frame - s.cutFrame)),
+                                    );
+                                    onSetTransition(s.incomingId, s.kind, nextLen, true, s.alignment);
+                                  }
                                 }}
                                 onPointerUp={(e) => {
                                   e.stopPropagation();
@@ -1078,7 +1209,13 @@ export function Timeline({
                             : popoverSpec.durationFrames > 0
                               ? popoverSpec.durationFrames
                               : Math.min(DEFAULT_TRANSITION_FRAMES, transitionPopover.maxFrames);
-                        onSetTransition(transitionPopover.incomingId, option.kind, frames, false);
+                        onSetTransition(
+                          transitionPopover.incomingId,
+                          option.kind,
+                          frames,
+                          false,
+                          option.kind === "cut" ? undefined : popoverSpec.alignment,
+                        );
                       }}
                     >
                       {option.label}
@@ -1086,23 +1223,85 @@ export function Timeline({
                   ))}
                 </div>
                 {popoverSpec.kind !== "cut" && (
-                  <label className="transition-frames-field">
-                    <span>Length (frames)</span>
-                    <input
-                      type="number"
-                      data-testid="transition-frames-input"
-                      min={1}
-                      max={transitionPopover.maxFrames}
-                      value={popoverSpec.durationFrames}
-                      onChange={(e) => {
-                        const next = Math.max(
-                          1,
-                          Math.min(transitionPopover.maxFrames, Number(e.target.value) || 1),
-                        );
-                        onSetTransition(transitionPopover.incomingId, popoverSpec.kind, next, false);
-                      }}
-                    />
-                  </label>
+                  <>
+                    <label className="transition-frames-field">
+                      <span>Length (frames)</span>
+                      <input
+                        type="number"
+                        data-testid="transition-frames-input"
+                        min={1}
+                        max={
+                          popoverOutgoingClip
+                            ? maxTransitionFramesForCut(
+                                popoverOutgoingClip,
+                                popoverIncomingClip,
+                                popoverSpec.alignment,
+                              )
+                            : transitionPopover.maxFrames
+                        }
+                        value={popoverSpec.durationFrames}
+                        onChange={(e) => {
+                          const maxAllowed = popoverOutgoingClip
+                            ? maxTransitionFramesForCut(
+                                popoverOutgoingClip,
+                                popoverIncomingClip,
+                                popoverSpec.alignment,
+                              )
+                            : transitionPopover.maxFrames;
+                          const next = Math.max(
+                            1,
+                            Math.min(maxAllowed, Number(e.target.value) || 1),
+                          );
+                          onSetTransition(
+                            transitionPopover.incomingId,
+                            popoverSpec.kind,
+                            next,
+                            false,
+                            popoverSpec.alignment,
+                          );
+                        }}
+                      />
+                    </label>
+                    {popoverSpec.userAdded && (
+                      <div className="transition-align-field" data-testid="transition-align-options">
+                        <span>Placement</span>
+                        <div className="transition-align-btns">
+                          <button
+                            type="button"
+                            data-testid="transition-align-at-cut"
+                            className={`transition-kind-btn ${popoverSpec.alignment === "at-cut" ? "is-active" : ""}`}
+                            onClick={() =>
+                              onSetTransition(
+                                transitionPopover.incomingId,
+                                popoverSpec.kind,
+                                popoverSpec.durationFrames,
+                                false,
+                                "at-cut",
+                              )
+                            }
+                          >
+                            At cut
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="transition-align-centred"
+                            className={`transition-kind-btn ${popoverSpec.alignment === "centred" ? "is-active" : ""}`}
+                            onClick={() =>
+                              onSetTransition(
+                                transitionPopover.incomingId,
+                                popoverSpec.kind,
+                                popoverSpec.durationFrames,
+                                false,
+                                "centred",
+                              )
+                            }
+                          >
+                            Centred
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -1141,6 +1340,8 @@ export function Timeline({
             minVisibleFrame={minVisibleFrame}
             maxVisibleFrame={maxVisibleFrame}
             selectedFrameId={selectedFrameId}
+            musicDurations={musicDurations}
+            trackMix={effectiveMix}
             onSelect={(id, startFrame) => onSetSelection([id], id, startFrame)}
             onMoveCue={onMoveCue}
           />
@@ -1173,6 +1374,7 @@ export function Timeline({
             />
             <div className="timeline-playhead-line" />
           </div>
+        </div>
         </div>
       </div>
     </section>
@@ -1379,12 +1581,12 @@ function ClipItem({
           <span className="timeline-clip-mark">{kf.mark}</span>
           {kf.beat.audioUrl && width >= 38 && (
             <span className="timeline-clip-vox-badge" title={`Voice: ${kf.beat.audioUrl}`}>
-              🎙
+              ◉
             </span>
           )}
-          {width >= 72 && (
+          {width >= 52 && (
             <span className="timeline-clip-label">
-              {picture.split("/").pop()?.replace(/\.[^.]+$/, "") || kf.speaker}
+              {pictureLabel(picture, true, kf.speaker || "No picture")}
             </span>
           )}
         </div>

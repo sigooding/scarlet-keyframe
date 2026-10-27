@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { CINEMATIC_GROUPS, type CinematicField } from "../core/cinematicSchema";
 import { getEffectValue } from "../core/edits";
+import { pictureLabel } from "../core/helpers";
 import type { BeatAnimation, KeyEasing, Keyframe, ProjectState } from "../core/model";
 import { formatTimecode } from "../core/timing";
 import {
@@ -112,9 +113,9 @@ export function Inspector(props: InspectorProps) {
           <div className="picture-current">
             {props.pictureSrc && !props.pictureSrc.startsWith("gradient:") && !props.pictureSrc.startsWith("emoji:") ? (
               <img src={props.pictureSrc} alt="Current keyframe picture" />
-            ) : props.pictureSrc?.startsWith("gradient:") ? (
-              <div className="picture-empty" style={{ background: props.pictureSrc.slice(9) }}>
-                <span>GRADIENT PLATE</span>
+            ) : frame.picture?.startsWith("gradient:") ? (
+              <div className="picture-empty" style={{ background: frame.picture.slice(9) }}>
+                <span>NO PICTURE</span>
               </div>
             ) : (
               <div className="picture-empty">
@@ -122,7 +123,7 @@ export function Inspector(props: InspectorProps) {
               </div>
             )}
             <div className="picture-current-meta">
-              <strong>{frame.picture?.split("/").pop() || "No picture"}</strong>
+              <strong>{pictureLabel(frame.picture, false, "No picture")}</strong>
               <small>
                 {frame.pictureSource === "scene"
                   ? "Scene plate"
@@ -345,8 +346,27 @@ export function Inspector(props: InspectorProps) {
               label="Transition"
               value={mapTransitionKind(beat.backgroundTransition)}
               options={TRANSITIONS}
-              onChange={(value) => props.onSetBeat("backgroundTransition", value)}
+              onChange={(value) => {
+                const wasCut = mapTransitionKind(beat.backgroundTransition) === "cut";
+                props.onSetBeat("backgroundTransition", value);
+                if (value === "cut") {
+                  props.onSetBeat("transitionUserAdded", undefined);
+                  props.onSetBeat("backgroundTransitionAlign", undefined);
+                } else if (wasCut) {
+                  props.onSetBeat("transitionUserAdded", true);
+                }
+              }}
             />
+            {Boolean(beat.transitionUserAdded) && mapTransitionKind(beat.backgroundTransition) !== "cut" && (
+              <FieldSelect
+                label="Placement"
+                value={beat.backgroundTransitionAlign === "centred" ? "centred" : "at-cut"}
+                options={["at-cut", "centred"]}
+                onChange={(value) =>
+                  props.onSetBeat("backgroundTransitionAlign", value === "centred" ? "centred" : undefined)
+                }
+              />
+            )}
             <FieldNumber
               label="Transition speed"
               value={Number(beat.backgroundTransitionSpeed ?? 0.5)}

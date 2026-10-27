@@ -94,3 +94,16 @@ export function storyboardGradient(picture: string): string {
   return `gradient:linear-gradient(${angle}deg, hsl(${hueA} 24% 18%) 0%, hsl(${hueB} 28% 10%) 58%, #07090d 100%)`;
 }
 
+export function pictureLabel(
+  picture: string | undefined,
+  stripExtension = false,
+  emptyFallback = "No picture",
+): string {
+  if (!picture) return emptyFallback;
+  if (/^gradient:/i.test(picture)) return "No picture";
+  const base = picture.replace(/^video:/i, "").split("/").pop() || "";
+  if (!base) return emptyFallback;
+  return stripExtension ? base.replace(/\.[^.]+$/, "") : base;
+}
+
+

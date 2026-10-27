@@ -10,11 +10,39 @@ export function keyframeDuration(frame: Keyframe, voiceSeconds?: number, pace = 
   const beat = frame.beat;
   const explicit = Number(beat.holdSeconds ?? beat.holdDuration ?? beat.durationSeconds ?? beat.hold);
   if (Number.isFinite(explicit) && explicit > 0) return explicit;
-  if (beat.audioUrl) return Math.max(0.5, (voiceSeconds ?? 3) + AFTER_VOICE_SECONDS);
-  const text = String(beat.text || "").trim();
-  if (text && text !== "·") return readingSeconds(text, pace, Number(frame.scene.animaticReadPace) || 1);
+  const beats = frame.scene.dialogueBeats ?? [];
+  const isLastBeat = frame.beatIndex === beats.length - 1;
+  const rawDelay = Number(beat.afterBeatDelaySeconds);
+  const hasAutoDelay =
+    isLastBeat &&
+    beat.afterBeatMode === "auto" &&
+    Number.isFinite(rawDelay) &&
+    rawDelay > 0 &&
+    rawDelay !== 1;
+  const sceneTrans =
+    isLastBeat &&
+    frame.scene.transition &&
+    frame.scene.transition !== "none" &&
+    frame.scene.transition !== "cut"
+      ? Math.min(2.4, Math.max(0, Number(frame.scene.transitionSpeed) || 0))
+      : 0;
+  const text = String(beat.text || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (beat.audioUrl) {
+    const estVoice =
+      voiceSeconds ?? (text ? Math.min(10, Math.max(3, 0.8 + text.length / 13)) : 3);
+    const post = hasAutoDelay ? rawDelay : AFTER_VOICE_SECONDS;
+    return Math.max(0.5, estVoice + post + sceneTrans);
+  }
+  if (hasAutoDelay) {
+    return Math.max(0.5, rawDelay + sceneTrans);
+  }
+  if (text && text !== "·") {
+    return readingSeconds(text, pace, Number(frame.scene.animaticReadPace) || 1) + sceneTrans;
+  }
   const delay = Number(beat.afterBeatDelaySeconds ?? frame.scene.autoAdvanceDelaySeconds);
-  return Number.isFinite(delay) && delay > 0 ? delay : 1.5;
+  return (Number.isFinite(delay) && delay > 0 ? delay : 1.5) + sceneTrans;
 }
 
 export function clipFrames(frame: Keyframe, voiceSeconds?: number, pace = 1): number {

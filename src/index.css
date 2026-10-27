@@ -2514,7 +2514,7 @@ kbd {
 
 .editor-body {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) 264px;
+  grid-template-rows: minmax(0, 1fr) 294px;
   grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   min-width: 0;
@@ -2579,6 +2579,12 @@ kbd {
 
 .cin-preview.is-in-transition {
   background: #000000;
+}
+
+.cin-video-bus {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 
 .cin-transition-layer {
@@ -2818,6 +2824,180 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 
+.timeline-body {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  background: #07090d;
+}
+
+.timeline-track-headers {
+  display: flex;
+  flex-direction: column;
+  background: #0b0e14;
+  border-right: 1px solid var(--line-mid);
+  z-index: 12;
+  min-width: 0;
+}
+
+.track-header-ruler {
+  height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: #0d1118;
+  border-bottom: 1px solid var(--line-mid);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+}
+
+.track-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+  background: #0b0e14;
+}
+
+.track-header-row.is-video {
+  height: 100px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line-mid);
+  background: linear-gradient(180deg, #0d1119 0%, #0a0d13 100%);
+}
+
+.track-header-row.is-voice,
+.track-header-row.is-sfx,
+.track-header-row.is-music,
+.track-header-row.is-ambience {
+  height: 28px;
+}
+
+.track-header-row.is-ambience {
+  border-bottom: 0;
+}
+
+.track-header-row.is-silenced .track-header-title {
+  opacity: 0.48;
+}
+
+.track-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+}
+
+.track-header-row:not(.is-video) .track-header-top {
+  flex-shrink: 0;
+}
+
+.track-header-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--ink-primary);
+  white-space: nowrap;
+}
+
+.track-header-row:not(.is-video) .track-header-title {
+  min-width: 58px;
+  font-size: 9px;
+}
+
+.track-header-title i {
+  font-style: normal;
+  color: var(--accent-amber);
+  font-size: 9.5px;
+}
+
+.track-header-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.track-ms-btn {
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.track-ms-btn:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--ink-primary);
+}
+
+.track-ms-btn.is-mute.is-active {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+.track-ms-btn.is-solo.is-active {
+  background: rgba(232, 162, 74, 0.32);
+  border-color: var(--accent-amber);
+  color: #ffd996;
+}
+
+.track-header-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.track-header-level input[type="range"] {
+  flex: 1;
+  min-width: 36px;
+  height: 4px;
+  padding: 0;
+  accent-color: var(--accent-amber);
+  cursor: pointer;
+}
+
+.track-header-level span {
+  width: 28px;
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
 .timeline-scroll-area {
   position: relative;
   overflow-x: auto;
@@ -2831,7 +3011,7 @@ kbd {
 .timeline-canvas {
   position: relative;
   height: 100%;
-  min-height: 214px;
+  min-height: 242px;
   display: flex;
   flex-direction: column;
 }
@@ -2944,11 +3124,16 @@ kbd {
 
 .timeline-picture-track {
   position: relative;
-  height: 112px;
+  height: 100px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--line-mid);
   background:
     linear-gradient(to bottom, rgba(255, 255, 255, 0.018) 0, transparent 16px, transparent calc(100% - 12px), rgba(255, 255, 255, 0.018) 100%);
+}
+
+.timeline-picture-track.is-silenced,
+.synced-audio-lane.is-silenced {
+  opacity: 0.36;
 }
 
 .timeline-clip {
@@ -3277,6 +3462,29 @@ kbd {
   font-size: 10.5px;
 }
 
+.transition-align-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line-subtle);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-secondary);
+}
+
+.transition-align-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+
+.transition-align-btns .transition-kind-btn {
+  text-align: center;
+  padding: 3px 4px;
+  font-size: 9.5px;
+}
+
 /* Drop Insertion Indicator & Marquee Box & Snap Guide */
 
 .timeline-drop-indicator {
@@ -3342,13 +3550,14 @@ kbd {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 72px;
+  min-height: 112px;
   background: #080b10;
 }
 
 .synced-audio-lane {
   position: relative;
-  height: 24px;
+  height: 28px;
+  flex-shrink: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.055);
 }
 
@@ -3356,44 +3565,30 @@ kbd {
   border-bottom: 0;
 }
 
-.synced-lane-tag {
-  position: sticky;
-  left: 6px;
-  top: 3px;
-  display: inline-flex;
-  align-items: center;
-  height: 17px;
-  padding: 0 6px;
-  border-radius: 3px;
-  background: rgba(9, 12, 18, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-family: var(--mono);
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--ink-muted);
-  z-index: 8;
-  pointer-events: none;
-}
-
-.synced-audio-lane .track-bar {
-  top: 3px;
-  height: 18px;
+.synced-audio-lane .track-bar,
+.synced-audio-lane .music-segment,
+.synced-audio-lane .ambience-segment {
+  top: 4px;
+  bottom: 4px;
+  height: auto;
   font-size: 9.5px;
   padding: 0 6px;
 }
 
 .synced-audio-lane .sfx-cue {
-  top: 3px;
-  height: 18px;
+  top: 4px;
+  height: 20px;
   font-size: 9px;
-  padding: 0 5px;
+  padding: 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .synced-audio-lane .vox-cue {
   position: absolute;
-  top: 3px;
-  height: 18px;
+  top: 4px;
+  height: 20px;
   border-radius: 3px;
   padding: 0 6px;
   display: inline-flex;

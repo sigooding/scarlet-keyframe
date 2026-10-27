@@ -56,9 +56,22 @@ import { UndoHistory } from "./core/history";
 import { loadActiveProject, saveActiveProject } from "./core/storage";
 import { clipFrames, FPS, formatTimecode, makeSrt } from "./core/timing";
 import { writeStudioPatch, type StudioPatchResult } from "./core/patch";
-import { PreviewAudioController } from "./core/previewAudio";
+import {
+  createDefaultTrackMix,
+  effectiveTrackLevel,
+  extractKnownMusicDurations,
+  PreviewAudioController,
+  resolveMusicSpans,
+  type TrackId,
+  type TrackMixMap,
+} from "./core/previewAudio";
 import { buildTimelineClips, clipAtFrame, evaluate } from "./sequence/animate";
-import { activeTransitionAtFrame, readCutTransition, type TransitionKind } from "./sequence/transitions";
+import {
+  activeTransitionAtFrame,
+  readCutTransition,
+  type TransitionAlignment,
+  type TransitionKind,
+} from "./sequence/transitions";
 import { audio } from "../vendor/scarlet-reel/audio";
 import bundledFilm from "./data/nobodys-witness-film.json";
 import bundledEdits from "./data/studio-edits.json";
@@ -83,6 +96,10 @@ declare global {
       getDuration: (frameId: string) => number;
       getFrame: (frameId: string) => AnyRecord | undefined;
       getActiveTransition: () => AnyRecord | undefined;
+      getMusicSpans: () => AnyRecord[];
+      getTrackMix: () => TrackMixMap;
+      getEffectiveTrackLevel: (track: TrackId) => number;
+      getAudioVolumes: () => AnyRecord;
       syncAnimations: (seconds: number) => void;
     };
   }
@@ -120,6 +137,8 @@ export default function App() {
   const [folderLabel, setFolderLabel] = useState("");
   const [objectUrls, setObjectUrls] = useState<Map<string, string>>(new Map());
   const [voiceDurations, setVoiceDurations] = useState<Map<string, number>>(new Map());
+  const [measuredMusicDurations, setMeasuredMusicDurations] = useState<Map<string, number>>(new Map());
+  const [trackMix, setTrackMix] = useState<TrackMixMap>(() => createDefaultTrackMix());
 
   const [playheadFrame, setPlayheadFrame] = useState(0);
   const playheadRef = useRef(0);
@@ -334,20 +353,31 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
+    const seen = new Set<string>();
     const pending: Array<{ ref: string; src: string }> = [];
     for (const frame of frames) {
       const ref = frame.beat.audioUrl;
-      if (!ref || voiceDurations.has(ref)) continue;
+      if (!ref || seen.has(ref) || voiceDurations.has(ref)) continue;
+      seen.add(ref);
       const src = resolveMedia(ref);
       if (src) pending.push({ ref, src });
     }
     if (!pending.length) return;
     void (async () => {
       const measured = new Map<string, number>();
-      for (const item of pending.slice(0, 80)) {
+      const batch = pending.slice(0, 96);
+      for (let i = 0; i < batch.length; i += 12) {
         if (cancelled) return;
-        const sec = await measureAudioDuration(item.src, voiceDurationCache.current);
-        if (sec !== undefined && sec > 0) measured.set(item.ref, sec);
+        const slice = batch.slice(i, i + 12);
+        const results = await Promise.all(
+          slice.map(async (item) => ({
+            ref: item.ref,
+            sec: await measureAudioDuration(item.src, voiceDurationCache.current),
+          })),
+        );
+        for (const r of results) {
+          if (r.sec !== undefined && r.sec > 0) measured.set(r.ref, r.sec);
+        }
       }
       if (!cancelled && measured.size > 0) {
         setVoiceDurations((prev) => {
@@ -361,6 +391,81 @@ export default function App() {
       cancelled = true;
     };
   }, [frames, resolveMedia, voiceDurations]);
+
+  useEffect(() => {
+    if (!project) return;
+    let cancelled = false;
+    const seen = new Set<string>();
+    const pending: Array<{ ref: string; src: string }> = [];
+    for (const scene of project.story.scenes) {
+      const ref = scene.musicUrl || scene.sceneAudioUrl;
+      if (!ref || seen.has(ref) || measuredMusicDurations.has(ref)) continue;
+      seen.add(ref);
+      const src = resolveMedia(ref);
+      if (src) pending.push({ ref, src });
+    }
+    if (!pending.length) return;
+    void (async () => {
+      const measured = new Map<string, number>();
+      const results = await Promise.all(
+        pending.map(async (item) => ({
+          ref: item.ref,
+          sec: await measureAudioDuration(item.src, voiceDurationCache.current),
+        })),
+      );
+      for (const r of results) {
+        if (r.sec !== undefined && r.sec > 0) measured.set(r.ref, r.sec);
+      }
+      if (!cancelled && measured.size > 0) {
+        setMeasuredMusicDurations((prev) => {
+          const next = new Map(prev);
+          measured.forEach((v, k) => next.set(k, v));
+          return next;
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [project, resolveMedia, measuredMusicDurations]);
+
+  const musicDurations = useMemo(() => {
+    const combined = extractKnownMusicDurations(project?.sourceEdits ?? bundledEdits);
+    measuredMusicDurations.forEach((sec, ref) => {
+      combined.set(ref, sec);
+    });
+    return combined;
+  }, [project?.sourceEdits, measuredMusicDurations]);
+
+  useEffect(() => {
+    audioController.setTimeline(clips, totalFrames, musicDurations);
+  }, [clips, totalFrames, musicDurations]);
+
+  useEffect(() => {
+    audioController.setTrackMix(trackMix);
+  }, [trackMix]);
+
+  const handleToggleTrackMute = useCallback((track: TrackId) => {
+    setTrackMix((prev) => ({
+      ...prev,
+      [track]: { ...prev[track], mute: !prev[track].mute },
+    }));
+  }, []);
+
+  const handleToggleTrackSolo = useCallback((track: TrackId) => {
+    setTrackMix((prev) => ({
+      ...prev,
+      [track]: { ...prev[track], solo: !prev[track].solo },
+    }));
+  }, []);
+
+  const handleSetTrackLevel = useCallback((track: TrackId, level: number) => {
+    const clamped = Math.max(0, Math.min(1, Number.isFinite(level) ? level : 1));
+    setTrackMix((prev) => ({
+      ...prev,
+      [track]: { ...prev[track], level: clamped },
+    }));
+  }, []);
 
   useEffect(() => {
     if (!project) return;
@@ -596,12 +701,20 @@ export default function App() {
   }, [applyProject]);
 
   const handleSetTransition = useCallback(
-    (incomingFrameId: string, kind: TransitionKind, durationFrames: number, previewOnly = false) => {
+    (
+      incomingFrameId: string,
+      kind: TransitionKind,
+      durationFrames: number,
+      previewOnly = false,
+      alignment?: TransitionAlignment,
+    ) => {
       if (previewOnly) {
-        previewProjectEdit((current) => setCutTransition(current, incomingFrameId, kind, durationFrames));
+        previewProjectEdit((current) =>
+          setCutTransition(current, incomingFrameId, kind, durationFrames, alignment),
+        );
       } else {
         editProject(
-          (current) => setCutTransition(current, incomingFrameId, kind, durationFrames),
+          (current) => setCutTransition(current, incomingFrameId, kind, durationFrames, alignment),
           `Transition: ${kind}${kind === "cut" ? "" : ` (${durationFrames}f)`}`,
         );
       }
@@ -882,7 +995,12 @@ export default function App() {
     const startClip = clipAtFrame(clips, startAt) || clips[0];
     if (soundOn && startClip) {
       lastPlayedSceneRef.current = startClip.keyframe.sceneId;
-      void audioController.startFrom(project.story, startClip.keyframe.sceneId, resolveMedia);
+      void audioController.startFrom(
+        project.story,
+        startClip.keyframe.sceneId,
+        resolveMedia,
+        startAt,
+      );
     }
     setPlayback(true);
   }, [playback, project, clips, totalFrames, soundOn, resolveMedia]);
@@ -920,6 +1038,7 @@ export default function App() {
       }
       if (nextFrame !== playheadRef.current) {
         setPlayheadFrame(nextFrame);
+        if (soundOn) audioController.syncAtFrame(nextFrame);
         const hit = clipAtFrame(clips, nextFrame);
         if (hit) {
           setSelectedFrameId(hit.keyframe.id);
@@ -931,7 +1050,7 @@ export default function App() {
 
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [playback, direction, playSpeed, totalFrames, clips]);
+  }, [playback, direction, playSpeed, totalFrames, clips, soundOn]);
 
   useEffect(() => {
     if (!playback || !activeClip || !project) return;
@@ -941,7 +1060,14 @@ export default function App() {
 
     if (lastPlayedSceneRef.current !== frame.sceneId) {
       lastPlayedSceneRef.current = frame.sceneId;
-      if (soundOn) void audioController.enterScene(frame.scene, resolveMedia);
+      if (soundOn) {
+        void audioController.enterScene(
+          frame.scene,
+          resolveMedia,
+          activeClip.startFrame,
+          project.story,
+        );
+      }
     }
     if (!soundOn) return;
     if (frame.beat.sfxUrl) {
@@ -1076,18 +1202,35 @@ export default function App() {
           ambientAudio: frame.scene.ambientAudio,
         };
       },
-      getActiveTransition: () =>
-        activeTransition
+      getActiveTransition: () => {
+        const current = activeTransitionAtFrame(clips, playheadRef.current);
+        return current
           ? {
-              kind: activeTransition.kind,
-              progress: activeTransition.progress,
-              startFrame: activeTransition.startFrame,
-              endFrame: activeTransition.endFrame,
-              durationFrames: activeTransition.durationFrames,
-              outgoingId: activeTransition.outgoingClip.keyframe.id,
-              incomingId: activeTransition.incomingClip.keyframe.id,
+              kind: current.kind,
+              alignment: current.alignment,
+              progress: current.progress,
+              startFrame: current.startFrame,
+              endFrame: current.endFrame,
+              durationFrames: current.durationFrames,
+              outgoingId: current.outgoingClip.keyframe.id,
+              incomingId: current.incomingClip.keyframe.id,
             }
-          : undefined,
+          : undefined;
+      },
+      getMusicSpans: () =>
+        resolveMusicSpans(clips, totalFrames, musicDurations).map((span) => ({
+          id: span.id,
+          sceneId: span.sceneId,
+          url: span.url,
+          label: span.label,
+          loop: span.loop,
+          startFrame: span.startFrame,
+          endFrame: span.endFrame,
+          naturalEndFrame: span.naturalEndFrame,
+        })),
+      getTrackMix: () => trackMix,
+      getEffectiveTrackLevel: (track: TrackId) => effectiveTrackLevel(trackMix, track),
+      getAudioVolumes: () => ({ ...audio.volumes, currentMusicUrl: audioController.currentMusicUrl }),
       syncAnimations: (seconds) => {
         const now = seconds * 1000;
         for (const animation of document.getAnimations()) {
@@ -1104,7 +1247,18 @@ export default function App() {
     return () => {
       delete window.__frame24;
     };
-  }, [activeTransition, clips, frames, scrubToFrame, setSelection, snapEnabled, totalFrames, viewerFrame]);
+  }, [
+    activeTransition,
+    clips,
+    frames,
+    musicDurations,
+    scrubToFrame,
+    setSelection,
+    snapEnabled,
+    totalFrames,
+    trackMix,
+    viewerFrame,
+  ]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -1516,6 +1670,7 @@ export default function App() {
                   outgoingImagePosition={outgoingImagePosition}
                   incomingImageSrc={incomingImageSrc}
                   incomingImagePosition={incomingImagePosition}
+                  videoLevel={effectiveTrackLevel(trackMix, "video")}
                   resolveMedia={resolveMedia}
                   playing={playback}
                   soundOn={soundOn}
@@ -1695,7 +1850,12 @@ export default function App() {
             editingMarkerId={editingMarkerId}
             canSplit={canSplit}
             hasClipboard={copiedClips.length > 0}
+            musicDurations={musicDurations}
+            trackMix={trackMix}
             resolveMedia={resolveMedia}
+            onToggleTrackMute={handleToggleTrackMute}
+            onToggleTrackSolo={handleToggleTrackSolo}
+            onSetTrackLevel={handleSetTrackLevel}
             onToggleSnap={() => setSnapEnabled((prev) => !prev)}
             onAddNoteMarker={handleAddMarkerAtPlayhead}
             onUpdateNoteMarker={(markerId, name) =>

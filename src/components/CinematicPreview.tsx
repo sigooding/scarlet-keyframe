@@ -4,7 +4,7 @@ import { DepthParallaxLayer } from "../../vendor/scarlet-reel/game/DepthParallax
 import { Particles, type ParticleKind } from "../../vendor/scarlet-reel/game/AmbientParticles";
 import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
 import type { Keyframe } from "../core/model";
-import { storyboardGradient } from "../core/helpers";
+import { pictureLabel, storyboardGradient } from "../core/helpers";
 import { evaluate, hasAnimationKeyframes } from "../sequence/animate";
 import type { ActiveTransition } from "../sequence/transitions";
 
@@ -18,6 +18,7 @@ export interface CinematicPreviewProps {
   outgoingImagePosition?: string;
   incomingImageSrc?: string;
   incomingImagePosition?: string;
+  videoLevel?: number;
   resolveMedia: (value: string | undefined) => string | undefined;
   playing: boolean;
   soundOn: boolean;
@@ -36,6 +37,7 @@ export function CinematicPreview({
   outgoingImagePosition,
   incomingImageSrc,
   incomingImagePosition,
+  videoLevel = 1,
   resolveMedia,
   playing,
   soundOn,
@@ -48,6 +50,7 @@ export function CinematicPreview({
     .filter(Boolean)
     .join(" ");
 
+  const clampedVideoLevel = Math.max(0, Math.min(1, Number.isFinite(videoLevel) ? videoLevel : 1));
   const p = transition ? Math.max(0, Math.min(1, transition.progress)) : 0;
 
   let outgoingWrapperStyle: CSSProperties | undefined;
@@ -95,56 +98,62 @@ export function CinematicPreview({
         setFocalPoint(`${Math.round(x)}% ${Math.round(y)}%`);
       }}
     >
-      {transition ? (
-        <>
-          <div
-            className="cin-transition-layer cin-transition-outgoing"
-            data-testid="transition-outgoing"
-            style={outgoingWrapperStyle}
-          >
-            <ShotLayer
-              frame={transition.outgoingClip.keyframe}
-              localFrame={transition.outLocalFrame}
-              imageSrc={outgoingImageSrc}
-              imagePosition={outgoingImagePosition}
-              resolveMedia={resolveMedia}
-              playing={playing}
-              soundOn={soundOn}
-              plateTestId="cinematic-plate-outgoing"
-              inTransition
-            />
-          </div>
-          <div
-            className="cin-transition-layer cin-transition-incoming"
-            data-testid="transition-incoming"
-            style={incomingWrapperStyle}
-          >
-            <ShotLayer
-              frame={transition.incomingClip.keyframe}
-              localFrame={transition.inLocalFrame}
-              imageSrc={incomingImageSrc}
-              imagePosition={incomingImagePosition}
-              resolveMedia={resolveMedia}
-              playing={playing}
-              soundOn={false}
-              plateTestId="cinematic-plate"
-              inTransition
-            />
-          </div>
-        </>
-      ) : (
-        <ShotLayer
-          frame={frame}
-          localFrame={localFrame}
-          imageSrc={imageSrc}
-          imagePosition={imagePosition}
-          resolveMedia={resolveMedia}
-          playing={playing}
-          soundOn={soundOn}
-          plateTestId="cinematic-plate"
-          inTransition={false}
-        />
-      )}
+      <div
+        className="cin-video-bus"
+        data-testid="cinematic-video-bus"
+        style={{ opacity: clampedVideoLevel, transition: "none", animation: "none" }}
+      >
+        {transition ? (
+          <>
+            <div
+              className="cin-transition-layer cin-transition-outgoing"
+              data-testid="transition-outgoing"
+              style={outgoingWrapperStyle}
+            >
+              <ShotLayer
+                frame={transition.outgoingClip.keyframe}
+                localFrame={transition.outLocalFrame}
+                imageSrc={outgoingImageSrc}
+                imagePosition={outgoingImagePosition}
+                resolveMedia={resolveMedia}
+                playing={playing}
+                soundOn={soundOn}
+                plateTestId="cinematic-plate-outgoing"
+                inTransition
+              />
+            </div>
+            <div
+              className="cin-transition-layer cin-transition-incoming"
+              data-testid="transition-incoming"
+              style={incomingWrapperStyle}
+            >
+              <ShotLayer
+                frame={transition.incomingClip.keyframe}
+                localFrame={transition.inLocalFrame}
+                imageSrc={incomingImageSrc}
+                imagePosition={incomingImagePosition}
+                resolveMedia={resolveMedia}
+                playing={playing}
+                soundOn={false}
+                plateTestId="cinematic-plate"
+                inTransition
+              />
+            </div>
+          </>
+        ) : (
+          <ShotLayer
+            frame={frame}
+            localFrame={localFrame}
+            imageSrc={imageSrc}
+            imagePosition={imagePosition}
+            resolveMedia={resolveMedia}
+            playing={playing}
+            soundOn={soundOn}
+            plateTestId="cinematic-plate"
+            inTransition={false}
+          />
+        )}
+      </div>
 
       {frame.scene.letterbox && (
         <>
@@ -276,7 +285,7 @@ function ShotLayer({
   const cameraMoveActive =
     !useDirectPose && playing && Boolean(cinematic.startZoom || cinematic.endZoom || cinematic.easing);
 
-  const shotName = picture ? picture.split("/").pop() || picture : "No picture on this keyframe";
+  const shotName = pictureLabel(picture, false, "No picture on this keyframe");
 
   return (
     <div
