@@ -286,8 +286,8 @@ export default function App() {
 
   const resolveMedia = useCallback(
     (value: string | undefined): string | undefined => {
-      if (!value) return undefined;
-      if (/^(?:data:|blob:|https?:\/\/|gradient:|emoji:)/i.test(value)) return value;
+      if (!value || /^(?:gradient:|emoji:)/i.test(value)) return undefined;
+      if (/^(?:data:|blob:|https?:\/\/)/i.test(value)) return value;
       const assetId = value.match(/(?:^|:)asset:([^/?#]+)/)?.[1];
       if (assetId) return objectUrls.get(`asset:${assetId}`);
       const path = referencedPath(value);

@@ -153,12 +153,12 @@ export function Tracks({ frames, playheadFrame, selectedFrameId, onSelect, onMov
             <span>EFFECTS</span>
           </div>
           <div className="lane-content">
-            {sfxCues.map((frame) => {
+            {sfxCues.map((frame, index) => {
               const left = (positionById.get(frame.id) || 0) * 100;
               return (
                 <button
                   className={`sfx-cue ${selectedFrameId === frame.id ? "is-selected" : ""}`}
-                  key={`sfx-${frame.id}`}
+                  key={`sfx-${frame.sceneId}-${frame.id}-${index}`}
                   style={{ left: `${left}%` }}
                   draggable
                   onDragStart={(event) => {

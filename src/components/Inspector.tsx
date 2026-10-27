@@ -119,8 +119,12 @@ export function Inspector(props: InspectorProps) {
         <section className="inspector-section picture-section">
           <SectionTitle number="01" title="Picture" status={frame.carried ? "CARRIED" : "OWN FRAME"} />
           <div className="picture-current">
-            {props.pictureSrc ? (
+            {props.pictureSrc && !props.pictureSrc.startsWith("gradient:") && !props.pictureSrc.startsWith("emoji:") ? (
               <img src={props.pictureSrc} alt="Current keyframe picture" />
+            ) : props.pictureSrc?.startsWith("gradient:") ? (
+              <div className="picture-empty" style={{ background: props.pictureSrc.slice(9) }}>
+                <span>GRADIENT PLATE</span>
+              </div>
             ) : (
               <div className="picture-empty">
                 <span>NO LINKED PICTURE</span>

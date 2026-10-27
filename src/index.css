@@ -2515,8 +2515,10 @@ kbd {
 .editor-body {
   display: grid;
   grid-template-rows: minmax(0, 1fr) 268px;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   min-width: 0;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -2538,14 +2540,24 @@ kbd {
 .lower-timeline-dock {
   display: grid;
   grid-template-rows: minmax(0, 1fr) 98px;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   min-width: 0;
+  width: 100%;
   background: var(--bg-900);
   overflow: hidden;
 }
 
 .lower-timeline-dock .tracks-panel {
   border-top: 1px solid var(--line-mid);
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.lower-timeline-dock .track-scroll {
+  min-width: 0;
+  width: 100%;
 }
 
 .lower-timeline-dock .tracks-head {
@@ -2614,8 +2626,11 @@ kbd {
 .timeline-editor {
   display: grid;
   grid-template-rows: 38px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   min-width: 0;
+  width: 100%;
+  overflow: hidden;
   background: #0a0d12;
   user-select: none;
 }
@@ -2780,6 +2795,8 @@ kbd {
   overflow-x: auto;
   overflow-y: hidden;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
   background: #07090d;
 }
 

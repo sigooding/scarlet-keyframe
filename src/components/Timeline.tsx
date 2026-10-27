@@ -9,7 +9,7 @@ import {
   type AnimProp,
   type TimelineClip,
 } from "../sequence/animate";
-import { storyboardGradient } from "./CinematicPreview";
+import { storyboardGradient } from "../core/helpers";
 
 export interface TimelineProps {
   clips: TimelineClip[];
@@ -386,29 +386,34 @@ export function Timeline({
           </div>
 
           <div className="timeline-picture-track" data-testid="picture-track">
-            {visibleClips.map((clip) => (
-              <ClipItem
-                key={clip.keyframe.id}
-                clip={clip}
-                pxPerFrame={pxPerFrame}
-                isSelected={selectedFrameId === clip.keyframe.id}
-                isMulti={selectedFrameIds.includes(clip.keyframe.id)}
-                thumbSrc={resolveMedia(clip.keyframe.picture)}
-                onSelect={(extend, clientX) => {
-                  const clickedFrame = Math.max(
-                    clip.startFrame,
-                    Math.min(clip.endFrame - 1, frameFromClientX(clientX)),
-                  );
-                  onSelectClip(clip.keyframe.id, extend, extend ? undefined : clickedFrame);
-                }}
-                onScrub={onScrub}
-                onDragStart={onDragStart}
-                onDragEnd={onDragEnd}
-                onTrimPreview={onTrimPreview}
-                onAnimationPreview={onAnimationPreview}
-                onDropFile={onDropFile}
-              />
-            ))}
+            {visibleClips.map((clip) => {
+              const rawSrc = resolveMedia(clip.keyframe.picture);
+              const imageThumb =
+                rawSrc && !rawSrc.startsWith("gradient:") && !rawSrc.startsWith("emoji:") ? rawSrc : undefined;
+              return (
+                <ClipItem
+                  key={`${clip.keyframe.sceneId}:${clip.keyframe.id}:${clip.index}`}
+                  clip={clip}
+                  pxPerFrame={pxPerFrame}
+                  isSelected={selectedFrameId === clip.keyframe.id}
+                  isMulti={selectedFrameIds.includes(clip.keyframe.id)}
+                  thumbSrc={imageThumb}
+                  onSelect={(extend, clientX) => {
+                    const clickedFrame = Math.max(
+                      clip.startFrame,
+                      Math.min(clip.endFrame - 1, frameFromClientX(clientX)),
+                    );
+                    onSelectClip(clip.keyframe.id, extend, extend ? undefined : clickedFrame);
+                  }}
+                  onScrub={onScrub}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
+                  onTrimPreview={onTrimPreview}
+                  onAnimationPreview={onAnimationPreview}
+                  onDropFile={onDropFile}
+                />
+              );
+            })}
           </div>
 
           <div

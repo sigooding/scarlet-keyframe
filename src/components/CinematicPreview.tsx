@@ -4,6 +4,7 @@ import { DepthParallaxLayer } from "../../vendor/scarlet-reel/game/DepthParallax
 import { Particles, type ParticleKind } from "../../vendor/scarlet-reel/game/AmbientParticles";
 import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
 import type { Keyframe } from "../core/model";
+import { storyboardGradient } from "../core/helpers";
 import { evaluate, hasAnimationKeyframes } from "../sequence/animate";
 
 interface CinematicPreviewProps {
@@ -17,18 +18,6 @@ interface CinematicPreviewProps {
   showCaption: boolean;
   showMark: boolean;
   setFocalPoint?: (value: string) => void;
-}
-
-export function storyboardGradient(picture: string): string {
-  if (!picture) return "gradient:linear-gradient(135deg,#111518,#07090b)";
-  let hash = 2166136261;
-  for (let i = 0; i < picture.length; i += 1) {
-    hash = Math.imul(hash ^ picture.charCodeAt(i), 16777619);
-  }
-  const hueA = Math.abs(hash) % 360;
-  const hueB = (hueA + 42) % 360;
-  const angle = 115 + (Math.abs(hash >> 8) % 50);
-  return `gradient:linear-gradient(${angle}deg, hsl(${hueA} 24% 18%) 0%, hsl(${hueB} 28% 10%) 58%, #07090d 100%)`;
 }
 
 export function CinematicPreview({
