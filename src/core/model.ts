@@ -1,11 +1,19 @@
 export type AnyRecord = Record<string, any>;
 
+export interface NoteMarker {
+  id: string;
+  frame: number;
+  name: string;
+  color?: string;
+}
+
 export interface StoryLike extends AnyRecord {
   id?: string;
   title?: string;
   tagline?: string;
   startSceneId: string;
   scenes: SceneLike[];
+  markers?: NoteMarker[];
 }
 
 export interface SceneLike extends AnyRecord {
@@ -232,6 +240,7 @@ export function buildKeyframes(story: StoryLike): Keyframe[] {
   const orderedIds = runningSceneIds(story);
   const sceneById = new Map(story.scenes.map((scene) => [scene.id, scene]));
   const frames: Keyframe[] = [];
+  const seenIds = new Set<string>();
   let carriedPicture: string | undefined;
 
   orderedIds.forEach((sceneId, sceneIndex) => {
@@ -251,7 +260,9 @@ export function buildKeyframes(story: StoryLike): Keyframe[] {
           : picture
             ? "carried"
             : "none";
-      const id = String(beat.id || `${scene.id}:${beatIndex + 1}`);
+      const rawId = String(beat.id || `${scene.id}:${beatIndex + 1}`);
+      const id = seenIds.has(rawId) ? `${scene.id}:${rawId}` : rawId;
+      seenIds.add(id);
       frames.push({
         id,
         sceneId: scene.id,
