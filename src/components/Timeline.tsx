@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -182,14 +183,19 @@ export function Timeline({
     setScrollLeft(targetLeft);
   }, []);
 
+  const prevPlayheadForScrollRef = useRef(playheadFrame);
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || !clips.length) return;
     if (!initialCenteredRef.current) {
       initialCenteredRef.current = true;
+      prevPlayheadForScrollRef.current = playheadFrame;
       centerFrameInView(playheadFrame, pxPerFrame);
       return;
     }
+    if (prevPlayheadForScrollRef.current === playheadFrame) return;
+    prevPlayheadForScrollRef.current = playheadFrame;
     if (scrubbingRef.current) return;
     const x = playheadFrame * pxPerFrame;
     const left = el.scrollLeft;
@@ -409,7 +415,14 @@ export function Timeline({
   } | null>(null);
 
   const beginMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.target !== event.currentTarget) return;
+    const targetEl = event.target as HTMLElement | null;
+    if (
+      targetEl?.closest(
+        ".timeline-clip, .timeline-transition-box, .timeline-roll-handle, .transition-kind-popover",
+      )
+    ) {
+      return;
+    }
     event.preventDefault();
     setTransitionPopover(null);
     const scrollEl = scrollRef.current;
@@ -790,7 +803,7 @@ export function Timeline({
               const cutTrans = prevClip ? readCutTransition(clip.keyframe, maxTransFrames) : undefined;
 
               return (
-                <div key={`clip-wrap-${clip.keyframe.sceneId}:${clip.keyframe.id}:${clip.index}`}>
+                <Fragment key={`clip-wrap-${clip.keyframe.sceneId}:${clip.keyframe.id}:${clip.index}`}>
                   <ClipItem
                     clip={clip}
                     clips={clips}
@@ -1027,7 +1040,7 @@ export function Timeline({
                       />
                     </>
                   )}
-                </div>
+                </Fragment>
               );
             })}
 
@@ -1274,6 +1287,7 @@ function ClipItem({
         width,
         background: thumbSrc ? undefined : bgFallback,
       }}
+      data-testid={`timeline-clip-${kf.id}`}
       data-frame-id={kf.id}
       data-scene-id={kf.sceneId}
       data-scene-mark={kf.mark}

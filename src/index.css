@@ -3229,7 +3229,14 @@ kbd {
   line-height: 1;
 }
 
-.transition-kind-option {
+.transition-kind-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.transition-kind-option,
+.transition-kind-btn {
   text-align: left;
   padding: 4px 7px;
   border-radius: 4px;
@@ -3238,11 +3245,13 @@ kbd {
   color: var(--ink-primary);
 }
 
-.transition-kind-option:hover {
+.transition-kind-option:hover,
+.transition-kind-btn:hover {
   background: var(--bg-750);
 }
 
-.transition-kind-option.is-active {
+.transition-kind-option.is-active,
+.transition-kind-btn.is-active {
   background: var(--accent-amber-soft);
   border: 1px solid rgba(232, 162, 74, 0.6);
   color: var(--accent-amber);

@@ -438,8 +438,15 @@ export function reorderKeyframeWithResult(
     const copies: BeatLike[] = selectedFrames.map((f) => {
       const copy = JSON.parse(JSON.stringify(f.beat)) as BeatLike;
       copy.id = uniqueBeatId(story, targetScene.id);
+      if (f.sceneId !== targetScene.id && !copy.background && f.picture) {
+        copy.background = f.picture;
+      }
       return copy;
     });
+    const nextInScene = targetScene.dialogueBeats[clampedIndex];
+    if (nextInScene && !nextInScene.background && copies.some((c) => Boolean(c.background))) {
+      nextInScene.backgroundRevert = true;
+    }
     targetScene.dialogueBeats.splice(clampedIndex, 0, ...copies);
     restoreSceneChain(story, chain);
     return {
@@ -460,6 +467,9 @@ export function reorderKeyframeWithResult(
 
   const orderedBeatsToMove = selectedFrames.map((f) => {
     if (!f.beat.id) f.beat.id = uniqueBeatId(story, targetScene.id);
+    if (f.sceneId !== targetScene.id && !f.beat.background && f.picture) {
+      f.beat.background = f.picture;
+    }
     return f.beat;
   });
 
@@ -482,6 +492,14 @@ export function reorderKeyframeWithResult(
   }
 
   const insertIndex = anchorBeat ? targetScene.dialogueBeats.indexOf(anchorBeat) : -1;
+  if (
+    anchorBeat &&
+    !anchorBeat.background &&
+    selectedFrames.some((f) => f.sceneId !== targetScene.id) &&
+    orderedBeatsToMove.some((b) => Boolean(b.background))
+  ) {
+    anchorBeat.backgroundRevert = true;
+  }
   if (insertIndex >= 0) {
     targetScene.dialogueBeats.splice(insertIndex, 0, ...orderedBeatsToMove);
   } else {
@@ -519,7 +537,11 @@ export function copySelectedBeats(project: ProjectState, frameIds: string[]): Be
   captureSceneChain(story); // strips chain-only afterBeatTargetSceneId from cloned beats
   return frames
     .filter((f) => idSet.has(f.id))
-    .map((f) => JSON.parse(JSON.stringify(f.beat)) as BeatLike);
+    .map((f) => {
+      const copy = JSON.parse(JSON.stringify(f.beat)) as BeatLike;
+      if (!copy.background && f.picture) copy.background = f.picture;
+      return copy;
+    });
 }
 
 /**
