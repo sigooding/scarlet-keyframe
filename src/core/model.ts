@@ -51,6 +51,16 @@ export interface ProjectAsset {
   outputPath?: string;
 }
 
+// A note marker the editor drops on the ruler (M). It is anchored to its clip so it ripples with edits;
+// `frame` is the absolute position when it was made, used if the clip is gone.
+export interface NoteMarker {
+  id: string;
+  name: string;
+  frame: number;
+  clipId?: string;
+  offset?: number;
+}
+
 export interface ProjectSnapshot {
   id: string;
   name: string;
@@ -68,6 +78,7 @@ export interface ProjectState {
   missing: string[];
   importedMissing: string[];
   sourceEdits?: AnyRecord;
+  markers?: NoteMarker[];
   snapshots: ProjectSnapshot[];
   createdAt: number;
   updatedAt: number;

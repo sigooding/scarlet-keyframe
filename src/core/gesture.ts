@@ -14,6 +14,11 @@ export class GestureHistory<T> {
     return this.base !== null;
   }
 
+  // The state the running gesture began with; a drag that measures from where it started uses this.
+  get origin(): T | null {
+    return this.base;
+  }
+
   begin(current: T | null | undefined): void {
     this.base = current ?? null;
   }

@@ -3,21 +3,26 @@ import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
 import { CinematicPreview } from "./components/CinematicPreview";
 import { Inspector } from "./components/Inspector";
 import { CropModal, ExportModal, MissingMediaModal, SnapshotModal } from "./components/Modals";
-import { Timeline } from "./components/Timeline";
+import { Timeline, type DropPosition, type SelectMode } from "./components/Timeline";
 import { Topbar } from "./components/Topbar";
 import { Tracks } from "./components/Tracks";
-import { applyStudioMusicSync, buildKeyframes, collectImageReferences, collectMediaReferences, createProjectState, parseImportPayload, runningOrderDiagnostics, type AnyRecord, type ProjectAsset, type ProjectState } from "./core/model";
+import { applyStudioMusicSync, buildKeyframes, collectImageReferences, collectMediaReferences, createProjectState, parseImportPayload, runningOrderDiagnostics, type AnyRecord, type BeatLike, type NoteMarker, type ProjectAsset, type ProjectState } from "./core/model";
 import {
+  addNoteMarker,
   cloneStory as cloneProjectStory,
   copyEffectBlock,
-  deleteKeyframe,
+  deleteClips,
   duplicateKeyframe,
   insertKeyframeAfter,
   moveAnimationKey,
+  moveClips,
   moveSfxCue,
+  pasteClips,
   pasteEffectBlock,
+  removeNoteMarker,
   reorderKeyframe,
   resetEffectField,
+  rollEdit,
   setAnimationEasing,
   setAnimationValue,
   setBeatField,
@@ -25,6 +30,8 @@ import {
   setEffectField,
   setPicture,
   setSceneField,
+  setTransitionFrames,
+  setTransitionKind,
   splitClip,
   toggleAnimationKey,
   type EffectBlock,
@@ -40,7 +47,8 @@ import { writeStudioPatch } from "./core/patch";
 import { PreviewAudioController } from "./core/previewAudio";
 import type { StudioPatchResult } from "./core/patch";
 import { evaluate, type AnimationProperty, type Easing } from "./sequence/animate";
-import { buildSequence, clipAtFrame, clipById, localFrameOf } from "./sequence/sequence";
+import { transitionAtCut, transitionCovering, transitionProgress, TRANSITION_LABELS, type TransitionKind } from "./sequence/transitions";
+import { buildSequence, clipAtFrame, clipById, localFrameOf, markerPosition, type SequenceClip } from "./sequence/sequence";
 import { audio } from "../vendor/scarlet-reel/audio";
 import bundledFilm from "./data/nobodys-witness-film.json";
 import bundledEdits from "./data/studio-edits.json";
@@ -62,6 +70,9 @@ declare global {
       getPlayhead: () => number;
       getTotalFrames: () => number;
       clipAt: (absoluteFrame: number) => AnyRecord | undefined;
+      getSelected: () => string[];
+      getMarkers: () => AnyRecord[];
+      getTransition: () => AnyRecord | null;
     };
   }
 }
@@ -81,6 +92,10 @@ export default function App() {
   const [objectUrls, setObjectUrls] = useState<Map<string, string>>(new Map());
   // Time is whole frames at 24 fps. The playhead is the single position on the sequence.
   const [playhead, setPlayhead] = useState(0);
+  // Clips selected on the timeline (shift/ctrl-click or a box); the inspector follows the playhead.
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [clipboard, setClipboard] = useState<BeatLike[]>([]);
+  const [snapEnabled, setSnapEnabled] = useState(true);
   const [copiedEffects, setCopiedEffects] = useState<EffectBlock | null>(null);
   const [historyVersion, setHistoryVersion] = useState(0);
   const [saveStatus, setSaveStatus] = useState("LOADING");
@@ -159,6 +174,7 @@ export default function App() {
           repaired.missing = evaluateMissingMedia(repaired, new Map(), paths);
           setProject(repaired);
           setPlayhead(startOfScene(repaired, "77"));
+          setSelectedIds([clipAtFrame(buildSequence(buildKeyframes(repaired.story)).clips, startOfScene(repaired, "77"))?.frame.id ?? ""].filter(Boolean));
           setSaveStatus("AUTOSAVED PROJECT");
         } else {
           const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json");
@@ -167,6 +183,7 @@ export default function App() {
           next.missing = evaluateMissingMedia(next, new Map(), paths);
           setProject(next);
           setPlayhead(startOfScene(next, "77"));
+          setSelectedIds([clipAtFrame(buildSequence(buildKeyframes(next.story)).clips, startOfScene(next, "77"))?.frame.id ?? ""].filter(Boolean));
           setSaveStatus("FILM READY");
         }
       } catch (error) {
@@ -186,9 +203,10 @@ export default function App() {
   const selectedFrame = currentClip?.frame ?? frames[0];
   const localFrame = currentClip ? localFrameOf(currentClip, playhead) : 0;
   const currentIndex = currentClip?.index ?? 0;
-  const currentAssetId = selectedFrame?.picture?.startsWith("asset:") ? selectedFrame.picture.slice(6) : "";
-  const currentPictureAsset = project?.assets.find((asset) => asset.id === currentAssetId);
-  const currentImagePosition = currentPictureAsset?.crop ? `${currentPictureAsset.crop.x}% ${currentPictureAsset.crop.y}%` : undefined;
+
+
+  // The transition that covers the playhead, if a cut with a transition is running there.
+  const transition = useMemo(() => transitionCovering(sequence.clips, playhead), [sequence.clips, playhead]);
 
   useEffect(() => {
     const next = new Map<string, string>();
@@ -215,6 +233,20 @@ export default function App() {
     if (publicPaths.has(path)) return `/${path}`;
     return undefined;
   }, [objectUrls, publicPaths]);
+
+  // One picture for the viewer: the clip, its media and where the playhead sits inside it.
+  const previewLayer = useCallback((clip: SequenceClip | undefined) => {
+    if (!clip) return undefined;
+    const picture = clip.frame.picture;
+    const assetId = picture?.startsWith("asset:") ? picture.slice(6) : "";
+    const asset = project?.assets.find((candidate) => candidate.id === assetId);
+    return {
+      frame: clip.frame,
+      imageSrc: resolveMedia(picture),
+      imagePosition: asset?.crop ? `${asset.crop.x}% ${asset.crop.y}%` : undefined,
+      localFrame: Math.min(clip.duration - 1, Math.max(0, playhead - clip.start)),
+    };
+  }, [playhead, project?.assets, resolveMedia]);
 
   useEffect(() => {
     if (!project) return;
@@ -262,8 +294,10 @@ export default function App() {
     gestures.begin(projectRef.current);
   }, []);
 
-  const updateGesture = useCallback((update: (current: ProjectState) => ProjectState) => {
-    const current = projectRef.current;
+  // `fromGestureStart` re-applies a gesture against the state it began with (a roll is measured from the
+  // original cut, not from the frames it has already moved).
+  const updateGesture = useCallback((update: (current: ProjectState) => ProjectState, fromGestureStart = false) => {
+    const current = (fromGestureStart ? gestures.origin : null) ?? projectRef.current;
     if (!current) return;
     const next = update(current);
     if (next === current) return;
@@ -640,6 +674,86 @@ export default function App() {
     seek(clip.start + Math.min(keyFrame, clip.duration - 1));
   }, [seek, sequence.clips]);
 
+  const selectClip = useCallback((frameId: string, absoluteFrame: number, mode: SelectMode) => {
+    const clip = clipById(sequence.clips, frameId);
+    if (!clip) return;
+    // Clicking a clip seeks inside it; grabbing its edge (trim, roll) leaves the playhead alone.
+    if (absoluteFrame >= clip.start && absoluteFrame < clip.end) seek(absoluteFrame);
+    setSelectedIds((current) => {
+      if (mode === "toggle") return current.includes(frameId) ? current.filter((id) => id !== frameId) : [...current, frameId];
+      return [frameId];
+    });
+  }, [seek, sequence.clips]);
+
+  const selectedClipIds = useCallback((): string[] => {
+    if (selectedIds.length) return selectedIds;
+    return currentClip ? [currentClip.frame.id] : [];
+  }, [currentClip, selectedIds]);
+
+  const moveSelectedClips = useCallback((ids: string[], targetId: string, position: DropPosition, copy: boolean) => {
+    const current = projectRef.current;
+    if (!current) return;
+    const result = moveClips(current, ids, { frameId: targetId, position }, { copy });
+    if (!result) return;
+    applyProject(result.project, copy ? `${result.ids.length} clip${result.ids.length === 1 ? "" : "s"} copied` : `${result.ids.length} clip${result.ids.length === 1 ? "" : "s"} moved`);
+    setSelectedIds(result.ids);
+    const after = buildSequence(buildKeyframes(result.project.story));
+    const first = result.ids.map((id) => clipById(after.clips, id)).find(Boolean);
+    if (first) setPlayhead(first.start);
+  }, [applyProject]);
+
+  const rollCut = useCallback((leftFrameId: string, deltaFrames: number) => {
+    updateGesture((current) => rollEdit(current, leftFrameId, deltaFrames)?.project ?? current, true);
+  }, [updateGesture]);
+
+  const changeTransitionFrames = useCallback((frameId: string, frames: number) => {
+    updateGesture((current) => setTransitionFrames(current, frameId, frames), true);
+  }, [updateGesture]);
+
+  const changeTransitionKind = useCallback((frameId: string, kind: TransitionKind) => {
+    editProject((current) => setTransitionKind(current, frameId, kind), `Transition: ${TRANSITION_LABELS[kind]}`);
+  }, [editProject]);
+
+  const addMarkerAtPlayhead = useCallback(() => {
+    if (!currentClip) return;
+    const name = window.prompt("Name this marker", `Note at ${timecode(playhead)}`);
+    const trimmed = String(name ?? "").trim();
+    if (!trimmed) return;
+    const marker: NoteMarker = {
+      id: `marker-${crypto.randomUUID()}`,
+      name: trimmed,
+      frame: playhead,
+      clipId: currentClip.frame.id,
+      offset: playhead - currentClip.start,
+    };
+    editProject((current) => addNoteMarker(current, marker), `Marker: ${trimmed}`);
+  }, [currentClip, editProject, playhead]);
+
+  const removeMarker = useCallback((markerId: string) => {
+    editProject((current) => removeNoteMarker(current, markerId), "Marker removed");
+  }, [editProject]);
+
+  const copySelectedClips = useCallback(() => {
+    const ids = selectedClipIds();
+    if (!ids.length) return;
+    const beats = sequence.clips
+      .filter((clip) => ids.includes(clip.frame.id))
+      .map((clip) => JSON.parse(JSON.stringify(clip.frame.beat)) as BeatLike);
+    if (!beats.length) return;
+    setClipboard(beats);
+    setEditLabel(`${beats.length} clip${beats.length === 1 ? "" : "s"} copied`);
+  }, [selectedClipIds, sequence.clips]);
+
+  const pasteAtPlayhead = useCallback(() => {
+    const current = projectRef.current;
+    if (!current || !clipboard.length) return;
+    const result = pasteClips(current, clipboard, playhead);
+    if (!result) return;
+    applyProject(result.project, `${result.ids.length} clip${result.ids.length === 1 ? "" : "s"} pasted`);
+    setSelectedIds(result.ids);
+    setPlayhead(result.start);
+  }, [applyProject, clipboard, playhead]);
+
   const splitCurrent = useCallback(() => {
     const current = projectRef.current;
     if (!current || !currentClip) return;
@@ -656,14 +770,16 @@ export default function App() {
   const deleteCurrent = useCallback(() => {
     const current = projectRef.current;
     if (!current || !currentClip) return;
+    const ids = selectedClipIds();
     const index = currentClip.index;
-    const next = deleteKeyframe(current, currentClip.frame.id);
+    const next = deleteClips(current, ids);
     if (next === current) return;
-    applyProject(next, "Clip deleted");
+    applyProject(next, ids.length > 1 ? `${ids.length} clips deleted` : "Clip deleted");
     const after = buildSequence(buildKeyframes(next.story));
     const target = after.clips[Math.max(0, Math.min(after.clips.length - 1, index))];
     setPlayhead(target ? target.start : 0);
-  }, [applyProject, currentClip]);
+    setSelectedIds(target ? [target.frame.id] : []);
+  }, [applyProject, currentClip, selectedClipIds]);
 
   const duplicateCurrent = useCallback(() => {
     const current = projectRef.current;
@@ -754,11 +870,22 @@ export default function App() {
       getTotalFrames: () => sequence.totalFrames,
       clipAt: (absoluteFrame) => {
         const clip = clipAtFrame(sequence.clips, absoluteFrame);
-        return clip ? { id: clip.frame.id, mark: clip.frame.mark, start: clip.start, duration: clip.duration, text: clip.frame.text } : undefined;
+        return clip ? {
+          id: clip.frame.id, mark: clip.frame.mark, sceneId: clip.frame.sceneId,
+          start: clip.start, duration: clip.duration, end: clip.end,
+          text: clip.frame.text, audioUrl: clip.frame.beat.audioUrl, sfxUrl: clip.frame.beat.sfxUrl,
+          transition: clip.index >= 1 ? (transitionAtCut(sequence.clips, clip.index) ?? null) : null,
+        } : undefined;
+      },
+      getSelected: () => [...selectedIds],
+      getMarkers: () => (projectRef.current?.markers ?? []).map((marker) => ({ ...marker, frame: markerPosition(marker, sequence.clips) })),
+      getTransition: () => {
+        const found = transitionCovering(sequence.clips, playheadRef.current);
+        return found ? { ...found, progress: transitionProgress(found, playheadRef.current) } : null;
       },
     };
     return () => { delete window.__frame24; };
-  }, [frames, selectedFrame, sequence]);
+  }, [frames, selectedFrame, sequence, selectedIds]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -770,6 +897,8 @@ export default function App() {
       const typing = Boolean(target) && !control && (["INPUT", "TEXTAREA", "SELECT"].includes(tag) || Boolean(target?.isContentEditable));
       if (mod && event.key.toLowerCase() === "s") { event.preventDefault(); saveNow(); return; }
       if (mod && event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); return; }
+      if (mod && event.key.toLowerCase() === "c") { event.preventDefault(); copySelectedClips(); return; }
+      if (mod && event.key.toLowerCase() === "v") { event.preventDefault(); pasteAtPlayhead(); return; }
       if (typing) return;
       if (event.code === "Space") { event.preventDefault(); togglePlayback(); }
       else if (event.key === "ArrowLeft") {
@@ -781,6 +910,8 @@ export default function App() {
       } else if (event.key === "ArrowUp") { event.preventDefault(); selectRelativeClip(-1); }
       else if (event.key === "ArrowDown") { event.preventDefault(); selectRelativeClip(1); }
       else if (event.key.toLowerCase() === "s") { event.preventDefault(); splitCurrent(); }
+      else if (event.key.toLowerCase() === "n") { event.preventDefault(); setSnapEnabled((value) => !value); }
+      else if (event.key.toLowerCase() === "m") { event.preventDefault(); addMarkerAtPlayhead(); }
       else if (event.key === "Delete" || event.key === "Backspace") { event.preventDefault(); deleteCurrent(); }
       else if (event.key.toLowerCase() === "k") { event.preventDefault(); setPlayback(false); audioController.stopAll(); }
       else if (event.key.toLowerCase() === "j") { event.preventDefault(); setDirection(-1); setPlayback(true); }
@@ -788,7 +919,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [deleteCurrent, redo, seek, selectRelativeClip, splitCurrent, togglePlayback, undo]);
+  }, [addMarkerAtPlayhead, copySelectedClips, deleteCurrent, pasteAtPlayhead, redo, seek, selectRelativeClip, splitCurrent, togglePlayback, undo]);
 
   function saveNow(): void {
     const current = projectRef.current;
@@ -866,6 +997,17 @@ export default function App() {
   if (loadError && !project) return <div className="loading-screen"><div className="loading-wordmark">FRAME<span>/24</span></div><p>{loadError}</p><button className="button button-primary" onClick={() => window.location.reload()}>Reload app</button></div>;
   if (!project || !selectedFrame || !currentClip) return <div className="loading-screen">No keyframes are available in this project.</div>;
 
+  // During a transition the incoming picture is on top and the outgoing one underneath, whichever side of
+  // the cut the playhead is on.
+  const incomingClip = transition ? sequence.clips[transition.incomingIndex] : undefined;
+  const outgoingClip = transition ? sequence.clips[transition.outgoingIndex] : undefined;
+  const stageClip = incomingClip ?? currentClip;
+  const stageLayer = previewLayer(stageClip) ?? { frame: stageClip.frame, localFrame };
+  const stageOutgoing = transition ? previewLayer(outgoingClip) : undefined;
+  const viewerTransition = transition
+    ? { kind: transition.kind, progress: transitionProgress(transition, playhead), frames: transition.frames }
+    : undefined;
+
   return (
     <div
       className={`frame24-shell ${dragOver ? "is-drag-over" : ""}`}
@@ -915,16 +1057,15 @@ export default function App() {
           <div className="preview-stage">
             <div className="preview-inner">
               <CinematicPreview
-                key={selectedFrame.id}
-                frame={selectedFrame}
-                imageSrc={currentImageSrc}
-                imagePosition={currentImagePosition}
+                key={`${stageClip.frame.id}-${viewerTransition ? "t" : "s"}`}
+                layer={stageLayer}
+                outgoing={stageOutgoing}
+                transition={viewerTransition}
                 resolveMedia={resolveMedia}
                 playing={playback}
                 soundOn={soundOn}
                 showCaption={showCaptions}
                 showMark={showMarks}
-                localFrame={localFrame}
                 setFocalPoint={setFocalPoint}
               />
             </div>
@@ -954,7 +1095,7 @@ export default function App() {
           project={project}
           frame={selectedFrame}
           pictureSrc={currentImageSrc}
-          selectedCount={1}
+          selectedCount={Math.max(1, selectedIds.length)}
           copied={!!copiedEffects}
           onBrowse={openBrowser}
           onUpload={imageInputRefTarget}
@@ -984,18 +1125,24 @@ export default function App() {
 
         <Timeline
           frames={frames}
-          selectedFrameId={selectedFrame.id}
+          selectedIds={selectedIds}
           playhead={playhead}
+          snapEnabled={snapEnabled}
+          markers={project.markers ?? []}
           resolveMedia={resolveMedia}
           onSeek={seek}
-          onSelectClip={(frameId, absoluteFrame) => {
-            const clip = clipById(sequence.clips, frameId);
-            if (!clip) return;
-            seek(Math.max(clip.start, Math.min(clip.end - 1, absoluteFrame)));
-          }}
-          onTrimStart={beginGesture}
+          onSelect={selectClip}
+          onSelectMany={setSelectedIds}
+          onGestureStart={beginGesture}
+          onGestureEnd={endGesture}
           onTrim={trimClip}
-          onTrimEnd={endGesture}
+          onRoll={rollCut}
+          onMoveClips={moveSelectedClips}
+          onTransitionFrames={changeTransitionFrames}
+          onTransitionKind={changeTransitionKind}
+          onToggleSnap={() => setSnapEnabled((value) => !value)}
+          onAddMarker={addMarkerAtPlayhead}
+          onRemoveMarker={removeMarker}
           onMoveKeyframe={moveKeyframe}
           onSelectKeyframe={selectKeyframe}
           onDropFile={handleTimelineDrop}

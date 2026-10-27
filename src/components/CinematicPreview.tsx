@@ -5,40 +5,121 @@ import { Particles, type ParticleKind } from "../../vendor/scarlet-reel/game/Amb
 import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
 import type { Keyframe } from "../core/model";
 import { evaluate, hasAnimation } from "../sequence/animate";
+import { transitionStyles, type LayerStyle, type TransitionKind } from "../sequence/transitions";
 
-interface CinematicPreviewProps {
+// One picture on screen: the clip, its resolved media and where the playhead sits inside the clip.
+export interface PreviewLayer {
   frame: Keyframe;
   imageSrc?: string;
   imagePosition?: string;
+  localFrame: number;
+}
+
+export interface PreviewTransition {
+  kind: TransitionKind;
+  progress: number;
+  frames: number;
+}
+
+interface CinematicPreviewProps {
+  layer: PreviewLayer;
+  // The outgoing picture, drawn underneath while a transition runs.
+  outgoing?: PreviewLayer;
+  transition?: PreviewTransition;
   resolveMedia: (value: string | undefined) => string | undefined;
   playing: boolean;
   soundOn: boolean;
   showCaption: boolean;
   showMark: boolean;
-  localFrame: number;
   setFocalPoint?: (value: string) => void;
 }
 
 export function CinematicPreview({
-  frame,
-  imageSrc,
-  imagePosition,
+  layer,
+  outgoing,
+  transition,
   resolveMedia,
   playing,
   soundOn,
   showCaption,
   showMark,
-  localFrame,
   setFocalPoint,
 }: CinematicPreviewProps) {
+  const frame = layer.frame;
+  const cinematic = (frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>;
+  const styles = transition ? transitionStyles(transition.kind, transition.progress) : undefined;
+  const ownOverlay = [cinematic.vignette ? "fx-vignette" : "", cinematic.grain ? "fx-grain" : ""].filter(Boolean).join(" ");
+
+  return (
+    <div
+      className={`cin-preview ${ownOverlay}`}
+      data-testid="cinematic-preview"
+      data-transition-kind={transition ? transition.kind : undefined}
+      data-transition-progress={transition ? transition.progress.toFixed(3) : undefined}
+      onClick={(event) => {
+        if (!setFocalPoint) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        const x = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+        const y = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+        setFocalPoint(`${Math.round(x)}% ${Math.round(y)}%`);
+      }}
+    >
+      {outgoing && styles && (
+        <CameraLayer
+          layer={outgoing}
+          layerStyle={styles.outgoing}
+          resolveMedia={resolveMedia}
+          playing={playing}
+          soundOn={soundOn}
+          role="outgoing"
+        />
+      )}
+      <CameraLayer
+        layer={layer}
+        layerStyle={styles?.incoming ?? {}}
+        resolveMedia={resolveMedia}
+        playing={playing}
+        soundOn={soundOn}
+        role="incoming"
+      />
+      {frame.scene.letterbox && <><div className="cin-letterbox cin-letterbox-top" /><div className="cin-letterbox cin-letterbox-bottom" /></>}
+      {showMark && <div className="cin-mark">SC {frame.mark} <span>·</span> BEAT {frame.number}</div>}
+      {showCaption && frame.text && <div className="cin-caption"><span>{frame.speaker}</span><p>{frame.text}</p></div>}
+      {frame.carried && <div className="cin-carried-mark">{frame.pictureSource === "scene" ? "SCENE PLATE" : "CARRIED PICTURE"}</div>}
+      {transition && (
+        <div className="cin-transition-tag" data-testid="viewer-transition">
+          {transition.kind.toUpperCase()} <b>{Math.round(transition.progress * 100)}%</b>
+        </div>
+      )}
+      <div className="cin-preview-crosshair" aria-hidden><i /><b /></div>
+    </div>
+  );
+}
+
+function CameraLayer({
+  layer,
+  layerStyle,
+  resolveMedia,
+  playing,
+  soundOn,
+  role,
+}: {
+  layer: PreviewLayer;
+  layerStyle: LayerStyle;
+  resolveMedia: (value: string | undefined) => string | undefined;
+  playing: boolean;
+  soundOn: boolean;
+  role: "incoming" | "outgoing";
+}) {
+  const { frame, imageSrc, imagePosition, localFrame } = layer;
   const cinematic = (frame.beat.cinematic || frame.scene.cinematic || {}) as Record<string, any>;
   const picture = frame.picture || "";
   const isGradient = picture.startsWith("gradient:");
   const videoValue = picture.startsWith("video:") ? picture.slice(6) : "";
   const videoSrc = videoValue ? resolveMedia(videoValue) : undefined;
   const plateSrc = isGradient ? picture : imageSrc;
-  const layer = useMemo(() => cinematicLayer(cinematic, plateSrc || "gradient:linear-gradient(135deg,#111518,#07090b)"), [cinematic, plateSrc]);
-  const plateStyle = imagePosition ? { ...layer.style, backgroundPosition: imagePosition } : layer.style;
+  const layerLook = useMemo(() => cinematicLayer(cinematic, plateSrc || "gradient:linear-gradient(135deg,#111518,#07090b)"), [cinematic, plateSrc]);
+  const plateStyle = imagePosition ? { ...layerLook.style, backgroundPosition: imagePosition } : layerLook.style;
   const resolvedCinematic = useMemo(() => ({
     ...cinematic,
     depthMap: resolveMedia(cinematic.depthMap),
@@ -69,7 +150,7 @@ export function CinematicPreview({
   // straight from the frame number: no CSS animation, no transition, so scrubbing and playback agree.
   const animated = hasAnimation(frame);
   const transform = animated ? evaluate(frame, localFrame) : undefined;
-  const cameraStyle = transform
+  const cameraStyle: CSSProperties = transform
     ? {
         ...extensionStyle,
         transform: `translate(${transform.x}%, ${transform.y}%) scale(${transform.zoom})`,
@@ -78,18 +159,20 @@ export function CinematicPreview({
       }
     : extensionStyle;
   const cameraActive = !animated && playing && Boolean(cinematic.startZoom || cinematic.endZoom || cinematic.easing);
+  const wrapperStyle: CSSProperties = {
+    opacity: layerStyle.opacity ?? 1,
+    clipPath: layerStyle.clipPath,
+    transition: "none",
+    animation: "none",
+  };
 
   return (
     <div
-      className={`cin-preview ${ownOverlay}`}
-      data-testid="cinematic-preview"
-      onClick={(event) => {
-        if (!setFocalPoint) return;
-        const rect = event.currentTarget.getBoundingClientRect();
-        const x = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
-        const y = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-        setFocalPoint(`${Math.round(x)}% ${Math.round(y)}%`);
-      }}
+      className={`cin-preview-layer ${ownOverlay} ${role === "outgoing" ? "is-outgoing" : ""}`}
+      style={wrapperStyle}
+      data-layer={role}
+      data-frame={localFrame}
+      data-opacity={(layerStyle.opacity ?? 1).toFixed(3)}
     >
       <div
         className={`cin-preview-camera ${cameraActive ? "cin-preview-camera-active" : ""} ${animated ? "cin-preview-camera-keyed" : ""}`}
@@ -102,7 +185,7 @@ export function CinematicPreview({
         {videoSrc ? (
           <video className="cin-preview-video" src={videoSrc} autoPlay muted loop playsInline />
         ) : (
-          <div className={`cin-preview-plate ${layer.className}`} style={plateStyle} data-picture-ref={picture} />
+          <div className={`cin-preview-plate ${layerLook.className}`} style={plateStyle} data-picture-ref={picture} />
         )}
         {!videoSrc && !isGradient && !imageSrc && (
           <div className="cin-preview-missing">
@@ -154,11 +237,6 @@ export function CinematicPreview({
           config={particleConfig}
         />
       </div>
-      {frame.scene.letterbox && <><div className="cin-letterbox cin-letterbox-top" /><div className="cin-letterbox cin-letterbox-bottom" /></>}
-      {showMark && <div className="cin-mark">SC {frame.mark} <span>·</span> BEAT {frame.number}</div>}
-      {showCaption && frame.text && <div className="cin-caption"><span>{frame.speaker}</span><p>{frame.text}</p></div>}
-      {frame.carried && <div className="cin-carried-mark">{frame.pictureSource === "scene" ? "SCENE PLATE" : "CARRIED PICTURE"}</div>}
-      <div className="cin-preview-crosshair" aria-hidden><i /><b /></div>
     </div>
   );
 }

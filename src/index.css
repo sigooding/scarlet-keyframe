@@ -190,6 +190,15 @@ kbd {
   background: #000;
 }
 .cin-preview { position: relative; width: 100%; height: 100%; overflow: hidden; background: #000; }
+.cin-preview-layer { position: absolute; inset: 0; overflow: hidden; will-change: opacity, clip-path; }
+.cin-preview-layer.is-outgoing { z-index: 1; }
+.cin-preview-layer:not(.is-outgoing) { z-index: 2; }
+.cin-transition-tag {
+  position: absolute; right: 12px; bottom: 22px; z-index: 4;
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; color: #f0d9b0;
+  background: rgba(10, 12, 13, 0.72); border: 1px solid #4a3a1f; border-radius: 5px; padding: 2px 7px;
+}
+.cin-transition-tag b { color: var(--accent); margin-left: 4px; }
 .cin-preview-camera { position: absolute; inset: 0; transform-origin: 50% 50%; will-change: transform; }
 .cin-preview-camera-keyed { animation: none !important; transition: none !important; }
 .cin-preview-camera-active { animation: cin-camera-move var(--edit-duration, 8s) var(--edit-easing, ease-in-out) both; }
@@ -278,7 +287,7 @@ kbd {
 .track-ruler { position: relative; height: 16px; margin-left: 74px; border-bottom: 1px dashed var(--line-soft); }
 .ruler-label { position: absolute; left: -74px; top: 0; width: 70px; text-align: right; font-family: var(--mono); font-size: 9px; color: #4a5655; }
 .track-ruler span { position: absolute; top: 2px; font-family: var(--mono); font-size: 8.5px; color: #4c5856; transform: translateX(-50%); }
-.track-lane { position: relative; display: flex; align-items: center; height: 23px; margin-left: 74px; border-bottom: 1px solid var(--line-soft); }
+.track-lane { position: relative; display: flex; align-items: center; height: 22px; margin-left: 74px; border-bottom: 1px solid var(--line-soft); }
 .lane-label { position: absolute; left: -74px; width: 70px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 8.5px; letter-spacing: 0.12em; color: var(--muted-dim); }
 .lane-label i { font-style: normal; color: #4d5c59; }
 .lane-content { position: relative; flex: 1; height: 100%; }
@@ -307,7 +316,7 @@ kbd {
 /* -------------------------------------------------------------- timeline -- */
 
 .sequence-panel {
-  display: flex; flex-direction: column; min-width: 0; height: 208px;
+  display: flex; flex-direction: column; min-width: 0; height: 232px;
   border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden;
 }
 .sequence-head {
@@ -384,13 +393,19 @@ kbd {
 }
 
 .tl-clip {
-  position: absolute; top: 3px; bottom: 5px;
+  position: absolute; top: 20px; bottom: 20px;
   border-radius: 4px; overflow: hidden; border: 1px solid #2b393b;
   background: #131b1d; cursor: pointer;
   transition: border-color 90ms ease;
 }
 .tl-clip:hover { border-color: #46595c; }
 .tl-clip.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 4px 16px rgba(232, 162, 74, 0.22); }
+.tl-clip.is-selected .tl-clip-mark { color: #ffd79a; }
+.tl-clip.is-current::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+.tl-clip.is-dragging { opacity: 0.55; }
 .tl-clip.is-short { border-color: var(--danger); box-shadow: inset 0 0 0 1px rgba(226, 86, 74, 0.6); }
 .tl-clip.is-selected.is-short { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
 .tl-clip-thumb { position: absolute; inset: 0; display: block; background: linear-gradient(135deg, #1a2325, #0e1415); }
@@ -417,6 +432,97 @@ kbd {
   opacity: 0; transition: opacity 90ms ease;
 }
 .tl-clip:hover .tl-clip-handle, .tl-clip.is-selected .tl-clip-handle { opacity: 1; }
+
+/* Transition box: centred on the cut, one per cut with a transition. */
+.tl-transition {
+  position: absolute; top: 3px; height: 15px; z-index: 4;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid #7c5a25; border-radius: 3px;
+  background: repeating-linear-gradient(135deg, rgba(232, 162, 74, 0.32) 0 4px, rgba(232, 162, 74, 0.14) 4px 8px);
+  color: #ffd79a; font-family: var(--mono); font-size: 8px; letter-spacing: 0.02em;
+  cursor: default; overflow: hidden; white-space: nowrap;
+}
+.tl-transition span { pointer-events: none; padding: 0 1px; text-transform: uppercase; opacity: 0.95; white-space: nowrap; }
+.tl-transition-edge {
+  position: absolute; top: -1px; bottom: -1px; width: 5px; cursor: ew-resize;
+  background: rgba(232, 162, 74, 0.5);
+}
+.tl-transition-edge.is-left { left: -2px; border-radius: 3px 0 0 3px; }
+.tl-transition-edge.is-right { right: -2px; border-radius: 0 3px 3px 0; }
+.tl-transition-edge:hover { background: var(--accent); }
+
+/* Roll handle: the cut between two clips, in the band below them. */
+.tl-cut {
+  position: absolute; bottom: 1px; width: 13px; height: 18px; z-index: 4;
+  transform: translateX(-50%); cursor: col-resize;
+  display: flex; align-items: center; justify-content: center; gap: 2px;
+  border-radius: 3px; background: rgba(232, 162, 74, 0.12);
+  opacity: 0; transition: opacity 90ms ease;
+}
+.timeline-track:hover .tl-cut { opacity: 1; }
+.tl-cut i { display: block; width: 1px; height: 10px; background: #c08a41; }
+.tl-cut:hover { background: rgba(232, 162, 74, 0.3); }
+
+/* Scene and note markers live on the ruler. */
+.tl-scene-marker {
+  position: absolute; top: 15px; height: 13px; transform: translateX(-1px);
+  border: 1px solid #4a3a1f; border-left: 2px solid var(--accent); border-radius: 0 3px 3px 0;
+  background: #211a10; color: #e4b97f; font-family: var(--mono); font-size: 8.5px;
+  padding: 0 4px; line-height: 12px; white-space: nowrap; z-index: 6;
+}
+.tl-scene-marker:hover { background: #33260f; color: #ffd79a; }
+.tl-note-marker {
+  position: absolute; top: 1px; height: 11px; transform: translateX(-1px);
+  display: flex; align-items: center; gap: 3px;
+  border: 1px solid #22403c; border-radius: 3px; background: #0e1d1b; color: #8fd6cb;
+  font-family: var(--mono); font-size: 8px; padding: 0 3px; white-space: nowrap; z-index: 7;
+  max-width: 150px; overflow: hidden; text-overflow: ellipsis;
+}
+.tl-note-marker i { width: 3px; height: 7px; background: var(--teal); border-radius: 1px; flex: none; }
+.tl-note-marker:hover { color: #d5fff8; border-color: var(--teal); }
+
+.tl-marquee {
+  position: absolute; z-index: 8; pointer-events: none;
+  border: 1px solid var(--accent); background: rgba(232, 162, 74, 0.14);
+  border-radius: 2px;
+}
+.tl-drop-line {
+  position: absolute; top: 18px; bottom: 18px; width: 2px; z-index: 8;
+  background: var(--teal); box-shadow: 0 0 8px rgba(111, 211, 198, 0.8); pointer-events: none;
+}
+.tl-drop-line::before {
+  content: ""; position: absolute; top: -4px; left: -3px; border: 4px solid transparent;
+  border-top-color: var(--teal);
+}
+.tl-snap-line {
+  position: absolute; top: 0; bottom: 0; width: 1px; z-index: 9; pointer-events: none;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.55);
+}
+.tl-kind-picker {
+  position: absolute; top: 22px; z-index: 12; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 1px; min-width: 132px; padding: 5px;
+  border: 1px solid var(--line); border-radius: 8px; background: #0f1415;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65);
+}
+.tl-kind-picker span {
+  font-size: 8.5px; letter-spacing: 0.14em; color: var(--muted-dim); padding: 1px 6px 3px;
+}
+.tl-kind-picker button {
+  text-align: left; border: 0; border-radius: 5px; background: transparent;
+  color: var(--muted); font-size: 10.5px; padding: 3px 6px;
+}
+.tl-kind-picker button:hover { background: #1a2426; color: var(--ink); }
+.tl-kind-picker button.is-active { color: var(--accent); background: var(--accent-soft); }
+.tl-kind-picker .tl-kind-close { text-align: center; color: var(--muted-dim); border-top: 1px solid var(--line-soft); margin-top: 3px; }
+
+.tl-tool {
+  border: 1px solid var(--line); border-radius: 7px; background: #0d1213;
+  color: var(--muted); font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em;
+  padding: 3px 7px; white-space: nowrap;
+}
+.tl-tool:hover { color: var(--ink); border-color: #33403f; }
+.tl-tool.is-on { color: var(--accent); border-color: #4a3a1f; background: var(--accent-soft); }
 
 .tl-key {
   position: absolute; width: 9px; height: 9px; padding: 0; margin: 0;

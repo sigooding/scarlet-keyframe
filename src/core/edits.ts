@@ -1,6 +1,8 @@
-import type { AnyRecord, BeatLike, Keyframe, ProjectState, StoryLike } from "./model";
+import type { AnyRecord, BeatLike, Keyframe, NoteMarker, ProjectState, StoryLike } from "./model";
 import { buildKeyframes } from "./model";
 import { clipFrames, MIN_CLIP_FRAMES } from "./timing";
+import { buildSequence, clipAtFrame } from "../sequence/sequence";
+import { MAX_TRANSITION_FRAMES, transitionKindOf, type TransitionKind } from "../sequence/transitions";
 import {
   ANIMATION_PROPERTIES,
   animationOf,
@@ -428,4 +430,223 @@ function writeAnimation(
   if (!mutate(animation)) return project;
   applyAnimation(location.beat, animation);
   return { ...project, story, updatedAt: Date.now() };
+}
+
+/* ------------------------------------------------------------------ *
+ * Editor moves: move / copy / delete / paste, roll edits, transitions  *
+ * ------------------------------------------------------------------ */
+
+export type DropPosition = "before" | "after";
+
+// Where a beat sits in the story, by id.
+function locationsOf(story: StoryLike, frameIds: string[]): { scene: StoryLike["scenes"][number]; beat: BeatLike; id: string; index: number }[] {
+  const output: { scene: StoryLike["scenes"][number]; beat: BeatLike; id: string; index: number }[] = [];
+  for (const scene of story.scenes) {
+    (scene.dialogueBeats ?? []).forEach((beat, index) => {
+      const id = String(beat.id || `${scene.id}:${index + 1}`);
+      if (frameIds.includes(id)) output.push({ scene, beat, id, index });
+    });
+  }
+  return output;
+}
+
+// The running order is carried on the last beat of a scene (`afterBeatTargetSceneId`). When that beat
+// leaves the scene, hand its route to the scene so the film still continues into the same next scene.
+function keepRoute(scene: StoryLike["scenes"][number], beat: BeatLike, index: number): void {
+  const beats = scene.dialogueBeats ?? [];
+  const isLast = index === beats.length - 1;
+  const target = (beat as AnyRecord).afterBeatTargetSceneId;
+  if (isLast && typeof target === "string" && target) scene.autoAdvanceTargetSceneId = target;
+}
+
+// A moving beat carries only its own content: the cut it used to end lives with the scene it left.
+function stripRoute(beat: BeatLike): BeatLike {
+  if (!("afterBeatTargetSceneId" in beat)) return beat;
+  const copy = { ...(beat as AnyRecord) };
+  delete copy.afterBeatTargetSceneId;
+  return copy as BeatLike;
+}
+
+// Remove the given beats from their scenes, from the highest index down so earlier indices stay valid.
+function detachBeats(located: { scene: StoryLike["scenes"][number]; beat: BeatLike; index: number }[]): void {
+  located.forEach((item) => keepRoute(item.scene, item.beat, item.index));
+  const byScene = new Map<StoryLike["scenes"][number], number[]>();
+  for (const item of located) {
+    const list = byScene.get(item.scene) ?? [];
+    list.push(item.index);
+    byScene.set(item.scene, list);
+  }
+  for (const [scene, indices] of byScene) {
+    indices.sort((a, b) => b - a).forEach((index) => { scene.dialogueBeats?.splice(index, 1); });
+  }
+}
+
+function insertBeats(story: StoryLike, targetId: string, position: DropPosition, beats: BeatLike[]): boolean {
+  const target = locateBeat(story, targetId);
+  if (!target) return false;
+  const at = target.index + (position === "after" ? 1 : 0);
+  target.scene.dialogueBeats!.splice(at, 0, ...beats);
+  return true;
+}
+
+// Move (or, with copy, duplicate) whole beats — and with them their voice, sound effect and caption —
+// to the place of another beat, in this scene or another one.
+export function moveClips(
+  project: ProjectState,
+  frameIds: string[],
+  target: { frameId: string; position: DropPosition },
+  options: { copy?: boolean } = {},
+): { project: ProjectState; ids: string[] } | undefined {
+  if (!frameIds.length) return undefined;
+  const frames = buildKeyframes(project.story);
+  // Keep the beats in playing order, whatever order they were clicked in.
+  const ordered = frames.filter((frame) => frameIds.includes(frame.id)).map((frame) => frame.id);
+  if (!ordered.length) return undefined;
+  if (!options.copy && ordered.includes(target.frameId)) return undefined;
+
+  const story = cloneStory(project.story);
+  const located = locationsOf(story, ordered).sort((a, b) => ordered.indexOf(a.id) - ordered.indexOf(b.id));
+  if (located.length !== ordered.length) return undefined;
+
+  const moving: BeatLike[] = [];
+  for (const item of located) {
+    const beat = options.copy
+      ? { ...stripRoute(JSON.parse(JSON.stringify(item.beat)) as BeatLike), id: uniqueBeatId(story, item.scene.id) }
+      : stripRoute(item.beat);
+    moving.push(beat);
+  }
+  // A copy leaves the originals where they are.
+  if (!options.copy) detachBeats(located);
+
+  if (!insertBeats(story, target.frameId, target.position, moving)) return undefined;
+  return {
+    project: { ...project, story, updatedAt: Date.now() },
+    ids: moving.map((beat, index) => String(beat.id || `${target.frameId}-${index}`)),
+  };
+}
+
+// Delete several clips in one step; the clips after them close the gap.
+export function deleteClips(project: ProjectState, frameIds: string[]): ProjectState {
+  if (!frameIds.length) return project;
+  const story = cloneStory(project.story);
+  const located = locationsOf(story, frameIds);
+  if (!located.length) return project;
+  detachBeats(located);
+  return { ...project, story, updatedAt: Date.now() };
+}
+
+// Paste copies at the playhead. If the playhead is inside a clip, that clip is split there first and the
+// copies go between the two halves.
+export function pasteClips(
+  project: ProjectState,
+  beats: BeatLike[],
+  atFrame: number,
+): { project: ProjectState; ids: string[]; start: number } | undefined {
+  if (!beats.length || !project.story.scenes.length) return undefined;
+  let working = project;
+  let sequence = buildSequence(buildKeyframes(working.story));
+  if (!sequence.clips.length) return undefined;
+  const clip = clipAtFrame(sequence.clips, atFrame)!;
+  const local = Math.round(atFrame - clip.start);
+  let targetId = clip.frame.id;
+  let position: DropPosition = "before";
+
+  if (local > 0 && local < clip.duration) {
+    const split = splitClip(working, clip.frame.id, local);
+    if (split) {
+      working = split.project;
+      targetId = split.secondId;
+      position = "before";
+    } else {
+      position = local >= clip.duration / 2 ? "after" : "before";
+    }
+  } else if (local >= clip.duration) {
+    position = "after";
+  }
+
+  sequence = buildSequence(buildKeyframes(working.story));
+  const targetClip = sequence.clips.find((candidate) => candidate.frame.id === targetId) ?? clipAtFrame(sequence.clips, atFrame)!;
+  const start = position === "after" ? targetClip.end : targetClip.start;
+
+  const story = cloneStory(working.story);
+  const targetLocation = locateBeat(story, targetId);
+  if (!targetLocation) return undefined;
+  const copies = beats.map((beat) => ({
+    ...(JSON.parse(JSON.stringify(beat)) as BeatLike),
+    id: uniqueBeatId(story, targetLocation.scene.id),
+  }));
+  insertBeats(story, targetId, position, copies);
+  return {
+    project: { ...working, story, updatedAt: Date.now() },
+    ids: copies.map((beat) => String(beat.id)),
+    start,
+  };
+}
+
+// Roll: one clip gets longer and its neighbour shorter by the same number of frames, so the total
+// length of the sequence does not change.
+export function rollEdit(
+  project: ProjectState,
+  leftFrameId: string,
+  deltaFrames: number,
+): { project: ProjectState; delta: number } | undefined {
+  const frames = buildKeyframes(project.story);
+  const index = frames.findIndex((frame) => frame.id === leftFrameId);
+  if (index < 0 || index + 1 >= frames.length) return undefined;
+  const left = frames[index];
+  const right = frames[index + 1];
+  const leftDuration = clipFrames(left);
+  const rightDuration = clipFrames(right);
+  const requested = Math.round(Number.isFinite(deltaFrames) ? deltaFrames : 0);
+  const delta = Math.max(-(leftDuration - MIN_CLIP_FRAMES), Math.min(rightDuration - MIN_CLIP_FRAMES, requested));
+  if (delta === 0) return undefined;
+
+  const story = cloneStory(project.story);
+  const leftLocation = locateBeat(story, left.id);
+  const rightLocation = locateBeat(story, right.id);
+  if (!leftLocation || !rightLocation) return undefined;
+  leftLocation.beat.durationFrames = leftDuration + delta;
+  rightLocation.beat.durationFrames = rightDuration - delta;
+  return { project: { ...project, story, updatedAt: Date.now() }, delta };
+}
+
+export function setTransitionKind(project: ProjectState, frameId: string, kind: TransitionKind): ProjectState {
+  return updateBeat(project, frameId, (beat) => {
+    beat.backgroundTransition = kind;
+    if (kind === "cut") {
+      delete beat.transitionFrames;
+      delete beat.backgroundTransitionSpeed;
+    } else if (!Number(beat.transitionFrames)) {
+      beat.transitionFrames = 12;
+    }
+  });
+}
+
+export function setTransitionFrames(project: ProjectState, frameId: string, frames: number): ProjectState {
+  const clamped = Math.max(0, Math.min(MAX_TRANSITION_FRAMES, Math.round(frames)));
+  const frame = buildKeyframes(project.story).find((candidate) => candidate.id === frameId);
+  if (!frame) return project;
+  return updateBeat(project, frameId, (beat) => {
+    if (clamped <= 0) {
+      beat.backgroundTransition = "cut";
+      delete beat.transitionFrames;
+      delete beat.backgroundTransitionSpeed;
+      return;
+    }
+    if (transitionKindOf(beat.backgroundTransition) === "cut") beat.backgroundTransition = "dissolve";
+    beat.transitionFrames = clamped;
+    // Keep the film's own speed field in step so an exported project reads the same length.
+    beat.backgroundTransitionSpeed = Number((clamped / 24).toFixed(3));
+  });
+}
+
+export function addNoteMarker(project: ProjectState, marker: NoteMarker): ProjectState {
+  const markers = [...(project.markers ?? []), marker].sort((a, b) => a.frame - b.frame);
+  return { ...project, markers, updatedAt: Date.now() };
+}
+
+export function removeNoteMarker(project: ProjectState, markerId: string): ProjectState {
+  const markers = (project.markers ?? []).filter((marker) => marker.id !== markerId);
+  if (markers.length === (project.markers ?? []).length) return project;
+  return { ...project, markers, updatedAt: Date.now() };
 }

@@ -1,4 +1,4 @@
-import type { Keyframe } from "../core/model";
+import type { Keyframe, NoteMarker } from "../core/model";
 import { clipFrames, voiceFrames } from "../core/timing";
 
 // One clip on the single Picture track: a beat, its start on the sequence time axis and its length in
@@ -81,4 +81,12 @@ export function visibleClips(clips: SequenceClip[], fromFrame: number, toFrame: 
   let last = first;
   while (last + 1 < clips.length && clips[last].start <= to) last += 1;
   return { first, last };
+}
+
+// Where a note marker sits now: anchored to its clip so it ripples with the picture, with the absolute
+// frame it was made at as the fallback once the clip is gone.
+export function markerPosition(marker: NoteMarker, clips: SequenceClip[]): number {
+  const clip = marker.clipId ? clipById(clips, marker.clipId) : undefined;
+  if (clip) return clip.start + Math.max(0, Math.min(clip.duration - 1, Math.round(marker.offset ?? 0)));
+  return Math.max(0, Math.round(marker.frame));
 }

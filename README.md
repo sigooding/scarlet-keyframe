@@ -48,5 +48,30 @@ The keyframe list is a small video editor over one Picture track, cut in whole f
 - **Playback.** Space plays/pauses from the playhead at 24 fps, `←`/`→` step one frame, `Shift` + `←`/`→` one
   second. Voices and sound cues start as the playhead enters each clip, as before.
 
-`docs/verification/` holds the screenshots from the end-to-end checks (scrubbing scene 77, trimming, splitting,
-animation keys, reload).
+### Moving clips, rolling, snapping, markers and transitions
+
+- **Move.** Drag a clip onto another clip to move it there, in this scene or another one. The picture, voice take,
+  sound effect and caption all travel with it; `src/core/edits.ts` rewrites the story's beat lists and hands the
+  running order on if the beat carried the scene's route. Alt+drag copies instead of moving.
+- **Select several.** Shift-click or Ctrl/Cmd-click a clip, or drag a box over empty track space. Move, delete and
+  copy act on the whole selection.
+- **Roll.** Drag the little cut handle between two clips: the left clip grows by exactly the frames the right one
+  loses, so the sequence keeps its length.
+- **Snapping.** `N` toggles it (on at start). Clip edges, the playhead, keyframes and markers pull within 8 pixels,
+  and a thin line shows what the edge snapped to.
+- **Markers.** Every scene's first clip gets a marker on the ruler (77, 77A, 78…) — click to jump. `M` drops a named
+  note marker at the playhead; note markers are saved with the project and follow their clip when the track ripples.
+  Double-click a note marker to remove it.
+- **Copy / paste.** Ctrl/Cmd+C copies the selected clips, Ctrl/Cmd+V inserts them at the playhead — splitting the clip
+  under the playhead first when it lands inside one.
+- **Transitions.** Each cut with a transition shows a box centred on the cut, as long as the transition; drag its
+  edges to change the length in frames, double-click to pick cut, dissolve, dip to black, wipe left or wipe right.
+  `src/sequence/transitions.ts` maps the film's own values (`crossfade`/`dissolve` → dissolve, `zoom` → dissolve,
+  scene `fade` → dip to black, `cut` → cut) and its `backgroundTransitionSpeed` seconds into frames. The viewer draws
+  both pictures on two layers and computes opacity/clip-path from the frame number (`p = (frame − start) / length`),
+  with no CSS transition, so scrubbing shows every step of the transition.
+- **Undo.** A whole drag is one step, however many frames it passed through.
+
+`docs/verification/` holds the screenshots from the round-one end-to-end checks (scrubbing scene 77, trimming,
+splitting, animation keys, reload); `docs/verification-edit/` holds the round-two ones (moving a clip into 77A, a
+10-frame roll, a snapped trim, a 12-frame dissolve scrubbed frame by frame, copy and paste, markers).
