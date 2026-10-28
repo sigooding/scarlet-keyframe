@@ -1,4 +1,4 @@
-import type { BeatLike, Keyframe } from "./model";
+import type { BeatLike, Keyframe, NoteMarker } from "./model";
 import { FPS, srtTime } from "./timing";
 
 export const CAPTION_MAX_LINE_CHARS = 42;
@@ -633,3 +633,103 @@ export function makeCaptionsVtt(
     .join("\n\n");
   return body ? `WEBVTT\n\n${body}\n` : "WEBVTT\n";
 }
+
+function escapeFfmetadata(text: string): string {
+  return String(text || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/=/g, "\\=")
+    .replace(/;/g, "\\;")
+    .replace(/#/g, "\\#")
+    .replace(/\r?\n/g, " ");
+}
+
+/**
+ * Generates an FFMETADATA1 chapter stream over `[fromFrame, toFrame]` inclusive
+ * from timeline `NoteMarker`s (chapter/shot markers) with scene-boundary fallback.
+ */
+export function buildMp4FfmetadataChapters(
+  clips: ReadonlyArray<{
+    startFrame: number;
+    endFrame: number;
+    keyframe: Keyframe;
+  }>,
+  markers: readonly NoteMarker[] | undefined,
+  fromFrame: number,
+  toFrame: number,
+  fps = FPS,
+): string {
+  const startF = Math.max(0, Math.round(fromFrame));
+  const endF = Math.max(startF, Math.round(toFrame));
+  const totalDurationMs = Math.max(1, Math.round(((endF - startF + 1) * 1000) / fps));
+
+  interface RawChapterPoint {
+    frame: number;
+    title: string;
+  }
+
+  const byFrame = new Map<number, string>();
+  const inRangeMarkers = (markers || [])
+    .filter((m) => m.frame >= startF && m.frame <= endF)
+    .sort((a, b) => a.frame - b.frame);
+
+  for (const m of inRangeMarkers) {
+    const rawName = String(m.name || "").trim();
+    if (/^SHOT\s+\d+\b/i.test(rawName)) continue;
+    const cleanedName = rawName
+      .replace(/·\s*SHOT\s+\d+\s*·?\s*/gi, "· ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    if (!byFrame.has(m.frame)) {
+      byFrame.set(m.frame, cleanedName || `Frame ${m.frame}`);
+    }
+  }
+
+  // If fewer than 2 note/chapter markers fall in the exported range, include scene starts
+  if (byFrame.size < 2) {
+    let prevSceneId = "";
+    for (const c of clips) {
+      if (c.endFrame <= startF || c.startFrame > endF) continue;
+      const scId = c.keyframe.sceneId;
+      if (scId !== prevSceneId) {
+        prevSceneId = scId;
+        const clampedF = Math.max(startF, c.startFrame);
+        if (!byFrame.has(clampedF)) {
+          const rawTitle = String(c.keyframe.scene.title || c.keyframe.mark || scId).trim();
+          byFrame.set(clampedF, rawTitle);
+        }
+      }
+    }
+  }
+
+  if (!byFrame.has(startF)) {
+    const firstClip = clips.find((c) => c.endFrame > startF && c.startFrame <= endF);
+    const openLabel = firstClip
+      ? String(firstClip.keyframe.scene.title || firstClip.keyframe.mark || "Opening")
+      : "Opening";
+    byFrame.set(startF, openLabel);
+  }
+
+  const points: RawChapterPoint[] = [...byFrame.entries()]
+    .map(([frame, title]) => ({ frame, title }))
+    .sort((a, b) => a.frame - b.frame);
+
+  const lines: string[] = [";FFMETADATA1"];
+  for (let i = 0; i < points.length; i += 1) {
+    const startMs = Math.max(0, Math.round(((points[i].frame - startF) * 1000) / fps));
+    const nextStartMs =
+      i + 1 < points.length
+        ? Math.max(startMs + 1, Math.round(((points[i + 1].frame - startF) * 1000) / fps))
+        : totalDurationMs;
+    const endMs = Math.min(totalDurationMs, Math.max(startMs + 1, nextStartMs));
+    if (startMs >= totalDurationMs) continue;
+    lines.push(
+      "[CHAPTER]",
+      "TIMEBASE=1/1000",
+      `START=${startMs}`,
+      `END=${endMs}`,
+      `title=${escapeFfmetadata(points[i].title)}`,
+    );
+  }
+  return `${lines.join("\n")}\n`;
+}
+

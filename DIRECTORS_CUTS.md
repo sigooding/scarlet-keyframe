@@ -53,7 +53,20 @@ Scarlet Keyframe Studio provides four non-destructive selectable film versions v
 
 ---
 
-## Future Optional Asset Notes
-All four selectable cuts currently use 100% existing linked plates and audio with **zero missing-frame gaps**. If bespoke period or movement assets are desired in a future pass, the following optional replacements can be swapped in cleanly without structural changes:
-1. **1950s Studio Leader (`nw_logo` in `"noir-1950s"`)**: Currently grades the existing `/film/video/scarlet-reel-logo.mp4` through `.cin-grade-noir-1950s` (`grayscale(1) contrast(1.38) brightness(0.91)`). A future bespoke 1950s monochrome searchlight/crest leader (`/film/video/scarlet-reel-1950s-bw.mp4`, `1920x1080`, 24 fps) could be referenced exclusively in `populateZeroBeatScenes(story, "noir-1950s")`.
-2. **1950s Subdued Horn/Clarinet Cue (`nw_title` in `"noir-1950s"`)**: Currently uses the existing opening score cue mixed at a restrained `<= 0.40` gain with `3.2s` fade-ins. A future solo muted-trumpet / upright-bass cue (`/film/audio/opening-noir-1950s.mp3`) could be assigned on `nw_title` for the 1950s cut.
+## Selectable Cut, Mastering & Screening Options
+Every period craft, mastering, and editorial workflow enhancement is exposed as an independent, non-destructive selectable option (via the Topbar **Cut & Screening Options** menu, the viewer **Compare (`\`)** toolbar, and the **Export MP4** modal / CLI):
+
+### 1. Visual & Period Craft
+- **Aspect Gate (`2.35:1 Scope` · `1.37:1 Academy` · `16:9 Open`)**: Switch between `2.35:1` Scope letterbox bars, classic `1.37:1` Academy (`4:3`) side pillarboxing (`11.33%` matte bars with automatic title-card and caption safe insets), or open `16:9`.
+- **2.5D Depth Maps on 9 New Shots (`s12` / `77A` / `s78`)**: Optional greyscale depth maps (`/film/depth/{s12,s77a,s78}/*-depth.jpg`) driving edge-clamped WebGL 2.5D parallax on all nine newly generated plates without shifting any frame timings.
+- **Bespoke 1950s Monochrome Studio Crest Leader**: Optional `1920x1080` silver-gelatin Art Deco studio crest (`/film/img/leaders/scarlet-reel-1950s-crest.jpg`) on `nw_logo` with frame-driven fade-in/out over the exact `9.9s` (`238f`) leader slot so zero downstream shots or audio cues shift.
+
+### 2. Sound & Mastering
+- **Warm 1950s Optical-Print EQ (`85 Hz – 7.8 kHz`)**: Optional 3-stage Web Audio `BiquadFilterNode` chain (`85 Hz` high-pass, `+1.8 dB` @ `1.8 kHz` `Q=1.1` presence peak, `7.8 kHz` low-pass) shared across live `webAudioEngine` playback and `OfflineAudioContext` MP4 export (`--optical-eq` / `--no-optical-eq`).
+- **Selectable Loudness Mastering (`Off` · `-16 LUFS` Theatrical · `-14 LUFS` Streaming)**: ITU-R BS.1770-4 K-weighted integrated loudness normalization with `-1.5 dBTP` (`-16 LUFS`) or `-1.0 dBTP` (`-14 LUFS`) lookahead peak ceiling (`--loudnorm off|-16|-14`).
+
+### 3. Editorial & Screening UX
+- **Per-Cut Saved Working State + Factory Reset**: Optional `Remember custom edits per cut when switching` stashes custom trims, keyframes, notes, and `audioClips` per cut slot (`savedCutStates`) across cut switches, paired with a one-click `Reset <Cut> to factory` control.
+- **Instant Cut-Compare (`\` Hold / Toggle)**: Hold `\` (or click `Compare (\)` in the viewer) to preview the exact matching beat and normalized shot progress in any selectable reference cut (`Neo-Noir`, `Creative`, `1950s B&W`, or `Uncut`) without mutating the active project, timeline, or undo stack.
+- **Embedded MP4 Chapter Markers (`FFMETADATA1`)**: Selectable `Embed MP4 chapters` (`--chapters` / `--no-chapters`) muxes timeline chapter/part markers (with scene-boundary fallback) directly into the `.mp4` container for QuickTime, VLC, and Apple TV scrub-bar navigation.
+

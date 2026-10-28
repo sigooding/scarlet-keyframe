@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
   DIRECTORS_CUT_OPTIONS,
+  normalizeCutOptions,
   type DirectorsCutId,
 } from "../core/directorsCut";
-import type { ProjectState } from "../core/model";
+import type { AspectFramingMode, CutOptions, ProjectState } from "../core/model";
 import { FPS, formatTimecode } from "../core/timing";
 
 export interface TopbarProps {
@@ -28,6 +29,9 @@ export interface TopbarProps {
   onApplyDirectorsCut?: () => void;
   activeCutId?: DirectorsCutId;
   onSelectDirectorsCut?: (cutId: DirectorsCutId) => void;
+  cutOptions?: CutOptions;
+  onChangeCutOptions?: (patch: Partial<CutOptions>, label: string) => void;
+  onResetActiveCut?: () => void;
 }
 
 function formatTotalRuntime(seconds: number): string {
@@ -57,6 +61,9 @@ export function Topbar({
   onApplyDirectorsCut,
   activeCutId = "neo-noir",
   onSelectDirectorsCut,
+  cutOptions,
+  onChangeCutOptions,
+  onResetActiveCut,
 }: TopbarProps) {
   const [cutMenuOpen, setCutMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -64,6 +71,8 @@ export function Topbar({
   const activeOption =
     DIRECTORS_CUT_OPTIONS.find((opt) => opt.id === activeCutId) ??
     DIRECTORS_CUT_OPTIONS[0];
+
+  const resolvedCutOpts = normalizeCutOptions(cutOptions ?? project.cutOptions ?? project.story.cutOptions);
 
   useEffect(() => {
     if (!cutMenuOpen) return;
@@ -94,6 +103,12 @@ export function Topbar({
     : saveStatus.includes("UNSAVED") || saveStatus.includes("SAVING")
       ? "is-pending"
       : "is-saved";
+
+  const aspectChoices: Array<{ id: AspectFramingMode; label: string; testId: string }> = [
+    { id: "2.35:1", label: "2.35:1 Scope", testId: "cut-opt-aspect-235" },
+    { id: "1.37:1", label: "1.37:1 Academy", testId: "cut-opt-aspect-137" },
+    { id: "16:9", label: "16:9 Open", testId: "cut-opt-aspect-169" },
+  ];
 
   return (
     <header className="topbar" data-history-version={historyVersion}>
@@ -166,7 +181,7 @@ export function Topbar({
               }}
               aria-haspopup="listbox"
               aria-expanded={cutMenuOpen}
-              title="Select editorial cut version (undoable; Original Uncut Import preserved)"
+              title="Select editorial cut version and screening options"
             >
               <span
                 className={`topbar-cut-trigger-dot ${
@@ -251,6 +266,120 @@ export function Topbar({
                     </div>
                   );
                 })}
+
+                {onChangeCutOptions && (
+                  <>
+                    <div className="topbar-cut-menu-divider" />
+                    <div className="topbar-cut-menu-header">Cut &amp; Screening Options</div>
+                    <div className="topbar-cut-opts-section">
+                      <div className="topbar-cut-aspect-row">
+                        <span className="topbar-cut-aspect-label">Aspect Gate</span>
+                        <div className="topbar-cut-segmented" role="group" aria-label="Aspect framing">
+                          {aspectChoices.map((ch) => (
+                            <button
+                              key={ch.id}
+                              type="button"
+                              className={`topbar-cut-seg-btn ${
+                                resolvedCutOpts.aspectFraming === ch.id ? "is-active" : ""
+                              }`}
+                              data-testid={ch.testId}
+                              onClick={() =>
+                                onChangeCutOptions(
+                                  { aspectFraming: ch.id },
+                                  `Aspect gate set to ${ch.label}`,
+                                )
+                              }
+                            >
+                              {ch.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <label className="topbar-cut-check-row">
+                        <input
+                          type="checkbox"
+                          data-testid="cut-opt-new-depth"
+                          checked={resolvedCutOpts.newPlateDepthMaps}
+                          onChange={(e) =>
+                            onChangeCutOptions(
+                              { newPlateDepthMaps: e.target.checked },
+                              e.target.checked
+                                ? "Enabled 2.5D depth parallax on new plates"
+                                : "Disabled 2.5D depth parallax on new plates",
+                            )
+                          }
+                        />
+                        <span>2.5D depth maps on 9 new shots (s12 / 77A / s78)</span>
+                      </label>
+
+                      <label className="topbar-cut-check-row">
+                        <input
+                          type="checkbox"
+                          data-testid="cut-opt-1950s-leader"
+                          checked={resolvedCutOpts.classic1950sLeader}
+                          onChange={(e) =>
+                            onChangeCutOptions(
+                              { classic1950sLeader: e.target.checked },
+                              e.target.checked
+                                ? "Enabled 1950s monochrome studio crest leader"
+                                : "Restored standard studio logo video leader",
+                            )
+                          }
+                        />
+                        <span>Bespoke 1950s monochrome studio crest leader</span>
+                      </label>
+
+                      <label className="topbar-cut-check-row">
+                        <input
+                          type="checkbox"
+                          data-testid="cut-opt-optical-eq"
+                          checked={resolvedCutOpts.opticalPrintEq}
+                          onChange={(e) =>
+                            onChangeCutOptions(
+                              { opticalPrintEq: e.target.checked },
+                              e.target.checked
+                                ? "Enabled warm 1950s optical-print EQ"
+                                : "Disabled 1950s optical-print EQ",
+                            )
+                          }
+                        />
+                        <span>Warm 1950s optical-print EQ (85 Hz – 7.8 kHz)</span>
+                      </label>
+
+                      <label className="topbar-cut-check-row">
+                        <input
+                          type="checkbox"
+                          data-testid="cut-opt-preserve-edits"
+                          checked={resolvedCutOpts.preservePerCutEdits}
+                          onChange={(e) =>
+                            onChangeCutOptions(
+                              { preservePerCutEdits: e.target.checked },
+                              e.target.checked
+                                ? "Enabled per-cut saved working state"
+                                : "Disabled per-cut saved working state",
+                            )
+                          }
+                        />
+                        <span>Remember custom edits per cut when switching</span>
+                      </label>
+
+                      {onResetActiveCut && (
+                        <button
+                          type="button"
+                          className="topbar-cut-reset-btn"
+                          data-testid="cut-opt-reset-active"
+                          onClick={() => {
+                            setCutMenuOpen(false);
+                            onResetActiveCut();
+                          }}
+                        >
+                          Reset {activeOption.shortLabel} to factory
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

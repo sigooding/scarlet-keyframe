@@ -37,6 +37,7 @@ import {
 } from "./core/audioClips";
 import {
   activeTimelineCaptionAtFrame,
+  buildMp4FfmetadataChapters,
   DEFAULT_CAPTION_STYLE,
   deleteCaptionsAtIndices,
   effectiveCaptionsForBeat,
@@ -62,6 +63,7 @@ import {
   type BeatAnimation,
   type BeatLike,
   type KenBurnsBox,
+  type LoudnessTargetMode,
   type ProjectAsset,
   type ProjectState,
 } from "./core/model";
@@ -107,10 +109,14 @@ import {
 } from "./core/edits";
 import { buildPortableBundle } from "./core/exportBundle";
 import {
+  applyCutOptionsToProject,
   buildDirectorsCutById,
   buildDirectorsCutProject,
+  DIRECTORS_CUT_OPTIONS,
   DIRECTORS_CUT_VERSION,
   getDirectorsCutLabel,
+  normalizeCutOptions,
+  switchDirectorsCutWithState,
   type DirectorsCutId,
 } from "./core/directorsCut";
 import { downloadText, measureAudioDuration, slug } from "./core/helpers";
@@ -331,8 +337,10 @@ declare global {
         toFrame: number,
         sampleRate?: number,
         normalize?: boolean,
+        opticalEqOverride?: boolean,
       ) => Promise<string>;
       getSrt: (fromFrame: number, toFrame: number) => string;
+      getFfmetadataChapters: (fromFrame: number, toFrame: number) => string;
       getAudioMixSpec: () => {
         resolvedAudioClips: ResolvedAudioClip[];
         trackMix: TrackMixMap;
@@ -625,7 +633,13 @@ export default function App() {
   const [exportQuality, setExportQuality] = useState<Mp4ExportQuality>("master");
   const [exportWorkers, setExportWorkers] = useState(1);
   const [exportNormalize, setExportNormalize] = useState(false);
+  const [exportLoudnessTarget, setExportLoudnessTarget] = useState<LoudnessTargetMode>("off");
+  const [exportOpticalEq, setExportOpticalEq] = useState(false);
+  const [exportEmbedChapters, setExportEmbedChapters] = useState(true);
   const [mp4Job, setMp4Job] = useState<Mp4ExportJobState | null>(null);
+  const [comparePinned, setComparePinned] = useState(false);
+  const [compareKeyHeld, setCompareKeyHeld] = useState(false);
+  const [compareTargetId, setCompareTargetId] = useState<DirectorsCutId>("uncut");
   const [snapshotName, setSnapshotName] = useState("");
   const [snapshotModal, setSnapshotModal] = useState(false);
 
@@ -1184,9 +1198,45 @@ export default function App() {
     webAudioEngine.setSoundEnabled(soundOn);
   }, [soundOn]);
 
+  const activeCutOptions = useMemo(
+    () => normalizeCutOptions(project?.cutOptions ?? project?.story.cutOptions),
+    [project?.cutOptions, project?.story.cutOptions],
+  );
+
   useEffect(() => {
     webAudioEngine.setDuckDepth(duckDepth);
   }, [duckDepth]);
+
+  useEffect(() => {
+    webAudioEngine.setOpticalPrintEq(activeCutOptions.opticalPrintEq);
+  }, [activeCutOptions.opticalPrintEq]);
+
+  useEffect(() => {
+    if (isRenderMode) return;
+    const isTypingEl = (el: EventTarget | null): boolean => {
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.isContentEditable) return true;
+      const tag = el.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "\\" && !e.metaKey && !e.ctrlKey && !e.altKey && !isTypingEl(e.target)) {
+        if (!e.repeat) setCompareKeyHeld(true);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "\\") setCompareKeyHeld(false);
+    };
+    const onBlur = () => setCompareKeyHeld(false);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [isRenderMode]);
 
   const activeAudioClip = useMemo<ResolvedAudioClip | undefined>(() => {
     if (multiSelection.audioClipIds.length > 0) {
@@ -3375,7 +3425,13 @@ export default function App() {
           if (opts.timecode !== undefined) setShowTimecodeOverlay(opts.timecode);
         });
       },
-      renderAudioOffline: async (fromF: number, toF: number, sampleRate = 48000, normalize = false) => {
+      renderAudioOffline: async (
+        fromF: number,
+        toF: number,
+        sampleRate = 48000,
+        normalize = false,
+        opticalEqOverride?: boolean,
+      ) => {
         const wavBytes = await renderTimelineAudioOfflineWav({
           resolvedClips: resolvedAudioClips,
           resolveMedia,
@@ -3386,10 +3442,13 @@ export default function App() {
           fps: FPS,
           sampleRate,
           normalize,
+          opticalPrintEq: opticalEqOverride ?? activeCutOptions.opticalPrintEq,
         });
         return uint8ArrayToBase64(wavBytes);
       },
       getSrt: (fromF: number, toF: number) => makeRangeCaptionsSrt(clips, fromF, toF, FPS),
+      getFfmetadataChapters: (fromF: number, toF: number) =>
+        buildMp4FfmetadataChapters(clips, project?.story.markers, fromF, toF, FPS),
       getAudioMixSpec: () => ({
         resolvedAudioClips,
         trackMix,
@@ -3402,6 +3461,7 @@ export default function App() {
       delete window.__render;
     };
   }, [
+    activeCutOptions.opticalPrintEq,
     clips,
     duckDepth,
     loading,
@@ -3925,7 +3985,10 @@ export default function App() {
           marks: marksExport,
           quality: exportQuality,
           workers: exportWorkers,
-          normalize: exportNormalize,
+          normalize: exportLoudnessTarget !== "off" || exportNormalize,
+          loudnessTarget: exportLoudnessTarget,
+          opticalPrintEq: exportOpticalEq,
+          embedChapters: exportEmbedChapters,
           baseName,
         }),
       });
@@ -4146,6 +4209,136 @@ export default function App() {
     [resolveMedia],
   );
 
+  const activeCutIdResolved: DirectorsCutId = project?.directorsCutId ?? "neo-noir";
+  const compareTargetChoices = useMemo(
+    () =>
+      project?.story.id === "nobodys-witness-film"
+        ? DIRECTORS_CUT_OPTIONS.filter((opt) => opt.id !== activeCutIdResolved).map((opt) => ({
+            id: opt.id,
+            label: opt.shortLabel,
+          }))
+        : [],
+    [project?.story.id, activeCutIdResolved],
+  );
+  const effectiveCompareTargetId: DirectorsCutId =
+    compareTargetChoices.some((c) => c.id === compareTargetId)
+      ? compareTargetId
+      : (compareTargetChoices[0]?.id ?? "uncut");
+
+  const compareActive =
+    !isRenderMode &&
+    project?.story.id === "nobodys-witness-film" &&
+    compareTargetChoices.length > 0 &&
+    (comparePinned || compareKeyHeld);
+
+  const compareBundle = useMemo(() => {
+    if (!compareActive || !project) return null;
+    const refProj = buildDirectorsCutById(
+      project,
+      effectiveCompareTargetId,
+      voiceDurations,
+      musicDurations,
+    );
+    const refFrames = buildKeyframes(refProj.story);
+    const { clips: refClips, totalFrames: refTotal } = buildTimelineClips(
+      refFrames,
+      voiceDurations,
+    );
+    const refRuns = computePictureRuns(refClips);
+    const refCaptions = resolveTimelineCaptions(refClips);
+    const refOptLabel =
+      DIRECTORS_CUT_OPTIONS.find((o) => o.id === effectiveCompareTargetId)?.shortLabel ??
+      effectiveCompareTargetId;
+    return {
+      refProj,
+      refClips,
+      refTotal,
+      refRuns,
+      refCaptions,
+      refOptLabel,
+      refCutOpts: normalizeCutOptions(refProj.cutOptions ?? refProj.story.cutOptions),
+    };
+  }, [compareActive, project, effectiveCompareTargetId, voiceDurations, musicDurations]);
+
+  const comparePreviewState = useMemo(() => {
+    if (!compareBundle || !activeClip) return null;
+    const progress =
+      activeClip.durationFrames > 1
+        ? viewerLocalFrame / Math.max(1, activeClip.durationFrames - 1)
+        : 0;
+    const matched =
+      compareBundle.refClips.find((c) => c.keyframe.id === activeClip.keyframe.id) ??
+      compareBundle.refClips.find((c) => c.keyframe.sceneId === activeClip.keyframe.sceneId) ??
+      clipAtFrame(
+        compareBundle.refClips,
+        Math.min(Math.max(0, compareBundle.refTotal - 1), playheadFrame),
+      ) ??
+      compareBundle.refClips[0];
+    if (!matched) return null;
+    const mappedFrame =
+      matched.keyframe.id === activeClip.keyframe.id
+        ? matched.startFrame +
+          Math.round(Math.max(0, Math.min(1, progress)) * Math.max(0, matched.durationFrames - 1))
+        : Math.min(
+            matched.endFrame - 1,
+            Math.max(matched.startFrame, Math.min(compareBundle.refTotal - 1, playheadFrame)),
+          );
+    const clampedFrame = Math.max(
+      0,
+      Math.min(Math.max(0, compareBundle.refTotal - 1), mappedFrame),
+    );
+    const localF = Math.max(0, Math.min(matched.durationFrames - 1, clampedFrame - matched.startFrame));
+    const run = compareBundle.refRuns[matched.index];
+    const presetF = run ? Math.max(0, clampedFrame - run.runStartFrame) : localF;
+    const shotKeyId = run?.runKeyId ?? matched.keyframe.id;
+    const trans = activeTransitionAtFrame(compareBundle.refClips, clampedFrame);
+    const outRun = trans ? compareBundle.refRuns[trans.outgoingClip.index] : undefined;
+    const inRun = trans ? compareBundle.refRuns[trans.incomingClip.index] : undefined;
+    const cap = activeTimelineCaptionAtFrame(compareBundle.refCaptions, clampedFrame);
+    return {
+      frame: matched.keyframe,
+      localFrame: localF,
+      presetFrame: presetF,
+      shotKeyId,
+      carriedStartPose: matched.carriedStartPose,
+      clipDurationFrames: matched.durationFrames,
+      playheadFrame: clampedFrame,
+      totalFrames: compareBundle.refTotal,
+      captionStyle: normalizeCaptionStyle(compareBundle.refProj.story.captionStyle),
+      activeTimelineCaption: cap,
+      imageSrc: resolveMedia(matched.keyframe.picture),
+      imagePosition: cropPositionForPicture(matched.keyframe.picture),
+      transition: trans,
+      outgoingImageSrc: trans ? resolveMedia(trans.outgoingClip.keyframe.picture) : undefined,
+      outgoingImagePosition: trans
+        ? cropPositionForPicture(trans.outgoingClip.keyframe.picture)
+        : undefined,
+      outgoingPresetFrame: trans
+        ? outRun
+          ? Math.max(0, clampedFrame - outRun.runStartFrame)
+          : trans.outLocalFrame
+        : undefined,
+      outgoingShotKeyId: trans
+        ? outRun?.runKeyId ?? trans.outgoingClip.keyframe.id
+        : undefined,
+      incomingImageSrc: trans ? resolveMedia(trans.incomingClip.keyframe.picture) : undefined,
+      incomingImagePosition: trans
+        ? cropPositionForPicture(trans.incomingClip.keyframe.picture)
+        : undefined,
+      incomingPresetFrame: trans
+        ? inRun
+          ? Math.max(0, clampedFrame - inRun.runStartFrame)
+          : trans.inLocalFrame
+        : undefined,
+      incomingShotKeyId: trans
+        ? inRun?.runKeyId ?? trans.incomingClip.keyframe.id
+        : undefined,
+      monochromeFilm: Boolean(compareBundle.refProj.story.monochrome),
+      aspectFraming: compareBundle.refCutOpts.aspectFraming,
+      compareLabel: compareBundle.refOptLabel.toUpperCase(),
+    };
+  }, [compareBundle, activeClip, viewerLocalFrame, playheadFrame, resolveMedia, cropPositionForPicture]);
+
   if (loading) {
     if (isRenderMode) {
       return (
@@ -4228,6 +4421,8 @@ export default function App() {
           isFullscreen={false}
           interactiveFraming={false}
           isClipSelected={false}
+          monochromeFilm={Boolean(project.story.monochrome)}
+          aspectFraming={activeCutOptions.aspectFraming}
         />
       </div>
     );
@@ -4309,6 +4504,7 @@ export default function App() {
             setExportFromFrame(effIn);
             setExportToFrame(effOut);
           }
+          setExportOpticalEq(activeCutOptions.opticalPrintEq);
           setExportOpen(true);
           setExportMessage("");
           setPatchReport(null);
@@ -4325,6 +4521,32 @@ export default function App() {
           )
         }
         activeCutId={project.directorsCutId ?? "neo-noir"}
+        cutOptions={activeCutOptions}
+        onChangeCutOptions={
+          project.story.id === "nobodys-witness-film"
+            ? (patch, label) => {
+                editProject((current) => applyCutOptionsToProject(current, patch), label);
+              }
+            : undefined
+        }
+        onResetActiveCut={
+          project.story.id === "nobodys-witness-film"
+            ? () => {
+                const current = projectRef.current;
+                if (!current) return;
+                if (playback) stopPlaybackAndAudio();
+                const activeId = current.directorsCutId ?? "neo-noir";
+                const fresh = switchDirectorsCutWithState(
+                  current,
+                  activeId,
+                  voiceDurations,
+                  musicDurations,
+                  { forceRebuild: true },
+                );
+                applyProject(fresh, `Reset ${getDirectorsCutLabel(activeId)} to factory`);
+              }
+            : undefined
+        }
         onSelectDirectorsCut={
           project.story.id === "nobodys-witness-film"
             ? (cutId: DirectorsCutId) => {
@@ -4340,7 +4562,7 @@ export default function App() {
                       (currentClip.durationFrames - 1)
                     : 0;
 
-                const nextProject = buildDirectorsCutById(
+                const nextProject = switchDirectorsCutWithState(
                   current,
                   cutId,
                   voiceDurations,
@@ -4623,29 +4845,83 @@ export default function App() {
                 style={viewerZoom !== 1 ? { transform: `scale(${viewerZoom})` } : undefined}
               >
                 <CinematicPreview
-                  frame={viewerFrame}
-                  localFrame={viewerLocalFrame}
-                  presetFrame={viewerPresetFrame}
-                  shotKeyId={viewerShotKeyId}
-                  carriedStartPose={activeClip?.carriedStartPose}
-                  clipDurationFrames={activeClip?.durationFrames}
-                  playheadFrame={playheadFrame}
-                  totalFrames={totalFrames}
-                  captionStyle={captionStyle}
-                  activeTimelineCaption={activeTimelineCaption}
-                  imageSrc={viewerImageSrc}
-                  imagePosition={viewerImagePosition}
-                  prevOnionSrc={prevOnionSrc}
-                  nextOnionSrc={nextOnionSrc}
-                  transition={activeTransition}
-                  outgoingImageSrc={outgoingImageSrc}
-                  outgoingImagePosition={outgoingImagePosition}
-                  outgoingPresetFrame={outgoingPresetFrame}
-                  outgoingShotKeyId={outgoingShotKeyId}
-                  incomingImageSrc={incomingImageSrc}
-                  incomingImagePosition={incomingImagePosition}
-                  incomingPresetFrame={incomingPresetFrame}
-                  incomingShotKeyId={incomingShotKeyId}
+                  frame={comparePreviewState ? comparePreviewState.frame : viewerFrame}
+                  localFrame={comparePreviewState ? comparePreviewState.localFrame : viewerLocalFrame}
+                  presetFrame={comparePreviewState ? comparePreviewState.presetFrame : viewerPresetFrame}
+                  shotKeyId={comparePreviewState ? comparePreviewState.shotKeyId : viewerShotKeyId}
+                  carriedStartPose={
+                    comparePreviewState
+                      ? comparePreviewState.carriedStartPose
+                      : activeClip?.carriedStartPose
+                  }
+                  clipDurationFrames={
+                    comparePreviewState
+                      ? comparePreviewState.clipDurationFrames
+                      : activeClip?.durationFrames
+                  }
+                  playheadFrame={
+                    comparePreviewState ? comparePreviewState.playheadFrame : playheadFrame
+                  }
+                  totalFrames={
+                    comparePreviewState ? comparePreviewState.totalFrames : totalFrames
+                  }
+                  captionStyle={
+                    comparePreviewState ? comparePreviewState.captionStyle : captionStyle
+                  }
+                  activeTimelineCaption={
+                    comparePreviewState
+                      ? comparePreviewState.activeTimelineCaption
+                      : activeTimelineCaption
+                  }
+                  imageSrc={comparePreviewState ? comparePreviewState.imageSrc : viewerImageSrc}
+                  imagePosition={
+                    comparePreviewState ? comparePreviewState.imagePosition : viewerImagePosition
+                  }
+                  prevOnionSrc={comparePreviewState ? undefined : prevOnionSrc}
+                  nextOnionSrc={comparePreviewState ? undefined : nextOnionSrc}
+                  transition={
+                    comparePreviewState ? comparePreviewState.transition : activeTransition
+                  }
+                  outgoingImageSrc={
+                    comparePreviewState
+                      ? comparePreviewState.outgoingImageSrc
+                      : outgoingImageSrc
+                  }
+                  outgoingImagePosition={
+                    comparePreviewState
+                      ? comparePreviewState.outgoingImagePosition
+                      : outgoingImagePosition
+                  }
+                  outgoingPresetFrame={
+                    comparePreviewState
+                      ? comparePreviewState.outgoingPresetFrame
+                      : outgoingPresetFrame
+                  }
+                  outgoingShotKeyId={
+                    comparePreviewState
+                      ? comparePreviewState.outgoingShotKeyId
+                      : outgoingShotKeyId
+                  }
+                  incomingImageSrc={
+                    comparePreviewState
+                      ? comparePreviewState.incomingImageSrc
+                      : incomingImageSrc
+                  }
+                  incomingImagePosition={
+                    comparePreviewState
+                      ? comparePreviewState.incomingImagePosition
+                      : incomingImagePosition
+                  }
+                  incomingPresetFrame={
+                    comparePreviewState
+                      ? comparePreviewState.incomingPresetFrame
+                      : incomingPresetFrame
+                  }
+                  incomingShotKeyId={
+                    comparePreviewState
+                      ? comparePreviewState.incomingShotKeyId
+                      : incomingShotKeyId
+                  }
                   videoLevel={effectiveTrackLevel(trackMix, "video")}
                   resolveMedia={resolveMedia}
                   playing={playback}
@@ -4654,10 +4930,25 @@ export default function App() {
                   showMark={showMarks}
                   showTimecodeOverlay={showTimecodeOverlay}
                   showSafeGuides={showSafeGuides}
-                  showOnionSkin={showOnionSkin}
+                  showOnionSkin={showOnionSkin && !comparePreviewState}
                   isFullscreen={isFullscreen}
-                  interactiveFraming={true}
-                  isClipSelected={viewerFrame.id === selectedFrame.id}
+                  interactiveFraming={!comparePreviewState}
+                  isClipSelected={!comparePreviewState && viewerFrame.id === selectedFrame.id}
+                  monochromeFilm={
+                    comparePreviewState
+                      ? comparePreviewState.monochromeFilm
+                      : Boolean(project.story.monochrome)
+                  }
+                  aspectFraming={
+                    comparePreviewState
+                      ? comparePreviewState.aspectFraming
+                      : activeCutOptions.aspectFraming
+                  }
+                  compareActive={Boolean(comparePreviewState)}
+                  compareLabel={comparePreviewState?.compareLabel}
+                  compareTargetId={effectiveCompareTargetId}
+                  onToggleCompare={() => setComparePinned((v) => !v)}
+                  onChangeCompareTarget={(id: string) => setCompareTargetId(id as DirectorsCutId)}
                   kenBurnsSuppressed={kenBurnsSuppressed}
                   kenBurnsDrawStep={kenBurnsDrawStep}
                   kenBurnsDraftStart={kenBurnsDraftStart}
@@ -4705,7 +4996,7 @@ export default function App() {
                 </div>
               )}
               <span className="preview-resolution">
-                16:9 <i>·</i> {formatTimecode(playheadFrame)}
+                {activeCutOptions.aspectFraming} <i>·</i> {formatTimecode(playheadFrame)}
               </span>
             </div>
 
@@ -5323,12 +5614,18 @@ export default function App() {
           quality={exportQuality}
           workers={exportWorkers}
           normalizeAudio={exportNormalize}
+          loudnessTarget={exportLoudnessTarget}
+          opticalPrintEq={exportOpticalEq}
+          embedChapters={exportEmbedChapters}
           setCaptions={setCaptionsExport}
           setSrt={setSrtExport}
           setMarks={setMarksExport}
           setQuality={setExportQuality}
           setWorkers={setExportWorkers}
           setNormalizeAudio={setExportNormalize}
+          setLoudnessTarget={setExportLoudnessTarget}
+          setOpticalPrintEq={setExportOpticalEq}
+          setEmbedChapters={setExportEmbedChapters}
           mp4Job={mp4Job}
           onBundle={() => void exportBundle()}
           onPatch={exportPatch}

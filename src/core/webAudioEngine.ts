@@ -75,6 +75,9 @@ export function extractPlayableUrlsFromSrc(
 
 export class WebAudioPlaybackEngine {
   private ctx: AudioContext | null = null;
+  private preMasterGain: GainNode | null = null;
+  private eqHighPass: BiquadFilterNode | null = null;
+  private opticalPrintEq = false;
   private masterGain: GainNode | null = null;
   private duckGain: GainNode | null = null;
   private analyserL: AnalyserNode | null = null;
@@ -151,11 +154,47 @@ export class WebAudioPlaybackEngine {
         // Fallback for minimal mock AudioContext environments in tests
       }
 
+      const preMaster = ctx.createGain();
+      preMaster.gain.value = 1;
+
+      try {
+        const hp = ctx.createBiquadFilter();
+        hp.type = "highpass";
+        hp.frequency.value = 85;
+        hp.Q.value = Math.SQRT1_2;
+
+        const mid = ctx.createBiquadFilter();
+        mid.type = "peaking";
+        mid.frequency.value = 1800;
+        mid.Q.value = 1.1;
+        mid.gain.value = 1.8;
+
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 7800;
+        lp.Q.value = Math.SQRT1_2;
+
+        hp.connect(mid);
+        mid.connect(lp);
+        lp.connect(master);
+
+        this.eqHighPass = hp;
+      } catch {
+        // Fallback for minimal mock AudioContext environments in tests
+      }
+
+      if (this.opticalPrintEq && this.eqHighPass) {
+        preMaster.connect(this.eqHighPass);
+      } else {
+        preMaster.connect(master);
+      }
+
       const duck = ctx.createGain();
       duck.gain.value = 1;
-      duck.connect(master);
+      duck.connect(preMaster);
 
       this.ctx = ctx;
+      this.preMasterGain = preMaster;
       this.masterGain = master;
       this.duckGain = duck;
 
@@ -166,7 +205,7 @@ export class WebAudioPlaybackEngine {
         if (lane === "music" || lane === "ambience") {
           bus.connect(duck);
         } else {
-          bus.connect(master);
+          bus.connect(preMaster);
         }
         this.laneBuses[lane] = bus;
       }
@@ -323,6 +362,27 @@ export class WebAudioPlaybackEngine {
   setDuckDepth(depth: number): void {
     this.duckDepth = Math.max(0, Math.min(1, depth));
     this.updateDuckingAtMs(this.getCurrentPlayheadMs());
+  }
+
+  get isOpticalPrintEqEnabled(): boolean {
+    return this.opticalPrintEq;
+  }
+
+  setOpticalPrintEq(enabled: boolean): void {
+    const next = Boolean(enabled);
+    if (this.opticalPrintEq === next) return;
+    this.opticalPrintEq = next;
+    if (!this.preMasterGain || !this.masterGain) return;
+    try {
+      this.preMasterGain.disconnect();
+      if (next && this.eqHighPass) {
+        this.preMasterGain.connect(this.eqHighPass);
+      } else {
+        this.preMasterGain.connect(this.masterGain);
+      }
+    } catch {
+      // Ignore in mock environments
+    }
   }
 
   /**

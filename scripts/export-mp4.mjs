@@ -33,8 +33,13 @@ Options:
   --quality <master|draft> master = 1920x1080 PNG CRF 18 (default); draft = 1280x720 JPEG fast
   --draft                 Shorthand for --quality draft (1280x720 fast review render)
   --workers <1..8>        Parallel headless Chromium + ffmpeg segment workers (default: 1)
-  --normalize             Normalize 4-track audio to -14 LUFS with -1.0 dBTP peak ceiling
-  --no-normalize          Keep raw mix levels without loudness normalization (default)
+  --loudnorm <off|-16|-14> Loudness mastering target: off, -16 LUFS (theatrical), -14 LUFS (streaming)
+  --normalize             Shorthand for --loudnorm -14 (-14 LUFS with -1.0 dBTP peak ceiling)
+  --no-normalize          Shorthand for --loudnorm off (default)
+  --optical-eq            Apply warm 1950s optical-print EQ (85 Hz HPF, +1.8 dB @ 1.8 kHz, 7.8 kHz LPF)
+  --no-optical-eq         Bypass 1950s optical-print EQ
+  --chapters              Embed timeline chapter/scene markers in MP4 container (default: on)
+  --no-chapters           Do not embed MP4 chapter markers
   --captions              Burn captions into picture (default: on)
   --no-captions           Disable burnt-in captions (alias: --no-subs)
   --srt                   Write sidecar .srt subtitle file (default: on)
@@ -59,6 +64,9 @@ function parseCliArgs(argv) {
     quality: "master",
     workers: 1,
     normalize: false,
+    loudnorm: "off",
+    opticalEq: undefined,
+    chapters: true,
     captions: true,
     srt: true,
     marks: false,
@@ -134,8 +142,32 @@ function parseCliArgs(argv) {
       opts.workers = Math.max(1, Math.min(8, Math.round(w)));
     } else if (arg === "--normalize") {
       opts.normalize = true;
+      opts.loudnorm = "-14";
     } else if (arg === "--no-normalize") {
       opts.normalize = false;
+      opts.loudnorm = "off";
+    } else if (arg === "--loudnorm") {
+      const v = String(next()).toLowerCase();
+      if (v !== "off" && v !== "-16" && v !== "-14") {
+        throw new Error(`Invalid --loudnorm "${v}" (expected "off", "-16", or "-14")`);
+      }
+      opts.loudnorm = v;
+      opts.normalize = v !== "off";
+    } else if (arg.startsWith("--loudnorm=")) {
+      const v = arg.slice(11).toLowerCase();
+      if (v !== "off" && v !== "-16" && v !== "-14") {
+        throw new Error(`Invalid --loudnorm "${v}" (expected "off", "-16", or "-14")`);
+      }
+      opts.loudnorm = v;
+      opts.normalize = v !== "off";
+    } else if (arg === "--optical-eq") {
+      opts.opticalEq = true;
+    } else if (arg === "--no-optical-eq") {
+      opts.opticalEq = false;
+    } else if (arg === "--chapters") {
+      opts.chapters = true;
+    } else if (arg === "--no-chapters") {
+      opts.chapters = false;
     } else if (arg === "--captions" || arg === "--subs") {
       opts.captions = true;
     } else if (arg === "--no-captions" || arg === "--no-subs") {
@@ -275,7 +307,11 @@ function makeWavHeader(dataSizeBytes, sampleRate = SAMPLE_RATE) {
  * ITU-R BS.1770-4 K-weighted -14 LUFS loudness normalization + -1.0 dBTP smooth peak ceiling
  * across the entire assembled 16-bit stereo WAV file, preserving exact sample count.
  */
-async function normalizeWav16StereoFileInPlace(wavPath, sampleRate = SAMPLE_RATE) {
+async function normalizeWav16StereoFileInPlace(
+  wavPath,
+  sampleRate = SAMPLE_RATE,
+  targetLufs = -14,
+) {
   const raw = await fsp.readFile(wavPath);
   if (raw.length <= 44) return;
   const numSamples = Math.floor((raw.length - 44) / 4);
@@ -351,8 +387,8 @@ async function normalizeWav16StereoFileInPlace(wavPath, sampleRate = SAMPLE_RATE
     if (meanFinal > 0) measuredLufs = -0.691 + 10 * Math.log10(meanFinal);
   }
 
-  const targetLufs = -14;
-  const ceilingLinear = Math.pow(10, -1.0 / 20);
+  const ceilingDb = targetLufs <= -16 ? -1.5 : -1.0;
+  const ceilingLinear = Math.pow(10, ceilingDb / 20);
   const gainDb = Number.isFinite(measuredLufs)
     ? Math.max(-24, Math.min(12, targetLufs - measuredLufs))
     : 0;
@@ -785,8 +821,8 @@ async function main() {
         const expectedChunkBytes = chunkFrames * SAMPLES_PER_FRAME * BYTES_PER_STEREO_SAMPLE;
 
         const b64Wav = await primaryPage.evaluate(
-          ([a, b, sr]) => window.__render.renderAudioOffline(a, b, sr, false),
-          [chunkStart, chunkEnd, SAMPLE_RATE],
+          ([a, b, sr, eq]) => window.__render.renderAudioOffline(a, b, sr, false, eq),
+          [chunkStart, chunkEnd, SAMPLE_RATE, opts.opticalEq],
         );
         const wavBuf = Buffer.from(b64Wav, "base64");
         const pcmSlice = wavBuf.subarray(44);
@@ -810,14 +846,16 @@ async function main() {
       await wavHandle.close();
     }
 
-    if (opts.normalize) {
+    if (opts.loudnorm === "-16" || opts.loudnorm === "-14") {
+      const targetNum = Number(opts.loudnorm);
+      const ceilStr = targetNum <= -16 ? "−1.5 dBTP" : "−1.0 dBTP";
       emitProgress({
-        phase: "Normalizing audio loudness (−14 LUFS / −1.0 dBTP)…",
+        phase: `Normalizing audio loudness (${targetNum} LUFS / ${ceilStr})…`,
         completedFrames: expectedFrames,
         totalFrames: expectedFrames,
         percent: 94,
       });
-      await normalizeWav16StereoFileInPlace(tempWavPath, SAMPLE_RATE);
+      await normalizeWav16StereoFileInPlace(tempWavPath, SAMPLE_RATE, targetNum);
     }
 
     // 3. Generate sidecar .srt if enabled
@@ -829,11 +867,27 @@ async function main() {
       await fsp.writeFile(finalSrtPath, srtText, "utf8");
     }
 
+    // 3b. Generate FFMETADATA1 chapters if enabled
+    let chaptersMetaPath = "";
+    if (opts.chapters) {
+      const ffmetaText = await primaryPage.evaluate(
+        ([a, b]) =>
+          typeof window.__render.getFfmetadataChapters === "function"
+            ? window.__render.getFfmetadataChapters(a, b)
+            : "",
+        [fromFrame, toFrame],
+      );
+      if (ffmetaText && ffmetaText.includes("[CHAPTER]")) {
+        chaptersMetaPath = path.join(tmpDir, "chapters.ffmetadata");
+        await fsp.writeFile(chaptersMetaPath, ffmetaText, "utf8");
+      }
+    }
+
     // Close primary Chromium before final mux
     activeBrowsers.delete(primaryBrowser);
     await primaryBrowser.close();
 
-    // 4. Mux H.264 video + AAC audio with exact frame count `to - from + 1`
+    // 4. Mux H.264 video + AAC audio (+ optional chapter metadata) with exact frame count `to - from + 1`
     emitProgress({
       phase: "Muxing H.264 video + AAC audio…",
       completedFrames: expectedFrames,
@@ -842,38 +896,37 @@ async function main() {
     });
 
     const exactDurationSec = (expectedFrames / FPS).toFixed(6);
-    await runFfmpeg(
-      ffmpegBin,
-      [
-        "-y",
-        "-i",
-        tempVideoPath,
-        "-i",
-        tempWavPath,
-        "-map",
-        "0:v:0",
-        "-map",
-        "1:a:0",
-        "-c:v",
-        "copy",
-        "-frames:v",
-        String(expectedFrames),
-        "-c:a",
-        "aac",
-        "-b:a",
-        isDraft ? "160k" : "192k",
-        "-ar",
-        String(SAMPLE_RATE),
-        "-ac",
-        "2",
-        "-af",
-        `apad,atrim=0:${exactDurationSec}`,
-        "-movflags",
-        "+faststart",
-        finalMp4Path,
-      ],
-      (child) => activeFfmpegs.add(child),
-    );
+    const muxArgs = [
+      "-y",
+      "-i",
+      tempVideoPath,
+      "-i",
+      tempWavPath,
+      ...(chaptersMetaPath ? ["-f", "ffmetadata", "-i", chaptersMetaPath] : []),
+      "-map",
+      "0:v:0",
+      "-map",
+      "1:a:0",
+      ...(chaptersMetaPath ? ["-map_metadata", "2", "-map_chapters", "2"] : []),
+      "-c:v",
+      "copy",
+      "-frames:v",
+      String(expectedFrames),
+      "-c:a",
+      "aac",
+      "-b:a",
+      isDraft ? "160k" : "192k",
+      "-ar",
+      String(SAMPLE_RATE),
+      "-ac",
+      "2",
+      "-af",
+      `apad,atrim=0:${exactDurationSec}`,
+      "-movflags",
+      "+faststart",
+      finalMp4Path,
+    ];
+    await runFfmpeg(ffmpegBin, muxArgs, (child) => activeFfmpegs.add(child));
 
     if (!opts.progressJson) {
       process.stderr.write("\r\x1b[K");

@@ -11,6 +11,22 @@ export interface NoteMarker {
   color?: string;
 }
 
+export type AspectFramingMode = "2.35:1" | "1.37:1" | "16:9";
+export type LoudnessTargetMode = "off" | "-16" | "-14";
+
+export interface CutOptions {
+  /** Enable 2.5D WebGL depth parallax on the 9 s12/s77a/s78 plates */
+  newPlateDepthMaps?: boolean;
+  /** Theatrical aspect framing mask ("2.35:1" Scope, "1.37:1" Academy pillarbox, or "16:9" Full Gate) */
+  aspectFraming?: AspectFramingMode;
+  /** Replace nw_logo with bespoke 1950s silver-monochrome studio crest card */
+  classic1950sLeader?: boolean;
+  /** Apply warm 1950s optical-print EQ curve (85 Hz – 7.8 kHz) in preview & MP4 export */
+  opticalPrintEq?: boolean;
+  /** Preserve custom per-cut trims, keyframes & audio edits when switching between cuts */
+  preservePerCutEdits?: boolean;
+}
+
 export interface StoryLike extends AnyRecord {
   id?: string;
   title?: string;
@@ -19,6 +35,7 @@ export interface StoryLike extends AnyRecord {
   scenes: SceneLike[];
   markers?: NoteMarker[];
   captionStyle?: CaptionStyle;
+  cutOptions?: CutOptions;
 }
 
 export interface SceneLike extends AnyRecord {
@@ -148,6 +165,13 @@ export interface ProjectState {
   snapshots: ProjectSnapshot[];
   directorsCutVersion?: number;
   directorsCutId?: "neo-noir" | "creative" | "noir-1950s" | "uncut";
+  cutOptions?: CutOptions;
+  savedCutStates?: Partial<
+    Record<
+      "neo-noir" | "creative" | "noir-1950s" | "uncut",
+      { story: StoryLike; audioClips?: AudioClip[]; updatedAt: number }
+    >
+  >;
   createdAt: number;
   updatedAt: number;
 }

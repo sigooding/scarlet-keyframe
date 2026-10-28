@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import type { Mp4ExportJobState } from "../App";
-import type { Keyframe, ProjectState } from "../core/model";
+import type { Keyframe, LoudnessTargetMode, ProjectState } from "../core/model";
 import { sceneLabel } from "../core/model";
 import { makeStudioPatchReport, writeStudioPatch, type StudioPatchResult } from "../core/patch";
 import { clipFrames, FPS, formatTimecode } from "../core/timing";
@@ -41,12 +41,18 @@ export interface ExportModalProps {
   quality?: Mp4ExportQuality;
   workers?: number;
   normalizeAudio?: boolean;
+  loudnessTarget?: LoudnessTargetMode;
+  opticalPrintEq?: boolean;
+  embedChapters?: boolean;
   setCaptions: (value: boolean) => void;
   setSrt?: (value: boolean) => void;
   setMarks: (value: boolean) => void;
   setQuality?: (quality: Mp4ExportQuality) => void;
   setWorkers?: (workers: number) => void;
   setNormalizeAudio?: (value: boolean) => void;
+  setLoudnessTarget?: (value: LoudnessTargetMode) => void;
+  setOpticalPrintEq?: (value: boolean) => void;
+  setEmbedChapters?: (value: boolean) => void;
   mp4Job?: Mp4ExportJobState | null;
   onBundle: () => void;
   onPatch: () => void;
@@ -89,12 +95,18 @@ export function ExportModal({
   quality = "master",
   workers = 1,
   normalizeAudio = false,
+  loudnessTarget,
+  opticalPrintEq = false,
+  embedChapters = true,
   setCaptions,
   setSrt,
   setMarks,
   setQuality,
   setWorkers,
   setNormalizeAudio,
+  setLoudnessTarget,
+  setOpticalPrintEq,
+  setEmbedChapters,
   mp4Job = null,
   onBundle,
   onPatch,
@@ -192,6 +204,9 @@ export function ExportModal({
     [patchReport, project, tab],
   );
 
+  const effectiveLoudness: LoudnessTargetMode =
+    loudnessTarget ?? (normalizeAudio ? "-14" : "off");
+
   const cliCommand = useMemo(() => {
     const args = [
       "npm run export --",
@@ -202,12 +217,27 @@ export function ExportModal({
     ];
     if (quality === "draft") args.push("--draft");
     if (workers > 1) args.push(`--workers ${workers}`);
-    if (normalizeAudio) args.push("--normalize");
+    if (effectiveLoudness === "-16") args.push("--loudnorm -16");
+    else if (effectiveLoudness === "-14") args.push("--loudnorm -14");
+    if (opticalPrintEq) args.push("--optical-eq");
+    if (embedChapters) args.push("--chapters");
+    else args.push("--no-chapters");
     if (!captions) args.push("--no-captions");
     if (!srt) args.push("--no-srt");
     if (marks) args.push("--marks");
     return args.join(" ");
-  }, [effectiveFromFrame, effectiveToFrame, quality, workers, normalizeAudio, captions, srt, marks]);
+  }, [
+    effectiveFromFrame,
+    effectiveToFrame,
+    quality,
+    workers,
+    effectiveLoudness,
+    opticalPrintEq,
+    embedChapters,
+    captions,
+    srt,
+    marks,
+  ]);
 
   const activeSceneBound = useMemo(() => {
     if (!selectedClip) return sceneFrameBounds[0];
@@ -671,16 +701,42 @@ export function ExportModal({
                     </label>
                   )}
 
-                  {setNormalizeAudio && (
-                    <label className="checkbox-label" title="ITU-R BS.1770 −14 LUFS loudness normalization with −1.0 dBTP peak ceiling">
+                  {(setLoudnessTarget || setNormalizeAudio) && (
+                    <label
+                      className="export-inline-select"
+                      title="ITU-R BS.1770 K-weighted loudness mastering (−16 LUFS theatrical / −14 LUFS streaming)"
+                    >
+                      <span>Loudness</span>
+                      <select
+                        data-testid="export-loudness-select"
+                        disabled={isRunningMp4}
+                        value={effectiveLoudness}
+                        onChange={(event) => {
+                          const v = event.target.value as LoudnessTargetMode;
+                          setLoudnessTarget?.(v);
+                          setNormalizeAudio?.(v !== "off");
+                        }}
+                      >
+                        <option value="off">Off (Original Mix)</option>
+                        <option value="-16">−16 LUFS (Theatrical)</option>
+                        <option value="-14">−14 LUFS (Streaming)</option>
+                      </select>
+                    </label>
+                  )}
+
+                  {setOpticalPrintEq && (
+                    <label
+                      className="checkbox-label"
+                      title="Apply warm 1950s optical-print EQ (85 Hz HPF, +1.8 dB @ 1.8 kHz, 7.8 kHz LPF)"
+                    >
                       <input
                         type="checkbox"
-                        data-testid="export-opt-normalize"
+                        data-testid="export-opt-optical-eq"
                         disabled={isRunningMp4}
-                        checked={normalizeAudio}
-                        onChange={(event) => setNormalizeAudio(event.target.checked)}
+                        checked={opticalPrintEq}
+                        onChange={(event) => setOpticalPrintEq(event.target.checked)}
                       />
-                      <span>Normalize (−14 LUFS / −1 dBTP)</span>
+                      <span>1950s Optical-Print EQ</span>
                     </label>
                   )}
                 </div>
@@ -707,6 +763,21 @@ export function ExportModal({
                   />
                   <span>Write .srt file</span>
                 </label>
+                {setEmbedChapters && (
+                  <label
+                    className="checkbox-label"
+                    title="Embed timeline chapter / scene markers directly inside the MP4 container"
+                  >
+                    <input
+                      type="checkbox"
+                      data-testid="export-opt-chapters"
+                      disabled={isRunningMp4}
+                      checked={embedChapters}
+                      onChange={(event) => setEmbedChapters(event.target.checked)}
+                    />
+                    <span>Embed MP4 chapters</span>
+                  </label>
+                )}
                 <label className="checkbox-label">
                   <input
                     type="checkbox"

@@ -18,7 +18,7 @@ import {
   type CaptionStyle,
   type ResolvedTimelineCaption,
 } from "../core/captions";
-import type { BeatAnimation, KenBurnsBox, Keyframe } from "../core/model";
+import type { AspectFramingMode, BeatAnimation, KenBurnsBox, Keyframe } from "../core/model";
 import { pictureLabel, storyboardGradient } from "../core/helpers";
 import { clipFrames, formatTimecode, FPS } from "../core/timing";
 import {
@@ -80,6 +80,13 @@ export interface CinematicPreviewProps {
   kenBurnsDrawStep?: "start" | "end" | null;
   kenBurnsDraftStart?: KenBurnsBox | null;
   externalEdgeWarningToken?: number;
+  aspectFraming?: AspectFramingMode;
+  monochromeFilm?: boolean;
+  compareActive?: boolean;
+  compareLabel?: string;
+  compareTargetId?: string;
+  onToggleCompare?: () => void;
+  onChangeCompareTarget?: (targetId: string) => void;
   onToggleSafeGuides?: () => void;
   onToggleOnionSkin?: () => void;
   onToggleTimecodeOverlay?: () => void;
@@ -139,6 +146,12 @@ export function CinematicPreview({
   kenBurnsDrawStep = null,
   kenBurnsDraftStart = null,
   externalEdgeWarningToken = 0,
+  aspectFraming,
+  compareActive = false,
+  compareLabel,
+  compareTargetId = "neo-noir",
+  onToggleCompare,
+  onChangeCompareTarget,
   onToggleSafeGuides,
   onToggleOnionSkin,
   onToggleTimecodeOverlay,
@@ -196,6 +209,17 @@ export function CinematicPreview({
   const previewTimeSec = (presetFrame ?? localFrame) / FPS;
 
   const style = normalizeCaptionStyle(captionStyle ?? DEFAULT_CAPTION_STYLE);
+  const effectiveAspectFraming: AspectFramingMode =
+    aspectFraming ??
+    (frame.scene.letterbox ? "2.35:1" : "16:9");
+  const isAcademy = effectiveAspectFraming === "1.37:1";
+  const hasScopeLetterbox =
+    effectiveAspectFraming === "2.35:1" && Boolean(frame.scene.letterbox);
+  const compareBadgeText = compareLabel
+    ? compareLabel.toUpperCase().startsWith("COMPARE")
+      ? compareLabel
+      : `COMPARE · ${compareLabel}`
+    : "COMPARE · REFERENCE CUT";
   const resolvedClipDuration =
     clipDurationFrames !== undefined && clipDurationFrames > 0
       ? clipDurationFrames
@@ -474,6 +498,7 @@ export function CinematicPreview({
         .filter(Boolean)
         .join(" ")}
       data-testid="cinematic-preview"
+      data-aspect-framing={effectiveAspectFraming}
       data-gap={frame.beat.gap ? "true" : undefined}
       data-transition-kind={transition?.kind || "none"}
       data-transition-progress={transition ? p.toFixed(4) : undefined}
@@ -1212,11 +1237,26 @@ export function CinematicPreview({
         </div>
       )}
 
-      {frame.scene.letterbox && (
+      {hasScopeLetterbox && (
         <>
           <div className="cin-letterbox cin-letterbox-top" />
           <div className="cin-letterbox cin-letterbox-bottom" />
         </>
+      )}
+      {isAcademy && (
+        <>
+          <div className="cin-pillarbox cin-pillarbox-left" data-testid="viewer-pillarbox-left" />
+          <div className="cin-pillarbox cin-pillarbox-right" data-testid="viewer-pillarbox-right" />
+        </>
+      )}
+      {!renderMode && compareActive && (
+        <div
+          className="cin-compare-badge"
+          data-testid="viewer-compare-badge"
+          style={{ transition: "none", animation: "none" }}
+        >
+        {compareBadgeText}
+        </div>
       )}
       {showMark && (
         <div className="cin-mark" data-testid="viewer-mark-overlay">
@@ -1238,24 +1278,53 @@ export function CinematicPreview({
         </div>
       )}
 
-      {/* Top-left Ken Burns button */}
-      {!renderMode && onToggleKenBurns && !isFullscreen && (
+      {/* Top-left Ken Burns & Instant Cut-Compare controls */}
+      {!renderMode && !isFullscreen && (onToggleKenBurns || onToggleCompare || onChangeCompareTarget) && (
         <div
           className="cin-kb-trigger-wrap"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            type="button"
-            className={`cin-corner-btn ${showKenBurnsBoxes || kenBurnsDrawStep ? "is-active" : ""}`}
-            data-testid="viewer-ken-burns-btn"
-            disabled={!hasEditablePicture}
-            aria-pressed={showKenBurnsBoxes || Boolean(kenBurnsDrawStep)}
-            title="Draw or edit 16:9 START and END Ken Burns boxes on this clip"
-            onClick={onToggleKenBurns}
-          >
-            Ken Burns
-          </button>
+          {onToggleKenBurns && (
+            <button
+              type="button"
+              className={`cin-corner-btn ${showKenBurnsBoxes || kenBurnsDrawStep ? "is-active" : ""}`}
+              data-testid="viewer-ken-burns-btn"
+              disabled={!hasEditablePicture}
+              aria-pressed={showKenBurnsBoxes || Boolean(kenBurnsDrawStep)}
+              title="Draw or edit 16:9 START and END Ken Burns boxes on this clip"
+              onClick={onToggleKenBurns}
+            >
+              Ken Burns
+            </button>
+          )}
+          {onToggleCompare && (
+            <button
+              type="button"
+              className={`cin-corner-btn ${compareActive ? "is-active" : ""}`}
+              data-testid="viewer-compare-btn"
+              aria-pressed={compareActive}
+              title="Toggle or hold backslash (\) to compare current frame against reference cut"
+              onClick={onToggleCompare}
+            >
+              Compare (\)
+            </button>
+          )}
+          {onChangeCompareTarget && (
+            <select
+              className="cin-corner-select"
+              data-testid="viewer-compare-target"
+              value={compareTargetId}
+              aria-label="Compare reference cut"
+              title="Choose which cut Compare (\) previews"
+              onChange={(e) => onChangeCompareTarget(e.target.value)}
+            >
+              <option value="neo-noir">vs Neo-Noir</option>
+              <option value="creative">vs Creative</option>
+              <option value="noir-1950s">vs 1950s B&amp;W</option>
+              <option value="uncut">vs Uncut</option>
+            </select>
+          )}
         </div>
       )}
 
@@ -1353,7 +1422,7 @@ export function CinematicPreview({
         const cardOpacity = Math.max(0, Math.min(1, Math.min(inOp, outOp)));
         return (
           <div
-            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"} ${tc.monochrome || cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : ""}`}
+            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"} ${tc.monochrome || cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : ""} ${isAcademy ? "has-academy" : ""}`}
             data-testid="viewer-title-card"
             style={{
               opacity: Number(cardOpacity.toFixed(4)),
@@ -1373,7 +1442,8 @@ export function CinematicPreview({
           className={[
             "cin-caption",
             style.position === "top" ? "pos-top" : "pos-bottom",
-            frame.scene.letterbox ? "has-letterbox" : "",
+            hasScopeLetterbox ? "has-letterbox" : "",
+            isAcademy ? "has-academy" : "",
             `size-${style.size.toLowerCase()}`,
             style.backgroundBox ? "has-box" : "no-box",
             cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : "",

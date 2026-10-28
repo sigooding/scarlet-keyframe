@@ -17,8 +17,10 @@ import {
   runningSceneIds,
   speakerLabel,
   type AnyRecord,
+  type AspectFramingMode,
   type BeatAnimation,
   type BeatLike,
+  type CutOptions,
   type NoteMarker,
   type ProjectSnapshot,
   type ProjectState,
@@ -2368,6 +2370,7 @@ export function buildDirectorsCutById(
   cutId: DirectorsCutId,
   voiceDurations: ReadonlyMap<string, number>,
   musicDurations?: ReadonlyMap<string, number>,
+  options?: CutOptions,
 ): ProjectState {
   if (cutId === "uncut") {
     const uncutSnapshot: ProjectSnapshot = {
@@ -2381,7 +2384,7 @@ export function buildDirectorsCutById(
     const existingSnapshots = (baseProject.snapshots || []).filter(
       (s) => s.id !== uncutSnapshot.id,
     );
-    return {
+    const builtUncut: ProjectState = {
       ...baseProject,
       story,
       audioClips,
@@ -2390,6 +2393,247 @@ export function buildDirectorsCutById(
       directorsCutId: "uncut",
       updatedAt: Date.now(),
     };
+    return options ? applyCutOptionsToProject(builtUncut, options) : builtUncut;
   }
-  return buildEditorialCut(baseProject, cutId, voiceDurations, musicDurations);
+  const built = buildEditorialCut(baseProject, cutId, voiceDurations, musicDurations);
+  return options ? applyCutOptionsToProject(built, options) : built;
+}
+
+export const CLASSIC_1950S_CREST_LEADER_PATH =
+  "/film/img/leaders/scarlet-reel-1950s-crest.jpg";
+
+export const NEW_PLATE_DEPTH_MAP_BY_BEAT_ID: Readonly<Record<string, string>> = {
+  nw_b307: "/film/depth/s12/307-vending-coffee-can-depth.jpg",
+  nw_b325: "/film/depth/s12/325-barber-shutter-closing-depth.jpg",
+  nw_b1290: "/film/depth/s77a/1290-predawn-avenue-depth.jpg",
+  nw_b1293: "/film/depth/s77a/1293-sedan-keeps-pace-depth.jpg",
+  nw_b1294: "/film/depth/s77a/1294-hand-and-watch-on-sill-depth.jpg",
+  nw_b1296: "/film/depth/s77a/1296-everyone-is-allowed-one-depth.jpg",
+  nw_b1303: "/film/depth/s77a/1303-reflection-in-black-glass-depth.jpg",
+  nw_b1304: "/film/depth/s77a/1304-sedan-turns-off-depth.jpg",
+  nw_b1309: "/film/depth/s78/1309-vera-opens-door-dawn-depth.jpg",
+};
+
+export const DEFAULT_CUT_OPTIONS: Required<CutOptions> = {
+  newPlateDepthMaps: false,
+  aspectFraming: "2.35:1",
+  classic1950sLeader: false,
+  opticalPrintEq: false,
+  preservePerCutEdits: true,
+};
+
+export function normalizeCutOptions(raw?: CutOptions): Required<CutOptions> {
+  const aspect: AspectFramingMode =
+    raw?.aspectFraming === "1.37:1" || raw?.aspectFraming === "16:9"
+      ? raw.aspectFraming
+      : "2.35:1";
+  return {
+    newPlateDepthMaps: Boolean(raw?.newPlateDepthMaps),
+    aspectFraming: aspect,
+    classic1950sLeader: Boolean(raw?.classic1950sLeader),
+    opticalPrintEq: Boolean(raw?.opticalPrintEq),
+    preservePerCutEdits:
+      raw?.preservePerCutEdits !== undefined ? Boolean(raw.preservePerCutEdits) : true,
+  };
+}
+
+/**
+ * Applies selectable visual/period/sound options (`newPlateDepthMaps`, `aspectFraming`,
+ * `classic1950sLeader`, `opticalPrintEq`) in-place onto `story` without altering user trims,
+ * dialogue timings, or downstream frame indices.
+ */
+export function applyCutOptionsInPlace(
+  story: StoryLike,
+  cutId: DirectorsCutId,
+  rawOptions?: CutOptions,
+): void {
+  const opts = normalizeCutOptions(rawOptions);
+  story.cutOptions = { ...opts };
+  const is1950s = cutId === "noir-1950s";
+  const isCreative = cutId === "creative";
+
+  // 1. Aspect framing: 2.35:1 Scope letterbox vs 1.37:1 Academy pillarbox vs 16:9 Full Gate
+  for (const scene of story.scenes) {
+    if (scene.id !== "nw_intro" && scene.id !== "nw_logo") {
+      if (cutId !== "uncut") {
+        scene.letterbox = opts.aspectFraming === "2.35:1";
+      }
+    }
+
+    // 2. Bespoke 1950s Monochrome Studio Crest Leader on `nw_logo` (exact 9.9s duration preserved!)
+    if (scene.id === "nw_logo" && scene.dialogueBeats && scene.dialogueBeats.length > 0) {
+      const logoBeat = scene.dialogueBeats[0];
+      const durF = Math.max(24, Number(logoBeat.durationFrames) || Math.round(9.9 * FPS));
+      const lastF = Math.max(1, durF - 1);
+      if (opts.classic1950sLeader) {
+        logoBeat.background = CLASSIC_1950S_CREST_LEADER_PATH;
+        logoBeat.cinematic = {
+          mode: "static",
+          colorGrade: is1950s ? "noir-1950s" : isCreative ? "sodium-amber" : "tokyo-noir",
+          filmGrade: false,
+          vignette: true,
+          vignetteStrength: 0.48,
+          grain: true,
+          grainOpacity: 0.068,
+        };
+        logoBeat.animation = {
+          zoom: [
+            { frame: 0, value: 1.004, easing: "ease-in-out" },
+            { frame: lastF, value: 1.032, easing: "linear" },
+          ],
+          opacity: [
+            { frame: 0, value: 0, easing: "ease-in-out" },
+            { frame: 20, value: 1, easing: "linear" },
+            { frame: Math.max(24, lastF - 24), value: 1, easing: "ease-in-out" },
+            { frame: lastF, value: 0, easing: "linear" },
+          ],
+          values: { gradeStrength: is1950s ? 1 : 0.9 },
+        };
+      } else {
+        logoBeat.background = String(scene.background || "video:/film/video/scarlet-reel-logo.mp4");
+        if (is1950s) {
+          logoBeat.cinematic = {
+            mode: "static",
+            colorGrade: "noir-1950s",
+            filmGrade: false,
+            vignette: true,
+            vignetteStrength: 0.48,
+            grain: true,
+            grainOpacity: 0.068,
+          };
+          logoBeat.animation = { values: { gradeStrength: 1 } };
+        } else {
+          delete logoBeat.cinematic;
+          delete logoBeat.animation;
+        }
+      }
+    }
+
+    // 3. 2.5D Depth Maps on the 9 newly added s12 / s77a / s78 plates
+    for (const beat of scene.dialogueBeats ?? []) {
+      const beatId = String(beat.id || "");
+      const depthPath = NEW_PLATE_DEPTH_MAP_BY_BEAT_ID[beatId];
+      if (!depthPath) continue;
+      const durF = Math.max(12, Number(beat.durationFrames) || 78);
+      const lastF = Math.max(1, durF - 1);
+      const cin: AnyRecord = { ...(beat.cinematic || {}) };
+      const anim: BeatAnimation = beat.animation ? clone(beat.animation) : {};
+
+      if (opts.newPlateDepthMaps) {
+        cin.depthMap = depthPath;
+        cin.depthAmount = is1950s ? 0.2 : 0.28;
+        beat.cinematic = cin;
+        const d0 = is1950s ? 0.12 : 0.18;
+        const d1 = is1950s ? 0.2 : 0.28;
+        anim.depthAmount = [
+          { frame: 0, value: d0, easing: "ease-in-out" },
+          { frame: lastF, value: d1, easing: "linear" },
+        ];
+        if (anim.values) {
+          delete (anim.values as AnyRecord).depthAmount;
+        }
+        beat.animation = anim;
+      } else {
+        delete cin.depthMap;
+        delete cin.depthAmount;
+        delete cin.depthPlate;
+        delete cin.depthCutouts;
+        beat.cinematic = cin;
+        delete anim.depthAmount;
+        if (anim.values) {
+          delete (anim.values as AnyRecord).depthAmount;
+        }
+        beat.animation = anim;
+      }
+    }
+  }
+}
+
+export function applyCutOptionsToProject(
+  project: ProjectState,
+  nextOptions: CutOptions,
+): ProjectState {
+  const merged = normalizeCutOptions({
+    ...(project.cutOptions || project.story.cutOptions || {}),
+    ...nextOptions,
+  });
+  const nextStory = clone(project.story);
+  const cutId = project.directorsCutId ?? "neo-noir";
+  applyCutOptionsInPlace(nextStory, cutId, merged);
+  return {
+    ...project,
+    story: nextStory,
+    cutOptions: merged,
+    updatedAt: Date.now(),
+  };
+}
+
+/**
+ * Switches between selectable cuts while optionally stashing & restoring custom per-cut
+ * user edits (`preservePerCutEdits`), or rebuilding fresh when `forceRebuild` is true.
+ */
+export function switchDirectorsCutWithState(
+  project: ProjectState,
+  nextCutId: DirectorsCutId,
+  voiceDurations: ReadonlyMap<string, number>,
+  musicDurations?: ReadonlyMap<string, number>,
+  params?: { forceRebuild?: boolean; overrideOptions?: CutOptions },
+): ProjectState {
+  const currentCutId = project.directorsCutId;
+  const effectiveOptions = normalizeCutOptions({
+    ...(project.cutOptions || project.story.cutOptions || {}),
+    ...(params?.overrideOptions || {}),
+  });
+
+  const savedStates = { ...(project.savedCutStates || {}) };
+
+  if (
+    currentCutId &&
+    currentCutId !== nextCutId &&
+    effectiveOptions.preservePerCutEdits &&
+    !params?.forceRebuild
+  ) {
+    savedStates[currentCutId] = {
+      story: clone(project.story),
+      ...(project.audioClips ? { audioClips: clone(project.audioClips) } : {}),
+      updatedAt: Date.now(),
+    };
+  }
+
+  if (params?.forceRebuild) {
+    delete savedStates[nextCutId];
+  }
+
+  const stashed =
+    effectiveOptions.preservePerCutEdits && !params?.forceRebuild
+      ? savedStates[nextCutId]
+      : undefined;
+
+  if (stashed) {
+    const restoredStory = clone(stashed.story);
+    applyCutOptionsInPlace(restoredStory, nextCutId, effectiveOptions);
+    return {
+      ...project,
+      story: restoredStory,
+      audioClips: stashed.audioClips ? clone(stashed.audioClips) : project.audioClips,
+      directorsCutId: nextCutId,
+      cutOptions: effectiveOptions,
+      savedCutStates: savedStates,
+      updatedAt: Date.now(),
+    };
+  }
+
+  const fresh = buildDirectorsCutById(
+    project,
+    nextCutId,
+    voiceDurations,
+    musicDurations,
+    effectiveOptions,
+  );
+  return {
+    ...fresh,
+    cutOptions: effectiveOptions,
+    savedCutStates: savedStates,
+    updatedAt: Date.now(),
+  };
 }

@@ -33,6 +33,8 @@ export interface OfflineAudioMixOptions {
   fps?: number;
   sampleRate?: number;
   normalize?: boolean;
+  loudnessTarget?: "off" | "-16" | "-14";
+  opticalPrintEq?: boolean;
 }
 
 /**
@@ -231,6 +233,7 @@ async function renderOfflineChunk(
   chunkStartMs: number,
   chunkSamples: number,
   sampleRate: number,
+  opticalPrintEq = false,
 ): Promise<{ left: Float32Array; right: Float32Array }> {
   const chunkDurationSec = chunkSamples / sampleRate;
   const chunkDurationMs = chunkDurationSec * 1000;
@@ -240,8 +243,36 @@ async function renderOfflineChunk(
   master.gain.value = 1;
   master.connect(ctx.destination);
 
+  const preMaster = ctx.createGain();
+  preMaster.gain.value = 1;
+
+  if (opticalPrintEq && typeof ctx.createBiquadFilter === "function") {
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 85;
+    hp.Q.value = Math.SQRT1_2;
+
+    const mid = ctx.createBiquadFilter();
+    mid.type = "peaking";
+    mid.frequency.value = 1800;
+    mid.Q.value = 1.1;
+    mid.gain.value = 1.8;
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 7800;
+    lp.Q.value = Math.SQRT1_2;
+
+    preMaster.connect(hp);
+    hp.connect(mid);
+    mid.connect(lp);
+    lp.connect(master);
+  } else {
+    preMaster.connect(master);
+  }
+
   const duck = ctx.createGain();
-  duck.connect(master);
+  duck.connect(preMaster);
 
   const voiceLevel = effectiveTrackLevel(trackMix, "voice");
   const voiceIntervals =
@@ -255,7 +286,7 @@ async function renderOfflineChunk(
     if (lane === "music" || lane === "ambience") {
       bus.connect(duck);
     } else {
-      bus.connect(master);
+      bus.connect(preMaster);
     }
     laneBuses[lane] = bus;
   }
@@ -386,6 +417,7 @@ export async function renderTimelineAudioOfflineWav(
       chunkStartMs,
       chunkSamples,
       sampleRate,
+      Boolean(options.opticalPrintEq),
     );
 
     outLeft.set(left.subarray(0, chunkSamples), sampleCursor);
@@ -395,8 +427,18 @@ export async function renderTimelineAudioOfflineWav(
     sampleCursor += chunkSamples;
   }
 
-  if (options.normalize) {
-    normalizeStereoLoudnessInPlace(outLeft, outRight, sampleRate);
+  const resolvedLoudness =
+    options.loudnessTarget ?? (options.normalize ? "-14" : "off");
+  if (resolvedLoudness === "-16") {
+    normalizeStereoLoudnessInPlace(outLeft, outRight, sampleRate, {
+      targetLufs: -16,
+      ceilingDb: -1.5,
+    });
+  } else if (resolvedLoudness === "-14") {
+    normalizeStereoLoudnessInPlace(outLeft, outRight, sampleRate, {
+      targetLufs: -14,
+      ceilingDb: -1.0,
+    });
   }
 
   return encodeWav16BitStereo(outLeft, outRight, sampleRate);

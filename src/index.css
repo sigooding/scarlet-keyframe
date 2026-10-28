@@ -5529,13 +5529,18 @@ kbd {
   box-shadow: inset 0 0 0 2px rgba(245, 166, 35, 0.85);
 }
 
-/* Top-left Ken Burns button */
+/* Top-left Ken Burns & Cut-Compare controls */
 .cin-kb-trigger-wrap {
   position: absolute;
   top: 8px;
   left: 10px;
   z-index: 64;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   pointer-events: auto;
+  transition: none !important;
+  animation: none !important;
 }
 
 /* Viewer corner toggles */
@@ -6626,6 +6631,86 @@ kbd {
   color: #e8a24a;
 }
 
+.topbar-cut-menu {
+  width: 344px;
+  max-height: min(82vh, 660px);
+  overflow-y: auto;
+}
+
+.topbar-cut-opts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 8px 6px;
+}
+
+.topbar-cut-aspect-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.topbar-cut-aspect-label {
+  font-size: 11px;
+  color: rgba(230, 233, 239, 0.85);
+}
+
+.topbar-cut-segmented {
+  display: inline-flex;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.topbar-cut-seg-btn {
+  padding: 3px 7px;
+  font-family: var(--mono);
+  font-size: 10px;
+  background: transparent;
+  border: none;
+  color: rgba(214, 220, 230, 0.72);
+  cursor: pointer;
+}
+
+.topbar-cut-seg-btn.is-active {
+  background: rgba(232, 162, 74, 0.24);
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.topbar-cut-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: rgba(230, 233, 239, 0.88);
+  cursor: pointer;
+}
+
+.topbar-cut-check-row input[type="checkbox"] {
+  margin-top: 1px;
+  accent-color: #e8a24a;
+}
+
+.topbar-cut-reset-btn {
+  margin-top: 2px;
+  align-self: flex-start;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(226, 232, 240, 0.84);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.topbar-cut-reset-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* Signature Tokyo Neo-Noir optical color grade (strictly zero CSS transitions/animations) */
 .cin-grade-tokyo-noir {
   filter: saturate(0.74) contrast(1.16) brightness(0.93) sepia(0.05) hue-rotate(-3deg);
@@ -6725,6 +6810,82 @@ kbd {
 
 .cin-caption.is-monochrome span {
   color: rgba(220, 222, 226, 0.88) !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* 1.37:1 Academy Aperture vertical pillarbox bars (strictly zero CSS transitions/animations) */
+.cin-pillarbox {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 11.33%;
+  background: #000000;
+  z-index: 44;
+  pointer-events: none;
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-pillarbox-left {
+  left: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-pillarbox-right {
+  right: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-title-card.is-lower-left.has-academy {
+  padding-left: 15.5%;
+  padding-right: 15.5%;
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-caption.has-academy {
+  left: 14% !important;
+  right: 14% !important;
+  max-width: 72% !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Instant Cut-Compare indicator & selector in viewer (strictly zero CSS transitions/animations) */
+.cin-compare-badge {
+  position: absolute;
+  top: 36px;
+  left: 10px;
+  z-index: 56;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: rgba(14, 17, 22, 0.88);
+  border: 1px solid rgba(232, 162, 74, 0.65);
+  color: #f6c177;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-corner-select {
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: rgba(10, 12, 16, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(230, 234, 240, 0.88);
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
   transition: none !important;
   animation: none !important;
 }

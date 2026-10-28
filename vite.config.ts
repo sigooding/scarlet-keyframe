@@ -263,6 +263,15 @@ function mp4ExportDevPlugin(): Plugin {
             const quality = body.quality === "draft" ? "draft" : "master";
             const workers = Math.max(1, Math.min(8, Math.round(Number(body.workers) || 1)));
             const normalize = Boolean(body.normalize);
+            const loudnessTarget =
+              body.loudnessTarget === "-16" || body.loudnessTarget === "-14" || body.loudnessTarget === "off"
+                ? body.loudnessTarget
+                : normalize
+                  ? "-14"
+                  : "off";
+            const opticalPrintEq =
+              body.opticalPrintEq === undefined ? undefined : Boolean(body.opticalPrintEq);
+            const embedChapters = body.embedChapters !== false;
             const baseName = String(body.baseName || "animatic").replace(/[^a-zA-Z0-9._-]+/g, "-");
 
             const jobId = crypto.randomUUID();
@@ -308,7 +317,12 @@ function mp4ExportDevPlugin(): Plugin {
               quality,
               "--workers",
               String(workers),
-              normalize ? "--normalize" : "--no-normalize",
+              "--loudnorm",
+              loudnessTarget,
+              ...(opticalPrintEq === undefined
+                ? []
+                : [opticalPrintEq ? "--optical-eq" : "--no-optical-eq"]),
+              embedChapters ? "--chapters" : "--no-chapters",
               captions ? "--captions" : "--no-captions",
               srt ? "--srt" : "--no-srt",
               marks ? "--marks" : "--no-marks",
