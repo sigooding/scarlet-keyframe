@@ -22,8 +22,8 @@ import type { AspectFramingMode, BeatAnimation, KenBurnsBox, Keyframe } from "..
 import { pictureLabel, storyboardGradient } from "../core/helpers";
 import { clipFrames, formatTimecode, FPS } from "../core/timing";
 import {
+  applyDirectViewerPoseAtFrame,
   applyKenBurnsBoxes,
-  applyPoseAtPlayhead,
   clampKenBurnsBox,
   clampPoseToPictureEdges,
   clampPropValue,
@@ -164,7 +164,7 @@ export function CinematicPreview({
   onDragStart,
   onDragEnd,
   onPreviewAnimation,
-  onCommitAnimation: _onCommitAnimation,
+  onCommitAnimation,
   setFocalPoint,
 }: CinematicPreviewProps) {
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -322,9 +322,14 @@ export function CinematicPreview({
     triggerEdgeWarning,
   };
 
-  const wheelSessionRef = useRef<{ active: boolean; timer: number | null }>({
+  const wheelSessionRef = useRef<{
+    active: boolean;
+    timer: number | null;
+    initialPose: { zoom: number; x: number; y: number; rotation: number } | null;
+  }>({
     active: false,
     timer: null,
+    initialPose: null,
   });
 
   useEffect(() => {
@@ -340,24 +345,6 @@ export function CinematicPreview({
       const rect = el.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
 
-      if (!wheelSessionRef.current.active) {
-        wheelSessionRef.current.active = true;
-        state.onDragStart?.();
-      }
-      if (wheelSessionRef.current.timer !== null) {
-        window.clearTimeout(wheelSessionRef.current.timer);
-      }
-      wheelSessionRef.current.timer = window.setTimeout(() => {
-        if (wheelSessionRef.current.active) {
-          wheelSessionRef.current.active = false;
-          wheelSessionRef.current.timer = null;
-          latestRef.current.onDragEnd?.("Zoomed shot around pointer");
-        }
-      }, 260);
-
-      const normX = (event.clientX - rect.left) / rect.width;
-      const normY = (event.clientY - rect.top) / rect.height;
-
       const curRaw = evaluate(state.frame, state.localFrame, state.carriedStartPose);
       const curPose = state.hasViewerDepth
         ? {
@@ -368,6 +355,32 @@ export function CinematicPreview({
             clamped: false,
           }
         : clampPoseToPictureEdges(curRaw);
+
+      if (!wheelSessionRef.current.active) {
+        wheelSessionRef.current.active = true;
+        wheelSessionRef.current.initialPose = {
+          zoom: curPose.zoom,
+          x: curPose.x,
+          y: curPose.y,
+          rotation: curPose.rotation,
+        };
+        state.onDragStart?.();
+      }
+      if (wheelSessionRef.current.timer !== null) {
+        window.clearTimeout(wheelSessionRef.current.timer);
+      }
+      wheelSessionRef.current.timer = window.setTimeout(() => {
+        if (wheelSessionRef.current.active) {
+          wheelSessionRef.current.active = false;
+          wheelSessionRef.current.initialPose = null;
+          wheelSessionRef.current.timer = null;
+          latestRef.current.onDragEnd?.("Zoomed shot around pointer");
+        }
+      }, 260);
+
+      const normX = (event.clientX - rect.left) / rect.width;
+      const normY = (event.clientY - rect.top) / rect.height;
+
       const factor = Math.exp(-event.deltaY * 0.0018);
       const targetZoom = curPose.zoom * factor;
 
@@ -382,20 +395,28 @@ export function CinematicPreview({
       }
 
       const anim = state.frame.beat.animation;
+      const basePose = wheelSessionRef.current.initialPose ?? curPose;
       const includeX =
+        Math.abs(zoomed.x - basePose.x) > 1e-6 ||
         Math.abs(zoomed.x - curPose.x) > 1e-6 ||
         Boolean(anim?.x?.length) ||
         typeof anim?.values?.x === "number";
       const includeY =
+        Math.abs(zoomed.y - basePose.y) > 1e-6 ||
         Math.abs(zoomed.y - curPose.y) > 1e-6 ||
         Boolean(anim?.y?.length) ||
         typeof anim?.values?.y === "number";
 
-      const nextAnim = applyPoseAtPlayhead(anim, state.localFrame, {
-        zoom: zoomed.zoom,
-        ...(includeX ? { x: zoomed.x } : {}),
-        ...(includeY ? { y: zoomed.y } : {}),
-      });
+      const nextAnim = applyDirectViewerPoseAtFrame(
+        anim,
+        state.localFrame,
+        {
+          zoom: zoomed.zoom,
+          ...(includeX ? { x: zoomed.x } : {}),
+          ...(includeY ? { y: zoomed.y } : {}),
+        },
+        basePose,
+      );
       state.onPreviewAnimation(nextAnim);
     };
 
@@ -584,11 +605,19 @@ export function CinematicPreview({
           posePatch.x = clamped.x;
           posePatch.y = clamped.y;
         }
-        if (Math.abs(clamped.zoom - session.initialPose.zoom) > 1e-6) {
+        if (
+          Math.abs(clamped.zoom - session.initialPose.zoom) > 1e-6 ||
+          (clamped.zoom > 1.0001 && !session.initialAnim?.zoom?.length)
+        ) {
           posePatch.zoom = clamped.zoom;
         }
 
-        const nextAnim = applyPoseAtPlayhead(session.initialAnim, localFrame, posePatch);
+        const nextAnim = applyDirectViewerPoseAtFrame(
+          session.initialAnim,
+          localFrame,
+          posePatch,
+          session.initialPose,
+        );
         onPreviewAnimation(nextAnim);
       }}
       onPointerUp={(event) => {
@@ -599,11 +628,41 @@ export function CinematicPreview({
         setIsPanning(false);
         if (session.moved) {
           onDragEnd?.("Framed shot position");
-        } else if (event.altKey && setFocalPoint) {
+        } else if (event.altKey && (setFocalPoint || onCommitAnimation || onPreviewAnimation)) {
           const rect = event.currentTarget.getBoundingClientRect();
-          const x = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
-          const y = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-          setFocalPoint(`${Math.round(x)}% ${Math.round(y)}%`);
+          const normX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+          const normY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+          setFocalPoint?.(`${Math.round(normX * 100)}% ${Math.round(normY * 100)}%`);
+          const targetZoom =
+            currentClampedPose.zoom > 1.0001 ? currentClampedPose.zoom : 1.12;
+          const targetX = -(normX - 0.5) * 100 * targetZoom;
+          const targetY = -(normY - 0.5) * 100 * targetZoom;
+          const focalClamped = hasViewerDepth
+            ? {
+                zoom: targetZoom,
+                x: clampPropValue("x", targetX),
+                y: clampPropValue("y", targetY),
+                rotation: currentClampedPose.rotation,
+              }
+            : clampPoseToPictureEdges({
+                zoom: targetZoom,
+                x: targetX,
+                y: targetY,
+                rotation: currentClampedPose.rotation,
+              });
+          const nextAnim = applyDirectViewerPoseAtFrame(
+            frame.beat.animation,
+            localFrame,
+            { zoom: focalClamped.zoom, x: focalClamped.x, y: focalClamped.y },
+            currentClampedPose,
+          );
+          if (onCommitAnimation) {
+            onCommitAnimation(nextAnim, "Framed focal keyframe");
+          } else {
+            onDragStart?.();
+            onPreviewAnimation?.(nextAnim);
+            onDragEnd?.("Framed focal keyframe");
+          }
         }
       }}
       onPointerCancel={() => {
@@ -846,7 +905,14 @@ export function CinematicPreview({
               if (Math.abs(clamped.y - session.initialPose.y) > 1e-5) {
                 patch.y = clamped.y;
               }
-              onPreviewAnimation(applyPoseAtPlayhead(session.initialAnim, localFrame, patch));
+              onPreviewAnimation(
+                applyDirectViewerPoseAtFrame(
+                  session.initialAnim,
+                  localFrame,
+                  patch,
+                  session.initialPose,
+                ),
+              );
             }}
             onPointerUp={(event) => {
               const session = rotateSessionRef.current;
@@ -1322,6 +1388,7 @@ export function CinematicPreview({
               <option value="neo-noir">vs Neo-Noir</option>
               <option value="creative">vs Creative</option>
               <option value="noir-1950s">vs 1950s B&amp;W</option>
+              <option value="tarantino">vs Tarantino</option>
               <option value="uncut">vs Uncut</option>
             </select>
           )}
@@ -1412,6 +1479,7 @@ export function CinematicPreview({
               subtitle?: string;
               align?: "center" | "lower-left";
               monochrome?: boolean;
+              tarantino?: boolean;
             }
           | undefined;
         if (!tc || (!tc.title && !tc.kicker && !tc.subtitle)) return null;
@@ -1422,7 +1490,7 @@ export function CinematicPreview({
         const cardOpacity = Math.max(0, Math.min(1, Math.min(inOp, outOp)));
         return (
           <div
-            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"} ${tc.monochrome || cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : ""} ${isAcademy ? "has-academy" : ""}`}
+            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"} ${tc.monochrome || cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : ""} ${tc.tarantino ? "is-tarantino" : ""} ${isAcademy ? "has-academy" : ""}`}
             data-testid="viewer-title-card"
             style={{
               opacity: Number(cardOpacity.toFixed(4)),

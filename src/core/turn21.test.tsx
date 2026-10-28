@@ -299,6 +299,7 @@ describe("Turn 21 — Multi-Cut Director's Cuts (Creative, 1950s Noir, Neo-Noir,
       "neo-noir",
       "creative",
       "noir-1950s",
+      "tarantino",
       "uncut",
     ]);
     for (const opt of DIRECTORS_CUT_OPTIONS) {

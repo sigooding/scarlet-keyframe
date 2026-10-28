@@ -71,7 +71,7 @@ import {
   addNoteMarker,
   canMergeKeyframes,
   cloneStory as cloneProjectStory,
-  convertProjectCameraMovesToKeyframes,
+  convertProjectCameraMovesToKeyframesWithCount,
   copyEffectBlock,
   copyMultiSelection,
   copySelectedBeats,
@@ -3203,6 +3203,18 @@ export default function App() {
         box,
         targetClip.durationFrames,
       );
+      if (selectedFrameIdRef.current !== targetClip.keyframe.id) {
+        setSelectedFrameId(targetClip.keyframe.id);
+        setSelectedFrameIds([targetClip.keyframe.id]);
+        const nextMulti: MultiLaneSelection = {
+          pictureIds: [targetClip.keyframe.id],
+          captions: [],
+          audioClipIds: [],
+          keyframes: [],
+        };
+        multiSelectionRef.current = nextMulti;
+        setMultiSelection(nextMulti);
+      }
       editProject(
         (cur) => setBeatAnimation(cur, targetClip.keyframe.id, applied.animation),
         "Applied Ken Burns START & END",
@@ -3213,6 +3225,24 @@ export default function App() {
     },
     [activeClip, selectedClip, kenBurnsDraftStart, editProject],
   );
+
+  const handleConvertAllToKeyframes = useCallback(() => {
+    const current = projectRef.current;
+    if (!current) return;
+    const res = convertProjectCameraMovesToKeyframesWithCount(current, voiceDurations);
+    if (res.convertedCount <= 0) {
+      setEditLabel(
+        res.keyframedShotCount > 0
+          ? `All ${res.keyframedShotCount.toLocaleString()} camera moves & framings are already keyframed`
+          : "No un-keyframed camera moves to convert",
+      );
+      return;
+    }
+    editProject(
+      () => res.project,
+      `Converted ${res.convertedCount.toLocaleString()} shot${res.convertedCount === 1 ? "" : "s"} to keyframes`,
+    );
+  }, [editProject, voiceDurations]);
 
   useEffect(() => {
     if (!viewerFrame) return;
@@ -4514,12 +4544,7 @@ export default function App() {
         onMissing={() => setMissingOpen(true)}
         editLabel={editLabel}
         totalDuration={totalSeconds}
-        onConvertAllToKeyframes={() =>
-          editProject(
-            (current) => convertProjectCameraMovesToKeyframes(current, voiceDurations),
-            "Converted all camera moves to keyframes",
-          )
-        }
+        onConvertAllToKeyframes={handleConvertAllToKeyframes}
         activeCutId={project.directorsCutId ?? "neo-noir"}
         cutOptions={activeCutOptions}
         onChangeCutOptions={
@@ -4981,12 +5006,24 @@ export default function App() {
                       setBeatAnimation(current, viewerFrame.id, animation),
                     );
                   }}
-                  onCommitAnimation={(animation, label) =>
+                  onCommitAnimation={(animation, label) => {
+                    if (selectedFrameIdRef.current !== viewerFrame.id) {
+                      setSelectedFrameId(viewerFrame.id);
+                      setSelectedFrameIds([viewerFrame.id]);
+                      const nextMulti: MultiLaneSelection = {
+                        pictureIds: [viewerFrame.id],
+                        captions: [],
+                        audioClipIds: [],
+                        keyframes: [],
+                      };
+                      multiSelectionRef.current = nextMulti;
+                      setMultiSelection(nextMulti);
+                    }
                     editProject(
                       (current) => setBeatAnimation(current, viewerFrame.id, animation),
                       label,
-                    )
-                  }
+                    );
+                  }}
                   setFocalPoint={setFocalPoint}
                 />
               </div>
@@ -5206,12 +5243,7 @@ export default function App() {
                 ? Math.max(0, selectedClip.startFrame - pictureRuns[selectedClip.index].runStartFrame)
                 : 0
             }
-            onConvertAllToKeyframes={() =>
-              editProject(
-                (current) => convertProjectCameraMovesToKeyframes(current, voiceDurations),
-                "Converted all camera moves to keyframes",
-              )
-            }
+            onConvertAllToKeyframes={handleConvertAllToKeyframes}
             onPlayVoice={() => {
               if (activeAudioClip && activeAudioClip.lane === "voice") {
                 webAudioEngine.previewClip(activeAudioClip, resolveMedia);

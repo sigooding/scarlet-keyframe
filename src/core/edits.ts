@@ -622,14 +622,38 @@ export function splitKeyframeAt(
   };
 }
 
+export function convertProjectCameraMovesToKeyframesWithCount(
+  project: ProjectState,
+  voiceDurations?: ReadonlyMap<string, number>,
+): { project: ProjectState; convertedCount: number; keyframedShotCount: number } {
+  const story = cloneStory(project.story);
+  const convertedCount = convertStoryCameraMovesToKeyframes(story, voiceDurations);
+  const frames = buildKeyframes(story);
+  const keyframedShotCount = frames.filter((kf) => {
+    const a = kf.beat.animation;
+    return Boolean(
+      a?.kenBurns ||
+        a?.zoom?.length ||
+        a?.x?.length ||
+        a?.y?.length ||
+        a?.rotation?.length,
+    );
+  }).length;
+  if (convertedCount <= 0) {
+    return { project, convertedCount: 0, keyframedShotCount };
+  }
+  return {
+    project: { ...project, story, updatedAt: Date.now() },
+    convertedCount,
+    keyframedShotCount,
+  };
+}
+
 export function convertProjectCameraMovesToKeyframes(
   project: ProjectState,
   voiceDurations?: ReadonlyMap<string, number>,
 ): ProjectState {
-  const story = cloneStory(project.story);
-  const converted = convertStoryCameraMovesToKeyframes(story, voiceDurations);
-  if (converted <= 0) return project;
-  return { ...project, story, updatedAt: Date.now() };
+  return convertProjectCameraMovesToKeyframesWithCount(project, voiceDurations).project;
 }
 
 export function insertKeyframeAfter(project: ProjectState, frameId: string): { project: ProjectState; insertedId: string } | undefined {

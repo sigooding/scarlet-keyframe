@@ -1884,6 +1884,7 @@ export function Timeline({
                     pxPerFrame={pxPerFrame}
                     snapEnabled={snapEnabled}
                     isSelected={selectedFrameId === clip.keyframe.id}
+                    isActive={playheadFrame >= clip.startFrame && playheadFrame < clip.endFrame}
                     isMulti={
                       selectedFrameIds.includes(clip.keyframe.id) ||
                       multiSelection.pictureIds.includes(clip.keyframe.id)
@@ -2543,6 +2544,7 @@ function ClipItem({
   pxPerFrame,
   snapEnabled,
   isSelected,
+  isActive = false,
   isMulti,
   isLanesOpen = false,
   onToggleLanes,
@@ -2574,6 +2576,7 @@ function ClipItem({
   pxPerFrame: number;
   snapEnabled: boolean;
   isSelected: boolean;
+  isActive?: boolean;
   isMulti: boolean;
   isLanesOpen?: boolean;
   onToggleLanes?: () => void;
@@ -2849,7 +2852,7 @@ function ClipItem({
         )
       )}
 
-      {(isSelected || selectedDiamonds.some((d) => d.frameId === kf.id)) && anim && (
+      {(isSelected || isActive || selectedDiamonds.some((d) => d.frameId === kf.id)) && anim && (
         <div className="timeline-clip-keyframes">
           {ANIM_PROPS.map((prop) =>
             (anim[prop] ?? []).map((key) => {

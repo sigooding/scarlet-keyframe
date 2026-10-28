@@ -164,11 +164,11 @@ export interface ProjectState {
   sourceEdits?: AnyRecord;
   snapshots: ProjectSnapshot[];
   directorsCutVersion?: number;
-  directorsCutId?: "neo-noir" | "creative" | "noir-1950s" | "uncut";
+  directorsCutId?: "neo-noir" | "creative" | "noir-1950s" | "tarantino" | "uncut";
   cutOptions?: CutOptions;
   savedCutStates?: Partial<
     Record<
-      "neo-noir" | "creative" | "noir-1950s" | "uncut",
+      "neo-noir" | "creative" | "noir-1950s" | "tarantino" | "uncut",
       { story: StoryLike; audioClips?: AudioClip[]; updatedAt: number }
     >
   >;
