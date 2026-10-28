@@ -68,6 +68,23 @@ All **9 previously missing storyboard slots** in the Neo-Noir / *Tokyo Story* Di
 
 ### 9. `GAP 09` — `nw_s78` / `nw_b1309` (`58:30:10`, `78f`)
 - **Shot Size & Lens**: Low tatami-height doorway composition (`35mm`, inspired by *Tokyo Story* hallway framing) looking from inside Vera’s dim apartment entryway toward the front door.
-- **Action**: Grey dawn light leaks around the doorframe as Vera, sleepless in last night’s dark dress with the red bird clip still in her hair, opens the door partway and pauses before her gaze drops toward the doormat (cutting directly to existing insert `/film/img/s78/130-on-the-mat.jpg`).
+- **Action**: Grey dawn light leaks around the doorframe as Vera, sleepless in last night’s dark dress with the red bird clip still in her hair, opens the door partway and pauses before her gaze drops toward the doormat.
 - **Sound Sync**: Quiet latch click and morning corridor room tone.
 - **Lighting & Palette**: Soft, cool grey dawn spill against shadowy interior wood and plaster, selective muted crimson accent on her hair clip.
+
+---
+
+## User-Voted Narrative & Epilogue Gap Frames (`SHOT 10` .. `SHOT 16`)
+
+Seven additional narrative, prop-insert, and epilogue story beats were generated against the canonical character/prop/location reference sheets from `sigooding/scarlett-witness` (`sheets/jack.jpg`, `sheets/jack-face.jpg`, `sheets/vera.jpg`, `sheets/vera-face.jpg`, `sheets/Vera Grey Coat.jpeg`, `sheets/kaneko.jpg`, `s53/219-pink-water.jpg`, `s78/316-squared-to-the-door.jpg`, `s100/158-the-third-stool.jpg`, `s100/160-the-clip.jpg`, `s100/161-stool-three.jpg`), voted side-by-side (`offer_options: true`), conformed to exact `16:9` (`>= 1920×1080` Lanczos, zero downscaling), paired with custom `960×540` grayscale depth maps (`public/film/depth/...`), and wired across all four cuts (`VOTED_GAP_FRAME_SPECS` + `VOTED_GAP_DEPTH_MAP_BY_BEAT_ID`):
+
+| Slot | Timeline Marker | Scene | Beat ID | Neo-Noir Duration | Installed Plate (`public/film/img/...`) | Depth Map (`public/film/depth/...`) | Resolution |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **10** | `SHOT 10 · S53 Cloth` | `nw_s53` (*53 — Pink water*) | `nw_b883` | `80f` (`3.33s`) | `/film/img/s53/883-she-wrings-the-cloth.jpg` | `/film/depth/s53/883-she-wrings-the-cloth-depth.jpg` | `1920×1080` |
+| **11** | `SHOT 11 · 77A Envelope` | `nw_s77a` (*77 — The black glass*) | `nw_b1292` | `80f` (`3.33s`) | `/film/img/s77a/1299-the-envelope.jpg` | `/film/depth/s77a/1299-the-envelope-depth.jpg` | `1920×1080` |
+| **12** | `SHOT 12 · S78 Knock` | `nw_s78` (*78 — No name*) | `nw_b1307` | `88f` (`3.67s`) | `/film/img/s78/1307-jack-knocks-once.jpg` | `/film/depth/s78/1307-jack-knocks-once-depth.jpg` | `2048×1152` |
+| **13** | `SHOT 13 · S78 Daniel Voss` | `nw_s78` (*78 — No name*) | `nw_b1313` | `67f` (`2.79s`) | `/film/img/s78/1313-daniel-voss-inside-cover.jpg` | `/film/depth/s78/1313-daniel-voss-inside-cover-depth.jpg` | `1920×1080` |
+| **14** | `SHOT 14 · S100 Kaneko Sign` | `nw_s100` (*100 — Epilogue*) | `nw_b1675` | `158f` (`6.58s`) | `/film/img/s100/1676-the-kaneko-sign.jpg` | `/film/depth/s100/1676-the-kaneko-sign-depth.jpg` | `2844×1600` |
+| **15** | `SHOT 15 · S100 Bird Clip` | `nw_s100` (*100 — Epilogue*) | `nw_b1682` | `88f` (`3.67s`) | `/film/img/s100/1682-the-curtain-moves.jpg` | `/film/depth/s100/1682-the-curtain-moves-depth.jpg` | `1920×1080` |
+| **16** | `SHOT 16 · S100 Money` | `nw_s100` (*100 — Epilogue*) | `nw_b1685` | `100f` (`4.17s`) | `/film/img/s100/1685-money-on-the-counter.jpg` | `/film/depth/s100/1685-money-on-the-counter-depth.jpg` | `1920×1080` |
+

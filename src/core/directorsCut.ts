@@ -283,6 +283,107 @@ export const MISSING_FRAME_SPECS: readonly MissingFrameSpec[] = [
   },
 ];
 
+export const VOTED_GAP_FRAME_SPECS: readonly MissingFrameSpec[] = [
+  {
+    slotNumber: 10,
+    markerLabel: "SHOT 10 · S53 Cloth",
+    sceneId: "nw_s53",
+    sceneTitle: "53 — Pink water",
+    beatId: "nw_b883",
+    durationFrames: 80,
+    suggestedPath: "/film/img/s53/883-she-wrings-the-cloth.jpg",
+    shotSize: "High-angle close-up insert",
+    description:
+      "Vera's pale hands wring a pink-stained washcloth over a white dark-rimmed enamel basin on white square bathroom tiles, pink water trickling from the twisted fabric.",
+    lightingAndMood:
+      "Overhead domestic bathroom light, cool porcelain whites against muted crimson-pink water, quiet Ozu intimacy.",
+  },
+  {
+    slotNumber: 11,
+    markerLabel: "SHOT 11 · 77A Envelope",
+    sceneId: "nw_s77a",
+    sceneTitle: "77 — The black glass",
+    beatId: "nw_b1292",
+    durationFrames: 80,
+    suggestedPath: "/film/img/s77a/1299-the-envelope.jpg",
+    shotSize: "Medium tracking shot",
+    description:
+      "Jack walks down the empty pre-dawn Tokyo avenue in rain-soaked charcoal suit, unwashed stained knuckles holding Daniel Voss's brown kraft string-clasp envelope at his lapel.",
+    lightingAndMood:
+      "Cold slate-blue pre-dawn rain and distant amber streetlamp bokeh before Kurose's sedan arrives.",
+  },
+  {
+    slotNumber: 12,
+    markerLabel: "SHOT 12 · S78 Knock",
+    sceneId: "nw_s78",
+    sceneTitle: "78 — No name",
+    beatId: "nw_b1307",
+    durationFrames: 88,
+    suggestedPath: "/film/img/s78/1307-jack-knocks-once.jpg",
+    shotSize: "Medium corridor shot",
+    description:
+      "Jack stands at Vera's grey apartment door in the pale dawn walkway, brown kraft envelope in his left hand as his bruised right knuckles knock once against the door.",
+    lightingAndMood:
+      "Overcast rainy grey dawn light along concrete apartment walkway, restrained stillness.",
+  },
+  {
+    slotNumber: 13,
+    markerLabel: "SHOT 13 · S78 Daniel Voss",
+    sceneId: "nw_s78",
+    sceneTitle: "78 — No name",
+    beatId: "nw_b1313",
+    durationFrames: 67,
+    suggestedPath: "/film/img/s78/1313-daniel-voss-inside-cover.jpg",
+    shotSize: "Tabletop close-up insert",
+    description:
+      "At her kitchen table in grey morning light, Vera's hands hold open her father's worn dark-green cloth notebook over the kraft envelope; DANIEL VOSS is printed inside the cover.",
+    lightingAndMood:
+      "Soft grey window daylight across aged cream endpaper, dark-green cloth binding, and warm wood grain.",
+  },
+  {
+    slotNumber: 14,
+    markerLabel: "SHOT 14 · S100 Kaneko Sign",
+    sceneId: "nw_s100",
+    sceneTitle: "100 — Epilogue",
+    beatId: "nw_b1675",
+    durationFrames: 158,
+    suggestedPath: "/film/img/s100/1676-the-kaneko-sign.jpg",
+    shotSize: "Medium-wide establishing shot",
+    description:
+      "Inside the tiny brick railway-arch ramen stall near the station: rising broth steam, one warm bulb, the faded hand-painted Kaneko sign above the counter, and Kaneko with his ladle.",
+    lightingAndMood:
+      "Warm tungsten bulb glow and backlit steam against damp dark brick and cool Tokyo night outside.",
+  },
+  {
+    slotNumber: 15,
+    markerLabel: "SHOT 15 · S100 Bird Clip",
+    sceneId: "nw_s100",
+    sceneTitle: "100 — Epilogue",
+    beatId: "nw_b1682",
+    durationFrames: 88,
+    suggestedPath: "/film/img/s100/1682-the-curtain-moves.jpg",
+    shotSize: "Medium doorway shot",
+    description:
+      "Seen past Jack at the counter, the navy doorway noren curtain parts and Vera stands in the threshold in her grey coat with Mara's red origami bird clip catching the warm light in her hair.",
+    lightingAndMood:
+      "Selective crimson accent on the bird hair clip, warm interior tungsten meeting cool blue-slate night air.",
+  },
+  {
+    slotNumber: 16,
+    markerLabel: "SHOT 16 · S100 Money",
+    sceneId: "nw_s100",
+    sceneTitle: "100 — Epilogue",
+    beatId: "nw_b1685",
+    durationFrames: 100,
+    suggestedPath: "/film/img/s100/1685-money-on-the-counter.jpg",
+    shotSize: "Medium two-shot across counter",
+    description:
+      "Vera sets folded yen bills on the worn wooden ramen counter—too much; Kaneko looks down at the money, then up at her with quiet understanding, and leaves it untouched.",
+    lightingAndMood:
+      "Intimate warm amber counter light through soft rising steam, poised Ozu two-shot.",
+  },
+];
+
 const EXPLICIT_GAP_BEAT_IDS = new Set(MISSING_FRAME_SPECS.map((s) => s.beatId));
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -802,6 +903,7 @@ function structureScene77AGaps(
   const byId = new Map(beats.map((b) => [String(b.id), b]));
 
   const g1 = byId.get("nw_b1290");
+  const g1b = byId.get("nw_b1292");
   const g2 = byId.get("nw_b1293");
   const g3 = byId.get("nw_b1294");
   const g4 = byId.get("nw_b1296");
@@ -853,6 +955,15 @@ function structureScene77AGaps(
   );
   if (isCreative) {
     (g1 as AnyRecord).titleCard = CREATIVE_CHAPTER_CARDS.nw_s77a.card;
+  }
+
+  if (g1b) {
+    configurePlate(
+      g1b,
+      "/film/img/s77a/1299-the-envelope.jpg",
+      isCreative ? 74 : is1950s ? 94 : 80,
+      [],
+    );
   }
 
   configurePlate(
@@ -920,7 +1031,7 @@ function structureScene77AGaps(
     [],
   );
 
-  scene.dialogueBeats = [g1, g2, g3, g4, g5, g6];
+  scene.dialogueBeats = g1b ? [g1, g1b, g2, g3, g4, g5, g6] : [g1, g2, g3, g4, g5, g6];
 }
 
 /**
@@ -2770,10 +2881,13 @@ function buildEditorialCut(
     };
   });
 
-  // 5. Place Timeline Note Markers on all 9 newly generated plate slots (+ chapter markers in Creative Cut)
+  // 5. Place Timeline Note Markers on all 9 original + 7 user-voted newly generated plate slots (+ chapter markers in Creative Cut)
   const existingMarkers: NoteMarker[] = Array.isArray(story.markers)
     ? story.markers.filter(
-        (m) => !m.id.startsWith("marker-gap-") && !m.id.startsWith("marker-chapter-"),
+        (m) =>
+          !m.id.startsWith("marker-gap-") &&
+          !m.id.startsWith("marker-voted-") &&
+          !m.id.startsWith("marker-chapter-"),
       )
     : [];
   const chapterMarkers: NoteMarker[] = [];
@@ -2806,9 +2920,25 @@ function buildEditorialCut(
     });
   }
 
-  story.markers = [...existingMarkers, ...gapMarkers, ...chapterMarkers].sort(
-    (a, b) => a.frame - b.frame,
-  );
+  const votedMarkers: NoteMarker[] = [];
+  for (const spec of VOTED_GAP_FRAME_SPECS) {
+    const votedClip = clipById.get(spec.beatId);
+    if (!votedClip) continue;
+    if (chapterFrameSet.has(votedClip.startFrame)) continue;
+    votedMarkers.push({
+      id: `marker-voted-${String(spec.slotNumber).padStart(2, "0")}`,
+      frame: votedClip.startFrame,
+      name: spec.markerLabel,
+      color: is1950s ? "#d5d8de" : "#98c379",
+    });
+  }
+
+  story.markers = [
+    ...existingMarkers,
+    ...gapMarkers,
+    ...votedMarkers,
+    ...chapterMarkers,
+  ].sort((a, b) => a.frame - b.frame);
 
   const existingSnapshots = (baseProject.snapshots || []).filter(
     (s) => s.id !== uncutSnapshot.id,
@@ -2888,6 +3018,16 @@ export const NEW_PLATE_DEPTH_MAP_BY_BEAT_ID: Readonly<Record<string, string>> = 
   nw_b1303: "/film/depth/s77a/1303-reflection-in-black-glass-depth.jpg",
   nw_b1304: "/film/depth/s77a/1304-sedan-turns-off-depth.jpg",
   nw_b1309: "/film/depth/s78/1309-vera-opens-door-dawn-depth.jpg",
+};
+
+export const VOTED_GAP_DEPTH_MAP_BY_BEAT_ID: Readonly<Record<string, string>> = {
+  nw_b883: "/film/depth/s53/883-she-wrings-the-cloth-depth.jpg",
+  nw_b1292: "/film/depth/s77a/1299-the-envelope-depth.jpg",
+  nw_b1307: "/film/depth/s78/1307-jack-knocks-once-depth.jpg",
+  nw_b1313: "/film/depth/s78/1313-daniel-voss-inside-cover-depth.jpg",
+  nw_b1675: "/film/depth/s100/1676-the-kaneko-sign-depth.jpg",
+  nw_b1682: "/film/depth/s100/1682-the-curtain-moves-depth.jpg",
+  nw_b1685: "/film/depth/s100/1685-money-on-the-counter-depth.jpg",
 };
 
 export const DEFAULT_CUT_OPTIONS: Required<CutOptions> = {
@@ -2985,10 +3125,11 @@ export function applyCutOptionsInPlace(
       }
     }
 
-    // 3. 2.5D Depth Maps on the 9 newly added s12 / s77a / s78 plates
+    // 3. 2.5D Depth Maps on all 16 newly added s12 / s53 / s77a / s78 / s100 plates
     for (const beat of scene.dialogueBeats ?? []) {
       const beatId = String(beat.id || "");
-      const depthPath = NEW_PLATE_DEPTH_MAP_BY_BEAT_ID[beatId];
+      const depthPath =
+        NEW_PLATE_DEPTH_MAP_BY_BEAT_ID[beatId] ?? VOTED_GAP_DEPTH_MAP_BY_BEAT_ID[beatId];
       if (!depthPath) continue;
       const durF = Math.max(12, Number(beat.durationFrames) || 78);
       const lastF = Math.max(1, durF - 1);
