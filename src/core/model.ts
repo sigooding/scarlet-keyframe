@@ -1,4 +1,31 @@
+import type { AudioClip } from "./audioClips";
+import { convertFramesCameraMovesToKeyframes } from "../sequence/cameraPresets";
+import type { BeatCaption, CaptionStyle } from "./captions";
+
 export type AnyRecord = Record<string, any>;
+
+export interface NoteMarker {
+  id: string;
+  frame: number;
+  name: string;
+  color?: string;
+}
+
+export type AspectFramingMode = "2.35:1" | "1.37:1" | "16:9";
+export type LoudnessTargetMode = "off" | "-16" | "-14";
+
+export interface CutOptions {
+  /** Enable 2.5D WebGL depth parallax on the 9 s12/s77a/s78 plates */
+  newPlateDepthMaps?: boolean;
+  /** Theatrical aspect framing mask ("2.35:1" Scope, "1.37:1" Academy pillarbox, or "16:9" Full Gate) */
+  aspectFraming?: AspectFramingMode;
+  /** Replace nw_logo with bespoke 1950s silver-monochrome studio crest card */
+  classic1950sLeader?: boolean;
+  /** Apply warm 1950s optical-print EQ curve (85 Hz – 7.8 kHz) in preview & MP4 export */
+  opticalPrintEq?: boolean;
+  /** Preserve custom per-cut trims, keyframes & audio edits when switching between cuts */
+  preservePerCutEdits?: boolean;
+}
 
 export interface StoryLike extends AnyRecord {
   id?: string;
@@ -6,6 +33,9 @@ export interface StoryLike extends AnyRecord {
   tagline?: string;
   startSceneId: string;
   scenes: SceneLike[];
+  markers?: NoteMarker[];
+  captionStyle?: CaptionStyle;
+  cutOptions?: CutOptions;
 }
 
 export interface SceneLike extends AnyRecord {
@@ -18,14 +48,81 @@ export interface SceneLike extends AnyRecord {
   choices?: AnyRecord[];
 }
 
+export type CubicBezierTuple = [number, number, number, number];
+
+export type KeyEasing =
+  | "linear"
+  | "ease-in"
+  | "ease-out"
+  | "ease-in-out"
+  | "hold"
+  | "bezier"
+  | `cubic-bezier(${string})`;
+
+export interface Key {
+  frame: number;
+  value: number;
+  easing: KeyEasing;
+  bezier?: CubicBezierTuple;
+}
+
+export interface KenBurnsBox {
+  /** Normalized left edge in [0, 1) of the picture width */
+  x: number;
+  /** Normalized top edge in [0, 1) of the picture height */
+  y: number;
+  /** Normalized 16:9 box width (and height in 16:9 normalized space) in (0, 1] */
+  width: number;
+}
+
+export type BeatAnimValues = Partial<
+  Record<
+    | "zoom"
+    | "x"
+    | "y"
+    | "rotation"
+    | "opacity"
+    | "blur"
+    | "exposure"
+    | "gradeStrength"
+    | "depthAmount",
+    number
+  >
+>;
+
+export interface BeatAnimation {
+  /** Plain static values for properties that do not have keyframes yet */
+  values?: BeatAnimValues;
+  /** Stored 16:9 START and END boxes when framed with Ken Burns */
+  kenBurns?: {
+    start: KenBurnsBox;
+    end: KenBurnsBox;
+  };
+  zoom?: Key[];
+  x?: Key[];
+  y?: Key[];
+  rotation?: Key[];
+  opacity?: Key[];
+  blur?: Key[];
+  exposure?: Key[];
+  gradeStrength?: Key[];
+  depthAmount?: Key[];
+}
+
 export interface BeatLike extends AnyRecord {
   id?: string;
   characterId?: string;
   text?: string;
+  captions?: BeatCaption[];
+  gap?: boolean;
   background?: string;
   cinematic?: AnyRecord;
   audioUrl?: string;
+  voiceStartFrame?: number;
   sfxUrl?: string;
+  silent?: boolean;
+  durationFrames?: number;
+  animation?: BeatAnimation;
 }
 
 export interface ProjectAsset {
@@ -51,6 +148,7 @@ export interface ProjectSnapshot {
   name: string;
   createdAt: number;
   story: StoryLike;
+  audioClips?: AudioClip[];
 }
 
 export interface ProjectState {
@@ -59,11 +157,21 @@ export interface ProjectState {
   sourceName: string;
   story: StoryLike;
   originalStory: StoryLike;
+  audioClips?: AudioClip[];
   assets: ProjectAsset[];
   missing: string[];
   importedMissing: string[];
   sourceEdits?: AnyRecord;
   snapshots: ProjectSnapshot[];
+  directorsCutVersion?: number;
+  directorsCutId?: "neo-noir" | "creative" | "noir-1950s" | "uncut";
+  cutOptions?: CutOptions;
+  savedCutStates?: Partial<
+    Record<
+      "neo-noir" | "creative" | "noir-1950s" | "uncut",
+      { story: StoryLike; audioClips?: AudioClip[]; updatedAt: number }
+    >
+  >;
   createdAt: number;
   updatedAt: number;
 }
@@ -77,6 +185,7 @@ export interface Keyframe {
   number: number;
   beat: BeatLike;
   scene: SceneLike;
+  cinematic?: AnyRecord;
   picture?: string;
   pictureSource: "beat" | "scene" | "carried" | "none";
   carried: boolean;
@@ -86,9 +195,15 @@ export interface Keyframe {
 
 export interface ImportedStory {
   story: StoryLike;
+  audioClips?: AudioClip[];
   assets: AnyRecord[];
   missing: string[];
   sourceName: string;
+}
+
+export interface ParseImportOptions {
+  convertCameraMoves?: boolean;
+  voiceDurations?: ReadonlyMap<string, number>;
 }
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -115,7 +230,19 @@ export function parseStoryText(text: string): unknown {
   }
 }
 
-export function parseImportPayload(value: unknown, sourceName: string): ImportedStory {
+export function convertStoryCameraMovesToKeyframes(
+  story: StoryLike,
+  voiceDurations?: ReadonlyMap<string, number>,
+): number {
+  const frames = buildKeyframes(story);
+  return convertFramesCameraMovesToKeyframes(frames, voiceDurations);
+}
+
+export function parseImportPayload(
+  value: unknown,
+  sourceName: string,
+  options?: ParseImportOptions,
+): ImportedStory {
   const payload = typeof value === "string" ? parseStoryText(value) : value;
   if (!isRecord(payload)) throw new Error("The import must contain a Story object or a PortableStoryBundle.");
   const bundle = isRecord(payload.story) && Array.isArray(payload.story.scenes);
@@ -123,14 +250,22 @@ export function parseImportPayload(value: unknown, sourceName: string): Imported
   if (!Array.isArray(story.scenes) || !story.scenes.length) throw new Error("The imported Story has no scene nodes.");
   if (!story.startSceneId) throw new Error("The imported Story is missing startSceneId.");
   const assets = bundle && Array.isArray(payload.assets) ? payload.assets.filter(isRecord) : [];
+  const audioClips = bundle && Array.isArray(payload.audioClips)
+    ? (clone(payload.audioClips) as AudioClip[])
+    : undefined;
   const missing = bundle && Array.isArray(payload.missing) ? payload.missing.map(String) : [];
   const availableAssetIds = new Set(assets.map((asset) => String(asset.id)));
   for (const ref of collectMediaReferences(story)) {
     const assetId = assetIdFromReference(ref);
     if (assetId && !availableAssetIds.has(assetId)) missing.push(`asset:${assetId}`);
   }
+  const clonedStory = clone(story);
+  if (options?.convertCameraMoves !== false) {
+    convertStoryCameraMovesToKeyframes(clonedStory, options?.voiceDurations);
+  }
   return {
-    story: clone(story),
+    story: clonedStory,
+    audioClips,
     assets: clone(assets),
     missing: [...new Set(missing)],
     sourceName,
@@ -150,6 +285,7 @@ export function createProjectState(
     sourceName: imported.sourceName,
     story,
     originalStory: clone(story),
+    ...(imported.audioClips ? { audioClips: clone(imported.audioClips) } : {}),
     assets,
     missing: imported.missing,
     importedMissing: imported.missing,
@@ -216,26 +352,45 @@ export function buildKeyframes(story: StoryLike): Keyframe[] {
   const orderedIds = runningSceneIds(story);
   const sceneById = new Map(story.scenes.map((scene) => [scene.id, scene]));
   const frames: Keyframe[] = [];
+  const seenIds = new Set<string>();
   let carriedPicture: string | undefined;
+  let carriedCinematic: AnyRecord | undefined;
 
   orderedIds.forEach((sceneId, sceneIndex) => {
     const scene = sceneById.get(sceneId)!;
     const beats = scene.dialogueBeats ?? [];
     const scenePicture = typeof scene.background === "string" ? scene.background : undefined;
     let activePicture = scenePicture || carriedPicture;
+    let heldBeatCinematic: AnyRecord | undefined = scenePicture ? undefined : carriedCinematic;
 
     beats.forEach((beat, beatIndex) => {
-      if (beat.backgroundRevert) activePicture = scenePicture || carriedPicture;
-      if (typeof beat.background === "string" && beat.background) activePicture = beat.background;
-      const picture = activePicture || scenePicture || carriedPicture;
-      const pictureSource = beat.background
-        ? "beat"
-        : beatIndex === 0 && scenePicture
-          ? "scene"
-          : picture
-            ? "carried"
-            : "none";
-      const id = String(beat.id || `${scene.id}:${beatIndex + 1}`);
+      const isGap = beat.gap === true;
+      if (!isGap) {
+        if (beat.backgroundRevert) {
+          activePicture = scenePicture || carriedPicture;
+          heldBeatCinematic = scenePicture ? undefined : carriedCinematic;
+        }
+        if (typeof beat.background === "string" && beat.background) {
+          activePicture = beat.background;
+          heldBeatCinematic = beat.cinematic;
+        }
+      }
+      const picture = isGap ? undefined : activePicture || scenePicture || carriedPicture;
+      const effectiveCinematic = isGap
+        ? undefined
+        : beat.cinematic || heldBeatCinematic || scene.cinematic;
+      const pictureSource = isGap
+        ? "none"
+        : beat.background
+          ? "beat"
+          : beatIndex === 0 && scenePicture
+            ? "scene"
+            : picture
+              ? "carried"
+              : "none";
+      const rawId = String(beat.id || `${scene.id}:${beatIndex + 1}`);
+      const id = seenIds.has(rawId) ? `${scene.id}:${rawId}` : rawId;
+      seenIds.add(id);
       frames.push({
         id,
         sceneId: scene.id,
@@ -245,13 +400,22 @@ export function buildKeyframes(story: StoryLike): Keyframe[] {
         number: beatIndex + 1,
         beat,
         scene,
+        cinematic: effectiveCinematic,
         picture,
         pictureSource,
-        carried: pictureSource !== "beat",
+        carried: isGap ? false : pictureSource !== "beat",
         speaker: speakerLabel(story, beat.characterId),
         text: String(beat.text || ""),
       });
-      if (picture) carriedPicture = picture;
+      if (!isGap) {
+        if (beat.background && beat.backgroundHold === false) {
+          activePicture = scenePicture || carriedPicture;
+          heldBeatCinematic = scenePicture ? undefined : carriedCinematic;
+        } else if (picture) {
+          carriedPicture = picture;
+          carriedCinematic = effectiveCinematic;
+        }
+      }
     });
   });
 
@@ -294,11 +458,14 @@ export function unwrapMediaReference(value: string): string {
   return value;
 }
 
-export function collectMediaReferences(story: StoryLike): string[] {
+export function collectMediaReferences(
+  story: StoryLike,
+  audioClips?: readonly AudioClip[],
+): string[] {
   const refs = new Set<string>();
   const add = (value: unknown) => {
     if (typeof value !== "string" || !value) return;
-    if (/^(?:gradient:|emoji:)/i.test(value)) return;
+    if (/^(?:gradient:|emoji:|synth:)/i.test(value)) return;
     const unwrapped = unwrapMediaReference(value);
     if (unwrapped.startsWith("data:") || unwrapped.startsWith("blob:")) return;
     refs.add(unwrapped);
@@ -319,13 +486,24 @@ export function collectMediaReferences(story: StoryLike): string[] {
     add(scene.sceneAudioUrl);
     add(scene.narrationAudioUrl);
     const ambient = String(scene.ambientAudio || "");
-    for (const part of ambient.split("+")) add(part.startsWith("file:") ? part.slice(5) : part);
+    for (const part of ambient.split("+")) {
+      const trimmed = part.trim();
+      if (trimmed.startsWith("file:")) add(trimmed.slice(5));
+    }
     visitCinematic(scene.cinematic);
     for (const beat of scene.dialogueBeats ?? []) {
       add(beat.background);
       add(beat.audioUrl);
       add(beat.sfxUrl);
       visitCinematic(beat.cinematic);
+    }
+  }
+  for (const clip of audioClips ?? []) {
+    if (!clip.src) continue;
+    for (const part of clip.src.split("+")) {
+      const trimmed = part.trim();
+      if (!trimmed || trimmed === "none" || trimmed.startsWith("synth:")) continue;
+      add(trimmed.startsWith("file:") ? trimmed.slice(5) : trimmed);
     }
   }
   return [...refs];
