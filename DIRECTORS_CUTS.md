@@ -33,17 +33,22 @@ Scarlet Keyframe Studio provides four non-destructive selectable film versions v
 ---
 
 ## 3. 1950s Noir Director’s Cut (`"noir-1950s"`)
-- **Editorial Vision**: Cohesive classical 1950s silver-gelatin black-and-white noir (*Touch of Evil*, *The Big Combo*, *Stray Dog*) — high-contrast lighting, deep shadows, deliberate studio pacing, and restrained nocturnal sound without novelty effects.
-- **Silver-Gelatin Monochrome Visual Treatment**:
+- **Editorial Vision**: Cohesive classical 1950s Alfred Hitchcock & silver-gelatin monochrome suspense (*Vertigo*, *Rear Window*, *The Wrong Man*, *Notorious*, *Dial M for Murder*) — chiaroscuro monochrome lighting, *Vertigo* contra-zooms on psychological revelations, crisp static shot/reverse-shot character zoom coverage during conversations, surgical clue pushes, deliberate studio pacing, and restrained nocturnal sound.
+- **Silver-Gelatin Monochrome & Hitchcock Chiaroscuro Lighting**:
   - `.cin-grade-noir-1950s` panchromatic B&W optical curve (`grayscale(1) contrast(1.38) brightness(0.91)` + neutral silver-selenium `NOIR_1950S_WASH`, `gradeStrength: 1.0`) applied uniformly across **100% of shots**, including `<video>` studio leaders (`nw_intro`, `nw_logo`), WebGL/2D depth-parallax plates, and foreground cutouts.
-  - Colored point-light and colored lens-flare overlays (`lights`, `lightSource`, `lightColor`, `lensFlare`, `flares`) are stripped from `beat.cinematic` so no chromatic tint bleeds over the monochrome frame.
-  - Rich panchromatic Tri-X 35mm grain (`0.068`), deep spherical lens vignette (`0.48–0.55`), `motes` `0.35`, `2.35:1` letterbox bars with monochrome silver speaker labels (`.cin-caption.is-monochrome`), and classic centered monochrome studio intertitles (`A SCARLET REEL PICTURE / NOBODY’S WITNESS`, `THREE DAYS LATER`, `FIVE DAYS LATER`, `WEEKS LATER`, `THE END`).
-- **Period-Inspired Pacing, Camera & Optical Transitions**:
-  - Weighty 1950s dramatic rhythm (`+1.05s` noir, `+1.35s` contemplative, `+1.60s` scene-closing curtain holds; `84f` establishing holds; `152f` opening-title plates; `468f` hold on `nw_b1296` leaving a `2.0s` silent hold after *"Everyone is allowed one."*; `180f` slow fade-to-black `THE END` card).
-  - Zero modern `speedRamp`s; ~76% locked classical studio tripod compositions and ~24% unhurried studio dolly pushes (`1.012 -> 1.044`, `ease-in-out`), strictly edge-clamped.
-  - Classical optical laboratory `dissolve`s (`speed: 0.68`) across day/night & location shifts and curtain `dip-to-black`s (`speed: 0.72`) at act boundaries.
+  - Frame-driven monochrome Hitchcock lighting (`cinematic.hitchcockLighting` in `FrameCinematicOverlays.tsx`, zero CSS transitions/animations):
+    - `"eye-light"` — horizontal feathered silver catchlight slash across the character's eye-line with darkened perimeter (`Vertigo` / `Psycho` psychological close-ups).
+    - `"venetian-slats"` — Robert Burks-inspired barred window-blind shadow slats across offices, apartments, and interrogation interiors (`The Wrong Man` / `Shadow of a Doubt`).
+    - `"key-slash"` — stark diagonal shaft from an unseen doorway across darkened stairwells and corridors (`Dial M for Murder` / `Notorious`).
+    - `"silhouette-rim"` — overhead streetlamp pool and crushed perimeter shadow on rain-slicked avenues, bridges, and black sedans (`Rear Window` / `Strangers on a Train`).
+  - Colored point-light and colored lens-flare overlays (`lights`, `lightSource`, `lightColor`, `lensFlare`, `flares`) remain stripped so zero chromatic tint bleeds over the monochrome frame.
+- **Hitchcock Camera Grammar & Static Character Dialogue Coverage**:
+  - **12 True WebGL *Vertigo* Dolly-Zooms (Contra-Zooms)** (`cinematic.vertigoContraZoom: "recede" | "loom"` in `FrameDepthParallax.tsx`): holds the foreground subject steady around `focalPoint` while warping background perspective away (`"recede"`) or inward (`"loom"`) on curated psychological abyss/recognition moments (`nw_b14`, `nw_b33`, `nw_b55`, `nw_b60`, `nw_b251`, `nw_b324`, `nw_b726`, `nw_b1187`, `nw_song_bad-guy_49:nw_song_b41`, `nw_b1296`, `nw_b1317`, `nw_song_raid_18:nw_song_b13`), using real depth maps where present and a deterministic smooth Gaussian focal-subject depth field on 2D plates.
+  - **Static Zoom Coverage on Talking Characters**: multi-turn character conversations on shared plates split cleanly into individual speaking-turn shots (`1,146` total clips; `+456` crisp razor-cut coverage shots over `690`), punching into edge-clamped static `1.28x–1.68x` medium singles, medium close-ups, and 180°-rule opposing shot/reverse-shot singles on characters' faces while periodically returning to the wide master (`1.00x–1.02x`).
+  - **Signature Hitchcock Suspense Moves**: surgical *Notorious*/*Dial M* clue-isolate pushes (`1.06x -> 1.42x`) onto watches, letters, photographs, and scraps; *Rear Window* long-lens (`1.30x`) lateral surveillance pans on exterior observation plates; slow confession pushes (`1.06x -> 1.38x`) on extended monologues; and subtle `±1.65°` psychological Dutch cants during raid sequences — all 100% edge-clamped while preserving `> 88%` locked tripod/static compositions and zero modern `speedRamp`s.
+  - Classical optical laboratory `dissolve`s (`speed: 0.68`) across day/night & location shifts and curtain `dip-to-black`s (`speed: 0.72`) at act boundaries, with razor-crisp hard cuts inside intra-scene dialogue coverage.
 - **Restrained Atmospheric Sound**:
-  - Classical straight dialogue cuts (gentle `-80 ms` breath softening only when `>= 800 ms` silence precedes; zero voice overlaps).
+  - Classical straight dialogue cuts (gentle `-80 ms` breath softening only when `>= 800 ms` silence precedes; zero voice overlaps, identical microsecond voice alignment).
   - Hushed, moody period score (`gain <= 0.40`, `3,200 ms` fade-in / `3,600 ms` fade-out), quiet rain and room-tone beds (`gain <= 0.26`), and understated diegetic foley (`gain <= 0.48`).
 
 ---

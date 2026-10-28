@@ -1556,7 +1556,7 @@ function ShotLayer({
 
   const hasDepth = Boolean(
     !forceUncropped &&
-      cinematic.depthMap &&
+      (cinematic.depthMap || cinematic.vertigoContraZoom) &&
       imageSrc &&
       !videoSrc &&
       !isGradient &&

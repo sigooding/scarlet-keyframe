@@ -129,6 +129,66 @@ export function FrameGrainOverlay({
   );
 }
 
+export type HitchcockLightingKind =
+  | "eye-light"
+  | "venetian-slats"
+  | "key-slash"
+  | "silhouette-rim";
+
+function parseLightingFocal(raw?: unknown): [number, number] {
+  if (typeof raw !== "string" || !raw.trim()) return [50, 38];
+  const parts = raw.trim().split(/\s+/).map((s) => parseFloat(s));
+  const fx = Number.isFinite(parts[0]) ? Math.max(12, Math.min(88, parts[0])) : 50;
+  const fy = Number.isFinite(parts[1]) ? Math.max(14, Math.min(82, parts[1])) : 38;
+  return [fx, fy];
+}
+
+function buildHitchcockLightingStyle(
+  kind: HitchcockLightingKind,
+  focalPoint: unknown,
+  timeSec: number,
+): {
+  background: string;
+  opacity: number;
+  mixBlendMode: React.CSSProperties["mixBlendMode"];
+  maskImage?: string;
+} {
+  const [fx, fy] = parseLightingFocal(focalPoint);
+  const eyeY = Math.max(18, Math.min(62, fy - 4));
+  // Deterministic subtle tungsten/carbon-arc breath from frame time (zero timers / CSS animations)
+  const arcBreath = 1 + 0.02 * Math.sin((Number.isFinite(timeSec) ? timeSec : 0) * 2.1);
+
+  if (kind === "eye-light") {
+    return {
+      background: `radial-gradient(ellipse 42% 11.5% at ${fx.toFixed(1)}% ${eyeY.toFixed(1)}%, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.05) 45%, rgba(0, 0, 0, 0.44) 76%, rgba(0, 0, 0, 0.78) 100%)`,
+      opacity: Number(Math.min(1, 0.82 * arcBreath).toFixed(4)),
+      mixBlendMode: "soft-light",
+    };
+  }
+  if (kind === "venetian-slats") {
+    const winX = fx > 50 ? 32 : 68;
+    const mask = `radial-gradient(ellipse 72% 62% at ${winX}% 38%, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.5) 54%, transparent 88%)`;
+    return {
+      background: `repeating-linear-gradient(-22deg, rgba(0, 0, 0, 0.56) 0%, rgba(0, 0, 0, 0.56) 3.1%, rgba(255, 255, 255, 0.05) 4.2%, rgba(255, 255, 255, 0.05) 6.4%, rgba(0, 0, 0, 0.56) 7.5%)`,
+      opacity: Number(Math.min(1, 0.68 * arcBreath).toFixed(4)),
+      mixBlendMode: "soft-light",
+      maskImage: mask,
+    };
+  }
+  if (kind === "key-slash") {
+    return {
+      background: `linear-gradient(126deg, rgba(0, 0, 0, 0.76) 0%, rgba(0, 0, 0, 0.48) 31%, rgba(255, 255, 255, 0.18) 45%, rgba(255, 255, 255, 0.05) 53%, rgba(0, 0, 0, 0.58) 68%, rgba(0, 0, 0, 0.84) 100%)`,
+      opacity: Number(Math.min(1, 0.80 * arcBreath).toFixed(4)),
+      mixBlendMode: "soft-light",
+    };
+  }
+  return {
+    background: `radial-gradient(ellipse 52% 66% at ${fx.toFixed(1)}% 26%, rgba(255, 255, 255, 0.16) 0%, rgba(0, 0, 0, 0.30) 54%, rgba(0, 0, 0, 0.82) 100%)`,
+    opacity: Number(Math.min(1, 0.80 * arcBreath).toFixed(4)),
+    mixBlendMode: "soft-light",
+  };
+}
+
 /**
  * Frame-driven replacement for `CinematicOverlays` + `.film-grade` animations
  * (`grade-wash`, halation bloom, `film-grain-jitter`, `film-scratches`, `film-flicker`).
@@ -140,10 +200,19 @@ export function FrameCinematicOverlays({
   cinematic?: CinematicSettings & {
     vignette?: boolean;
     vignetteStrength?: number;
+    hitchcockLighting?: HitchcockLightingKind;
   };
   timeSec: number;
 }) {
   const rawGradeId = String((cinematic as Record<string, unknown> | undefined)?.colorGrade || "");
+  const rawHitchcockLight = (cinematic as Record<string, unknown> | undefined)?.hitchcockLighting;
+  const hitchcockLighting: HitchcockLightingKind | undefined =
+    rawHitchcockLight === "eye-light" ||
+    rawHitchcockLight === "venetian-slats" ||
+    rawHitchcockLight === "key-slash" ||
+    rawHitchcockLight === "silhouette-rim"
+      ? rawHitchcockLight
+      : undefined;
   const grade =
     rawGradeId === "tokyo-noir"
       ? TOKYO_NOIR_WASH
@@ -161,7 +230,7 @@ export function FrameCinematicOverlays({
     ? Math.max(0, Math.min(1, rawVigStrength))
     : 0.36;
 
-  if (!grade && !film && !hasVignette) return null;
+  if (!grade && !film && !hasVignette && !hitchcockLighting) return null;
 
   const strength = Math.max(0, Math.min(1, cinematic?.filmGradeStrength ?? 0.7));
   const t = Number.isFinite(timeSec) ? timeSec : 0;
@@ -208,6 +277,34 @@ export function FrameCinematicOverlays({
           }
         />
       )}
+      {hitchcockLighting && (() => {
+        const hl = buildHitchcockLightingStyle(hitchcockLighting, cinematic?.focalPoint, t);
+        return (
+          <div
+            className="frame-hitchcock-lighting"
+            data-testid="frame-hitchcock-lighting"
+            data-lighting-kind={hitchcockLighting}
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              zIndex: 4,
+              background: hl.background,
+              opacity: hl.opacity,
+              mixBlendMode: hl.mixBlendMode,
+              ...(hl.maskImage
+                ? {
+                    maskImage: hl.maskImage,
+                    WebkitMaskImage: hl.maskImage,
+                  }
+                : {}),
+              animation: "none",
+              transition: "none",
+            }}
+          />
+        );
+      })()}
       {hasVignette && vignetteStrength > 0.001 && (
         <div
           className="frame-vignette-overlay"

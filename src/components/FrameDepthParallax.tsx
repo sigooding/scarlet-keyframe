@@ -18,6 +18,8 @@ export interface DepthCameraUniforms {
   amount: number;
 }
 
+export type VertigoContraZoomMode = "recede" | "loom";
+
 export interface DepthCameraInput {
   zoom: number;
   x: number;
@@ -26,6 +28,7 @@ export interface DepthCameraInput {
   authoredAmount?: number;
   focus?: number;
   center?: [number, number];
+  vertigoContraZoom?: VertigoContraZoomMode;
 }
 
 function clamp(v: number, lo: number, hi: number): number {
@@ -81,7 +84,23 @@ export function computeDepthCameraUniforms(input: DepthCameraInput): DepthCamera
 
   const pushFar = Math.max(1, Number.isFinite(input.zoom) ? input.zoom : 1);
   const nearRatio = 1 + (PUSH_NEAR_FAR_RATIO - 1) * depthScale;
-  const pushNear = 1 + (pushFar - 1) * nearRatio;
+  let farScale = pushFar;
+  let nearScale = 1 + (pushFar - 1) * nearRatio;
+
+  if (input.vertigoContraZoom === "recede" || input.vertigoContraZoom === "loom") {
+    // True Hitchcock Vertigo contra-zoom (dolly-zoom):
+    // Subject in foreground (d=1, nearScale) stays locked in frame size while
+    // background (d=0, farScale) stretches away ("recede") or looms inward ("loom").
+    const zProgress = clamp((pushFar - 1) / 0.32, 0, 1);
+    const strength = clamp(curAmount / 0.4, 0.25, 1.45);
+    if (input.vertigoContraZoom === "recede") {
+      nearScale = 1.22 + 0.04 * zProgress;
+      farScale = Math.max(1.02, 1.54 - 0.50 * zProgress * strength);
+    } else {
+      nearScale = 1.24 - 0.03 * zProgress;
+      farScale = 1.02 + 0.50 * zProgress * strength;
+    }
+  }
 
   const minMarginX = Math.max(0.1, Math.min(center[0], 1 - center[0]));
   const minMarginY = Math.max(0.1, Math.min(center[1], 1 - center[1]));
@@ -95,7 +114,7 @@ export function computeDepthCameraUniforms(input: DepthCameraInput): DepthCamera
   );
 
   return {
-    uZoom: [pushFar * overscan, pushNear * overscan],
+    uZoom: [farScale * overscan, nearScale * overscan],
     uShift: [shiftX, shiftY],
     uFocus: focusVal,
     uCenter: center,
@@ -250,6 +269,41 @@ function uploadSolid(gl: WebGLRenderingContext, unit: number, tex: WebGLTexture,
   );
 }
 
+function uploadFocalDepthField(
+  gl: WebGLRenderingContext,
+  unit: number,
+  tex: WebGLTexture,
+  cx: number,
+  cy: number,
+) {
+  const size = 96;
+  const data = new Uint8Array(size * size * 4);
+  let idx = 0;
+  for (let row = 0; row < size; row += 1) {
+    const v = (row + 0.5) / size;
+    const dy = (v - cy) / 0.30;
+    for (let col = 0; col < size; col += 1) {
+      const u = (col + 0.5) / size;
+      const dx = (u - cx) / 0.25;
+      const d = Math.exp(-0.5 * (dx * dx + dy * dy));
+      const byteVal = Math.max(0, Math.min(255, Math.round(d * 255)));
+      data[idx] = byteVal;
+      data[idx + 1] = byteVal;
+      data[idx + 2] = byteVal;
+      data[idx + 3] = 255;
+      idx += 4;
+    }
+  }
+  gl.activeTexture(gl.TEXTURE0 + unit);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+}
+
 function fitted(img: HTMLImageElement, w: number, h: number): HTMLCanvasElement {
   const c = document.createElement("canvas");
   c.width = w;
@@ -292,7 +346,11 @@ export function FrameDepthParallaxLayer({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawFrameRef = useRef<(() => void) | null>(null);
 
-  const on = hasDepthParallax(cinematic, picture);
+  const rawVertigo = (cinematic as Record<string, unknown> | undefined)?.vertigoContraZoom;
+  const vertigoContraZoom: VertigoContraZoomMode | undefined =
+    rawVertigo === "recede" || rawVertigo === "loom" ? rawVertigo : undefined;
+
+  const on = Boolean(picture && (hasDepthParallax(cinematic, picture) || vertigoContraZoom));
   const depthMap = cinematic?.depthMap;
   const plate = cinematic?.depthPlate;
   const cutouts: DepthCutout[] = (cinematic?.depthCutouts ?? [])
@@ -326,7 +384,8 @@ export function FrameDepthParallaxLayer({
   );
   const focal = cinematic?.focalPoint;
   const useFocalCenter =
-    cinematic?.depthMotion === "push" && Math.abs(x) < 1e-5 && Math.abs(y) < 1e-5;
+    Boolean(vertigoContraZoom) ||
+    (cinematic?.depthMotion === "push" && Math.abs(x) < 1e-5 && Math.abs(y) < 1e-5);
   const center: [number, number] = useFocalCenter ? centreFromFocalPoint(focal) : [0.5, 0.5];
 
   const uniforms = computeDepthCameraUniforms({
@@ -337,10 +396,11 @@ export function FrameDepthParallaxLayer({
     authoredAmount: baseAuthoredAmount,
     focus,
     center,
+    vertigoContraZoom,
   });
 
   const isSynchronouslyCached = (() => {
-    if (!on || !depthMap || typeof window === "undefined") return false;
+    if (!on || (!depthMap && !vertigoContraZoom) || typeof window === "undefined") return false;
     const picSrc = assetBackground(picture);
     const plateSrc = assetBackground(plate || picture);
     return Boolean(getCachedImage(picSrc) || getCachedImage(plateSrc));
@@ -350,7 +410,7 @@ export function FrameDepthParallaxLayer({
 
   useIsomorphicLayoutEffect(() => {
     drawFrameRef.current = null;
-    if (!on || !depthMap) {
+    if (!on || (!depthMap && !vertigoContraZoom)) {
       setReady(false);
       return;
     }
@@ -437,6 +497,9 @@ export function FrameDepthParallaxLayer({
       upload(gl, 0, plateTex, fitted(activePlateImg, w, h), false);
       if (activeDepthImg) {
         upload(gl, 1, depthTex, activeDepthImg, false);
+      } else if (vertigoContraZoom) {
+        const fc = centreFromFocalPoint(focal);
+        uploadFocalDepthField(gl, 1, depthTex, fc[0], fc[1]);
       } else {
         uploadSolid(gl, 1, depthTex, 0);
       }
@@ -459,9 +522,10 @@ export function FrameDepthParallaxLayer({
       const curPose = poseRef.current;
       const curAmount = amountRef.current;
       const curCenter: [number, number] =
-        cinematic?.depthMotion === "push" &&
-        Math.abs(curPose.x) < 1e-5 &&
-        Math.abs(curPose.y) < 1e-5
+        vertigoContraZoom ||
+        (cinematic?.depthMotion === "push" &&
+          Math.abs(curPose.x) < 1e-5 &&
+          Math.abs(curPose.y) < 1e-5)
           ? centreFromFocalPoint(focal)
           : [0.5, 0.5];
       const uni = computeDepthCameraUniforms({
@@ -472,6 +536,7 @@ export function FrameDepthParallaxLayer({
         authoredAmount: curPose.authoredAmount,
         focus,
         center: curCenter,
+        vertigoContraZoom,
       });
       gl.uniform2f(uCenter, uni.uCenter[0], uni.uCenter[1]);
       gl.uniform2f(uZoom, uni.uZoom[0], uni.uZoom[1]);
@@ -483,15 +548,33 @@ export function FrameDepthParallaxLayer({
 
     const picSrc = assetBackground(picture);
     const plateSrc = assetBackground(plate || picture);
-    const depthSrc = assetUrl(depthMap);
+    const depthSrc = depthMap ? assetUrl(depthMap) : "";
     const cutSrcs = layers.map((k) => assetUrl(k.image));
 
     const cachedPlate = getCachedImage(plateSrc);
     const cachedPic = getCachedImage(picSrc);
-    const cachedDepth = getCachedImage(depthSrc);
+    const cachedDepth = depthSrc ? getCachedImage(depthSrc) : undefined;
     const cachedCuts = cutSrcs.map((s) => getCachedImage(s));
 
-    if (cachedPlate && cachedDepth && cachedCuts.every(Boolean)) {
+    if (!depthSrc && vertigoContraZoom) {
+      if (cachedPlate || cachedPic) {
+        activePlateImg = (cachedPlate || cachedPic)!;
+        fullDepthReady = true;
+        drawFrame();
+        setReady(true);
+      } else {
+        setReady(false);
+        loadCachedImage(plateSrc || picSrc)
+          .then((img) => {
+            if (!alive) return;
+            activePlateImg = img;
+            fullDepthReady = true;
+            drawFrame();
+            setReady(true);
+          })
+          .catch(() => {});
+      }
+    } else if (cachedPlate && cachedDepth && cachedCuts.every(Boolean)) {
       activePlateImg = cachedPlate;
       activeDepthImg = cachedDepth;
       activeCutImgs = cachedCuts as HTMLImageElement[];
@@ -568,7 +651,7 @@ export function FrameDepthParallaxLayer({
       gl.deleteShader(fs);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [on, picture, depthMap, plate, cutKey, focus, focal]);
+  }, [on, picture, depthMap, plate, cutKey, focus, focal, vertigoContraZoom]);
 
   useIsomorphicLayoutEffect(() => {
     drawFrameRef.current?.();
@@ -577,12 +660,13 @@ export function FrameDepthParallaxLayer({
   if (!on) return null;
   return (
     <canvas
-      key={`${picture}|${depthMap}|${plate}|${cutKey}|${focus}|${focal}`}
+      key={`${picture}|${depthMap}|${plate}|${cutKey}|${focus}|${focal}|${vertigoContraZoom || ""}`}
       ref={canvasRef}
       className={`depth-parallax ${gradeClassName || ""}`.trim()}
       data-depth-ready={ready ? "1" : "0"}
       data-depth-for={picture.replace(/^.*\//, "")}
       data-depth-amount={roundAttr(uniforms.amount)}
+      data-vertigo={vertigoContraZoom}
       data-u-zoom={`${roundAttr(uniforms.uZoom[0])},${roundAttr(uniforms.uZoom[1])}`}
       data-u-shift={`${roundAttr(uniforms.uShift[0])},${roundAttr(uniforms.uShift[1])}`}
       aria-hidden

@@ -927,6 +927,101 @@ function structureScene77AGaps(
  * Computes single-camera keyframe framing & optical grade for a consolidated shot
  * according to the active editorial cut (`"neo-noir"`, `"creative"`, or `"noir-1950s"`).
  */
+interface HitchcockVertigoSpec {
+  mode: "recede" | "loom";
+  focal: string;
+  depthMap?: string;
+}
+
+/**
+ * Curated psychological revelation, dread, and precipice moments in Nobody's Witness
+ * staged with Alfred Hitchcock's Vertigo (1958) contra-zoom in the 1950s Noir cut.
+ */
+export const HITCHCOCK_VERTIGO_BY_BEAT_ID: Record<string, HitchcockVertigoSpec> = {
+  nw_b14: { mode: "recede", focal: "42% 38%" }, // Mara peers down the dark lane at 12:45 before the murder
+  nw_b33: { mode: "loom", focal: "38% 46%" }, // The silenced gunshot in the rain-soaked alley
+  nw_b55: { mode: "loom", focal: "62% 44%" }, // "He knows her name."
+  nw_b60: { mode: "loom", focal: "40% 44%" }, // Floor-level POV behind the bar counter as masked men enter
+  nw_b251: { mode: "loom", focal: "50% 56%" }, // The 20-year-old photograph taken out of its frame
+  nw_b324: { mode: "recede", focal: "50% 54%" }, // Jack staring down the empty street of drains and doorways
+  nw_b726: { mode: "loom", focal: "58% 42%" }, // Mrs. Sakai looking from Jack to the altar photograph
+  nw_b1187: { mode: "recede", focal: "36% 46%" }, // "She knows. From his voice, she already knows."
+  "nw_song_bad-guy_49:nw_song_b41": { mode: "loom", focal: "50% 45%" }, // "The umbrella stand by the door is empty."
+  nw_b1296: {
+    mode: "loom",
+    focal: "48% 38%",
+    depthMap: "/film/depth/s77a/1296-everyone-is-allowed-one-depth.jpg",
+  }, // Kurose in the black sedan: "Everyone is allowed one."
+  nw_b1317: { mode: "loom", focal: "42% 38%" }, // "It is the letter she threw away. Smoothed flat..."
+  "nw_song_raid_18:nw_song_b13": { mode: "recede", focal: "50% 48%" }, // Hive stairwell precipice: flashlight beam falls away below
+};
+
+export function lookupHitchcockVertigoSpec(
+  sceneId: string,
+  beatId: string,
+): HitchcockVertigoSpec | undefined {
+  return HITCHCOCK_VERTIGO_BY_BEAT_ID[`${sceneId}:${beatId}`] ?? HITCHCOCK_VERTIGO_BY_BEAT_ID[beatId];
+}
+
+interface HitchcockShotContext {
+  plateTurnIndex?: number;
+  speakerSlot?: number;
+  isCharacterDialogue?: boolean;
+  sceneParticles?: string;
+  sceneTitle?: string;
+}
+
+function chooseHitchcockLighting(
+  sceneId: string,
+  pace: "action" | "contemplative" | "noir",
+  pic: string,
+  sceneTitle: string,
+  sceneParticles: string,
+  isTightSingle: boolean,
+  isVertigo: boolean,
+  h: number,
+): "eye-light" | "venetian-slats" | "key-slash" | "silhouette-rim" {
+  if (isVertigo || isTightSingle) {
+    return "eye-light";
+  }
+  const combined = `${sceneId} ${sceneTitle} ${pic}`.toLowerCase();
+  if (
+    sceneParticles === "rain" ||
+    /lane|street|avenue|alley|bridge|crossing|corner|parking|sedan|outside|station|platform|walkway/.test(
+      combined,
+    )
+  ) {
+    return "silhouette-rim";
+  }
+  if (
+    pace === "action" ||
+    /raid|stair|door|corridor|hall|barber|shutter|warehouse|cellar|bathroom|escape/.test(combined)
+  ) {
+    return "key-slash";
+  }
+  return h % 3 === 0 ? "key-slash" : "venetian-slats";
+}
+
+function clampSafeStaticPose(
+  zoom: number,
+  rawX: number,
+  rawY: number,
+  rawRot = 0,
+): { zoom: number; x: number; y: number; rotation: number } {
+  const c = clampPoseToPictureEdges({
+    zoom,
+    x: rawX,
+    y: rawY,
+    rotation: rawRot,
+  });
+  return {
+    zoom: Number(c.zoom.toFixed(4)),
+    x: Number((c.x * 0.95).toFixed(3)),
+    y: Number((c.y * 0.95).toFixed(3)),
+    rotation: Number((c.rotation * 0.95).toFixed(3)),
+  };
+}
+
 function authorNeoNoirCamera(
   beat: BeatLike,
   sceneId: string,
@@ -934,6 +1029,7 @@ function authorNeoNoirCamera(
   durationFrames: number,
   pace: "action" | "contemplative" | "noir",
   variant: EditorialCutVariant = "neo-noir",
+  hitchcockCtx?: HitchcockShotContext,
 ): void {
   if (beat.gap || sceneId === "nw_intro" || sceneId === "nw_logo") return;
   if (sceneId === "nw_end" && beat.animation?.opacity) return;
@@ -948,13 +1044,23 @@ function authorNeoNoirCamera(
   delete cin.shakeAmount;
 
   if (variant === "noir-1950s") {
-    // Authentic 1950s Silver-Gelatin Monochrome: high-contrast B&W, rich Tri-X grain,
-    // deep spherical lens falloff, zero modern speed ramps, and no colored light tints.
+    // Authentic 1950s Hitchcockian Silver-Gelatin Monochrome:
+    // - High-contrast B&W + chiaroscuro lighting (eye-light catchlight, Venetian blind slats, diagonal key-slash, streetlamp rim)
+    // - True Vertigo contra-zooms on key psychological revelations & precipices
+    // - Varied static zoom coverage (mediums, close-ups, shot/reverse-shot singles) when characters speak
+    // - Notorious clue-isolate pushes, Rear Window telephoto surveillance pans, & subtle psychological Dutch cants
+    const beatId = String(beat.id || "");
+    const vertigoSpec = lookupHitchcockVertigoSpec(sceneId, beatId);
+    const picStr = String(beat.background || "");
+    const beatText = String(beat.text || "");
+    const captionText = Array.isArray(beat.captions)
+      ? beat.captions.map((c) => c.text).join(" ")
+      : "";
+    const combinedText = `${beatText} ${captionText} ${picStr}`;
+
     cin.colorGrade = "noir-1950s";
     cin.filmGrade = false;
     cin.vignette = true;
-    cin.vignetteStrength =
-      pace === "action" ? 0.55 : pace === "contemplative" ? 0.48 : 0.52;
     cin.grain = true;
     cin.grainOpacity = 0.068;
     delete cin.speedRamp;
@@ -963,67 +1069,374 @@ function authorNeoNoirCamera(
     delete cin.lightColor;
     delete cin.lensFlare;
     delete cin.flares;
-    beat.cinematic = cin;
+    delete cin.vertigoContraZoom;
 
     const lastF = Math.max(1, durationFrames - 1);
-    const baseBiasX = Math.max(-1.4, Math.min(1.4, (50 - fx) * 0.045));
-    const baseBiasY = Math.max(-1.0, Math.min(1.0, (50 - fy) * 0.035));
+    const turnIdx = hitchcockCtx?.plateTurnIndex ?? 0;
+    const speakerSlot = hitchcockCtx?.speakerSlot ?? 0;
+    const isCharSpeech =
+      hitchcockCtx?.isCharacterDialogue ??
+      Boolean(beat.characterId && !isNarrationBeat(beat));
 
-    // Classical 1950s studio grammar: ~76% poised tripod compositions; ~24% stately dolly pushes
-    const shouldMove = durationFrames >= 104 && h % 10 < 3;
-    if (!shouldMove) {
-      if (Math.abs(baseBiasX) > 0.35 || Math.abs(baseBiasY) > 0.35) {
-        const stillPose = clampPoseToPictureEdges({
-          zoom: 1.034,
-          x: baseBiasX,
-          y: baseBiasY,
-          rotation: 0,
-        });
+    // 1. Curated Hitchcock Vertigo Dolly-Zoom (Contra-Zoom) on psychological abyss / recognition beats
+    if (vertigoSpec) {
+      cin.vertigoContraZoom = vertigoSpec.mode;
+      cin.focalPoint = vertigoSpec.focal;
+      if (vertigoSpec.depthMap && !cin.depthMap) {
+        cin.depthMap = vertigoSpec.depthMap;
+      }
+      cin.hitchcockLighting = "eye-light";
+      cin.vignetteStrength = 0.6;
+      beat.cinematic = cin;
+
+      const { fx: vfx, fy: vfy } = parseFocalOffset(vertigoSpec.focal);
+      const vx = Math.max(-4.5, Math.min(4.5, (50 - vfx) * 0.16));
+      const vy = Math.max(-3.5, Math.min(3.5, (50 - vfy) * 0.14));
+      const p0 = clampSafeStaticPose(1.02, vx * 0.4, vy * 0.4);
+      const p1 = clampSafeStaticPose(1.32, vx, vy);
+
+      beat.animation = {
+        zoom: [
+          { frame: 0, value: p0.zoom, easing: "ease-in-out" },
+          { frame: lastF, value: p1.zoom, easing: "linear" },
+        ],
+        ...(Math.abs(p1.x) > 0.05
+          ? {
+              x: [
+                { frame: 0, value: p0.x, easing: "ease-in-out" },
+                { frame: lastF, value: p1.x, easing: "linear" },
+              ],
+            }
+          : {}),
+        ...(Math.abs(p1.y) > 0.05
+          ? {
+              y: [
+                { frame: 0, value: p0.y, easing: "ease-in-out" },
+                { frame: lastF, value: p1.y, easing: "linear" },
+              ],
+            }
+          : {}),
+        depthAmount: [
+          { frame: 0, value: 0.28, easing: "ease-in-out" },
+          { frame: lastF, value: 0.56, easing: "linear" },
+        ],
+        values: { gradeStrength: 1, rotation: 0 },
+      };
+      return;
+    }
+
+    // 2. Character-Speaking Coverage: Static Zoom Shot/Reverse-Shot Singles & Slow Confession Pushes
+    if (isCharSpeech) {
+      // Eye-level upper-third bias so zoomed singles frame faces cleanly rather than torsos/tables
+      const eyeTargetY = Math.min(fy, 38);
+      // 180-degree rule lateral offset when two speakers share a plate
+      const sideSign = speakerSlot % 2 === 0 ? -1 : 1;
+      const speakerTargetX =
+        turnIdx >= 1 && Math.abs(fx - 50) < 11
+          ? 50 + sideSign * (9 + (h % 5))
+          : fx;
+
+      // Occasional slow Hitchcock confession push on long dramatic lines (>= 132 frames)
+      if (turnIdx === 0 && durationFrames >= 132 && h % 7 === 0) {
+        const lightKind = chooseHitchcockLighting(
+          sceneId,
+          pace,
+          picStr,
+          hitchcockCtx?.sceneTitle || "",
+          hitchcockCtx?.sceneParticles || "",
+          true,
+          false,
+          h,
+        );
+        cin.hitchcockLighting = lightKind;
+        cin.vignetteStrength = 0.56;
+        beat.cinematic = cin;
+
+        const p0 = clampSafeStaticPose(
+          1.06,
+          (50 - speakerTargetX) * 0.12,
+          (50 - eyeTargetY) * 0.12,
+        );
+        const p1 = clampSafeStaticPose(
+          1.38,
+          (50 - speakerTargetX) * 0.55,
+          (50 - eyeTargetY) * 0.52,
+        );
         beat.animation = {
-          values: {
-            zoom: Number(stillPose.zoom.toFixed(4)),
-            x: Number((stillPose.x * 0.96).toFixed(3)),
-            y: Number((stillPose.y * 0.96).toFixed(3)),
-            gradeStrength: 1,
-            ...(hasDepth ? { depthAmount: 0.16 } : {}),
-          },
+          zoom: [
+            { frame: 0, value: p0.zoom, easing: "ease-in-out" },
+            { frame: lastF, value: p1.zoom, easing: "linear" },
+          ],
+          x: [
+            { frame: 0, value: p0.x, easing: "ease-in-out" },
+            { frame: lastF, value: p1.x, easing: "linear" },
+          ],
+          y: [
+            { frame: 0, value: p0.y, easing: "ease-in-out" },
+            { frame: lastF, value: p1.y, easing: "linear" },
+          ],
+          ...(hasDepth
+            ? {
+                depthAmount: [
+                  { frame: 0, value: 0.16, easing: "ease-in-out" },
+                  { frame: lastF, value: 0.30, easing: "linear" },
+                ],
+              }
+            : {}),
+          values: { gradeStrength: 1, rotation: 0 },
         };
+        return;
+      }
+
+      // Static zoom selection for speaking characters:
+      // - On multi-turn shared plates (`turnIdx >= 1`): crisp shot/reverse-shot mediums & close-ups
+      //   with periodic return-to-master (`turnIdx % 5 === 4`)
+      // - On standalone/opening dialogue plates (`turnIdx === 0`): ~48% poised master / medium two-shot,
+      //   ~52% static medium or close-up single for visual variety!
+      let staticZoom = 1.0;
+      if (turnIdx >= 1) {
+        const cycle = turnIdx % 5;
+        if (cycle === 1) staticZoom = 1.34;
+        else if (cycle === 2) staticZoom = 1.50;
+        else if (cycle === 3) staticZoom = 1.64;
+        else if (cycle === 4) staticZoom = 1.02;
+        else staticZoom = 1.44;
       } else {
+        const pick = h % 10;
+        if (pick < 4) staticZoom = 1.0;
+        else if (pick < 6) staticZoom = 1.28;
+        else if (pick < 8) staticZoom = 1.44;
+        else if (pick === 8) staticZoom = 1.58;
+        else staticZoom = 1.68;
+      }
+
+      const isTight = staticZoom >= 1.46;
+      const lightKind = chooseHitchcockLighting(
+        sceneId,
+        pace,
+        picStr,
+        hitchcockCtx?.sceneTitle || "",
+        hitchcockCtx?.sceneParticles || "",
+        isTight,
+        false,
+        h,
+      );
+      cin.hitchcockLighting = lightKind;
+      if (lightKind === "key-slash" || lightKind === "venetian-slats") {
+        cin.volumetricShafts = true;
+        cin.shaftsIntensity = 0.48;
+      }
+      cin.vignetteStrength = isTight ? 0.58 : 0.52;
+      beat.cinematic = cin;
+
+      if (staticZoom <= 1.03) {
+        const masterPose = clampSafeStaticPose(
+          staticZoom,
+          (50 - fx) * 0.04,
+          (50 - fy) * 0.03,
+          0,
+        );
         beat.animation = {
           values: {
+            zoom: masterPose.zoom,
+            x: masterPose.x,
+            y: masterPose.y,
+            rotation: 0,
             gradeStrength: 1,
             ...(hasDepth ? { depthAmount: 0.14 } : {}),
           },
         };
+        return;
       }
+
+      const panScale = Math.min(0.72, (staticZoom - 1) * 1.15);
+      const desiredX = (50 - speakerTargetX) * panScale;
+      const desiredY = (50 - eyeTargetY) * panScale;
+      const singlePose = clampSafeStaticPose(staticZoom, desiredX, desiredY, 0);
+
+      beat.animation = {
+        values: {
+          zoom: singlePose.zoom,
+          x: singlePose.x,
+          y: singlePose.y,
+          rotation: 0,
+          gradeStrength: 1,
+          ...(hasDepth ? { depthAmount: 0.2 } : {}),
+        },
+      };
       return;
     }
 
-    const z0 = 1.012;
-    const z1 = 1.044;
-    const rawP0 = clampPoseToPictureEdges({ zoom: z0, x: baseBiasX, y: baseBiasY, rotation: 0 });
-    const rawP1 = clampPoseToPictureEdges({ zoom: z1, x: baseBiasX, y: baseBiasY, rotation: 0 });
-    const p0 = { zoom: rawP0.zoom, x: rawP0.x * 0.96, y: rawP0.y * 0.96 };
-    const p1 = { zoom: rawP1.zoom, x: rawP1.x * 0.96, y: rawP1.y * 0.96 };
+    // 3. Non-dialogue shots: Hitchcock Prop/Clue Isolate Push, Rear Window Surveillance Pan,
+    //    Action Tight Angles / Subtle Dutch Cant, & Poised Studio Masters
+    const isClueBeat =
+      durationFrames >= 58 &&
+      /\b(watch|scrap|note|photograph|envelope|letter|card|notebook|clip|phone|coin|key|knife|gun|bowl|ledger|tape)\b/i.test(
+        combinedText,
+      );
+
+    const lightKind = chooseHitchcockLighting(
+      sceneId,
+      pace,
+      picStr,
+      hitchcockCtx?.sceneTitle || "",
+      hitchcockCtx?.sceneParticles || "",
+      false,
+      false,
+      h,
+    );
+    cin.hitchcockLighting = lightKind;
+    if (lightKind === "key-slash" || lightKind === "venetian-slats") {
+      cin.volumetricShafts = true;
+      cin.shaftsIntensity = 0.52;
+    }
+    cin.vignetteStrength =
+      pace === "action" ? 0.56 : pace === "contemplative" ? 0.49 : 0.53;
+    beat.cinematic = cin;
+
+    // 3a. Notorious / Dial M surgical clue-isolate push directly onto focalPoint
+    if (isClueBeat && h % 3 !== 0) {
+      const p0 = clampSafeStaticPose(1.06, (50 - fx) * 0.10, (50 - fy) * 0.10);
+      const p1 = clampSafeStaticPose(1.42, (50 - fx) * 0.58, (50 - fy) * 0.58);
+      beat.animation = {
+        zoom: [
+          { frame: 0, value: p0.zoom, easing: "ease-in-out" },
+          { frame: lastF, value: p1.zoom, easing: "linear" },
+        ],
+        x: [
+          { frame: 0, value: p0.x, easing: "ease-in-out" },
+          { frame: lastF, value: p1.x, easing: "linear" },
+        ],
+        y: [
+          { frame: 0, value: p0.y, easing: "ease-in-out" },
+          { frame: lastF, value: p1.y, easing: "linear" },
+        ],
+        ...(hasDepth
+          ? {
+              depthAmount: [
+                { frame: 0, value: 0.18, easing: "ease-in-out" },
+                { frame: lastF, value: 0.34, easing: "linear" },
+              ],
+            }
+          : {}),
+        values: { gradeStrength: 1, rotation: 0 },
+      };
+      return;
+    }
+
+    // 3b. Rear Window long-lens telephoto surveillance creep on exterior / observation shots
+    if (
+      lightKind === "silhouette-rim" &&
+      durationFrames >= 84 &&
+      pace !== "action" &&
+      h % 6 === 1
+    ) {
+      const dir = h % 2 === 0 ? 1 : -1;
+      const panY = (50 - Math.min(fy, 44)) * 0.32;
+      const p0 = clampSafeStaticPose(1.30, -5.8 * dir, panY);
+      const p1 = clampSafeStaticPose(1.30, 5.8 * dir, panY);
+      beat.animation = {
+        zoom: [
+          { frame: 0, value: p0.zoom, easing: "linear" },
+          { frame: lastF, value: p1.zoom, easing: "linear" },
+        ],
+        x: [
+          { frame: 0, value: p0.x, easing: "ease-in-out" },
+          { frame: lastF, value: p1.x, easing: "linear" },
+        ],
+        ...(Math.abs(p0.y) > 0.05
+          ? {
+              y: [
+                { frame: 0, value: p0.y, easing: "linear" },
+                { frame: lastF, value: p1.y, easing: "linear" },
+              ],
+            }
+          : {}),
+        ...(hasDepth
+          ? {
+              depthAmount: [
+                { frame: 0, value: 0.22, easing: "ease-in-out" },
+                { frame: lastF, value: 0.30, easing: "linear" },
+              ],
+            }
+          : {}),
+        values: { gradeStrength: 1, rotation: 0 },
+      };
+      return;
+    }
+
+    // 3c. High-danger action / raid montage: static tight suspense angles & subtle Dutch cant
+    if (pace === "action") {
+      const dutchDeg = h % 5 === 0 ? (h % 2 === 0 ? 1.65 : -1.65) : 0;
+      const actZoom =
+        h % 4 === 0 ? 1.52 : h % 4 === 1 ? 1.36 : dutchDeg !== 0 ? 1.18 : 1.04;
+      const actPose = clampSafeStaticPose(
+        actZoom,
+        (50 - fx) * Math.min(0.55, (actZoom - 1) * 0.9),
+        (50 - Math.min(fy, 42)) * Math.min(0.5, (actZoom - 1) * 0.85),
+        dutchDeg,
+      );
+      beat.animation = {
+        values: {
+          zoom: actPose.zoom,
+          x: actPose.x,
+          y: actPose.y,
+          rotation: actPose.rotation,
+          gradeStrength: 1,
+          ...(hasDepth ? { depthAmount: 0.2 } : {}),
+        },
+      };
+      return;
+    }
+
+    // 3d. Stately studio dolly push (~22% of longer establishing shots) vs poised master / medium static frame
+    const baseBiasX = Math.max(-1.8, Math.min(1.8, (50 - fx) * 0.06));
+    const baseBiasY = Math.max(-1.4, Math.min(1.4, (50 - fy) * 0.05));
+    const shouldMove = durationFrames >= 98 && h % 10 < 2;
+
+    if (!shouldMove) {
+      const estZoom =
+        turnIdx >= 1 ? 1.28 : h % 7 === 0 ? 1.24 : Math.abs(baseBiasX) > 0.35 ? 1.04 : 1.0;
+      const stillPose = clampSafeStaticPose(
+        estZoom,
+        estZoom > 1.1 ? (50 - fx) * 0.28 : baseBiasX,
+        estZoom > 1.1 ? (50 - Math.min(fy, 42)) * 0.25 : baseBiasY,
+        0,
+      );
+      beat.animation = {
+        values: {
+          zoom: stillPose.zoom,
+          x: stillPose.x,
+          y: stillPose.y,
+          rotation: 0,
+          gradeStrength: 1,
+          ...(hasDepth ? { depthAmount: 0.16 } : {}),
+        },
+      };
+      return;
+    }
+
+    const p0 = clampSafeStaticPose(1.016, baseBiasX, baseBiasY);
+    const p1 = clampSafeStaticPose(1.12, (50 - fx) * 0.22, (50 - fy) * 0.18);
 
     beat.animation = {
       zoom: [
-        { frame: 0, value: Number(p0.zoom.toFixed(4)), easing: "ease-in-out" },
-        { frame: lastF, value: Number(p1.zoom.toFixed(4)), easing: "linear" },
+        { frame: 0, value: p0.zoom, easing: "ease-in-out" },
+        { frame: lastF, value: p1.zoom, easing: "linear" },
       ],
-      ...(Math.abs(p0.x) > 0.05
+      ...(Math.abs(p1.x) > 0.05
         ? {
             x: [
-              { frame: 0, value: Number(p0.x.toFixed(3)), easing: "ease-in-out" },
-              { frame: lastF, value: Number(p1.x.toFixed(3)), easing: "linear" },
+              { frame: 0, value: p0.x, easing: "ease-in-out" },
+              { frame: lastF, value: p1.x, easing: "linear" },
             ],
           }
         : {}),
-      ...(Math.abs(p0.y) > 0.05
+      ...(Math.abs(p1.y) > 0.05
         ? {
             y: [
-              { frame: 0, value: Number(p0.y.toFixed(3)), easing: "ease-in-out" },
-              { frame: lastF, value: Number(p1.y.toFixed(3)), easing: "linear" },
+              { frame: 0, value: p0.y, easing: "ease-in-out" },
+              { frame: lastF, value: p1.y, easing: "linear" },
             ],
           }
         : {}),
@@ -1031,11 +1444,11 @@ function authorNeoNoirCamera(
         ? {
             depthAmount: [
               { frame: 0, value: 0.16, easing: "ease-in-out" },
-              { frame: lastF, value: 0.26, easing: "linear" },
+              { frame: lastF, value: 0.28, easing: "linear" },
             ],
           }
         : {}),
-      values: { gradeStrength: 1 },
+      values: { gradeStrength: 1, rotation: 0 },
     };
     return;
   }
@@ -1443,18 +1856,16 @@ function buildEditorialCut(
       const beats = scene.dialogueBeats ?? [];
       beats.forEach((b, idx) => {
         const durF = Number(b.durationFrames) || 96;
-        authorNeoNoirCamera(b, sceneId, idx, durF, pace, variant);
-        if (b.id === "nw_b1296") {
+        authorNeoNoirCamera(b, sceneId, idx, durF, pace, variant, {
+          plateTurnIndex: 0,
+          speakerSlot: idx % 2,
+          isCharacterDialogue: Boolean(b.characterId && !isNarrationBeat(b)),
+          sceneParticles: String(scene.particles || ""),
+          sceneTitle: String(scene.title || ""),
+        });
+        if (b.id === "nw_b1296" && !is1950s) {
           const lastF = Math.max(1, durF - 1);
-          if (is1950s) {
-            b.animation = {
-              zoom: [
-                { frame: 0, value: 1.01, easing: "ease-in-out" },
-                { frame: lastF, value: 1.04, easing: "linear" },
-              ],
-              values: { gradeStrength: 1 },
-            };
-          } else if (isCreative) {
+          if (isCreative) {
             b.animation = {
               zoom: [
                 {
@@ -1868,13 +2279,46 @@ function buildEditorialCut(
         continue;
       }
 
+      const isHitchcockSplitBoundary = (
+        groupSlice: PreparedBeat[],
+        candidate: PreparedBeat,
+      ): boolean => {
+        if (!is1950s) return false;
+        // Always isolate curated Vertigo psychological set-piece beats onto their own shot!
+        if (
+          lookupHitchcockVertigoSpec(sceneId, String(candidate.beat.id || "")) ||
+          groupSlice.some((item) =>
+            Boolean(lookupHitchcockVertigoSpec(sceneId, String(item.beat.id || ""))),
+          )
+        ) {
+          return true;
+        }
+        const isCandCharLine = Boolean(
+          candidate.beat.characterId &&
+            !isNarrationBeat(candidate.beat) &&
+            (candidate.voiceEvent || String(candidate.beat.text || "").trim().length > 0),
+        );
+        if (!isCandCharLine) return false;
+        const groupHasCharLine = groupSlice.some(
+          (item) =>
+            item.beat.characterId &&
+            !isNarrationBeat(item.beat) &&
+            (item.voiceEvent || String(item.beat.text || "").trim().length > 0),
+        );
+        const groupFramesSoFar = groupSlice.reduce((s, item) => s + item.durationFrames, 0);
+        // Split whenever another character turn already happened on this plate,
+        // or after an establishing hold >= 54f so we cut from Master -> Speaking Single!
+        return groupHasCharLine || groupFramesSoFar >= 54;
+      };
+
       let end = idx + 1;
       while (
         end < prepared.length &&
         !prepared[end].isGap &&
         !prepared[end].standalone &&
         !prepared[end].hasTitleCard &&
-        prepared[end].picture === head.picture
+        prepared[end].picture === head.picture &&
+        !isHitchcockSplitBoundary(prepared.slice(idx, end), prepared[end])
       ) {
         end += 1;
       }
@@ -1967,9 +2411,41 @@ function buildEditorialCut(
     }
 
     // 3. Apply camera framing & motivated scene-opening transitions
+    let prevPlateForTurns = "";
+    let currentPlateTurn = 0;
+    const speakerSlotsInScene = new Map<string, number>();
+
     consolidated.forEach((beat, shotIdx) => {
+      const pic = String(beat.background || "");
+      if (pic && pic === prevPlateForTurns) {
+        currentPlateTurn += 1;
+      } else {
+        prevPlateForTurns = pic;
+        currentPlateTurn = 0;
+      }
+      const charId = String(beat.characterId || "");
+      const isCharDialogue = Boolean(
+        charId &&
+          !isNarrationBeat(beat) &&
+          (beat.audioUrl || (Array.isArray(beat.captions) && beat.captions.some((c) => !c.isNarration))),
+      );
+      if (isCharDialogue && !speakerSlotsInScene.has(charId)) {
+        speakerSlotsInScene.set(charId, speakerSlotsInScene.size);
+      }
+      const speakerSlot = speakerSlotsInScene.get(charId) ?? 0;
+
       const durF = Math.max(12, Number(beat.durationFrames) || 48);
-      authorNeoNoirCamera(beat, sceneId, shotIdx, durF, pace, variant);
+      if (is1950s && currentPlateTurn >= 1) {
+        delete beat.backgroundTransition;
+        delete beat.backgroundTransitionSpeed;
+      }
+      authorNeoNoirCamera(beat, sceneId, shotIdx, durF, pace, variant, {
+        plateTurnIndex: currentPlateTurn,
+        speakerSlot,
+        isCharacterDialogue: isCharDialogue,
+        sceneParticles: String(scene.particles || ""),
+        sceneTitle: String(scene.title || ""),
+      });
 
       if (shotIdx === 0 && !beat.gap && sceneOrderIdx >= 2) {
         if (is1950s) {
