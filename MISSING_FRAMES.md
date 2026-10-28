@@ -88,3 +88,19 @@ Seven additional narrative, prop-insert, and epilogue story beats were generated
 | **15** | `SHOT 15 · S100 Bird Clip` | `nw_s100` (*100 — Epilogue*) | `nw_b1682` | `88f` (`3.67s`) | `/film/img/s100/1682-the-curtain-moves.jpg` | `/film/depth/s100/1682-the-curtain-moves-depth.jpg` | `1920×1080` |
 | **16** | `SHOT 16 · S100 Money` | `nw_s100` (*100 — Epilogue*) | `nw_b1685` | `100f` (`4.17s`) | `/film/img/s100/1685-money-on-the-counter.jpg` | `/film/depth/s100/1685-money-on-the-counter-depth.jpg` | `1920×1080` |
 
+---
+
+## User-Voted Dialogue Close-Up Coverage (`SHOT 17` .. `SHOT 22`)
+
+Six cinematically motivated `85mm` speaker close-ups were generated with `offer_options: true` from `sigooding/scarlett-witness` character sheets (`vera-face.jpg`, `mara-face.jpg`, `ishida-face.jpg`, `jack-face.jpg`) and each scene's original master plate. **No original frames were deleted**: each preceding wide/two-shot/insert master plate remains on its opening beat(s) and is resized shorter so the new speaker close-up fits seamlessly immediately after it (`VOTED_CLOSEUP_FRAME_SPECS` + `VOTED_CLOSEUP_DEPTH_MAP_BY_BEAT_ID`):
+
+| Slot | Timeline Marker | Scene | Resized Original Frame | New Close-Up Beat & Duration | Installed Plate (`public/film/img/...`) | Depth Map (`public/film/depth/...`) |
+| --- | --- | --- | --- | --- | --- | --- |
+| **17** | `SHOT 17 · S6 Vera CU` | `nw_s6` (*6 — The interview room*) | `nw_b155` `/film/img/s6/58-why-kanda.jpg` (`98f`) | `nw_b157` (`374f` / `15.58s`) | `/film/img/s6/157-the-shootings-in-kanda.jpg` | `/film/depth/s6/157-the-shootings-in-kanda-depth.jpg` |
+| **18** | `SHOT 18 · S20 Mara CU` | `nw_s20_b` (*20 — Prove it*) | `nw_b521` `/film/img/s20/371-the-coward-line.jpg` (`117f`) | `nw_b523` (`583f` / `24.29s`) | `/film/img/s20/523-they-have-my-passport.jpg` | `/film/depth/s20/523-they-have-my-passport-depth.jpg` |
+| **19** | `SHOT 19 · S25 Jack CU` | `nw_s25` (*25 — Locker 114*) | `nw_b615` `/film/img/s25/370-the-tag-114.jpg` (`397f`) | `nw_b622` (`241f` / `10.04s`) | `/film/img/s25/622-keep-it.jpg` | `/film/depth/s25/622-keep-it-depth.jpg` |
+| **20** | `SHOT 20 · S61 Ishida CU` | `nw_s61` (*61 — Nine o'clock*) | `nw_b1008` `/film/img/s61/482-just-you.jpg` (`271f`) | `nw_b1012` (`264f` / `11.00s`) | `/film/img/s61/1012-nine-oclock.jpg` | `/film/depth/s61/1012-nine-oclock-depth.jpg` |
+| **21** | `SHOT 21 · S62 Jack CU` | `nw_s62` (*62 — Like a date*) | `nw_b1019` `/film/img/s62/485-the-signal-is-red.jpg` (`318f`) | `nw_b1025` (`215f` / `8.96s`) | `/film/img/s62/1025-something-to-tell-you.jpg` | `/film/depth/s62/1025-something-to-tell-you-depth.jpg` |
+| **22** | `SHOT 22 · S98 Jack CU` | `nw_s98` (*98 — The rain has stopped*) | `nw_b1617` `/film/img/s98/524-the-only-eyewitness.jpg` (`318f`) | `nw_b1622` (`573f` / `23.88s`) | `/film/img/s98/1622-my-statement.jpg` | `/film/depth/s98/1622-my-statement-depth.jpg` |
+
+

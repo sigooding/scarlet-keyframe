@@ -384,6 +384,117 @@ export const VOTED_GAP_FRAME_SPECS: readonly MissingFrameSpec[] = [
   },
 ];
 
+export interface VotedCloseupFrameSpec extends MissingFrameSpec {
+  precedingMasterBeatId: string;
+  precedingMasterPath: string;
+  precedingMasterDurationFrames: number;
+}
+
+export const VOTED_CLOSEUP_FRAME_SPECS: readonly VotedCloseupFrameSpec[] = [
+  {
+    slotNumber: 17,
+    markerLabel: "SHOT 17 · S6 Vera CU",
+    sceneId: "nw_s6",
+    sceneTitle: "6 — The interview room",
+    beatId: "nw_b157",
+    durationFrames: 374,
+    suggestedPath: "/film/img/s6/157-the-shootings-in-kanda.jpg",
+    precedingMasterBeatId: "nw_b155",
+    precedingMasterPath: "/film/img/s6/58-why-kanda.jpg",
+    precedingMasterDurationFrames: 98,
+    shotSize: "Tight close-up",
+    description:
+      "Tight 85mm close-up of Vera in the sage-green police interview room as realization hits her eyes and she connects Kanda to the bar shootings.",
+    lightingAndMood:
+      "Cool overhead fluorescent light mixed with rainy frosted-window daylight, quiet dawning dread.",
+  },
+  {
+    slotNumber: 18,
+    markerLabel: "SHOT 18 · S20 Mara CU",
+    sceneId: "nw_s20_b",
+    sceneTitle: "20 — Prove it (cont.)",
+    beatId: "nw_b523",
+    durationFrames: 583,
+    suggestedPath: "/film/img/s20/523-they-have-my-passport.jpg",
+    precedingMasterBeatId: "nw_b521",
+    precedingMasterPath: "/film/img/s20/371-the-coward-line.jpg",
+    precedingMasterDurationFrames: 117,
+    shotSize: "Tight close-up",
+    description:
+      "Tight 85mm close-up of Mara on the loft futon under the bare bulb as she confesses that the gunmen have her passport and she watched them shoot two men.",
+    lightingAndMood:
+      "Warm overhead bare-bulb chiaroscuro against dark concrete wall and flour sacks, haunted tear-reddened eyes.",
+  },
+  {
+    slotNumber: 19,
+    markerLabel: "SHOT 19 · S25 Jack CU",
+    sceneId: "nw_s25",
+    sceneTitle: "25 — Locker 114",
+    beatId: "nw_b622",
+    durationFrames: 241,
+    suggestedPath: "/film/img/s25/622-keep-it.jpg",
+    precedingMasterBeatId: "nw_b615",
+    precedingMasterPath: "/film/img/s25/370-the-tag-114.jpg",
+    precedingMasterDurationFrames: 397,
+    shotSize: "Tight close-up",
+    description:
+      "Tight 85mm close-up of Jack in the dim flour-sack loft as he hands Locker 114's key back to Mara and tells her it is safer with her than with him.",
+    lightingAndMood:
+      "Warm single bare-bulb chiaroscuro sculpting Jack's weathered face against muted dark plaster.",
+  },
+  {
+    slotNumber: 20,
+    markerLabel: "SHOT 20 · S61 Ishida CU",
+    sceneId: "nw_s61",
+    sceneTitle: "61 — Nine o'clock",
+    beatId: "nw_b1012",
+    durationFrames: 264,
+    suggestedPath: "/film/img/s61/1012-nine-oclock.jpg",
+    precedingMasterBeatId: "nw_b1008",
+    precedingMasterPath: "/film/img/s61/482-just-you.jpg",
+    precedingMasterDurationFrames: 271,
+    shotSize: "Tight interior car close-up",
+    description:
+      "Reverse 180-degree interior car close-up of Detective Ishida in the right-hand-drive driver's seat under the rainy expressway as he sets the nine o'clock service-road arrangement.",
+    lightingAndMood:
+      "Faint green dashboard glow and warm amber expressway sodium rain bokeh across Ishida's calm unreadable profile.",
+  },
+  {
+    slotNumber: 21,
+    markerLabel: "SHOT 21 · S62 Jack CU",
+    sceneId: "nw_s62",
+    sceneTitle: "62 — Like a date",
+    beatId: "nw_b1025",
+    durationFrames: 215,
+    suggestedPath: "/film/img/s62/1025-something-to-tell-you.jpg",
+    precedingMasterBeatId: "nw_b1019",
+    precedingMasterPath: "/film/img/s62/485-the-signal-is-red.jpg",
+    precedingMasterDurationFrames: 318,
+    shotSize: "Tight OTS close-up under umbrella",
+    description:
+      "Tight close-up of Jack beneath the rain-beaded clear plastic umbrella at the red crosswalk signal telling Vera there is something he wants to tell her properly.",
+    lightingAndMood:
+      "Cool cyan night rain light and crimson pedestrian-signal bokeh glinting off droplets on clear canopy plastic.",
+  },
+  {
+    slotNumber: 22,
+    markerLabel: "SHOT 22 · S98 Jack CU",
+    sceneId: "nw_s98",
+    sceneTitle: "98 — The rain has stopped",
+    beatId: "nw_b1622",
+    durationFrames: 573,
+    suggestedPath: "/film/img/s98/1622-my-statement.jpg",
+    precedingMasterBeatId: "nw_b1617",
+    precedingMasterPath: "/film/img/s98/524-the-only-eyewitness.jpg",
+    precedingMasterDurationFrames: 318,
+    shotSize: "Reverse OTS close-up",
+    description:
+      "Reverse over-the-shoulder tight close-up of Jack on the post-rain rooftop past Vera's cream coat shoulder as he speaks quietly about his Monday prosecutor statement and reacts to Ishida's note.",
+    lightingAndMood:
+      "Pale washed overcast post-rain Tokyo daylight, soft railway wires and rooftops behind.",
+  },
+];
+
 const EXPLICIT_GAP_BEAT_IDS = new Set(MISSING_FRAME_SPECS.map((s) => s.beatId));
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -2881,12 +2992,13 @@ function buildEditorialCut(
     };
   });
 
-  // 5. Place Timeline Note Markers on all 9 original + 7 user-voted newly generated plate slots (+ chapter markers in Creative Cut)
+  // 5. Place Timeline Note Markers on all 9 original + 7 user-voted gap + 6 user-voted close-up plate slots (+ chapter markers in Creative Cut)
   const existingMarkers: NoteMarker[] = Array.isArray(story.markers)
     ? story.markers.filter(
         (m) =>
           !m.id.startsWith("marker-gap-") &&
           !m.id.startsWith("marker-voted-") &&
+          !m.id.startsWith("marker-closeup-") &&
           !m.id.startsWith("marker-chapter-"),
       )
     : [];
@@ -2933,10 +3045,24 @@ function buildEditorialCut(
     });
   }
 
+  const closeupMarkers: NoteMarker[] = [];
+  for (const spec of VOTED_CLOSEUP_FRAME_SPECS) {
+    const closeupClip = clipById.get(spec.beatId);
+    if (!closeupClip) continue;
+    if (chapterFrameSet.has(closeupClip.startFrame)) continue;
+    closeupMarkers.push({
+      id: `marker-closeup-${String(spec.slotNumber).padStart(2, "0")}`,
+      frame: closeupClip.startFrame,
+      name: spec.markerLabel,
+      color: is1950s ? "#c8ccd4" : "#e5c07b",
+    });
+  }
+
   story.markers = [
     ...existingMarkers,
     ...gapMarkers,
     ...votedMarkers,
+    ...closeupMarkers,
     ...chapterMarkers,
   ].sort((a, b) => a.frame - b.frame);
 
@@ -3028,6 +3154,15 @@ export const VOTED_GAP_DEPTH_MAP_BY_BEAT_ID: Readonly<Record<string, string>> = 
   nw_b1675: "/film/depth/s100/1676-the-kaneko-sign-depth.jpg",
   nw_b1682: "/film/depth/s100/1682-the-curtain-moves-depth.jpg",
   nw_b1685: "/film/depth/s100/1685-money-on-the-counter-depth.jpg",
+};
+
+export const VOTED_CLOSEUP_DEPTH_MAP_BY_BEAT_ID: Readonly<Record<string, string>> = {
+  nw_b157: "/film/depth/s6/157-the-shootings-in-kanda-depth.jpg",
+  nw_b523: "/film/depth/s20/523-they-have-my-passport-depth.jpg",
+  nw_b622: "/film/depth/s25/622-keep-it-depth.jpg",
+  nw_b1012: "/film/depth/s61/1012-nine-oclock-depth.jpg",
+  nw_b1025: "/film/depth/s62/1025-something-to-tell-you-depth.jpg",
+  nw_b1622: "/film/depth/s98/1622-my-statement-depth.jpg",
 };
 
 export const DEFAULT_CUT_OPTIONS: Required<CutOptions> = {
@@ -3125,11 +3260,13 @@ export function applyCutOptionsInPlace(
       }
     }
 
-    // 3. 2.5D Depth Maps on all 16 newly added s12 / s53 / s77a / s78 / s100 plates
+    // 3. 2.5D Depth Maps on all 22 newly added s6 / s12 / s20 / s25 / s53 / s61 / s62 / s77a / s78 / s98 / s100 plates
     for (const beat of scene.dialogueBeats ?? []) {
       const beatId = String(beat.id || "");
       const depthPath =
-        NEW_PLATE_DEPTH_MAP_BY_BEAT_ID[beatId] ?? VOTED_GAP_DEPTH_MAP_BY_BEAT_ID[beatId];
+        NEW_PLATE_DEPTH_MAP_BY_BEAT_ID[beatId] ??
+        VOTED_GAP_DEPTH_MAP_BY_BEAT_ID[beatId] ??
+        VOTED_CLOSEUP_DEPTH_MAP_BY_BEAT_ID[beatId];
       if (!depthPath) continue;
       const durF = Math.max(12, Number(beat.durationFrames) || 78);
       const lastF = Math.max(1, durF - 1);
