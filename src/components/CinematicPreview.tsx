@@ -1388,6 +1388,7 @@ export function CinematicPreview({
               <option value="neo-noir">vs Neo-Noir</option>
               <option value="creative">vs Creative</option>
               <option value="noir-1950s">vs 1950s B&amp;W</option>
+              <option value="tarantino">vs Tarantino</option>
               <option value="uncut">vs Uncut</option>
             </select>
           )}
@@ -1478,6 +1479,7 @@ export function CinematicPreview({
               subtitle?: string;
               align?: "center" | "lower-left";
               monochrome?: boolean;
+              tarantino?: boolean;
             }
           | undefined;
         if (!tc || (!tc.title && !tc.kicker && !tc.subtitle)) return null;
@@ -1488,7 +1490,7 @@ export function CinematicPreview({
         const cardOpacity = Math.max(0, Math.min(1, Math.min(inOp, outOp)));
         return (
           <div
-            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"} ${tc.monochrome || cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : ""} ${isAcademy ? "has-academy" : ""}`}
+            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"} ${tc.monochrome || cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : ""} ${tc.tarantino ? "is-tarantino" : ""} ${isAcademy ? "has-academy" : ""}`}
             data-testid="viewer-title-card"
             style={{
               opacity: Number(cardOpacity.toFixed(4)),

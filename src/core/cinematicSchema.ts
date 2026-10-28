@@ -102,6 +102,20 @@ export const CINEMATIC_GROUPS: CinematicGroup[] = [
     id: "lights",
     label: "Lights & flare",
     fields: [
+      field("tarantinoLighting", "Tarantino lighting", "select", {
+        options: [
+          "",
+          "richardson-toplight",
+          "pulp-gold-glow",
+          "neon-crimson-slash",
+          "raid-katana-strobe",
+        ],
+        extension: true,
+      }),
+      field("hitchcockLighting", "Hitchcock lighting", "select", {
+        options: ["", "eye-light", "venetian-slats", "key-slash", "silhouette-rim"],
+        extension: true,
+      }),
       field("lights", "Animated light points", "json"),
       field("lightSource", "Legacy light position", "text"),
       field("lightColor", "Legacy light color", "color"),

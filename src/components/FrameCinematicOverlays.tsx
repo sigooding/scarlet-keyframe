@@ -135,6 +135,12 @@ export type HitchcockLightingKind =
   | "key-slash"
   | "silhouette-rim";
 
+export type TarantinoLightingKind =
+  | "richardson-toplight"
+  | "pulp-gold-glow"
+  | "neon-crimson-slash"
+  | "raid-katana-strobe";
+
 function parseLightingFocal(raw?: unknown): [number, number] {
   if (typeof raw !== "string" || !raw.trim()) return [50, 38];
   const parts = raw.trim().split(/\s+/).map((s) => parseFloat(s));
@@ -189,6 +195,50 @@ function buildHitchcockLightingStyle(
   };
 }
 
+function buildTarantinoLightingStyle(
+  kind: TarantinoLightingKind,
+  focalPoint: unknown,
+  timeSec: number,
+): {
+  background: string;
+  opacity: number;
+  mixBlendMode: React.CSSProperties["mixBlendMode"];
+} {
+  const [fx, fy] = parseLightingFocal(focalPoint);
+  const t = Number.isFinite(timeSec) ? timeSec : 0;
+  const pulse = 1 + 0.035 * Math.sin(t * 2.6);
+
+  if (kind === "pulp-gold-glow") {
+    const srcY = Math.max(66, Math.min(92, fy + 34));
+    return {
+      background: `radial-gradient(ellipse 54% 46% at ${fx.toFixed(1)}% ${srcY.toFixed(1)}%, rgba(255, 212, 59, 0.44) 0%, rgba(255, 158, 18, 0.20) 42%, rgba(16, 8, 2, 0.54) 84%, rgba(0, 0, 0, 0.78) 100%)`,
+      opacity: Number(Math.min(1, 0.84 * pulse).toFixed(4)),
+      mixBlendMode: "soft-light",
+    };
+  }
+  if (kind === "neon-crimson-slash") {
+    return {
+      background: `linear-gradient(118deg, rgba(225, 29, 46, 0.36) 0%, rgba(255, 196, 36, 0.10) 42%, rgba(14, 190, 224, 0.24) 76%, rgba(4, 6, 14, 0.74) 100%)`,
+      opacity: Number(Math.min(1, 0.82 * pulse).toFixed(4)),
+      mixBlendMode: "soft-light",
+    };
+  }
+  if (kind === "raid-katana-strobe") {
+    const strobe = 1 + 0.06 * Math.sin(t * 5.2);
+    return {
+      background: `linear-gradient(132deg, rgba(255, 255, 255, 0.26) 0%, rgba(0, 0, 0, 0.44) 36%, rgba(255, 255, 255, 0.16) 50%, rgba(0, 0, 0, 0.84) 100%)`,
+      opacity: Number(Math.min(1, 0.84 * strobe).toFixed(4)),
+      mixBlendMode: "soft-light",
+    };
+  }
+  // Default: "richardson-toplight" — Robert Richardson's hot overhead tungsten bounce halo
+  return {
+    background: `radial-gradient(ellipse 48% 28% at ${fx.toFixed(1)}% 14%, rgba(255, 245, 204, 0.34) 0%, rgba(255, 196, 72, 0.14) 44%, rgba(12, 8, 4, 0.52) 82%, rgba(0, 0, 0, 0.80) 100%)`,
+    opacity: Number(Math.min(1, 0.84 * pulse).toFixed(4)),
+    mixBlendMode: "soft-light",
+  };
+}
+
 /**
  * Frame-driven replacement for `CinematicOverlays` + `.film-grade` animations
  * (`grade-wash`, halation bloom, `film-grain-jitter`, `film-scratches`, `film-flicker`).
@@ -201,6 +251,7 @@ export function FrameCinematicOverlays({
     vignette?: boolean;
     vignetteStrength?: number;
     hitchcockLighting?: HitchcockLightingKind;
+    tarantinoLighting?: TarantinoLightingKind;
   };
   timeSec: number;
 }) {
@@ -212,6 +263,14 @@ export function FrameCinematicOverlays({
     rawHitchcockLight === "key-slash" ||
     rawHitchcockLight === "silhouette-rim"
       ? rawHitchcockLight
+      : undefined;
+  const rawTarantinoLight = (cinematic as Record<string, unknown> | undefined)?.tarantinoLighting;
+  const tarantinoLighting: TarantinoLightingKind | undefined =
+    rawTarantinoLight === "richardson-toplight" ||
+    rawTarantinoLight === "pulp-gold-glow" ||
+    rawTarantinoLight === "neon-crimson-slash" ||
+    rawTarantinoLight === "raid-katana-strobe"
+      ? rawTarantinoLight
       : undefined;
   const grade =
     rawGradeId === "tokyo-noir"
@@ -230,7 +289,7 @@ export function FrameCinematicOverlays({
     ? Math.max(0, Math.min(1, rawVigStrength))
     : 0.36;
 
-  if (!grade && !film && !hasVignette && !hitchcockLighting) return null;
+  if (!grade && !film && !hasVignette && !hitchcockLighting && !tarantinoLighting) return null;
 
   const strength = Math.max(0, Math.min(1, cinematic?.filmGradeStrength ?? 0.7));
   const t = Number.isFinite(timeSec) ? timeSec : 0;
@@ -299,6 +358,28 @@ export function FrameCinematicOverlays({
                     WebkitMaskImage: hl.maskImage,
                   }
                 : {}),
+              animation: "none",
+              transition: "none",
+            }}
+          />
+        );
+      })()}
+      {tarantinoLighting && (() => {
+        const tl = buildTarantinoLightingStyle(tarantinoLighting, cinematic?.focalPoint, t);
+        return (
+          <div
+            className="frame-tarantino-lighting"
+            data-testid="frame-tarantino-lighting"
+            data-lighting-kind={tarantinoLighting}
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              zIndex: 4,
+              background: tl.background,
+              opacity: tl.opacity,
+              mixBlendMode: tl.mixBlendMode,
               animation: "none",
               transition: "none",
             }}

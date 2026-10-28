@@ -104,9 +104,10 @@ describe("Turn 31 — User-Voted Dialogue Close-Ups Fitted After Resized Origina
       "neo-noir": "tokyo-noir",
       creative: "sodium-amber",
       "noir-1950s": "noir-1950s",
+      tarantino: "tarantino-35mm",
     };
 
-    for (const cutId of ["neo-noir", "creative", "noir-1950s"] as const) {
+    for (const cutId of ["neo-noir", "creative", "noir-1950s", "tarantino"] as const) {
       const proj = buildDirectorsCutById(baseProject, cutId, voiceMap, musicMap);
       const frames = buildKeyframes(proj.story);
       const { clips } = buildTimelineClips(frames, voiceMap);

@@ -189,9 +189,11 @@ export function Topbar({
                     ? "is-creative"
                     : activeOption.id === "noir-1950s"
                       ? "is-noir-1950s"
-                      : activeOption.id === "uncut"
-                        ? "is-uncut"
-                        : ""
+                      : activeOption.id === "tarantino"
+                        ? "is-tarantino"
+                        : activeOption.id === "uncut"
+                          ? "is-uncut"
+                          : ""
                 }`}
               />
               <span>{activeOption.label}</span>
@@ -240,9 +242,11 @@ export function Topbar({
                                   ? "is-creative"
                                   : opt.id === "noir-1950s"
                                     ? "is-noir-1950s"
-                                    : opt.id === "uncut"
-                                      ? "is-uncut"
-                                      : ""
+                                    : opt.id === "tarantino"
+                                      ? "is-tarantino"
+                                      : opt.id === "uncut"
+                                        ? "is-uncut"
+                                        : ""
                               }`}
                             />
                             <span>{opt.label}</span>

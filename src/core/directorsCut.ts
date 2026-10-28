@@ -36,7 +36,12 @@ import {
 
 export const DIRECTORS_CUT_VERSION = 4;
 
-export type DirectorsCutId = "neo-noir" | "creative" | "noir-1950s" | "uncut";
+export type DirectorsCutId =
+  | "neo-noir"
+  | "creative"
+  | "noir-1950s"
+  | "tarantino"
+  | "uncut";
 type EditorialCutVariant = Exclude<DirectorsCutId, "uncut">;
 
 export interface DirectorsCutOptionMeta {
@@ -69,6 +74,13 @@ export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
       "High-contrast silver-gelatin B&W, classical studio pacing, optical lap-dissolves, and sparse atmospheric sound.",
   },
   {
+    id: "tarantino",
+    label: "Tarantino Director’s Cut",
+    shortLabel: "Tarantino Cut",
+    description:
+      "Saturated 35mm grindhouse print & monochrome raid switches, snap crash-zooms, Richardson overhead & 24K golden light, anamorphic flares, and Bride-yellow chapter cards.",
+  },
+  {
     id: "uncut",
     label: "Original Uncut Import",
     shortLabel: "Original Uncut",
@@ -88,7 +100,64 @@ interface CutTitleCard {
   subtitle?: string;
   align?: "center" | "lower-left";
   monochrome?: boolean;
+  tarantino?: boolean;
 }
+
+const TARANTINO_CHAPTER_CARDS: Record<
+  string,
+  { marker: string; card: CutTitleCard }
+> = {
+  nw_s3: {
+    marker: "CH. 1 · Three Days in the Rain",
+    card: {
+      kicker: "CHAPTER ONE",
+      title: "THREE DAYS IN THE RAIN",
+      subtitle: "Jack Harlan · Kanda Aftermath",
+      align: "center",
+      tarantino: true,
+    },
+  },
+  nw_s25: {
+    marker: "CH. 2 · The Number 114",
+    card: {
+      kicker: "CHAPTER TWO",
+      title: "THE NUMBER 114",
+      subtitle: "The Bare Bulb & The Brass Key",
+      align: "center",
+      tarantino: true,
+    },
+  },
+  "nw_cut_inn-raid_01": {
+    marker: "CH. 3 · Tyres on Gravel",
+    card: {
+      kicker: "CHAPTER THREE",
+      title: "MASSACRE AT THE COASTAL INN",
+      subtitle: "Showdown in Monochrome",
+      align: "center",
+      tarantino: true,
+    },
+  },
+  nw_s61: {
+    marker: "CH. 4 · Nine O'Clock",
+    card: {
+      kicker: "CHAPTER FOUR",
+      title: "NINE O’CLOCK UNDER THE EXPRESSWAY",
+      subtitle: "Dashboard Glow · Rain on Steel",
+      align: "center",
+      tarantino: true,
+    },
+  },
+  nw_s83: {
+    marker: "CH. 5 · The Fortieth Floor",
+    card: {
+      kicker: "CHAPTER FIVE",
+      title: "THE FORTIETH FLOOR",
+      subtitle: "Tokyo Grey & Endless Below",
+      align: "center",
+      tarantino: true,
+    },
+  },
+};
 
 const CREATIVE_CHAPTER_CARDS: Record<
   string,
@@ -644,6 +713,7 @@ function populateZeroBeatScenes(
 ): void {
   const is1950s = variant === "noir-1950s";
   const isCreative = variant === "creative";
+  const isTarantino = variant === "tarantino";
 
   for (const scene of story.scenes) {
     if (scene.dialogueBeats && scene.dialogueBeats.length > 0) continue;
@@ -708,7 +778,40 @@ function populateZeroBeatScenes(
         : [String(scene.background || "/film/img/montage/m4-railway-rain.jpg")];
       const looks = (credits.montageLooks || {}) as Record<string, AnyRecord>;
 
-      const cards: Array<CutTitleCard | undefined> = isCreative
+      const cards: Array<CutTitleCard | undefined> = isTarantino
+        ? [
+            {
+              kicker: "THE 4TH CUT · A SCARLET REEL GRINDHOUSE PICTURE",
+              title: "NOBODY’S WITNESS",
+              subtitle: "Filmed in 35mm Anamorphic Scope",
+              align: "center",
+              tarantino: true,
+            },
+            undefined,
+            {
+              kicker: "WRITTEN & DIRECTED BY",
+              title: "SCOTT GOODING",
+              align: "center",
+              tarantino: true,
+            },
+            {
+              kicker: "STARRING",
+              title: "JACK  ·  VERA  ·  MARA",
+              subtitle: "ISHIDA  ·  KANEKO  ·  KUROSE  ·  HARADA",
+              align: "center",
+              tarantino: true,
+            },
+            undefined,
+            {
+              kicker: "ORIGINAL MOTION PICTURE SCORE",
+              title: "SCOTT GOODING",
+              align: "center",
+              tarantino: true,
+            },
+            undefined,
+            undefined,
+          ]
+        : isCreative
         ? [
             {
               kicker: "A MEMORY IN FIVE MOVEMENTS",
@@ -794,8 +897,8 @@ function populateZeroBeatScenes(
               undefined,
             ];
 
-      const plateDur = isCreative ? 104 : is1950s ? 152 : 132;
-      const dissolveSpeed = isCreative ? 1.05 : is1950s ? 0.68 : 0.85;
+      const plateDur = isTarantino ? 98 : isCreative ? 104 : is1950s ? 152 : 132;
+      const dissolveSpeed = isTarantino ? 1.2 : isCreative ? 1.05 : is1950s ? 0.68 : 0.85;
 
       scene.dialogueBeats = montage.map((pic, idx) => {
         const look = looks[pic] ? clone(looks[pic]) : {};
@@ -847,7 +950,43 @@ function populateZeroBeatScenes(
         ? credits.montage.slice(0, 10)
         : [String(scene.background || "/film/img/s1/377-the-hive-remembered.jpg")];
       const looks = (credits.montageLooks || {}) as Record<string, AnyRecord>;
-      const creditCards: Array<CutTitleCard> = is1950s
+      const creditCards: Array<CutTitleCard> = isTarantino
+        ? [
+            {
+              kicker: "A SCARLET REEL GRINDHOUSE PICTURE",
+              title: "NOBODY’S WITNESS",
+              subtitle: "Tokyo as a memory that is still happening.",
+              align: "center",
+              tarantino: true,
+            },
+            {
+              kicker: "WRITTEN & DIRECTED BY",
+              title: "SCOTT GOODING",
+              align: "center",
+              tarantino: true,
+            },
+            {
+              kicker: "THE PLAYERS",
+              title: "JACK  ·  VERA  ·  MARA",
+              subtitle: "ISHIDA  ·  KANEKO  ·  OKADA",
+              align: "center",
+              tarantino: true,
+            },
+            {
+              kicker: "AND FEATURING",
+              title: "HARADA  ·  KUROSE  ·  DANIEL",
+              subtitle: "MRS. SAKAI  ·  MR. & MRS. NODA",
+              align: "center",
+              tarantino: true,
+            },
+            {
+              kicker: "ORIGINAL MOTION PICTURE SCORE",
+              title: "SCOTT GOODING",
+              align: "center",
+              tarantino: true,
+            },
+          ]
+        : is1950s
         ? [
             {
               kicker: "NOBODY’S WITNESS",
@@ -940,7 +1079,15 @@ function populateZeroBeatScenes(
           backgroundTransition: "dissolve",
           backgroundTransitionSpeed: is1950s ? 0.72 : 1.0,
           transitionAlignment: "at-cut",
-          titleCard: is1950s
+          titleCard: isTarantino
+            ? {
+                kicker: "CHAPTER FINALE",
+                title: "NOBODY’S WITNESS",
+                subtitle: "Tokyo as a memory that is still happening.",
+                align: "center",
+                tarantino: true,
+              }
+            : is1950s
             ? {
                 kicker: "NOBODY’S WITNESS",
                 title: "THE END",
@@ -958,7 +1105,22 @@ function populateZeroBeatScenes(
                   title: "NOBODY’S WITNESS",
                   subtitle: "Tokyo as a memory that is still happening.",
                 },
-          cinematic: is1950s
+          cinematic: isTarantino
+            ? {
+                mode: "static",
+                colorGrade: "tarantino-35mm",
+                tarantinoLighting: "pulp-gold-glow",
+                vignette: true,
+                vignetteStrength: 0.48,
+                gateWeave: true,
+                filmGrade: {
+                  halation: 0.42,
+                  grain: 0.26,
+                  scratches: 0.14,
+                  flicker: 0.08,
+                },
+              }
+            : is1950s
             ? {
                 mode: "static",
                 colorGrade: "noir-1950s",
@@ -992,7 +1154,7 @@ function populateZeroBeatScenes(
               { frame: holdUntil, value: 1, easing: "ease-in-out" },
               { frame: endDur - 1, value: 0, easing: "linear" },
             ],
-            ...(is1950s ? { values: { gradeStrength: 1 } } : {}),
+            ...(is1950s || isTarantino ? { values: { gradeStrength: 1 } } : {}),
           },
         },
       ];
@@ -1224,6 +1386,10 @@ function chooseHitchcockLighting(
   return h % 3 === 0 ? "key-slash" : "venetian-slats";
 }
 
+export function isKillBillRaidScene(sceneId: string): boolean {
+  return sceneId.startsWith("nw_cut_inn-raid_") || sceneId.startsWith("nw_song_raid_");
+}
+
 function clampSafeStaticPose(
   zoom: number,
   rawX: number,
@@ -1264,6 +1430,575 @@ function authorNeoNoirCamera(
   // Strip legacy Scarlet Reel auto-camera motion so keyframes are the single camera source
   cin.mode = "static";
   delete cin.shakeAmount;
+
+  if (variant === "tarantino") {
+    // Tarantino 35mm Grindhouse & Kill Bill Director's Cut:
+    // - Saturated "tarantino-35mm" print + high-contrast "noir-1940s" monochrome switches during Inn & Hive raids
+    // - Built-in lighting & VFX: Robert Richardson overhead table bounce, 24K golden locker/talisman glow,
+    //   Shinjuku neon dual-rims, police strobes, anamorphic lens flares, 35mm halation/grain/scratches/gateWeave,
+    //   volumetric light shafts, rain-on-lens droplets, and combat ember/ash/smoke particles
+    // - Expressive keyframe choreography: Shaw Brothers snap crash-zooms (with 35mm exposure flash pops),
+    //   reverse whip pull-outs, Sergio Leone two-step choker pushes, Panavision lateral tracks, & grindhouse Dutch cants
+    const beatId = String(beat.id || "");
+    const picStr = String(beat.background || "");
+    const textStr = String(beat.text || "");
+    const sceneTitleStr = String(hitchcockCtx?.sceneTitle || "");
+    const scenePartStr = String(beat.particles || hitchcockCtx?.sceneParticles || "");
+    const combinedLower = `${sceneId} ${sceneTitleStr} ${picStr} ${textStr}`.toLowerCase();
+
+    const isRaid = isKillBillRaidScene(sceneId);
+    const isS77a = sceneId === "nw_s77a";
+    const isPulpRelic =
+      !isS77a &&
+      (sceneId === "nw_s25" ||
+        sceneId === "nw_s20" ||
+        sceneId === "nw_s61" ||
+        /\b(locker|envelope|talisman|red bird|cassette|tape|watch|ledger|key|briefcase)\b/i.test(
+          textStr,
+        ));
+    const isPoliceScene =
+      !isS77a && /\b(police|siren|cordon|patrol|inspector|crime-scene)\b/i.test(combinedLower);
+    const isWetExterior =
+      !isRaid &&
+      (scenePartStr === "rain" ||
+        scenePartStr === "storm" ||
+        /\b(rain|alley|street|station|bridge|harbour|harbor|canal|avenue|crosswalk|platform|roof|exterior|car|sedan)\b/i.test(
+          combinedLower,
+        ));
+
+    cin.colorGrade = isRaid ? "noir-1940s" : "tarantino-35mm";
+    cin.vignette = true;
+    cin.gateWeave = true;
+    cin.filmGrade = isRaid
+      ? { halation: 0.24, grain: 0.34, scratches: 0.22, flicker: 0.09 }
+      : isS77a
+        ? { halation: 0.30, grain: 0.28, scratches: 0.12, flicker: 0.06 }
+        : { halation: 0.42, grain: 0.26, scratches: 0.14, flicker: 0.08 };
+
+    if (isS77a) {
+      // Scene 77A strict rule: ZERO interior cabin light inside Kurose's car; wet exterior glass & rain only
+      delete cin.tarantinoLighting;
+      delete cin.lights;
+      delete cin.lensFlare;
+      cin.rainOnLens = true;
+      cin.rainIntensity = 0.62;
+      cin.vignetteStrength = 0.62;
+    } else if (isRaid) {
+      cin.tarantinoLighting = "raid-katana-strobe";
+      cin.lights = [
+        {
+          id: `qt-raid-rim-${beatId}`,
+          x: Math.max(12, Math.min(88, fx)),
+          y: 18,
+          color: "#f4f8ff",
+          intensity: 0.52,
+          size: 52,
+          pulse: "flicker",
+          speed: 2.2,
+          blend: "screen",
+        },
+      ];
+      if (h % 2 === 0) {
+        cin.lensFlare = "interrogation";
+      } else {
+        delete cin.lensFlare;
+      }
+      cin.volumetricShafts = true;
+      cin.shaftsIntensity = 0.54;
+      cin.vignetteStrength = 0.56;
+      if (!scenePartStr) {
+        beat.particles = h % 2 === 0 ? "ember" : "ash";
+        beat.particleConfig = { ...(beat.particleConfig || {}), opacity: 0.42 };
+      }
+    } else if (isPulpRelic) {
+      // Pulp Fiction 24-karat golden briefcase / talisman up-glow
+      const glowY = Math.max(66, Math.min(90, fy + 28));
+      cin.tarantinoLighting = "pulp-gold-glow";
+      cin.lights = [
+        {
+          id: `qt-gold-${beatId}`,
+          x: Math.max(18, Math.min(82, fx)),
+          y: glowY,
+          color: "#ffcc33",
+          intensity: 0.58,
+          size: 48,
+          pulse: "breathe",
+          speed: 0.95,
+          blend: "screen",
+        },
+      ];
+      cin.lensFlare = "warm-amber";
+      cin.volumetricShafts = true;
+      cin.shaftsIntensity = 0.46;
+      cin.vignetteStrength = 0.50;
+    } else if (isPoliceScene) {
+      cin.tarantinoLighting = "neon-crimson-slash";
+      cin.lights = [
+        {
+          id: `qt-police-r-${beatId}`,
+          x: 16,
+          y: 28,
+          color: "#ff1e38",
+          intensity: 0.48,
+          size: 46,
+          pulse: "strobe",
+          speed: 1.8,
+          blend: "screen",
+        },
+        {
+          id: `qt-police-b-${beatId}`,
+          x: 84,
+          y: 28,
+          color: "#2563eb",
+          intensity: 0.46,
+          size: 46,
+          pulse: "strobe",
+          speed: 1.5,
+          blend: "screen",
+        },
+      ];
+      cin.lensFlare = "anamorphic-blue";
+      cin.vignetteStrength = 0.50;
+      if (scenePartStr === "rain" || scenePartStr === "storm") {
+        cin.rainOnLens = true;
+        cin.rainIntensity = 0.56;
+      }
+    } else if (isWetExterior) {
+      cin.tarantinoLighting = "neon-crimson-slash";
+      cin.lights = [
+        {
+          id: `qt-neon-r-${beatId}`,
+          x: h % 2 === 0 ? 18 : 82,
+          y: 24,
+          color: "#ff2442",
+          intensity: 0.44,
+          size: 48,
+          pulse: "flicker",
+          speed: 1.3,
+          blend: "screen",
+        },
+        {
+          id: `qt-neon-c-${beatId}`,
+          x: h % 2 === 0 ? 82 : 18,
+          y: 34,
+          color: "#22d3ee",
+          intensity: 0.36,
+          size: 44,
+          pulse: "breathe",
+          speed: 0.85,
+          blend: "screen",
+        },
+      ];
+      if (h % 3 === 0) {
+        cin.lensFlare = "neon-noir";
+      } else if (h % 3 === 1) {
+        cin.lensFlare = "anamorphic-blue";
+      } else {
+        delete cin.lensFlare;
+      }
+      if (scenePartStr === "rain" || scenePartStr === "storm" || /rain|wet/.test(combinedLower)) {
+        cin.rainOnLens = true;
+        cin.rainIntensity = 0.54;
+      }
+      cin.vignetteStrength = 0.48;
+    } else {
+      // Robert Richardson blazing overhead tungsten table bounce
+      cin.tarantinoLighting = "richardson-toplight";
+      cin.lights = [
+        {
+          id: `qt-top-${beatId}`,
+          x: Math.max(22, Math.min(78, fx)),
+          y: 15,
+          color: "#ffe7a3",
+          intensity: 0.52,
+          size: 54,
+          pulse: "steady",
+          speed: 0.6,
+          blend: "screen",
+        },
+      ];
+      cin.volumetricShafts = true;
+      cin.shaftsIntensity = 0.46;
+      if (h % 4 === 0) {
+        cin.lensFlare = "vintage-35mm";
+      } else {
+        delete cin.lensFlare;
+      }
+      cin.vignetteStrength = 0.46;
+      if (
+        !scenePartStr &&
+        /\b(bar|diner|office|parlour|parlor|warehouse|club|kitchen|corridor)\b/i.test(combinedLower) &&
+        h % 3 === 0
+      ) {
+        beat.particles = "smoke";
+        beat.particleConfig = { ...(beat.particleConfig || {}), opacity: 0.34 };
+      }
+    }
+
+    // Preserve 35% motes opacity user constraint if motes are active
+    const finalParticles = beat.particles ?? hitchcockCtx?.sceneParticles;
+    if (finalParticles === "motes") {
+      beat.particleConfig = { ...(beat.particleConfig || {}), opacity: 0.35 };
+    }
+
+    if (pace === "action" && beat.sfxUrl && /smg|shot|shatter|forced|crash|smash|blade/i.test(String(beat.sfxUrl))) {
+      cin.speedRamp = "impact-ramp";
+    } else {
+      delete cin.speedRamp;
+    }
+
+    beat.cinematic = cin;
+
+    const lastF = Math.max(1, durationFrames - 1);
+    const turnIdx = hitchcockCtx?.plateTurnIndex ?? 0;
+    const slot = hitchcockCtx?.speakerSlot ?? 0;
+    const isCharLine = Boolean(hitchcockCtx?.isCharacterDialogue);
+    const hasTitle = Boolean((beat as AnyRecord).titleCard);
+    const isClosePlate =
+      /close|face|hand|watch|scrap|note|envelope|door|window|mirror|portrait|phone|locker|gun|knife|blade/i.test(
+        picStr,
+      );
+    const speakerTargetX = isClosePlate
+      ? fx
+      : Math.abs(fx - 50) >= 6
+        ? fx
+        : slot % 2 === 0
+          ? 38
+          : 62;
+    const eyeTargetY = Math.min(fy, 38);
+
+    // 1. Chapter & Opening Title Cards: stately Panavision anamorphic push with full 35mm grade
+    if (hasTitle || sceneId === "nw_title" || sceneId === "nw_credits") {
+      const p0 = clampSafeStaticPose(1.02, (50 - fx) * 0.06, (50 - fy) * 0.05, 0);
+      const p1 = clampSafeStaticPose(1.12, (50 - fx) * 0.16, (50 - fy) * 0.12, 0);
+      beat.animation = {
+        zoom: [
+          { frame: 0, value: p0.zoom, easing: "bezier", bezier: [0.22, 1, 0.36, 1] },
+          { frame: lastF, value: p1.zoom, easing: "linear" },
+        ],
+        ...(Math.abs(p1.x - p0.x) > 0.04 || Math.abs(p0.x) > 0.04
+          ? {
+              x: [
+                { frame: 0, value: p0.x, easing: "ease-out" },
+                { frame: lastF, value: p1.x, easing: "linear" },
+              ],
+            }
+          : {}),
+        ...(hasDepth
+          ? {
+              depthAmount: [
+                { frame: 0, value: 0.18, easing: "ease-out" },
+                { frame: lastF, value: 0.34, easing: "linear" },
+              ],
+            }
+          : {}),
+        values: { gradeStrength: 1, rotation: 0 },
+      };
+      return;
+    }
+
+    // 2. Shaw Brothers / Kill Bill SNAP CRASH-ZOOM (3-keyframe whip-in + 35mm exposure flash pop!)
+    const isHighImpact =
+      isRaid ||
+      pace === "action" ||
+      isPulpRelic ||
+      /[?!]/.test(textStr) ||
+      /\b(kill|blood|dead|gun|knife|blade|lie|name|police|run|shoot|shot|locker|bird|voss|kurose)\b/i.test(
+        textStr,
+      );
+    const wantCrashZoom =
+      durationFrames >= 24 &&
+      ((isRaid && h % 2 === 0) ||
+        (pace === "action" && h % 3 === 0) ||
+        (isPulpRelic && h % 2 === 0) ||
+        (isCharLine && isHighImpact && (turnIdx >= 1 ? h % 3 === 0 : h % 5 === 0)));
+
+    if (wantCrashZoom) {
+      const dutchDeg = isRaid || pace === "action" ? (h % 3 === 0 ? (h % 2 === 0 ? 2.4 : -2.4) : 0) : 0;
+      const snapF = Math.max(5, Math.min(11, Math.floor(lastF * 0.25)));
+      const flashF = Math.max(2, Math.min(snapF - 1, Math.floor(snapF * 0.5)));
+      const startZ = dutchDeg !== 0 ? 1.12 : 1.03;
+      const snapZ = isClosePlate ? 1.44 : h % 2 === 0 ? 1.58 : 1.50;
+      const endZ = snapZ + 0.04;
+      const p0 = clampSafeStaticPose(
+        startZ,
+        (50 - speakerTargetX) * 0.08,
+        (50 - eyeTargetY) * 0.08,
+        dutchDeg,
+      );
+      const p1 = clampSafeStaticPose(
+        snapZ,
+        (50 - speakerTargetX) * 0.56,
+        (50 - eyeTargetY) * 0.54,
+        dutchDeg,
+      );
+      const p2 = clampSafeStaticPose(
+        endZ,
+        (50 - speakerTargetX) * 0.60,
+        (50 - eyeTargetY) * 0.58,
+        dutchDeg,
+      );
+      beat.animation = {
+        zoom: [
+          { frame: 0, value: p0.zoom, easing: "bezier", bezier: [0.08, 0.92, 0.16, 1] },
+          { frame: snapF, value: p1.zoom, easing: "ease-out" },
+          ...(lastF > snapF + 2 ? [{ frame: lastF, value: p2.zoom, easing: "linear" as const }] : []),
+        ],
+        x: [
+          { frame: 0, value: p0.x, easing: "bezier", bezier: [0.08, 0.92, 0.16, 1] },
+          { frame: snapF, value: p1.x, easing: "ease-out" },
+          ...(lastF > snapF + 2 ? [{ frame: lastF, value: p2.x, easing: "linear" as const }] : []),
+        ],
+        y: [
+          { frame: 0, value: p0.y, easing: "bezier", bezier: [0.08, 0.92, 0.16, 1] },
+          { frame: snapF, value: p1.y, easing: "ease-out" },
+          ...(lastF > snapF + 2 ? [{ frame: lastF, value: p2.y, easing: "linear" as const }] : []),
+        ],
+        exposure: [
+          { frame: 0, value: 0, easing: "ease-out" },
+          { frame: flashF, value: isRaid ? 0.14 : 0.10, easing: "ease-in-out" },
+          { frame: snapF, value: 0.02, easing: "linear" },
+          ...(lastF > snapF + 2 ? [{ frame: lastF, value: 0, easing: "linear" as const }] : []),
+        ],
+        gradeStrength: [
+          { frame: 0, value: 0.88, easing: "ease-out" },
+          { frame: snapF, value: 1, easing: "linear" },
+        ],
+        ...(hasDepth
+          ? {
+              depthAmount: [
+                { frame: 0, value: 0.14, easing: "bezier", bezier: [0.08, 0.92, 0.16, 1] },
+                { frame: snapF, value: 0.42, easing: "linear" },
+              ],
+            }
+          : {}),
+        values: { rotation: p0.rotation },
+      };
+      return;
+    }
+
+    // 3. Reverse Whip Pull-Out Reveal (starts tight on detail/eyes, whips wide onto full room!)
+    const wantWhipPullOut =
+      durationFrames >= 36 &&
+      !isClosePlate &&
+      ((isRaid && h % 4 === 1) || (pace === "action" && h % 5 === 1) || (turnIdx === 0 && h % 9 === 2));
+    if (wantWhipPullOut) {
+      const snapF = Math.max(6, Math.min(13, Math.floor(lastF * 0.28)));
+      const p0 = clampSafeStaticPose(
+        1.48,
+        (50 - speakerTargetX) * 0.50,
+        (50 - eyeTargetY) * 0.48,
+        0,
+      );
+      const p1 = clampSafeStaticPose(1.05, (50 - fx) * 0.08, (50 - fy) * 0.06, 0);
+      const p2 = clampSafeStaticPose(1.025, (50 - fx) * 0.04, (50 - fy) * 0.04, 0);
+      beat.animation = {
+        zoom: [
+          { frame: 0, value: p0.zoom, easing: "bezier", bezier: [0.1, 0.9, 0.2, 1] },
+          { frame: snapF, value: p1.zoom, easing: "ease-out" },
+          ...(lastF > snapF + 2 ? [{ frame: lastF, value: p2.zoom, easing: "linear" as const }] : []),
+        ],
+        x: [
+          { frame: 0, value: p0.x, easing: "bezier", bezier: [0.1, 0.9, 0.2, 1] },
+          { frame: snapF, value: p1.x, easing: "ease-out" },
+          ...(lastF > snapF + 2 ? [{ frame: lastF, value: p2.x, easing: "linear" as const }] : []),
+        ],
+        y: [
+          { frame: 0, value: p0.y, easing: "bezier", bezier: [0.1, 0.9, 0.2, 1] },
+          { frame: snapF, value: p1.y, easing: "ease-out" },
+          ...(lastF > snapF + 2 ? [{ frame: lastF, value: p2.y, easing: "linear" as const }] : []),
+        ],
+        ...(hasDepth
+          ? {
+              depthAmount: [
+                { frame: 0, value: 0.38, easing: "bezier", bezier: [0.1, 0.9, 0.2, 1] },
+                { frame: snapF, value: 0.18, easing: "linear" },
+              ],
+            }
+          : {}),
+        values: { gradeStrength: 1, rotation: 0 },
+      };
+      return;
+    }
+
+    // 4. Sergio Leone / Inglourious Basterds Two-Step Standoff Push into Eye-Line Choker
+    if (durationFrames >= 68 && (isCharLine || isPulpRelic) && h % 4 === 1) {
+      const midF1 = Math.max(14, Math.floor(lastF * 0.36));
+      const midF2 = Math.min(lastF - 4, Math.max(midF1 + 8, Math.floor(lastF * 0.68)));
+      const p0 = clampSafeStaticPose(1.06, (50 - speakerTargetX) * 0.12, (50 - eyeTargetY) * 0.10, 0);
+      const p1 = clampSafeStaticPose(1.30, (50 - speakerTargetX) * 0.38, (50 - eyeTargetY) * 0.38, 0);
+      const p2 = clampSafeStaticPose(1.56, (50 - speakerTargetX) * 0.60, (50 - eyeTargetY) * 0.58, 0);
+      beat.animation = {
+        zoom: [
+          { frame: 0, value: p0.zoom, easing: "ease-in-out" },
+          { frame: midF1, value: p1.zoom, easing: "hold" },
+          { frame: midF2, value: p1.zoom, easing: "bezier", bezier: [0.16, 0.88, 0.24, 1] },
+          { frame: lastF, value: p2.zoom, easing: "linear" },
+        ],
+        x: [
+          { frame: 0, value: p0.x, easing: "ease-in-out" },
+          { frame: midF1, value: p1.x, easing: "hold" },
+          { frame: midF2, value: p1.x, easing: "bezier", bezier: [0.16, 0.88, 0.24, 1] },
+          { frame: lastF, value: p2.x, easing: "linear" },
+        ],
+        y: [
+          { frame: 0, value: p0.y, easing: "ease-in-out" },
+          { frame: midF1, value: p1.y, easing: "hold" },
+          { frame: midF2, value: p1.y, easing: "bezier", bezier: [0.16, 0.88, 0.24, 1] },
+          { frame: lastF, value: p2.y, easing: "linear" },
+        ],
+        ...(hasDepth
+          ? {
+              depthAmount: [
+                { frame: 0, value: 0.18, easing: "ease-in-out" },
+                { frame: lastF, value: 0.40, easing: "linear" },
+              ],
+            }
+          : {}),
+        values: { gradeStrength: 1, rotation: 0 },
+      };
+      return;
+    }
+
+    // 5. Sally Menke Multi-Turn Dialogue Coverage (Master -> Dirty OTS -> Tight Single -> Leone Choker)
+    if (isCharLine) {
+      let targetZoom = 1.04;
+      if (isClosePlate) {
+        targetZoom = turnIdx % 2 === 0 ? 1.12 : 1.28;
+      } else if (turnIdx === 0) {
+        const openRoll = h % 5;
+        targetZoom = openRoll === 0 ? 1.03 : openRoll <= 2 ? 1.32 : openRoll === 3 ? 1.46 : 1.58;
+      } else {
+        const covCycle = (turnIdx + slot) % 4;
+        targetZoom = covCycle === 0 ? 1.34 : covCycle === 1 ? 1.50 : covCycle === 2 ? 1.62 : 1.24;
+      }
+      const dutchDeg =
+        (isRaid || pace === "action" || /ishida|kurose|harada/i.test(String(beat.characterId || ""))) &&
+        h % 5 === 0
+          ? h % 2 === 0
+            ? 2.2
+            : -2.2
+          : 0;
+      const safeStartZ = Math.max(targetZoom, dutchDeg !== 0 ? 1.16 : 1.03);
+      const panScale = Math.min(0.68, (safeStartZ - 1) * 1.1);
+      const p0 = clampSafeStaticPose(
+        safeStartZ,
+        (50 - speakerTargetX) * panScale,
+        (50 - eyeTargetY) * panScale,
+        dutchDeg,
+      );
+      if (durationFrames >= 46 && h % 2 === 0) {
+        const p1 = clampSafeStaticPose(
+          safeStartZ + 0.055,
+          (50 - speakerTargetX) * Math.min(0.72, panScale + 0.06),
+          (50 - eyeTargetY) * Math.min(0.70, panScale + 0.05),
+          dutchDeg,
+        );
+        beat.animation = {
+          zoom: [
+            { frame: 0, value: p0.zoom, easing: "ease-out" },
+            { frame: lastF, value: p1.zoom, easing: "linear" },
+          ],
+          ...(Math.abs(p1.x - p0.x) > 0.04 || Math.abs(p0.x) > 0.04
+            ? {
+                x: [
+                  { frame: 0, value: p0.x, easing: "ease-out" },
+                  { frame: lastF, value: p1.x, easing: "linear" },
+                ],
+              }
+            : {}),
+          ...(Math.abs(p1.y - p0.y) > 0.04 || Math.abs(p0.y) > 0.04
+            ? {
+                y: [
+                  { frame: 0, value: p0.y, easing: "ease-out" },
+                  { frame: lastF, value: p1.y, easing: "linear" },
+                ],
+              }
+            : {}),
+          ...(hasDepth
+            ? {
+                depthAmount: [
+                  { frame: 0, value: 0.22, easing: "ease-out" },
+                  { frame: lastF, value: 0.34, easing: "linear" },
+                ],
+              }
+            : {}),
+          values: { gradeStrength: 1, rotation: p0.rotation },
+        };
+      } else {
+        beat.animation = {
+          values: {
+            zoom: p0.zoom,
+            x: p0.x,
+            y: p0.y,
+            rotation: p0.rotation,
+            gradeStrength: 1,
+            ...(hasDepth ? { depthAmount: 0.26 } : {}),
+          },
+        };
+      }
+      return;
+    }
+
+    // 6. 2.35:1 Anamorphic Panavision Lateral Tracking Glide on non-dialogue / corridor / street plates
+    if (durationFrames >= 48 && h % 3 !== 2) {
+      const dir = h % 2 === 0 ? 1 : -1;
+      const dutchDeg = isRaid || pace === "action" ? (h % 2 === 0 ? 2.1 : -2.1) : 0;
+      const trackZ = dutchDeg !== 0 ? 1.28 : 1.24;
+      const panY = (50 - Math.min(fy, 44)) * 0.28;
+      const p0 = clampSafeStaticPose(trackZ, -5.6 * dir, panY, dutchDeg);
+      const p1 = clampSafeStaticPose(trackZ + 0.03, 5.6 * dir, panY, dutchDeg);
+      beat.animation = {
+        zoom: [
+          { frame: 0, value: p0.zoom, easing: "ease-in-out" },
+          { frame: lastF, value: p1.zoom, easing: "linear" },
+        ],
+        x: [
+          { frame: 0, value: p0.x, easing: "ease-in-out" },
+          { frame: lastF, value: p1.x, easing: "linear" },
+        ],
+        ...(Math.abs(p0.y) > 0.05
+          ? {
+              y: [
+                { frame: 0, value: p0.y, easing: "linear" },
+                { frame: lastF, value: p1.y, easing: "linear" },
+              ],
+            }
+          : {}),
+        ...(hasDepth
+          ? {
+              depthAmount: [
+                { frame: 0, value: 0.24, easing: "ease-in-out" },
+                { frame: lastF, value: 0.38, easing: "linear" },
+              ],
+            }
+          : {}),
+        values: { gradeStrength: 1, rotation: p0.rotation },
+      };
+      return;
+    }
+
+    // 7. Grindhouse Dutch-Cant Hold / Tight Framing
+    const dutchHold = isRaid || pace === "action" ? (h % 2 === 0 ? 2.6 : -2.6) : 0;
+    const holdZ = dutchHold !== 0 ? 1.24 : h % 2 === 0 ? 1.18 : 1.06;
+    const holdPose = clampSafeStaticPose(
+      holdZ,
+      (50 - fx) * Math.min(0.42, (holdZ - 1) * 0.9),
+      (50 - Math.min(fy, 42)) * Math.min(0.40, (holdZ - 1) * 0.85),
+      dutchHold,
+    );
+    beat.animation = {
+      values: {
+        zoom: holdPose.zoom,
+        x: holdPose.x,
+        y: holdPose.y,
+        rotation: holdPose.rotation,
+        gradeStrength: 1,
+        ...(hasDepth ? { depthAmount: 0.24 } : {}),
+      },
+    };
+    return;
+  }
 
   if (variant === "noir-1950s") {
     // Authentic 1950s Hitchcockian Silver-Gelatin Monochrome:
@@ -1995,6 +2730,7 @@ function buildEditorialCut(
 ): ProjectState {
   const isCreative = variant === "creative";
   const is1950s = variant === "noir-1950s";
+  const isTarantino = variant === "tarantino";
 
   const uncutSnapshot: ProjectSnapshot = {
     id: "snapshot-uncut-original-import",
@@ -2085,7 +2821,7 @@ function buildEditorialCut(
           sceneParticles: String(scene.particles || ""),
           sceneTitle: String(scene.title || ""),
         });
-        if (b.id === "nw_b1296" && !is1950s) {
+        if (b.id === "nw_b1296" && !is1950s && !isTarantino) {
           const lastF = Math.max(1, durF - 1);
           if (isCreative) {
             b.animation = {
@@ -2312,17 +3048,29 @@ function buildEditorialCut(
             : undefined,
         });
       } else if (isNarr) {
-        // Creative Cut 5-movement chapter intertitle override on silent opener beats
+        // Creative Cut & Tarantino Cut 5-chapter intertitle overrides on silent opener beats
         const creativeChapter =
           isCreative && i === 0 ? CREATIVE_CHAPTER_CARDS[sceneId] : undefined;
+        const tarantinoChapter =
+          isTarantino && i === 0 ? TARANTINO_CHAPTER_CARDS[sceneId] : undefined;
         const decision = creativeChapter
           ? ({ kind: "title", card: creativeChapter.card } as const)
-          : classifySilentNarratorText(sceneId, beatId, String(beat.text || ""));
+          : tarantinoChapter
+            ? ({ kind: "title", card: tarantinoChapter.card } as const)
+            : classifySilentNarratorText(sceneId, beatId, String(beat.text || ""));
         if (decision.kind === "title") {
           (beat as AnyRecord).titleCard = is1950s
             ? { ...decision.card, monochrome: true }
-            : decision.card;
-          const durF = creativeChapter ? 96 : is1950s ? 102 : 84;
+            : isTarantino
+              ? { ...decision.card, align: "center", tarantino: true }
+              : decision.card;
+          const durF = tarantinoChapter
+            ? 92
+            : creativeChapter
+              ? 96
+              : is1950s
+                ? 102
+                : 84;
           prepared.push({
             beat,
             picture: pic,
@@ -2330,6 +3078,17 @@ function buildEditorialCut(
             hasTitleCard: true,
             durationFrames: durF,
             captions: [],
+            ...(isTarantino && sfxUrl
+              ? {
+                  sfxEvent: {
+                    lane: "sfx" as const,
+                    src: sfxUrl,
+                    offsetWithinBeatMs: 0,
+                    gain: Math.min(0.72, Number(beat.sfxVolume ?? 0.6)),
+                    durationMs: Math.max(MIN_AUDIO_CLIP_MS, roundMicros((sfxSec ?? 1.5) * 1000)),
+                  },
+                }
+              : {}),
           });
         } else if (decision.kind === "caption") {
           const readSec = Math.max(
@@ -2505,15 +3264,17 @@ function buildEditorialCut(
         groupSlice: PreparedBeat[],
         candidate: PreparedBeat,
       ): boolean => {
-        if (!is1950s) return false;
-        // Always isolate curated Vertigo psychological set-piece beats onto their own shot!
-        if (
-          lookupHitchcockVertigoSpec(sceneId, String(candidate.beat.id || "")) ||
-          groupSlice.some((item) =>
-            Boolean(lookupHitchcockVertigoSpec(sceneId, String(item.beat.id || ""))),
-          )
-        ) {
-          return true;
+        if (!is1950s && !isTarantino) return false;
+        if (is1950s) {
+          // Always isolate curated Vertigo psychological set-piece beats onto their own shot!
+          if (
+            lookupHitchcockVertigoSpec(sceneId, String(candidate.beat.id || "")) ||
+            groupSlice.some((item) =>
+              Boolean(lookupHitchcockVertigoSpec(sceneId, String(item.beat.id || ""))),
+            )
+          ) {
+            return true;
+          }
         }
         const isCandCharLine = Boolean(
           candidate.beat.characterId &&
@@ -2529,8 +3290,8 @@ function buildEditorialCut(
         );
         const groupFramesSoFar = groupSlice.reduce((s, item) => s + item.durationFrames, 0);
         // Split whenever another character turn already happened on this plate,
-        // or after an establishing hold >= 54f so we cut from Master -> Speaking Single!
-        return groupHasCharLine || groupFramesSoFar >= 54;
+        // or after an establishing hold >= 54f (50f in Tarantino Cut) so we cut Master -> Single / Crash-Zoom!
+        return groupHasCharLine || groupFramesSoFar >= (isTarantino ? 50 : 54);
       };
 
       let end = idx + 1;
@@ -2657,7 +3418,7 @@ function buildEditorialCut(
       const speakerSlot = speakerSlotsInScene.get(charId) ?? 0;
 
       const durF = Math.max(12, Number(beat.durationFrames) || 48);
-      if (is1950s && currentPlateTurn >= 1) {
+      if ((is1950s || isTarantino) && currentPlateTurn >= 1) {
         delete beat.backgroundTransition;
         delete beat.backgroundTransitionSpeed;
       }
@@ -2670,7 +3431,42 @@ function buildEditorialCut(
       });
 
       if (shotIdx === 0 && !beat.gap && sceneOrderIdx >= 2) {
-        if (is1950s) {
+        if (isTarantino) {
+          // Tarantino 35mm Grindhouse grammar: sharp chapter dips to black, directional grindhouse reel wipes
+          // into monochrome raids & location jumps, and hard Sally Menke straight cuts everywhere else.
+          if (
+            TARANTINO_CHAPTER_CARDS[sceneId] ||
+            sceneId === "nw_prologue" ||
+            sceneId === "nw_s78" ||
+            sceneId === "nw_s98" ||
+            sceneId === "nw_s99a"
+          ) {
+            beat.backgroundTransition = "dip-to-black";
+            beat.backgroundTransitionSpeed = 1.15;
+            beat.transitionAlignment = "at-cut";
+          } else if (
+            sceneId === "nw_cut_inn-raid_02" ||
+            sceneId === "nw_song_raid_01" ||
+            sceneId === "nw_s14a" ||
+            sceneId === "nw_s39" ||
+            sceneId === "nw_s48"
+          ) {
+            beat.backgroundTransition = sceneOrderIdx % 2 === 0 ? "wipe-left" : "wipe-right";
+            beat.backgroundTransitionSpeed = 1.45;
+            beat.transitionAlignment = "at-cut";
+          } else if (sceneId.includes("song_service")) {
+            const serviceNum = Number((/_(\d+)$/.exec(sceneId) || [])[1] || "0");
+            if (serviceNum === 1) {
+              beat.backgroundTransition = "dip-to-black";
+              beat.backgroundTransitionSpeed = 1.1;
+              beat.transitionAlignment = "at-cut";
+            } else if (serviceNum % 2 === 1) {
+              beat.backgroundTransition = "dissolve";
+              beat.backgroundTransitionSpeed = 0.9;
+              beat.transitionAlignment = "at-cut";
+            }
+          }
+        } else if (is1950s) {
           // Classical 1950s studio grammar: slow curtain fades to black at act breaks,
           // optical laboratory lap-dissolves across day/night & location shifts.
           if (
@@ -2819,7 +3615,7 @@ function buildEditorialCut(
   }
 
   // Diegetic foley soundscape for Scene 77A ("The black glass") & Scene 12 gaps
-  const foleyScale = is1950s ? 0.78 : isCreative ? 1.06 : 1.0;
+  const foleyScale = is1950s ? 0.78 : isTarantino ? 1.12 : isCreative ? 1.06 : 1.0;
   const diegeticExtras: Array<{
     anchorBeatId: string;
     src: string;
@@ -2899,15 +3695,25 @@ function buildEditorialCut(
       const isLogoMusic =
         rc.src.includes("black-cove") || rc.src.includes("scarlet-reel-logo");
       const preRollMs =
-        !isLogoMusic && rc.startMs > 5000 ? (is1950s ? 500 : isCreative ? 1400 : 850) : 0;
+        !isLogoMusic && rc.startMs > 5000
+          ? is1950s
+            ? 500
+            : isTarantino
+              ? 1250
+              : isCreative
+                ? 1400
+                : 850
+          : 0;
       const actualPreRollMs = Math.min(preRollMs, rc.startMs);
       const musicGain = isLogoMusic
         ? rc.gain
         : is1950s
           ? Math.min(0.40, rc.gain * 0.68)
-          : isCreative
-            ? Math.min(0.62, rc.gain * 0.9)
-            : Math.min(0.56, rc.gain * 0.82);
+          : isTarantino
+            ? Math.min(0.65, rc.gain * 0.94)
+            : isCreative
+              ? Math.min(0.62, rc.gain * 0.9)
+              : Math.min(0.56, rc.gain * 0.82);
       return {
         id: rc.id,
         lane: rc.lane,
@@ -2917,14 +3723,18 @@ function buildEditorialCut(
         inMs: rc.inMs,
         durationMs: roundMicros(rc.durationMs + actualPreRollMs),
         gain: musicGain,
-        fadeInMs: isLogoMusic ? rc.fadeInMs : Math.max(rc.fadeInMs, is1950s ? 3200 : isCreative ? 2000 : 2400),
-        fadeOutMs: isLogoMusic ? rc.fadeOutMs : Math.max(rc.fadeOutMs, is1950s ? 3600 : isCreative ? 2600 : 2800),
+        fadeInMs: isLogoMusic
+          ? rc.fadeInMs
+          : Math.max(rc.fadeInMs, is1950s ? 3200 : isTarantino ? 1400 : isCreative ? 2000 : 2400),
+        fadeOutMs: isLogoMusic
+          ? rc.fadeOutMs
+          : Math.max(rc.fadeOutMs, is1950s ? 3600 : isTarantino ? 2000 : isCreative ? 2600 : 2800),
         loop: rc.loop,
       };
     }
 
     if (rc.lane === "sfx") {
-      const maxSfxGain = is1950s ? 0.48 : isCreative ? 0.72 : 0.68;
+      const maxSfxGain = is1950s ? 0.48 : isTarantino ? 0.76 : isCreative ? 0.72 : 0.68;
       return {
         id: rc.id,
         lane: rc.lane,
@@ -2941,18 +3751,21 @@ function buildEditorialCut(
     }
 
     // Voice lane J-cut strategy per editorial cut:
+    // - Tarantino Cut: razor-sharp Sally Menke -320 ms dialogue pre-laps whenever >= 520 ms silence precedes
     // - Creative Cut: bold -360 ms psychological pre-lap J-cuts whenever >= 620 ms silence precedes
     // - 1950s Noir Cut: classical straight dialogue cuts (gentle -80 ms breath softening only)
     // - Neo-Noir Cut: balanced -240 ms J-cuts whenever >= 480 ms silence precedes
     const isAtClipStart = Math.abs(rc.offsetMs) < 35;
     const prevEndMs = prevVoiceEndById.get(rc.id) ?? 0;
     const clearBeforeMs = rc.startMs - prevEndMs;
-    const minClearMs = is1950s ? 800 : isCreative ? 620 : 480;
+    const minClearMs = is1950s ? 800 : isTarantino ? 520 : isCreative ? 620 : 480;
     const shouldPreLap = is1950s
       ? hashInt(rc.id) % 3 === 0
-      : isCreative
-        ? hashInt(rc.id) % 5 !== 0
-        : hashInt(rc.id) % 3 !== 0;
+      : isTarantino
+        ? hashInt(rc.id) % 4 !== 0
+        : isCreative
+          ? hashInt(rc.id) % 5 !== 0
+          : hashInt(rc.id) % 3 !== 0;
 
     if (
       anchorClip &&
@@ -2961,7 +3774,7 @@ function buildEditorialCut(
       clearBeforeMs >= minClearMs &&
       shouldPreLap
     ) {
-      const jCutLeadMs = is1950s ? 80 : isCreative ? 360 : 240;
+      const jCutLeadMs = is1950s ? 80 : isTarantino ? 320 : isCreative ? 360 : 240;
       return {
         id: rc.id,
         lane: rc.lane,
@@ -3015,6 +3828,19 @@ function buildEditorialCut(
         frame: firstClip.startFrame,
         name: scId === "nw_s77a" ? "PART IV · SHOT 03 · Black Glass" : ch.marker,
         color: "#c678dd",
+      });
+    });
+  } else if (isTarantino) {
+    const chapterEntries = Object.entries(TARANTINO_CHAPTER_CARDS);
+    chapterEntries.forEach(([scId, ch], chIdx) => {
+      const firstClip = timelineClips.find((c) => c.keyframe.sceneId === scId);
+      if (!firstClip) return;
+      chapterFrameSet.add(firstClip.startFrame);
+      chapterMarkers.push({
+        id: `marker-chapter-${String(chIdx + 1).padStart(2, "0")}`,
+        frame: firstClip.startFrame,
+        name: ch.marker,
+        color: "#ffd400",
       });
     });
   }
