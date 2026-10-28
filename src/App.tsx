@@ -107,8 +107,11 @@ import {
 } from "./core/edits";
 import { buildPortableBundle } from "./core/exportBundle";
 import {
+  buildDirectorsCutById,
   buildDirectorsCutProject,
   DIRECTORS_CUT_VERSION,
+  getDirectorsCutLabel,
+  type DirectorsCutId,
 } from "./core/directorsCut";
 import { downloadText, measureAudioDuration, slug } from "./core/helpers";
 import {
@@ -822,16 +825,20 @@ export default function App() {
                 ...normalizedSaved.snapshots.filter((s) => s.id !== preCutSnapshot.id),
               ],
             };
-            initialProject = buildDirectorsCutProject(
+            initialProject = buildDirectorsCutById(
               withPreSnap,
+              normalizedSaved.directorsCutId ?? "neo-noir",
               initialVoiceDurations,
               initialMusicDurations,
             );
             void saveActiveProject(initialProject).catch(() => {});
-            statusLabel = "DIRECTOR’S CUT";
+            statusLabel = getDirectorsCutLabel(initialProject.directorsCutId).toUpperCase();
           } else {
-            initialProject = normalizedSaved;
-            statusLabel = "AUTOSAVED PROJECT";
+            initialProject = {
+              ...normalizedSaved,
+              directorsCutId: normalizedSaved.directorsCutId ?? "neo-noir",
+            };
+            statusLabel = getDirectorsCutLabel(initialProject.directorsCutId).toUpperCase();
           }
         } else {
           const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json", {
@@ -844,7 +851,9 @@ export default function App() {
             initialVoiceDurations,
             initialMusicDurations,
           );
-          statusLabel = isRenderMode ? "RENDER MODE" : "DIRECTOR’S CUT";
+          statusLabel = isRenderMode
+            ? "RENDER MODE"
+            : getDirectorsCutLabel(initialProject.directorsCutId).toUpperCase();
         }
 
         if (!Array.isArray(initialProject.audioClips)) {
@@ -4315,13 +4324,61 @@ export default function App() {
             "Converted all camera moves to keyframes",
           )
         }
-        onApplyDirectorsCut={
+        activeCutId={project.directorsCutId ?? "neo-noir"}
+        onSelectDirectorsCut={
           project.story.id === "nobodys-witness-film"
-            ? () =>
-                editProject(
-                  (current) => buildDirectorsCutProject(current, voiceDurations, musicDurations),
-                  "Applied Neo-Noir Director’s Cut",
-                )
+            ? (cutId: DirectorsCutId) => {
+                const current = projectRef.current;
+                if (!current) return;
+                if (playback) stopPlaybackAndAudio();
+                const currentClip = clipAtFrame(clips, playheadRef.current);
+                const targetBeatId = currentClip?.keyframe.id;
+                const targetSceneId = currentClip?.keyframe.sceneId;
+                const progressRatio =
+                  currentClip && currentClip.durationFrames > 1
+                    ? (playheadRef.current - currentClip.startFrame) /
+                      (currentClip.durationFrames - 1)
+                    : 0;
+
+                const nextProject = buildDirectorsCutById(
+                  current,
+                  cutId,
+                  voiceDurations,
+                  musicDurations,
+                );
+                const label = getDirectorsCutLabel(cutId);
+                applyProject(nextProject, `Switched to ${label}`);
+
+                const nextFrames = buildKeyframes(nextProject.story);
+                const { clips: nextClips, totalFrames: nextTotal } = buildTimelineClips(
+                  nextFrames,
+                  voiceDurations,
+                );
+                const matchedClip =
+                  (targetBeatId &&
+                    nextClips.find((c) => c.keyframe.id === targetBeatId)) ||
+                  (targetSceneId &&
+                    nextClips.find((c) => c.keyframe.sceneId === targetSceneId)) ||
+                  nextClips[0];
+                if (matchedClip) {
+                  const mappedFrame =
+                    matchedClip.keyframe.id === targetBeatId
+                      ? matchedClip.startFrame +
+                        Math.round(
+                          Math.max(0, Math.min(0.95, progressRatio)) *
+                            Math.max(0, matchedClip.durationFrames - 1),
+                        )
+                      : matchedClip.startFrame;
+                  const clamped = Math.max(0, Math.min(Math.max(0, nextTotal - 1), mappedFrame));
+                  playheadRef.current = clamped;
+                  setPlayheadFrame(clamped);
+                  setSelectedFrameId(matchedClip.keyframe.id);
+                  setSelectedFrameIds([matchedClip.keyframe.id]);
+                }
+                if (exportWholeFilm) {
+                  setExportToFrame(Math.max(0, nextTotal - 1));
+                }
+              }
             : undefined
         }
       />

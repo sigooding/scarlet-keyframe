@@ -88,7 +88,7 @@ export const CINEMATIC_GROUPS: CinematicGroup[] = [
     id: "look",
     label: "Grade & texture",
     fields: [
-      field("colorGrade", "Color grade", "select", { options: ["", "tokyo-noir", "midnight-teal", "neon-noir", "noir-1940s", "nolan-imax", "tarantino-35mm", "spielberg-golden"] }),
+      field("colorGrade", "Color grade", "select", { options: ["", "tokyo-noir", "sodium-amber", "noir-1950s", "midnight-teal", "neon-noir", "noir-1940s", "nolan-imax", "tarantino-35mm", "spielberg-golden"] }),
       field("filmGrade", "Film stock", "boolean"),
       field("filmGradeStrength", "Film strength", "number", { min: 0, max: 1, step: 0.01 }),
       field("dimAmount", "Dim amount", "number", { min: 0, max: 1, step: 0.01 }),

@@ -34,6 +34,111 @@ import {
 
 export const DIRECTORS_CUT_VERSION = 4;
 
+export type DirectorsCutId = "neo-noir" | "creative" | "noir-1950s" | "uncut";
+type EditorialCutVariant = Exclude<DirectorsCutId, "uncut">;
+
+export interface DirectorsCutOptionMeta {
+  id: DirectorsCutId;
+  label: string;
+  shortLabel: string;
+  description: string;
+}
+
+export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
+  {
+    id: "neo-noir",
+    label: "Neo-Noir Director’s Cut",
+    shortLabel: "Neo-Noir Cut",
+    description:
+      "Contemporary Tokyo neo-noir & Ozu stillness — cool slate-teal grade, poised tripod holds, and balanced J-cuts.",
+  },
+  {
+    id: "creative",
+    label: "Creative Director’s Cut",
+    shortLabel: "Creative Cut",
+    description:
+      "Memory-framed cold open, five chapter movements, sodium bleach-bypass look, kinetic camera & deep pre-lap sound.",
+  },
+  {
+    id: "noir-1950s",
+    label: "1950s Noir Director’s Cut",
+    shortLabel: "1950s Noir Cut",
+    description:
+      "High-contrast silver-gelatin B&W, classical studio pacing, optical lap-dissolves, and sparse atmospheric sound.",
+  },
+  {
+    id: "uncut",
+    label: "Original Uncut Import",
+    shortLabel: "Original Uncut",
+    description:
+      "Raw 1,584-beat source assembly before editorial consolidation or grading.",
+  },
+];
+
+export function getDirectorsCutLabel(cutId: DirectorsCutId | undefined): string {
+  const found = DIRECTORS_CUT_OPTIONS.find((opt) => opt.id === (cutId ?? "neo-noir"));
+  return found ? found.label : "Neo-Noir Director’s Cut";
+}
+
+interface CutTitleCard {
+  kicker?: string;
+  title: string;
+  subtitle?: string;
+  align?: "center" | "lower-left";
+  monochrome?: boolean;
+}
+
+const CREATIVE_CHAPTER_CARDS: Record<
+  string,
+  { marker: string; card: CutTitleCard }
+> = {
+  nw_s3: {
+    marker: "PART I · The Torn Strap",
+    card: {
+      kicker: "PART I · THREE DAYS LATER",
+      title: "THE TORN STRAP",
+      subtitle: "Tokyo in the fourth day of rain",
+      align: "lower-left",
+    },
+  },
+  nw_s30: {
+    marker: "PART II · Twenty Years",
+    card: {
+      kicker: "PART II · NORTH OF THE CITY",
+      title: "TWENTY YEARS OF JANUARIES",
+      subtitle: "The road to the inn",
+      align: "lower-left",
+    },
+  },
+  nw_s61: {
+    marker: "PART III · Nine O’Clock",
+    card: {
+      kicker: "PART III · UNDER THE EXPRESSWAY",
+      title: "NINE O’CLOCK",
+      subtitle: "Two detectives in the dark",
+      align: "lower-left",
+    },
+  },
+  nw_s77a: {
+    marker: "PART IV · The Black Glass",
+    card: {
+      kicker: "PART IV · BEFORE DAWN",
+      title: "THE BLACK GLASS",
+      subtitle: "Everyone is allowed one",
+      align: "lower-left",
+    },
+  },
+  nw_s98: {
+    marker: "PART V · After the Rain",
+    card: {
+      kicker: "PART V · FIVE DAYS LATER",
+      title: "AFTER THE RAIN",
+      subtitle: "What the city forgets",
+      align: "lower-left",
+    },
+  },
+};
+
 export interface MissingFrameSpec {
   slotNumber: number;
   markerLabel: string;
@@ -319,7 +424,13 @@ function classifySilentNarratorText(
  * that originally had `dialogueBeats: []` (`nw_intro`, `nw_logo`, `nw_title`,
  * `nw_m18`, `nw_m53`, `nw_credits`, `nw_end`).
  */
-function populateZeroBeatScenes(story: StoryLike): void {
+function populateZeroBeatScenes(
+  story: StoryLike,
+  variant: EditorialCutVariant = "neo-noir",
+): void {
+  const is1950s = variant === "noir-1950s";
+  const isCreative = variant === "creative";
+
   for (const scene of story.scenes) {
     if (scene.dialogueBeats && scene.dialogueBeats.length > 0) continue;
 
@@ -333,6 +444,20 @@ function populateZeroBeatScenes(story: StoryLike): void {
           background: String(scene.background || "video:/film/video/black-cove.mp4"),
           durationFrames: Math.round(7.9 * FPS),
           captions: [],
+          ...(is1950s
+            ? {
+                cinematic: {
+                  mode: "static",
+                  colorGrade: "noir-1950s",
+                  filmGrade: false,
+                  vignette: true,
+                  vignetteStrength: 0.48,
+                  grain: true,
+                  grainOpacity: 0.068,
+                },
+                animation: { values: { gradeStrength: 1 } },
+              }
+            : {}),
         },
       ];
     } else if (scene.id === "nw_logo") {
@@ -345,36 +470,118 @@ function populateZeroBeatScenes(story: StoryLike): void {
           background: String(scene.background || "video:/film/video/scarlet-reel-logo.mp4"),
           durationFrames: Math.round(9.9 * FPS),
           captions: [],
+          ...(is1950s
+            ? {
+                cinematic: {
+                  mode: "static",
+                  colorGrade: "noir-1950s",
+                  filmGrade: false,
+                  vignette: true,
+                  vignetteStrength: 0.48,
+                  grain: true,
+                  grainOpacity: 0.068,
+                },
+                animation: { values: { gradeStrength: 1 } },
+              }
+            : {}),
         },
       ];
     } else if (scene.id === "nw_title") {
       const credits = (scene.credits || {}) as AnyRecord;
+      const sliceCount = isCreative ? 10 : 8;
       const montage: string[] = Array.isArray(credits.montage)
-        ? credits.montage.slice(0, 8)
+        ? credits.montage.slice(0, sliceCount)
         : [String(scene.background || "/film/img/montage/m4-railway-rain.jpg")];
       const looks = (credits.montageLooks || {}) as Record<string, AnyRecord>;
-      const cards: Array<{ kicker?: string; title: string; subtitle?: string } | undefined> = [
-        undefined,
-        {
-          title: "NOBODY’S WITNESS",
-          subtitle: "Tokyo in the rain",
-        },
-        undefined,
-        {
-          kicker: "WRITTEN & DIRECTED BY",
-          title: "Scott Gooding",
-        },
-        {
-          kicker: "STARRING",
-          title: "Jack  ·  Vera  ·  Mara",
-        },
-        undefined,
-        {
-          kicker: "ORIGINAL SCORE",
-          title: "Scott Gooding",
-        },
-        undefined,
-      ];
+
+      const cards: Array<CutTitleCard | undefined> = isCreative
+        ? [
+            {
+              kicker: "A MEMORY IN FIVE MOVEMENTS",
+              title: "NOBODY’S WITNESS",
+              subtitle: "Tokyo, before the rain stopped",
+              align: "lower-left",
+            },
+            undefined,
+            {
+              kicker: "WRITTEN & DIRECTED BY",
+              title: "Scott Gooding",
+              align: "lower-left",
+            },
+            undefined,
+            {
+              kicker: "STARRING",
+              title: "Jack  ·  Vera  ·  Mara",
+              align: "lower-left",
+            },
+            {
+              kicker: "FEATURING",
+              title: "Ishida  ·  Kaneko  ·  Kurose  ·  Harada",
+              align: "lower-left",
+            },
+            undefined,
+            {
+              kicker: "ORIGINAL SCORE",
+              title: "Scott Gooding",
+              align: "lower-left",
+            },
+            undefined,
+            undefined,
+          ]
+        : is1950s
+          ? [
+              undefined,
+              {
+                kicker: "A SCARLET REEL PICTURE",
+                title: "NOBODY’S WITNESS",
+                subtitle: "A Tokyo Nocturne",
+                monochrome: true,
+              },
+              undefined,
+              {
+                kicker: "SCREENPLAY & DIRECTION",
+                title: "Scott Gooding",
+                monochrome: true,
+              },
+              {
+                kicker: "STARRING",
+                title: "Jack  ·  Vera  ·  Mara",
+                subtitle: "with Ishida  ·  Kaneko  ·  Kurose",
+                monochrome: true,
+              },
+              undefined,
+              {
+                kicker: "MUSICAL SCORE",
+                title: "Scott Gooding",
+                monochrome: true,
+              },
+              undefined,
+            ]
+          : [
+              undefined,
+              {
+                title: "NOBODY’S WITNESS",
+                subtitle: "Tokyo in the rain",
+              },
+              undefined,
+              {
+                kicker: "WRITTEN & DIRECTED BY",
+                title: "Scott Gooding",
+              },
+              {
+                kicker: "STARRING",
+                title: "Jack  ·  Vera  ·  Mara",
+              },
+              undefined,
+              {
+                kicker: "ORIGINAL SCORE",
+                title: "Scott Gooding",
+              },
+              undefined,
+            ];
+
+      const plateDur = isCreative ? 104 : is1950s ? 152 : 132;
+      const dissolveSpeed = isCreative ? 1.05 : is1950s ? 0.68 : 0.85;
 
       scene.dialogueBeats = montage.map((pic, idx) => {
         const look = looks[pic] ? clone(looks[pic]) : {};
@@ -385,17 +592,17 @@ function populateZeroBeatScenes(story: StoryLike): void {
           silent: true,
           background: pic,
           cinematic: look,
-          durationFrames: 132, // 5.5s contemplative Tokyo rain plates
+          durationFrames: plateDur,
           captions: [],
           ...(idx === 0
             ? {
                 backgroundTransition: "dip-to-black",
-                backgroundTransitionSpeed: 1.0,
+                backgroundTransitionSpeed: is1950s ? 0.72 : 1.0,
                 transitionAlignment: "at-cut",
               }
             : {
                 backgroundTransition: "dissolve",
-                backgroundTransitionSpeed: 0.85,
+                backgroundTransitionSpeed: dissolveSpeed,
                 transitionAlignment: "at-cut",
               }),
           ...(cards[idx] ? { titleCard: cards[idx] } : {}),
@@ -405,6 +612,8 @@ function populateZeroBeatScenes(story: StoryLike): void {
       const credits = (scene.credits || {}) as AnyRecord;
       const montage: string[] = Array.isArray(credits.montage) ? credits.montage : [];
       const looks = (credits.montageLooks || {}) as Record<string, AnyRecord>;
+      const durF = isCreative ? 96 : is1950s ? 132 : 112;
+      const transSpeed = isCreative ? 0.95 : is1950s ? 0.68 : 0.8;
       scene.dialogueBeats = montage.map((pic, idx) => ({
         id: `nw_dc_${scene.id}_${idx + 1}`,
         characterId: "nw_narrator",
@@ -412,10 +621,10 @@ function populateZeroBeatScenes(story: StoryLike): void {
         silent: true,
         background: pic,
         cinematic: looks[pic] ? clone(looks[pic]) : {},
-        durationFrames: 112, // 4.67s Ozu nocturnal pillow shots
+        durationFrames: durF,
         captions: [],
         backgroundTransition: "dissolve",
-        backgroundTransitionSpeed: 0.8,
+        backgroundTransitionSpeed: transSpeed,
         transitionAlignment: "at-cut",
       }));
     } else if (scene.id === "nw_credits") {
@@ -424,13 +633,67 @@ function populateZeroBeatScenes(story: StoryLike): void {
         ? credits.montage.slice(0, 10)
         : [String(scene.background || "/film/img/s1/377-the-hive-remembered.jpg")];
       const looks = (credits.montageLooks || {}) as Record<string, AnyRecord>;
-      const creditCards: Array<{ kicker?: string; title: string; subtitle?: string }> = [
-        { title: "NOBODY’S WITNESS", subtitle: "Tokyo as a memory that is still happening." },
-        { kicker: "WRITTEN BY", title: "Scott Gooding" },
-        { kicker: "CAST", title: "Jack  ·  Vera  ·  Mara", subtitle: "Ishida  ·  Kaneko  ·  Okada" },
-        { kicker: "CAST", title: "Harada  ·  Kurose  ·  Daniel", subtitle: "Mrs. Sakai  ·  Mr. & Mrs. Noda" },
-        { kicker: "ORIGINAL MUSIC", title: "Scott Gooding" },
-      ];
+      const creditCards: Array<CutTitleCard> = is1950s
+        ? [
+            {
+              kicker: "NOBODY’S WITNESS",
+              title: "CAST OF CHARACTERS",
+              subtitle: "Tokyo as a memory that is still happening.",
+              monochrome: true,
+            },
+            { kicker: "WRITTEN & DIRECTED BY", title: "Scott Gooding", monochrome: true },
+            {
+              kicker: "THE PLAYERS",
+              title: "Jack  ·  Vera  ·  Mara",
+              subtitle: "Ishida  ·  Kaneko  ·  Okada",
+              monochrome: true,
+            },
+            {
+              kicker: "THE PLAYERS",
+              title: "Harada  ·  Kurose  ·  Daniel",
+              subtitle: "Mrs. Sakai  ·  Mr. & Mrs. Noda",
+              monochrome: true,
+            },
+            { kicker: "MUSICAL SCORE", title: "Scott Gooding", monochrome: true },
+          ]
+        : isCreative
+          ? [
+              {
+                title: "NOBODY’S WITNESS",
+                subtitle: "Tokyo as a memory that is still happening.",
+                align: "lower-left",
+              },
+              { kicker: "WRITTEN & DIRECTED BY", title: "Scott Gooding", align: "lower-left" },
+              {
+                kicker: "CAST",
+                title: "Jack  ·  Vera  ·  Mara",
+                subtitle: "Ishida  ·  Kaneko  ·  Okada",
+                align: "lower-left",
+              },
+              {
+                kicker: "CAST",
+                title: "Harada  ·  Kurose  ·  Daniel",
+                subtitle: "Mrs. Sakai  ·  Mr. & Mrs. Noda",
+                align: "lower-left",
+              },
+              { kicker: "ORIGINAL MUSIC", title: "Scott Gooding", align: "lower-left" },
+            ]
+          : [
+              { title: "NOBODY’S WITNESS", subtitle: "Tokyo as a memory that is still happening." },
+              { kicker: "WRITTEN BY", title: "Scott Gooding" },
+              {
+                kicker: "CAST",
+                title: "Jack  ·  Vera  ·  Mara",
+                subtitle: "Ishida  ·  Kaneko  ·  Okada",
+              },
+              {
+                kicker: "CAST",
+                title: "Harada  ·  Kurose  ·  Daniel",
+                subtitle: "Mrs. Sakai  ·  Mr. & Mrs. Noda",
+              },
+              { kicker: "ORIGINAL MUSIC", title: "Scott Gooding" },
+            ];
+      const durF = isCreative ? 114 : is1950s ? 140 : 126;
       scene.dialogueBeats = montage.map((pic, idx) => {
         const card = idx < creditCards.length ? creditCards[idx] : undefined;
         return {
@@ -440,15 +703,17 @@ function populateZeroBeatScenes(story: StoryLike): void {
           silent: true,
           background: pic,
           cinematic: looks[pic] ? clone(looks[pic]) : {},
-          durationFrames: 126, // 5.25s
+          durationFrames: durF,
           captions: [],
           backgroundTransition: idx === 0 ? "dip-to-black" : "dissolve",
-          backgroundTransitionSpeed: 0.9,
+          backgroundTransitionSpeed: is1950s ? 0.72 : 0.9,
           transitionAlignment: "at-cut",
           ...(card ? { titleCard: card } : {}),
         };
       });
     } else if (scene.id === "nw_end") {
+      const endDur = is1950s ? 180 : isCreative ? 168 : 156;
+      const holdUntil = is1950s ? 124 : isCreative ? 120 : 112;
       scene.dialogueBeats = [
         {
           id: "nw_dc_end_1",
@@ -456,29 +721,64 @@ function populateZeroBeatScenes(story: StoryLike): void {
           text: "NOBODY'S WITNESS — Tokyo as a memory that is still happening.",
           silent: true,
           background: String(scene.background || "/film/img/s1/377-the-hive-remembered.jpg"),
-          durationFrames: 156, // 6.5s final stillness fading to black
+          durationFrames: endDur,
           captions: [],
           backgroundTransition: "dissolve",
-          backgroundTransitionSpeed: 1.0,
+          backgroundTransitionSpeed: is1950s ? 0.72 : 1.0,
           transitionAlignment: "at-cut",
-          titleCard: {
-            title: "NOBODY’S WITNESS",
-            subtitle: "Tokyo as a memory that is still happening.",
-          },
-          cinematic: {
-            colorGrade: "tokyo-noir",
-            vignette: true,
-            vignetteStrength: 0.42,
-            filmGrain: true,
-            grainOpacity: 0.042,
-            filmGrade: false,
-          },
+          titleCard: is1950s
+            ? {
+                kicker: "NOBODY’S WITNESS",
+                title: "THE END",
+                subtitle: "Tokyo, in memory",
+                monochrome: true,
+              }
+            : isCreative
+              ? {
+                  kicker: "EPILOGUE",
+                  title: "NOBODY’S WITNESS",
+                  subtitle: "Tokyo as a memory that is still happening.",
+                  align: "lower-left",
+                }
+              : {
+                  title: "NOBODY’S WITNESS",
+                  subtitle: "Tokyo as a memory that is still happening.",
+                },
+          cinematic: is1950s
+            ? {
+                mode: "static",
+                colorGrade: "noir-1950s",
+                vignette: true,
+                vignetteStrength: 0.54,
+                grain: true,
+                grainOpacity: 0.068,
+                filmGrade: false,
+              }
+            : isCreative
+              ? {
+                  mode: "static",
+                  colorGrade: "sodium-amber",
+                  vignette: true,
+                  vignetteStrength: 0.46,
+                  grain: true,
+                  grainOpacity: 0.056,
+                  filmGrade: false,
+                }
+              : {
+                  colorGrade: "tokyo-noir",
+                  vignette: true,
+                  vignetteStrength: 0.42,
+                  filmGrain: true,
+                  grainOpacity: 0.042,
+                  filmGrade: false,
+                },
           animation: {
             opacity: [
               { frame: 0, value: 1, easing: "linear" },
-              { frame: 112, value: 1, easing: "ease-in-out" },
-              { frame: 155, value: 0, easing: "linear" },
+              { frame: holdUntil, value: 1, easing: "ease-in-out" },
+              { frame: endDur - 1, value: 0, easing: "linear" },
             ],
+            ...(is1950s ? { values: { gradeStrength: 1 } } : {}),
           },
         },
       ];
@@ -491,7 +791,10 @@ function populateZeroBeatScenes(story: StoryLike): void {
  * into 6 composed cinematic gap slots (`GAP 03`..`GAP 08`), preserving all 6 Kurose/Jack
  * dialogue lines with clean pacing while keeping `beat.text` untouched on every kept beat.
  */
-function structureScene77AGaps(scene: SceneLike): void {
+function structureScene77AGaps(
+  scene: SceneLike,
+  variant: EditorialCutVariant = "neo-noir",
+): void {
   const beats = scene.dialogueBeats ?? [];
   if (beats.length < 16) return;
   const byId = new Map(beats.map((b) => [String(b.id), b]));
@@ -534,56 +837,93 @@ function structureScene77AGaps(scene: SceneLike): void {
     delete beat.animation;
     delete beat.backgroundTransition;
     delete beat.backgroundTransitionSpeed;
+    delete (beat as AnyRecord).titleCard;
   };
 
-  configurePlate(g1, "/film/img/s77a/1290-predawn-avenue.jpg", 102, []);
-  configurePlate(g2, "/film/img/s77a/1293-sedan-keeps-pace.jpg", 84, []);
-  configurePlate(g3, "/film/img/s77a/1294-hand-and-watch-on-sill.jpg", 78, []);
+  const isCreative = variant === "creative";
+  const is1950s = variant === "noir-1950s";
 
-  // 6 spoken/silent-acted lines between Kurose and Jack across 424 frames (17.67s, <16 c/s on every cue)
-  configurePlate(g4, "/film/img/s77a/1296-everyone-is-allowed-one.jpg", 424, [
-    { text: "Detective.", inFrame: 8, outFrame: 44, speaker: "KUROSE", isNarration: false },
-    { text: "Not any more.", inFrame: 52, outFrame: 92, speaker: "JACK", isNarration: false },
-    {
-      text: "No. I was sorry to hear about the girl.",
-      inFrame: 104,
-      outFrame: 180,
-      speaker: "KUROSE",
-      isNarration: false,
-    },
-    {
-      text: "You were a sensible policeman, I'm told. You always knew when to stop.",
-      inFrame: 194,
-      outFrame: 310,
-      speaker: "KUROSE",
-      isNarration: false,
-    },
-    {
-      text: "Maybe that was a mistake.",
-      inFrame: 320,
-      outFrame: 368,
-      speaker: "JACK",
-      isNarration: false,
-    },
-    {
-      text: "Everyone is allowed one.",
-      inFrame: 376,
-      outFrame: 420,
-      speaker: "KUROSE",
-      isNarration: false,
-    },
-  ]);
+  configurePlate(
+    g1,
+    "/film/img/s77a/1290-predawn-avenue.jpg",
+    isCreative ? 116 : is1950s ? 120 : 102,
+    [],
+  );
+  if (isCreative) {
+    (g1 as AnyRecord).titleCard = CREATIVE_CHAPTER_CARDS.nw_s77a.card;
+  }
 
-  configurePlate(g5, "/film/img/s77a/1303-reflection-in-black-glass.jpg", 78, []);
-  configurePlate(g6, "/film/img/s77a/1304-sedan-turns-off.jpg", 108, []);
+  configurePlate(
+    g2,
+    "/film/img/s77a/1293-sedan-keeps-pace.jpg",
+    isCreative ? 76 : is1950s ? 98 : 84,
+    [],
+  );
+  configurePlate(
+    g3,
+    "/film/img/s77a/1294-hand-and-watch-on-sill.jpg",
+    isCreative ? 72 : is1950s ? 92 : 78,
+    [],
+  );
+
+  // 6 spoken/silent-acted lines between Kurose and Jack (<16 c/s on every cue)
+  configurePlate(
+    g4,
+    "/film/img/s77a/1296-everyone-is-allowed-one.jpg",
+    isCreative ? 448 : is1950s ? 468 : 424,
+    [
+      { text: "Detective.", inFrame: 8, outFrame: 44, speaker: "KUROSE", isNarration: false },
+      { text: "Not any more.", inFrame: 52, outFrame: 92, speaker: "JACK", isNarration: false },
+      {
+        text: "No. I was sorry to hear about the girl.",
+        inFrame: 104,
+        outFrame: 180,
+        speaker: "KUROSE",
+        isNarration: false,
+      },
+      {
+        text: "You were a sensible policeman, I'm told. You always knew when to stop.",
+        inFrame: 194,
+        outFrame: 310,
+        speaker: "KUROSE",
+        isNarration: false,
+      },
+      {
+        text: "Maybe that was a mistake.",
+        inFrame: 320,
+        outFrame: 368,
+        speaker: "JACK",
+        isNarration: false,
+      },
+      {
+        text: "Everyone is allowed one.",
+        inFrame: 376,
+        outFrame: 420,
+        speaker: "KUROSE",
+        isNarration: false,
+      },
+    ],
+  );
+
+  configurePlate(
+    g5,
+    "/film/img/s77a/1303-reflection-in-black-glass.jpg",
+    isCreative ? 84 : is1950s ? 96 : 78,
+    [],
+  );
+  configurePlate(
+    g6,
+    "/film/img/s77a/1304-sedan-turns-off.jpg",
+    isCreative ? 124 : is1950s ? 132 : 108,
+    [],
+  );
 
   scene.dialogueBeats = [g1, g2, g3, g4, g5, g6];
 }
 
 /**
- * Computes restrained Ozu + Neo-Noir single-camera keyframe framing for a consolidated shot.
- * ~60% of shots hold in composed tripod stillness; ~40% execute one barely-perceptible
- * continuous push, pull, or depth drift across the full shot duration without hitting edges.
+ * Computes single-camera keyframe framing & optical grade for a consolidated shot
+ * according to the active editorial cut (`"neo-noir"`, `"creative"`, or `"noir-1950s"`).
  */
 function authorNeoNoirCamera(
   beat: BeatLike,
@@ -591,6 +931,7 @@ function authorNeoNoirCamera(
   shotIndexInScene: number,
   durationFrames: number,
   pace: "action" | "contemplative" | "noir",
+  variant: EditorialCutVariant = "neo-noir",
 ): void {
   if (beat.gap || sceneId === "nw_intro" || sceneId === "nw_logo") return;
   if (sceneId === "nw_end" && beat.animation?.opacity) return;
@@ -604,7 +945,249 @@ function authorNeoNoirCamera(
   cin.mode = "static";
   delete cin.shakeAmount;
 
-  // Consistent signature Tokyo Neo-Noir visual language across all scenes
+  if (variant === "noir-1950s") {
+    // Authentic 1950s Silver-Gelatin Monochrome: high-contrast B&W, rich Tri-X grain,
+    // deep spherical lens falloff, zero modern speed ramps, and no colored light tints.
+    cin.colorGrade = "noir-1950s";
+    cin.filmGrade = false;
+    cin.vignette = true;
+    cin.vignetteStrength =
+      pace === "action" ? 0.55 : pace === "contemplative" ? 0.48 : 0.52;
+    cin.grain = true;
+    cin.grainOpacity = 0.068;
+    delete cin.speedRamp;
+    delete cin.lights;
+    delete cin.lightSource;
+    delete cin.lightColor;
+    delete cin.lensFlare;
+    delete cin.flares;
+    beat.cinematic = cin;
+
+    const lastF = Math.max(1, durationFrames - 1);
+    const baseBiasX = Math.max(-1.4, Math.min(1.4, (50 - fx) * 0.045));
+    const baseBiasY = Math.max(-1.0, Math.min(1.0, (50 - fy) * 0.035));
+
+    // Classical 1950s studio grammar: ~76% poised tripod compositions; ~24% stately dolly pushes
+    const shouldMove = durationFrames >= 104 && h % 10 < 3;
+    if (!shouldMove) {
+      if (Math.abs(baseBiasX) > 0.35 || Math.abs(baseBiasY) > 0.35) {
+        const stillPose = clampPoseToPictureEdges({
+          zoom: 1.034,
+          x: baseBiasX,
+          y: baseBiasY,
+          rotation: 0,
+        });
+        beat.animation = {
+          values: {
+            zoom: Number(stillPose.zoom.toFixed(4)),
+            x: Number((stillPose.x * 0.96).toFixed(3)),
+            y: Number((stillPose.y * 0.96).toFixed(3)),
+            gradeStrength: 1,
+            ...(hasDepth ? { depthAmount: 0.16 } : {}),
+          },
+        };
+      } else {
+        beat.animation = {
+          values: {
+            gradeStrength: 1,
+            ...(hasDepth ? { depthAmount: 0.14 } : {}),
+          },
+        };
+      }
+      return;
+    }
+
+    const z0 = 1.012;
+    const z1 = 1.044;
+    const rawP0 = clampPoseToPictureEdges({ zoom: z0, x: baseBiasX, y: baseBiasY, rotation: 0 });
+    const rawP1 = clampPoseToPictureEdges({ zoom: z1, x: baseBiasX, y: baseBiasY, rotation: 0 });
+    const p0 = { zoom: rawP0.zoom, x: rawP0.x * 0.96, y: rawP0.y * 0.96 };
+    const p1 = { zoom: rawP1.zoom, x: rawP1.x * 0.96, y: rawP1.y * 0.96 };
+
+    beat.animation = {
+      zoom: [
+        { frame: 0, value: Number(p0.zoom.toFixed(4)), easing: "ease-in-out" },
+        { frame: lastF, value: Number(p1.zoom.toFixed(4)), easing: "linear" },
+      ],
+      ...(Math.abs(p0.x) > 0.05
+        ? {
+            x: [
+              { frame: 0, value: Number(p0.x.toFixed(3)), easing: "ease-in-out" },
+              { frame: lastF, value: Number(p1.x.toFixed(3)), easing: "linear" },
+            ],
+          }
+        : {}),
+      ...(Math.abs(p0.y) > 0.05
+        ? {
+            y: [
+              { frame: 0, value: Number(p0.y.toFixed(3)), easing: "ease-in-out" },
+              { frame: lastF, value: Number(p1.y.toFixed(3)), easing: "linear" },
+            ],
+          }
+        : {}),
+      ...(hasDepth
+        ? {
+            depthAmount: [
+              { frame: 0, value: 0.16, easing: "ease-in-out" },
+              { frame: lastF, value: 0.26, easing: "linear" },
+            ],
+          }
+        : {}),
+      values: { gradeStrength: 1 },
+    };
+    return;
+  }
+
+  if (variant === "creative") {
+    // Creative Director's Cut: Sodium-Amber & Emerald Bleach-Bypass grade + expressive thriller camera
+    cin.colorGrade = "sodium-amber";
+    cin.filmGrade = false;
+    cin.vignette = true;
+    cin.vignetteStrength =
+      pace === "action" ? 0.48 : pace === "contemplative" ? 0.40 : 0.44;
+    cin.grain = true;
+    cin.grainOpacity = 0.056;
+
+    if (pace === "action" && beat.sfxUrl && /smg|shot|shatter|forced|crash|smash/i.test(String(beat.sfxUrl))) {
+      cin.speedRamp = "impact-ramp";
+    } else if (durationFrames >= 108 && h % 5 === 0) {
+      cin.speedRamp = "ease-hold";
+    } else if (durationFrames >= 92 && h % 6 === 1) {
+      cin.speedRamp = "slow-out";
+    } else {
+      delete cin.speedRamp;
+    }
+
+    beat.cinematic = cin;
+
+    const lastF = Math.max(1, durationFrames - 1);
+    const baseBiasX = Math.max(-1.8, Math.min(1.8, (50 - fx) * 0.055));
+    const baseBiasY = Math.max(-1.3, Math.min(1.3, (50 - fy) * 0.045));
+    const gradeVal = pace === "contemplative" ? 0.88 : 0.92;
+
+    // Expressive thriller choreography (~70% purposeful single-camera motion, ~30% taut holds)
+    const shouldMove =
+      pace === "action"
+        ? durationFrames >= 34 && h % 3 !== 0
+        : durationFrames >= 60 && h % 10 < 7;
+
+    if (!shouldMove) {
+      if (Math.abs(baseBiasX) > 0.32 || Math.abs(baseBiasY) > 0.32) {
+        const stillPose = clampPoseToPictureEdges({
+          zoom: 1.042,
+          x: baseBiasX,
+          y: baseBiasY,
+          rotation: 0,
+        });
+        beat.animation = {
+          values: {
+            zoom: Number(stillPose.zoom.toFixed(4)),
+            x: Number((stillPose.x * 0.96).toFixed(3)),
+            y: Number((stillPose.y * 0.96).toFixed(3)),
+            gradeStrength: gradeVal,
+            ...(hasDepth ? { depthAmount: 0.26 } : {}),
+          },
+        };
+      } else {
+        beat.animation = {
+          values: {
+            gradeStrength: gradeVal,
+            ...(hasDepth ? { depthAmount: 0.24 } : {}),
+          },
+        };
+      }
+      return;
+    }
+
+    const moveVariant = h % 5;
+    let z0 = 1.016;
+    let z1 = 1.066;
+    let x0 = baseBiasX;
+    let x1 = baseBiasX;
+    let y0 = baseBiasY;
+    let y1 = baseBiasY;
+
+    if (moveVariant === 1) {
+      // Slow pull-back environmental reveal
+      z0 = 1.064;
+      z1 = 1.014;
+    } else if (moveVariant === 2) {
+      // Creeping lateral tracking drift left-to-right
+      z0 = 1.048;
+      z1 = 1.058;
+      x0 = baseBiasX - 1.25;
+      x1 = baseBiasX + 1.25;
+    } else if (moveVariant === 3) {
+      // Creeping lateral tracking drift right-to-left
+      z0 = 1.048;
+      z1 = 1.058;
+      x0 = baseBiasX + 1.25;
+      x1 = baseBiasX - 1.25;
+    } else if (moveVariant === 4) {
+      // Subtle diagonal push toward subject
+      z0 = 1.022;
+      z1 = 1.064;
+      x0 = baseBiasX * 0.5;
+      x1 = baseBiasX;
+      y0 = baseBiasY * 0.5;
+      y1 = baseBiasY;
+    }
+
+    const rawP0 = clampPoseToPictureEdges({ zoom: z0, x: x0, y: y0, rotation: 0 });
+    const rawP1 = clampPoseToPictureEdges({ zoom: z1, x: x1, y: y1, rotation: 0 });
+    const p0 = { zoom: rawP0.zoom, x: rawP0.x * 0.96, y: rawP0.y * 0.96 };
+    const p1 = { zoom: rawP1.zoom, x: rawP1.x * 0.96, y: rawP1.y * 0.96 };
+
+    beat.animation = {
+      zoom: [
+        {
+          frame: 0,
+          value: Number(p0.zoom.toFixed(4)),
+          easing: "bezier",
+          bezier: [0.25, 0.1, 0.2, 1],
+        },
+        { frame: lastF, value: Number(p1.zoom.toFixed(4)), easing: "linear" },
+      ],
+      ...(Math.abs(p0.x - p1.x) > 0.05 || Math.abs(p0.x) > 0.05
+        ? {
+            x: [
+              {
+                frame: 0,
+                value: Number(p0.x.toFixed(3)),
+                easing: "bezier",
+                bezier: [0.25, 0.1, 0.2, 1],
+              },
+              { frame: lastF, value: Number(p1.x.toFixed(3)), easing: "linear" },
+            ],
+          }
+        : {}),
+      ...(Math.abs(p0.y - p1.y) > 0.05 || Math.abs(p0.y) > 0.05
+        ? {
+            y: [
+              {
+                frame: 0,
+                value: Number(p0.y.toFixed(3)),
+                easing: "bezier",
+                bezier: [0.25, 0.1, 0.2, 1],
+              },
+              { frame: lastF, value: Number(p1.y.toFixed(3)), easing: "linear" },
+            ],
+          }
+        : {}),
+      ...(hasDepth
+        ? {
+            depthAmount: [
+              { frame: 0, value: 0.26, easing: "ease-in-out" },
+              { frame: lastF, value: 0.42, easing: "linear" },
+            ],
+          }
+        : {}),
+      values: { gradeStrength: gradeVal },
+    };
+    return;
+  }
+
+  // Consistent signature Tokyo Neo-Noir visual language across all scenes ("neo-noir")
   cin.colorGrade = "tokyo-noir";
   cin.filmGrade = false;
   cin.vignette = true;
@@ -767,11 +1350,15 @@ interface PendingAudioEvent {
  * Builds the complete, polished Neo-Noir / *Tokyo Story* Director's Cut on a `ProjectState`
  * without mutating `project.originalStory` or any surviving `beat.text`.
  */
-export function buildDirectorsCutProject(
+function buildEditorialCut(
   baseProject: ProjectState,
+  variant: EditorialCutVariant,
   voiceDurations: ReadonlyMap<string, number>,
   musicDurations?: ReadonlyMap<string, number>,
 ): ProjectState {
+  const isCreative = variant === "creative";
+  const is1950s = variant === "noir-1950s";
+
   const uncutSnapshot: ProjectSnapshot = {
     id: "snapshot-uncut-original-import",
     name: "Uncut Original Import (1,584 raw beats)",
@@ -792,7 +1379,23 @@ export function buildDirectorsCutProject(
   };
 
   // 1. Restore the 7 missing cutscene, title, & Ozu pillow-montage scenes
-  populateZeroBeatScenes(story);
+  populateZeroBeatScenes(story, variant);
+
+  // Creative Director's Cut structural cold-open re-routing:
+  // Kaneko's voiced memory of the Hive (`nw_prologue`) emerges out of black right after `nw_logo`,
+  // then smash-cuts from "before the night in Kanda" directly into the rain-slicked murder (`nw_s1` -> `nw_s2` -> `nw_title` -> `nw_s3`).
+  if (isCreative) {
+    const logoScene = story.scenes.find((s) => s.id === "nw_logo");
+    const prologueScene = story.scenes.find((s) => s.id === "nw_prologue");
+    const titleScene = story.scenes.find((s) => s.id === "nw_title");
+    if (logoScene && prologueScene && titleScene && prologueScene.dialogueBeats?.length) {
+      logoScene.autoAdvanceTargetSceneId = "nw_prologue";
+      const lastPrologueBeat =
+        prologueScene.dialogueBeats[prologueScene.dialogueBeats.length - 1];
+      lastPrologueBeat.afterBeatTargetSceneId = "nw_s1";
+      titleScene.autoAdvanceTargetSceneId = "nw_s3";
+    }
+  }
 
   // Dial floating motes down to ~35% opacity across all scenes & beats in the Director's Cut
   for (const scene of story.scenes) {
@@ -833,30 +1436,53 @@ export function buildDirectorsCutProject(
 
     // Special 6-shot sequence for Scene 77A ("The black glass"), now fully pictured
     if (sceneId === "nw_s77a") {
-      structureScene77AGaps(scene);
+      structureScene77AGaps(scene, variant);
       const pace = classifyScenePace(sceneId);
       const beats = scene.dialogueBeats ?? [];
       beats.forEach((b, idx) => {
         const durF = Number(b.durationFrames) || 96;
-        authorNeoNoirCamera(b, sceneId, idx, durF, pace);
+        authorNeoNoirCamera(b, sceneId, idx, durF, pace, variant);
         if (b.id === "nw_b1296") {
           const lastF = Math.max(1, durF - 1);
-          b.animation = {
-            zoom: [
-              {
-                frame: 0,
-                value: 1.012,
-                easing: "bezier",
-                bezier: [0.33, 0, 0.2, 1],
-              },
-              { frame: lastF, value: 1.052, easing: "linear" },
-            ],
-            values: { gradeStrength: 0.88 },
-          };
+          if (is1950s) {
+            b.animation = {
+              zoom: [
+                { frame: 0, value: 1.01, easing: "ease-in-out" },
+                { frame: lastF, value: 1.04, easing: "linear" },
+              ],
+              values: { gradeStrength: 1 },
+            };
+          } else if (isCreative) {
+            b.animation = {
+              zoom: [
+                {
+                  frame: 0,
+                  value: 1.01,
+                  easing: "bezier",
+                  bezier: [0.25, 0.1, 0.2, 1],
+                },
+                { frame: lastF, value: 1.064, easing: "linear" },
+              ],
+              values: { gradeStrength: 0.92 },
+            };
+          } else {
+            b.animation = {
+              zoom: [
+                {
+                  frame: 0,
+                  value: 1.012,
+                  easing: "bezier",
+                  bezier: [0.33, 0, 0.2, 1],
+                },
+                { frame: lastF, value: 1.052, easing: "linear" },
+              ],
+              values: { gradeStrength: 0.88 },
+            };
+          }
         }
         if (idx === 0) {
           b.backgroundTransition = "dip-to-black";
-          b.backgroundTransitionSpeed = 1.0;
+          b.backgroundTransitionSpeed = is1950s ? 0.72 : isCreative ? 1.05 : 1.0;
           b.transitionAlignment = "at-cut";
         }
         if (b.background) carriedAcrossScenesPic = String(b.background);
@@ -877,7 +1503,7 @@ export function buildDirectorsCutProject(
       const beats = scene.dialogueBeats ?? [];
       const pace = classifyScenePace(sceneId);
       beats.forEach((b, idx) => {
-        authorNeoNoirCamera(b, sceneId, idx, Number(b.durationFrames) || 96, pace);
+        authorNeoNoirCamera(b, sceneId, idx, Number(b.durationFrames) || 96, pace, variant);
         if (b.background) carriedAcrossScenesPic = String(b.background);
       });
       return;
@@ -914,6 +1540,7 @@ export function buildDirectorsCutProject(
       delete beat.backgroundTransition;
       delete beat.backgroundTransitionSpeed;
       delete beat.transitionAlignment;
+      delete (beat as AnyRecord).titleCard;
 
       if (EXPLICIT_GAP_BEAT_IDS.has(beatId)) {
         const spec = MISSING_FRAME_SPECS.find((s) => s.beatId === beatId)!;
@@ -924,20 +1551,27 @@ export function buildDirectorsCutProject(
         beat.captions = [];
         const sfxUrl = beat.sfxUrl ? String(beat.sfxUrl) : "";
         const sfxDur = sfxUrl ? lookupAudioDurationMs(sfxUrl, voiceDurations) ?? 1500 : 0;
+        const gapDur = is1950s
+          ? Math.round(spec.durationFrames * 1.18)
+          : isCreative
+            ? beatId === "nw_b1309"
+              ? 118
+              : Math.round(spec.durationFrames * 0.92)
+            : spec.durationFrames;
         prepared.push({
           beat,
           picture: spec.suggestedPath,
           isGap: false,
           standalone: true,
           hasTitleCard: false,
-          durationFrames: spec.durationFrames,
+          durationFrames: gapDur,
           captions: [],
           sfxEvent: sfxUrl
             ? {
                 lane: "sfx",
                 src: sfxUrl,
                 offsetWithinBeatMs: 0,
-                gain: Math.min(0.65, Number(beat.sfxVolume ?? 0.5)),
+                gain: Math.min(is1950s ? 0.48 : 0.65, Number(beat.sfxVolume ?? 0.5)),
                 durationMs: sfxDur,
               }
             : undefined,
@@ -974,15 +1608,32 @@ export function buildDirectorsCutProject(
           voiceSec ??
           Math.min(9, Math.max(2.2, 0.7 + String(beat.text || "").length / 14));
         const offsetSec = Math.max(0, Number(beat.audioOffsetSeconds || 0));
-        // Intentional post-line breathing room: fuller on reveals & scene closes, tighter in conflict
-        const breathSec =
-          pace === "action"
-            ? 0.32
+        // Intentional post-line breathing room tailored to each cut's dramatic rhythm
+        const breathSec = is1950s
+          ? pace === "action"
+            ? 0.55
             : isLastInScene
-              ? 1.25
+              ? 1.6
               : pace === "contemplative"
-                ? 0.92
-                : 0.62;
+                ? 1.35
+                : 1.05
+          : isCreative
+            ? pace === "action"
+              ? 0.22
+              : isLastInScene
+                ? pace === "contemplative"
+                  ? 1.45
+                  : 1.02
+                : pace === "contemplative"
+                  ? 0.88
+                  : 0.42
+            : pace === "action"
+              ? 0.32
+              : isLastInScene
+                ? 1.25
+                : pace === "contemplative"
+                  ? 0.92
+                  : 0.62;
         const totalFrames = Math.max(
           18,
           Math.round((offsetSec + durSec + breathSec) * FPS),
@@ -1020,17 +1671,23 @@ export function buildDirectorsCutProject(
                 lane: "sfx",
                 src: sfxUrl,
                 offsetWithinBeatMs: 0,
-                gain: Math.min(0.62, Number(beat.sfxVolume ?? 0.55)),
+                gain: Math.min(is1950s ? 0.48 : 0.62, Number(beat.sfxVolume ?? 0.55)),
                 durationMs: Math.max(MIN_AUDIO_CLIP_MS, roundMicros((sfxSec ?? 1.5) * 1000)),
               }
             : undefined,
         });
       } else if (isNarr) {
-        // Silent narrator beat: classify into TitleCard, Essential Clue Caption, or Suppressed Stage Direction
-        const decision = classifySilentNarratorText(sceneId, beatId, String(beat.text || ""));
+        // Creative Cut 5-movement chapter intertitle override on silent opener beats
+        const creativeChapter =
+          isCreative && i === 0 ? CREATIVE_CHAPTER_CARDS[sceneId] : undefined;
+        const decision = creativeChapter
+          ? ({ kind: "title", card: creativeChapter.card } as const)
+          : classifySilentNarratorText(sceneId, beatId, String(beat.text || ""));
         if (decision.kind === "title") {
-          (beat as AnyRecord).titleCard = decision.card;
-          const durF = 84; // 3.5s poised theatrical intertitle
+          (beat as AnyRecord).titleCard = is1950s
+            ? { ...decision.card, monochrome: true }
+            : decision.card;
+          const durF = creativeChapter ? 96 : is1950s ? 102 : 84;
           prepared.push({
             beat,
             picture: pic,
@@ -1040,7 +1697,10 @@ export function buildDirectorsCutProject(
             captions: [],
           });
         } else if (decision.kind === "caption") {
-          const readSec = Math.max(2.8, Math.min(5.2, 1.4 + decision.text.length / 17));
+          const readSec = Math.max(
+            is1950s ? 3.2 : 2.8,
+            Math.min(is1950s ? 5.8 : 5.2, (is1950s ? 1.7 : 1.4) + decision.text.length / 17),
+          );
           const durF = Math.round(readSec * FPS);
           prepared.push({
             beat,
@@ -1062,7 +1722,7 @@ export function buildDirectorsCutProject(
                   lane: "sfx",
                   src: sfxUrl,
                   offsetWithinBeatMs: 0,
-                  gain: Math.min(0.65, Number(beat.sfxVolume ?? 0.55)),
+                  gain: Math.min(is1950s ? 0.48 : 0.65, Number(beat.sfxVolume ?? 0.55)),
                   durationMs: Math.max(MIN_AUDIO_CLIP_MS, roundMicros((sfxSec ?? 1.5) * 1000)),
                 }
               : undefined,
@@ -1073,28 +1733,77 @@ export function buildDirectorsCutProject(
           let durF: number;
           if (isNewVisualPlate) {
             if (pace === "action") {
-              durF = sfxSec ? Math.max(30, Math.min(52, Math.round((sfxSec + 0.35) * FPS))) : 36; // 1.5s crisp action cut
+              durF = is1950s
+                ? sfxSec
+                  ? Math.max(42, Math.min(64, Math.round((sfxSec + 0.6) * FPS)))
+                  : 48
+                : isCreative
+                  ? sfxSec
+                    ? Math.max(24, Math.min(44, Math.round((sfxSec + 0.25) * FPS)))
+                    : 28
+                  : sfxSec
+                    ? Math.max(30, Math.min(52, Math.round((sfxSec + 0.35) * FPS)))
+                    : 36;
             } else if (pace === "contemplative") {
-              durF = sceneId.includes("song_service") ? 92 : 88; // 3.7–3.8s Ozu pillow / funeral stillness
+              durF = is1950s
+                ? 108
+                : isCreative
+                  ? sceneId.includes("song_service")
+                    ? 104
+                    : 96
+                  : sceneId.includes("song_service")
+                    ? 92
+                    : 88;
             } else {
-              durF = sfxSec ? Math.max(56, Math.min(86, Math.round((sfxSec + 0.8) * FPS))) : 68; // 2.83s noir establishing beat
+              durF = is1950s
+                ? sfxSec
+                  ? Math.max(72, Math.min(104, Math.round((sfxSec + 1.1) * FPS)))
+                  : 84
+                : isCreative
+                  ? sfxSec
+                    ? Math.max(44, Math.min(72, Math.round((sfxSec + 0.55) * FPS)))
+                    : 52
+                  : sfxSec
+                    ? Math.max(56, Math.min(86, Math.round((sfxSec + 0.8) * FPS)))
+                    : 68;
             }
           } else if (sfxUrl) {
-            // Same plate, but carries a motivated diegetic sound effect (knock, footsteps, drawer, phone)
             durF = Math.max(
-              26,
-              Math.min(pace === "action" ? 44 : 64, Math.round(((sfxSec ?? 1.2) + 0.35) * FPS)),
+              isCreative ? 22 : 26,
+              Math.min(
+                pace === "action" ? (isCreative ? 38 : 44) : is1950s ? 76 : 64,
+                Math.round(((sfxSec ?? 1.2) + (is1950s ? 0.55 : 0.35)) * FPS),
+              ),
             );
           } else if (nextPic === pic && i > 0 && prepared[i - 1]?.picture === pic) {
-            // Middle redundant prose beat sandwiched on an already-held plate:
-            // keep a subtle 0.55s human reaction breath between dialogue lines, or 4f minimal bridge if flanked by silence
             const prevHadVoice = Boolean(prepared[i - 1]?.voiceEvent);
             const nextHasVoice = Boolean(nextRaw?.audioUrl);
-            durF = prevHadVoice && nextHasVoice ? 16 : 6;
+            durF =
+              prevHadVoice && nextHasVoice
+                ? is1950s
+                  ? 24
+                  : isCreative
+                    ? 12
+                    : 16
+                : is1950s
+                  ? 10
+                  : isCreative
+                    ? 4
+                    : 6;
           } else if (isLastInScene) {
-            durF = pace === "contemplative" ? 30 : 20; // lingering scene-tail breath
+            durF = is1950s
+              ? pace === "contemplative"
+                ? 42
+                : 30
+              : isCreative
+                ? pace === "contemplative"
+                  ? 36
+                  : 16
+                : pace === "contemplative"
+                  ? 30
+                  : 20;
           } else {
-            durF = 12; // 0.5s clean visual reaction beat
+            durF = is1950s ? 18 : isCreative ? 10 : 12;
           }
 
           prepared.push({
@@ -1109,7 +1818,7 @@ export function buildDirectorsCutProject(
                   lane: "sfx",
                   src: sfxUrl,
                   offsetWithinBeatMs: 0,
-                  gain: Math.min(0.65, Number(beat.sfxVolume ?? 0.55)),
+                  gain: Math.min(is1950s ? 0.48 : 0.65, Number(beat.sfxVolume ?? 0.55)),
                   durationMs: Math.max(MIN_AUDIO_CLIP_MS, roundMicros((sfxSec ?? 1.5) * 1000)),
                 }
               : undefined,
@@ -1117,7 +1826,7 @@ export function buildDirectorsCutProject(
         }
       } else {
         // Unvoiced non-narrator line (fallback safety)
-        const durF = 64;
+        const durF = is1950s ? 76 : isCreative ? 58 : 64;
         const spk = speakerLabel(story, beat.characterId);
         prepared.push({
           beat,
@@ -1182,7 +1891,7 @@ export function buildDirectorsCutProject(
             ...(otherCin.depthMap && !primary.cinematic?.depthMap
               ? {
                   depthMap: otherCin.depthMap,
-                  depthPlate: otherCin.depthPlate,
+                  depthPlate: otherCin.depthMap ? otherCin.depthPlate : undefined,
                   depthCutouts: otherCin.depthCutouts,
                 }
               : {}),
@@ -1226,8 +1935,6 @@ export function buildDirectorsCutProject(
           }
         }
 
-        // g === 0's own beat.audioUrl / beat.sfxUrl will be picked up by buildAudioClipsFromFilm
-        // UNLESS g > 0 also had voice/sfx, which we register in absorbedAudioByAnchorId!
         if (g > 0) {
           if (item.voiceEvent) {
             extraAudioEvents.push({
@@ -1260,30 +1967,90 @@ export function buildDirectorsCutProject(
     // 3. Apply camera framing & motivated scene-opening transitions
     consolidated.forEach((beat, shotIdx) => {
       const durF = Math.max(12, Number(beat.durationFrames) || 48);
-      authorNeoNoirCamera(beat, sceneId, shotIdx, durF, pace);
+      authorNeoNoirCamera(beat, sceneId, shotIdx, durF, pace, variant);
 
-      if (shotIdx === 0 && !beat.gap && sceneOrderIdx > 2) {
-        // Selective, story-motivated transitions ONLY at major time jumps, elegies, or memory shifts
-        if (
-          sceneId === "nw_prologue" ||
-          sceneId === "nw_s3" ||
-          sceneId === "nw_s78" ||
-          sceneId === "nw_s98" ||
-          sceneId === "nw_s99a"
-        ) {
-          beat.backgroundTransition = "dip-to-black";
-          beat.backgroundTransitionSpeed = 1.0;
-          beat.transitionAlignment = "at-cut";
-        } else if (sceneId.includes("song_service")) {
-          const serviceNum = Number((/_(\d+)$/.exec(sceneId) || [])[1] || "0");
-          if (serviceNum === 1) {
+      if (shotIdx === 0 && !beat.gap && sceneOrderIdx >= 2) {
+        if (is1950s) {
+          // Classical 1950s studio grammar: slow curtain fades to black at act breaks,
+          // optical laboratory lap-dissolves across day/night & location shifts.
+          if (
+            sceneId === "nw_prologue" ||
+            sceneId === "nw_s3" ||
+            sceneId === "nw_s30" ||
+            sceneId === "nw_s61" ||
+            sceneId === "nw_s78" ||
+            sceneId === "nw_s98" ||
+            sceneId === "nw_s99a"
+          ) {
             beat.backgroundTransition = "dip-to-black";
-            beat.backgroundTransitionSpeed = 1.1;
+            beat.backgroundTransitionSpeed = 0.72;
             beat.transitionAlignment = "at-cut";
-          } else if (serviceNum % 2 === 1) {
+          } else if (
+            sceneId === "nw_s18" ||
+            sceneId === "nw_s51" ||
+            sceneId === "nw_s53" ||
+            sceneId === "nw_s70" ||
+            sceneId === "nw_s83" ||
+            sceneId === "nw_s93" ||
+            sceneId.includes("song_service")
+          ) {
             beat.backgroundTransition = "dissolve";
-            beat.backgroundTransitionSpeed = 0.75;
+            beat.backgroundTransitionSpeed = 0.68;
             beat.transitionAlignment = "at-cut";
+          }
+        } else if (isCreative) {
+          // Creative Cut: chapter curtain dips, memory dissolves, & kinetic raid whips
+          if (
+            sceneId === "nw_prologue" ||
+            sceneId === "nw_s3" ||
+            sceneId === "nw_s30" ||
+            sceneId === "nw_s61" ||
+            sceneId === "nw_s78" ||
+            sceneId === "nw_s98" ||
+            sceneId === "nw_s99a"
+          ) {
+            beat.backgroundTransition = "dip-to-black";
+            beat.backgroundTransitionSpeed = 1.05;
+            beat.transitionAlignment = "at-cut";
+          } else if (sceneId === "nw_s14a" || sceneId === "nw_s39") {
+            beat.backgroundTransition = "whip";
+            beat.backgroundTransitionSpeed = 1.35;
+            beat.transitionAlignment = "at-cut";
+          } else if (sceneId === "nw_s53" || sceneId.includes("song_service")) {
+            const serviceNum = Number((/_(\d+)$/.exec(sceneId) || [])[1] || "0");
+            if (serviceNum === 1) {
+              beat.backgroundTransition = "dip-to-black";
+              beat.backgroundTransitionSpeed = 1.05;
+              beat.transitionAlignment = "at-cut";
+            } else {
+              beat.backgroundTransition = "dissolve";
+              beat.backgroundTransitionSpeed = 0.85;
+              beat.transitionAlignment = "at-cut";
+            }
+          }
+        } else if (sceneOrderIdx > 2) {
+          // Selective, story-motivated transitions ONLY at major time jumps, elegies, or memory shifts ("neo-noir")
+          if (
+            sceneId === "nw_prologue" ||
+            sceneId === "nw_s3" ||
+            sceneId === "nw_s78" ||
+            sceneId === "nw_s98" ||
+            sceneId === "nw_s99a"
+          ) {
+            beat.backgroundTransition = "dip-to-black";
+            beat.backgroundTransitionSpeed = 1.0;
+            beat.transitionAlignment = "at-cut";
+          } else if (sceneId.includes("song_service")) {
+            const serviceNum = Number((/_(\d+)$/.exec(sceneId) || [])[1] || "0");
+            if (serviceNum === 1) {
+              beat.backgroundTransition = "dip-to-black";
+              beat.backgroundTransitionSpeed = 1.1;
+              beat.transitionAlignment = "at-cut";
+            } else if (serviceNum % 2 === 1) {
+              beat.backgroundTransition = "dissolve";
+              beat.backgroundTransitionSpeed = 0.75;
+              beat.transitionAlignment = "at-cut";
+            }
           }
         }
       }
@@ -1344,27 +2111,28 @@ export function buildDirectorsCutProject(
       offsetMs: 0,
       inMs: 0,
       durationMs: Math.max(500, durMs),
-      gain: 0.34,
-      fadeInMs: 900,
-      fadeOutMs: 900,
+      gain: is1950s ? 0.24 : isCreative ? 0.38 : 0.34,
+      fadeInMs: is1950s ? 1200 : 900,
+      fadeOutMs: is1950s ? 1200 : 900,
       loop: true,
     });
   }
 
   // Diegetic foley soundscape for Scene 77A ("The black glass") & Scene 12 gaps
+  const foleyScale = is1950s ? 0.78 : isCreative ? 1.06 : 1.0;
   const diegeticExtras: Array<{
     anchorBeatId: string;
     src: string;
     offsetMs: number;
     gain: number;
   }> = [
-    { anchorBeatId: "nw_b307", src: "/film/sfx/vending-coin-can.mp3", offsetMs: 180, gain: 0.48 },
-    { anchorBeatId: "nw_b325", src: "/film/sfx/shutter-pull-down.mp3", offsetMs: 120, gain: 0.52 },
-    { anchorBeatId: "nw_b1290", src: "/film/sfx/footsteps-wet.mp3", offsetMs: 150, gain: 0.42 },
-    { anchorBeatId: "nw_b1293", src: "/film/sfx/car-stop-wet.mp3", offsetMs: 100, gain: 0.46 },
-    { anchorBeatId: "nw_b1294", src: "/film/sfx/car-window-down.mp3", offsetMs: 160, gain: 0.5 },
-    { anchorBeatId: "nw_b1303", src: "/film/sfx/car-window-down.mp3", offsetMs: 120, gain: 0.44 },
-    { anchorBeatId: "nw_b1304", src: "/film/sfx/car-driving-away.mp3", offsetMs: 80, gain: 0.48 },
+    { anchorBeatId: "nw_b307", src: "/film/sfx/vending-coin-can.mp3", offsetMs: 180, gain: 0.48 * foleyScale },
+    { anchorBeatId: "nw_b325", src: "/film/sfx/shutter-pull-down.mp3", offsetMs: 120, gain: 0.52 * foleyScale },
+    { anchorBeatId: "nw_b1290", src: "/film/sfx/footsteps-wet.mp3", offsetMs: 150, gain: 0.42 * foleyScale },
+    { anchorBeatId: "nw_b1293", src: "/film/sfx/car-stop-wet.mp3", offsetMs: 100, gain: 0.46 * foleyScale },
+    { anchorBeatId: "nw_b1294", src: "/film/sfx/car-window-down.mp3", offsetMs: 160, gain: 0.5 * foleyScale },
+    { anchorBeatId: "nw_b1303", src: "/film/sfx/car-window-down.mp3", offsetMs: 120, gain: 0.44 * foleyScale },
+    { anchorBeatId: "nw_b1304", src: "/film/sfx/car-driving-away.mp3", offsetMs: 80, gain: 0.48 * foleyScale },
   ];
   for (const cue of diegeticExtras) {
     if (!clipById.has(cue.anchorBeatId)) continue;
@@ -1377,14 +2145,13 @@ export function buildDirectorsCutProject(
       offsetMs: cue.offsetMs,
       inMs: 0,
       durationMs: Math.max(MIN_AUDIO_CLIP_MS, durMs),
-      gain: cue.gain,
+      gain: Number(cue.gain.toFixed(3)),
       fadeInMs: 30,
       fadeOutMs: 120,
       loop: false,
     });
   }
 
-  // Cold-open rain sound bridge: let Scene 1 rain sneak in 1,100 ms over the final black tail of nw_logo
   const resolvedPass1 = resolveAudioClips(injectedAudio, timelineClips);
   const voiceSorted = resolvedPass1
     .filter((c) => c.lane === "voice")
@@ -1402,14 +2169,17 @@ export function buildDirectorsCutProject(
     const anchorClip = clipById.get(rc.anchorId);
 
     if (rc.lane === "ambience") {
-      // Ambient sound bridges (J-cut pre-roll + L-cut tail crossfade across scene cuts)
-      const bridgeLeadMs = rc.startMs > 2000 ? 780 : 0;
-      const bridgeTailMs = rc.endMs + 650 < totalFilmMs ? 650 : 0;
+      // Ambient sound bridges tailored to each cut
+      const bridgeLeadMs =
+        rc.startMs > 2000 ? (is1950s ? 450 : isCreative ? 1350 : 780) : 0;
+      const bridgeTailMs =
+        rc.endMs + 950 < totalFilmMs ? (is1950s ? 450 : isCreative ? 900 : 650) : 0;
       const actualLeadMs = Math.min(bridgeLeadMs, rc.startMs);
       const nextDurMs = Math.max(
         MIN_AUDIO_CLIP_MS,
         roundMicros(rc.durationMs + actualLeadMs + bridgeTailMs),
       );
+      const maxAmbGain = is1950s ? 0.26 : isCreative ? 0.42 : 0.38;
       return {
         id: rc.id,
         lane: rc.lane,
@@ -1418,19 +2188,26 @@ export function buildDirectorsCutProject(
         offsetMs: roundMicros(rc.offsetMs - actualLeadMs),
         inMs: rc.inMs,
         durationMs: nextDurMs,
-        gain: Math.min(0.38, rc.gain),
-        fadeInMs: Math.max(rc.fadeInMs, actualLeadMs > 0 ? 1150 : 600),
-        fadeOutMs: Math.max(rc.fadeOutMs, 1050),
+        gain: Math.min(maxAmbGain, rc.gain),
+        fadeInMs: Math.max(rc.fadeInMs, actualLeadMs > 0 ? (isCreative ? 1400 : 1150) : 600),
+        fadeOutMs: Math.max(rc.fadeOutMs, isCreative ? 1250 : 1050),
         loop: rc.loop,
       };
     }
 
     if (rc.lane === "music") {
-      // Restrained neo-noir score levels + smooth musical sound-bridge pre-roll
       const isLogoMusic =
         rc.src.includes("black-cove") || rc.src.includes("scarlet-reel-logo");
-      const preRollMs = !isLogoMusic && rc.startMs > 5000 ? 850 : 0;
+      const preRollMs =
+        !isLogoMusic && rc.startMs > 5000 ? (is1950s ? 500 : isCreative ? 1400 : 850) : 0;
       const actualPreRollMs = Math.min(preRollMs, rc.startMs);
+      const musicGain = isLogoMusic
+        ? rc.gain
+        : is1950s
+          ? Math.min(0.40, rc.gain * 0.68)
+          : isCreative
+            ? Math.min(0.62, rc.gain * 0.9)
+            : Math.min(0.56, rc.gain * 0.82);
       return {
         id: rc.id,
         lane: rc.lane,
@@ -1439,14 +2216,15 @@ export function buildDirectorsCutProject(
         offsetMs: roundMicros(rc.offsetMs - actualPreRollMs),
         inMs: rc.inMs,
         durationMs: roundMicros(rc.durationMs + actualPreRollMs),
-        gain: isLogoMusic ? rc.gain : Math.min(0.56, rc.gain * 0.82),
-        fadeInMs: isLogoMusic ? rc.fadeInMs : Math.max(rc.fadeInMs, 2400),
-        fadeOutMs: isLogoMusic ? rc.fadeOutMs : Math.max(rc.fadeOutMs, 2800),
+        gain: musicGain,
+        fadeInMs: isLogoMusic ? rc.fadeInMs : Math.max(rc.fadeInMs, is1950s ? 3200 : isCreative ? 2000 : 2400),
+        fadeOutMs: isLogoMusic ? rc.fadeOutMs : Math.max(rc.fadeOutMs, is1950s ? 3600 : isCreative ? 2600 : 2800),
         loop: rc.loop,
       };
     }
 
     if (rc.lane === "sfx") {
+      const maxSfxGain = is1950s ? 0.48 : isCreative ? 0.72 : 0.68;
       return {
         id: rc.id,
         lane: rc.lane,
@@ -1455,26 +2233,35 @@ export function buildDirectorsCutProject(
         offsetMs: rc.offsetMs,
         inMs: rc.inMs,
         durationMs: rc.durationMs,
-        gain: Math.max(0.16, Math.min(0.68, rc.gain)),
+        gain: Math.max(0.14, Math.min(maxSfxGain, rc.gain)),
         fadeInMs: Math.max(20, rc.fadeInMs),
         fadeOutMs: Math.max(45, rc.fadeOutMs),
         loop: rc.loop,
       };
     }
 
-    // Voice lane: apply motivated J-cuts (-240 ms pre-cut lead) on shot/scene-opening lines
-    // whenever the preceding voice clip ended at least 480 ms earlier!
+    // Voice lane J-cut strategy per editorial cut:
+    // - Creative Cut: bold -360 ms psychological pre-lap J-cuts whenever >= 620 ms silence precedes
+    // - 1950s Noir Cut: classical straight dialogue cuts (gentle -80 ms breath softening only)
+    // - Neo-Noir Cut: balanced -240 ms J-cuts whenever >= 480 ms silence precedes
     const isAtClipStart = Math.abs(rc.offsetMs) < 35;
     const prevEndMs = prevVoiceEndById.get(rc.id) ?? 0;
     const clearBeforeMs = rc.startMs - prevEndMs;
+    const minClearMs = is1950s ? 800 : isCreative ? 620 : 480;
+    const shouldPreLap = is1950s
+      ? hashInt(rc.id) % 3 === 0
+      : isCreative
+        ? hashInt(rc.id) % 5 !== 0
+        : hashInt(rc.id) % 3 !== 0;
+
     if (
       anchorClip &&
       isAtClipStart &&
       rc.startMs > 3000 &&
-      clearBeforeMs >= 480 &&
-      hashInt(rc.id) % 3 !== 0
+      clearBeforeMs >= minClearMs &&
+      shouldPreLap
     ) {
-      const jCutLeadMs = 240;
+      const jCutLeadMs = is1950s ? 80 : isCreative ? 360 : 240;
       return {
         id: rc.id,
         lane: rc.lane,
@@ -1505,22 +2292,45 @@ export function buildDirectorsCutProject(
     };
   });
 
-  // 5. Place Timeline Note Markers on all 9 newly generated plate slots so the editor can jump right to them
+  // 5. Place Timeline Note Markers on all 9 newly generated plate slots (+ chapter markers in Creative Cut)
   const existingMarkers: NoteMarker[] = Array.isArray(story.markers)
-    ? story.markers.filter((m) => !m.id.startsWith("marker-gap-"))
+    ? story.markers.filter(
+        (m) => !m.id.startsWith("marker-gap-") && !m.id.startsWith("marker-chapter-"),
+      )
     : [];
+  const chapterMarkers: NoteMarker[] = [];
+  const chapterFrameSet = new Set<number>();
+  if (isCreative) {
+    const chapterEntries = Object.entries(CREATIVE_CHAPTER_CARDS);
+    chapterEntries.forEach(([scId, ch], chIdx) => {
+      const firstClip = timelineClips.find((c) => c.keyframe.sceneId === scId);
+      if (!firstClip) return;
+      chapterFrameSet.add(firstClip.startFrame);
+      chapterMarkers.push({
+        id: `marker-chapter-${String(chIdx + 1).padStart(2, "0")}`,
+        frame: firstClip.startFrame,
+        name: scId === "nw_s77a" ? "PART IV · SHOT 03 · Black Glass" : ch.marker,
+        color: "#c678dd",
+      });
+    });
+  }
+
   const gapMarkers: NoteMarker[] = [];
   for (const spec of MISSING_FRAME_SPECS) {
     const gapClip = clipById.get(spec.beatId);
     if (!gapClip) continue;
+    if (chapterFrameSet.has(gapClip.startFrame)) continue;
     gapMarkers.push({
       id: `marker-gap-${String(spec.slotNumber).padStart(2, "0")}`,
       frame: gapClip.startFrame,
       name: spec.markerLabel.replace(/^GAP\s+/, "SHOT "),
-      color: "#56b6c2",
+      color: is1950s ? "#abb2bf" : "#56b6c2",
     });
   }
-  story.markers = [...existingMarkers, ...gapMarkers].sort((a, b) => a.frame - b.frame);
+
+  story.markers = [...existingMarkers, ...gapMarkers, ...chapterMarkers].sort(
+    (a, b) => a.frame - b.frame,
+  );
 
   const existingSnapshots = (baseProject.snapshots || []).filter(
     (s) => s.id !== uncutSnapshot.id,
@@ -1532,6 +2342,54 @@ export function buildDirectorsCutProject(
     audioClips: polishedAudioClips,
     snapshots: [uncutSnapshot, ...existingSnapshots],
     directorsCutVersion: DIRECTORS_CUT_VERSION,
+    directorsCutId: variant,
     updatedAt: Date.now(),
   };
+}
+
+/**
+ * Builds the default Neo-Noir / *Tokyo Story* Director's Cut on a `ProjectState`
+ * without mutating `project.originalStory` or any surviving `beat.text`.
+ */
+export function buildDirectorsCutProject(
+  baseProject: ProjectState,
+  voiceDurations: ReadonlyMap<string, number>,
+  musicDurations?: ReadonlyMap<string, number>,
+): ProjectState {
+  return buildEditorialCut(baseProject, "neo-noir", voiceDurations, musicDurations);
+}
+
+/**
+ * Builds any selectable editorial version (`"neo-noir"`, `"creative"`, `"noir-1950s"`, or `"uncut"`)
+ * non-destructively from `baseProject.originalStory`, preserving snapshots and full story integrity.
+ */
+export function buildDirectorsCutById(
+  baseProject: ProjectState,
+  cutId: DirectorsCutId,
+  voiceDurations: ReadonlyMap<string, number>,
+  musicDurations?: ReadonlyMap<string, number>,
+): ProjectState {
+  if (cutId === "uncut") {
+    const uncutSnapshot: ProjectSnapshot = {
+      id: "snapshot-uncut-original-import",
+      name: "Uncut Original Import (1,584 raw beats)",
+      createdAt: baseProject.updatedAt || Date.now(),
+      story: clone(baseProject.originalStory),
+    };
+    const story = clone(baseProject.originalStory);
+    const audioClips = buildAudioClipsFromFilm(story, voiceDurations, musicDurations);
+    const existingSnapshots = (baseProject.snapshots || []).filter(
+      (s) => s.id !== uncutSnapshot.id,
+    );
+    return {
+      ...baseProject,
+      story,
+      audioClips,
+      snapshots: [uncutSnapshot, ...existingSnapshots],
+      directorsCutVersion: DIRECTORS_CUT_VERSION,
+      directorsCutId: "uncut",
+      updatedAt: Date.now(),
+    };
+  }
+  return buildEditorialCut(baseProject, cutId, voiceDurations, musicDurations);
 }

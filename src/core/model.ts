@@ -147,6 +147,7 @@ export interface ProjectState {
   sourceEdits?: AnyRecord;
   snapshots: ProjectSnapshot[];
   directorsCutVersion?: number;
+  directorsCutId?: "neo-noir" | "creative" | "noir-1950s" | "uncut";
   createdAt: number;
   updatedAt: number;
 }

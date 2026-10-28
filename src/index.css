@@ -6503,9 +6503,146 @@ kbd {
   cursor: crosshair;
 }
 
+/* Topbar Director's Cut selector dropdown */
+.topbar-cut-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.topbar-cut-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.topbar-cut-trigger-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e8a24a;
+  flex-shrink: 0;
+}
+
+.topbar-cut-trigger-dot.is-creative {
+  background: #c678dd;
+}
+
+.topbar-cut-trigger-dot.is-noir-1950s {
+  background: #d8dee9;
+}
+
+.topbar-cut-trigger-dot.is-uncut {
+  background: #7f848e;
+}
+
+.topbar-cut-chevron {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.72;
+}
+
+.topbar-cut-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 312px;
+  padding: 6px;
+  border-radius: 8px;
+  background: #14171d;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.65);
+  z-index: 260;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.topbar-cut-menu-header {
+  padding: 5px 9px 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.topbar-cut-menu-divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.topbar-cut-option {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #e6e9ef;
+  text-align: left;
+  cursor: pointer;
+}
+
+.topbar-cut-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.topbar-cut-option.is-active {
+  background: rgba(232, 162, 74, 0.12);
+  border-color: rgba(232, 162, 74, 0.35);
+}
+
+.topbar-cut-option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.topbar-cut-option-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f3f5f8;
+}
+
+.topbar-cut-option-desc {
+  font-size: 11px;
+  line-height: 1.32;
+  color: rgba(214, 220, 230, 0.68);
+}
+
+.topbar-cut-option-check {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #e8a24a;
+}
+
 /* Signature Tokyo Neo-Noir optical color grade (strictly zero CSS transitions/animations) */
 .cin-grade-tokyo-noir {
   filter: saturate(0.74) contrast(1.16) brightness(0.93) sepia(0.05) hue-rotate(-3deg);
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Creative Director's Cut: Sodium & Bleach-Bypass split-tone optical grade (zero transitions/animations) */
+.cin-grade-sodium-amber {
+  filter: saturate(0.82) contrast(1.25) brightness(0.92) sepia(0.11) hue-rotate(-7deg);
+  transition: none !important;
+  animation: none !important;
+}
+
+/* 1950s Noir Director's Cut: High-contrast Tri-X silver-gelatin monochrome grade (zero transitions/animations) */
+.cin-grade-noir-1950s {
+  filter: grayscale(1) contrast(1.38) brightness(0.91);
   transition: none !important;
   animation: none !important;
 }
@@ -6564,6 +6701,32 @@ kbd {
   letter-spacing: 0.05em;
   color: rgba(226, 219, 205, 0.84);
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.92);
+}
+
+.cin-title-card.is-monochrome .cin-title-card-kicker {
+  color: rgba(218, 220, 224, 0.88);
+  letter-spacing: 0.28em;
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-title-card.is-monochrome .cin-title-card-main {
+  color: #f4f4f2;
+  letter-spacing: 0.18em;
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-title-card.is-monochrome .cin-title-card-sub {
+  color: rgba(210, 212, 216, 0.85);
+  transition: none !important;
+  animation: none !important;
+}
+
+.cin-caption.is-monochrome span {
+  color: rgba(220, 222, 226, 0.88) !important;
+  transition: none !important;
+  animation: none !important;
 }
 
 .cin-caption.pos-bottom.has-letterbox {

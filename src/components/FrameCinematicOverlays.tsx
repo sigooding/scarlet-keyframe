@@ -81,6 +81,18 @@ export const TOKYO_NOIR_WASH = {
   tintBlend: "soft-light" as const,
 };
 
+export const SODIUM_AMBER_WASH = {
+  tint: "radial-gradient(ellipse at 50% 46%, rgba(255, 186, 92, 0.13) 0%, rgba(8, 24, 28, 0.44) 68%, rgba(3, 9, 14, 0.68) 100%), linear-gradient(180deg, rgba(6, 26, 30, 0.4) 0%, rgba(255, 174, 76, 0.04) 42%, rgba(4, 12, 18, 0.52) 100%)",
+  tintOpacity: 0.92,
+  tintBlend: "soft-light" as const,
+};
+
+export const NOIR_1950S_WASH = {
+  tint: "radial-gradient(ellipse at 50% 42%, rgba(255, 255, 255, 0.09) 0%, rgba(20, 20, 20, 0.38) 68%, rgba(0, 0, 0, 0.76) 100%), linear-gradient(180deg, rgba(0, 0, 0, 0.38) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(0, 0, 0, 0.54) 100%)",
+  tintOpacity: 0.94,
+  tintBlend: "soft-light" as const,
+};
+
 /**
  * Frame-driven ambient grain overlay (replaces `.fx-grain::after`).
  */
@@ -135,9 +147,13 @@ export function FrameCinematicOverlays({
   const grade =
     rawGradeId === "tokyo-noir"
       ? TOKYO_NOIR_WASH
-      : cinematic?.colorGrade
-        ? GRADE_PRESETS[cinematic.colorGrade]
-        : undefined;
+      : rawGradeId === "sodium-amber"
+        ? SODIUM_AMBER_WASH
+        : rawGradeId === "noir-1950s"
+          ? NOIR_1950S_WASH
+          : cinematic?.colorGrade
+            ? GRADE_PRESETS[cinematic.colorGrade]
+            : undefined;
   const film = !!cinematic?.filmGrade;
   const hasVignette = Boolean((cinematic as Record<string, unknown> | undefined)?.vignette);
   const rawVigStrength = Number((cinematic as Record<string, unknown> | undefined)?.vignetteStrength);

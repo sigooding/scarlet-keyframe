@@ -1337,7 +1337,13 @@ export function CinematicPreview({
 
       {(() => {
         const tc = (frame.beat as Record<string, any>).titleCard as
-          | { kicker?: string; title?: string; subtitle?: string; align?: "center" | "lower-left" }
+          | {
+              kicker?: string;
+              title?: string;
+              subtitle?: string;
+              align?: "center" | "lower-left";
+              monochrome?: boolean;
+            }
           | undefined;
         if (!tc || (!tc.title && !tc.kicker && !tc.subtitle)) return null;
         const dur = Math.max(12, clipDurationFrames ?? clipFrames(frame));
@@ -1347,7 +1353,7 @@ export function CinematicPreview({
         const cardOpacity = Math.max(0, Math.min(1, Math.min(inOp, outOp)));
         return (
           <div
-            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"}`}
+            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"} ${tc.monochrome || cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : ""}`}
             data-testid="viewer-title-card"
             style={{
               opacity: Number(cardOpacity.toFixed(4)),
@@ -1370,6 +1376,7 @@ export function CinematicPreview({
             frame.scene.letterbox ? "has-letterbox" : "",
             `size-${style.size.toLowerCase()}`,
             style.backgroundBox ? "has-box" : "no-box",
+            cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -1648,7 +1655,7 @@ function ShotLayer({
       {videoSrc ? (
         <video
           ref={videoRef}
-          className="cin-preview-video"
+          className={`cin-preview-video ${gradeClass}`.trim()}
           src={videoSrc}
           style={{
             transform: plateTransform,
@@ -1713,7 +1720,7 @@ function ShotLayer({
       )}
       {cinematic.foregroundImage && (
         <img
-          className="cin-preview-foreground"
+          className={`cin-preview-foreground ${gradeClass}`.trim()}
           src={resolveMedia(cinematic.foregroundImage)}
           alt=""
           style={{
@@ -1729,7 +1736,7 @@ function ShotLayer({
         cinematic.foregroundExtras.map((extra: Record<string, any>, index: number) => (
           <img
             key={`${extra.image}-${index}`}
-            className="cin-preview-foreground"
+            className={`cin-preview-foreground ${gradeClass}`.trim()}
             src={resolveMedia(extra.image)}
             alt=""
             style={{
