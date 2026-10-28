@@ -1,20 +1,18 @@
-# Missing Storyboard Frames — *Nobody’s Witness* (Director’s Cut)
+# Storyboard Frames — *Nobody’s Witness* (Director’s Cut v4 — All 9 Gaps Filled)
 
-During the full-film Neo-Noir / *Tokyo Story* edit of *Nobody’s Witness*, **9 uncovered visual beats** were left as explicit **`gap: true`** timeline slots (each flagged on the timeline ruler and **GO TO** menu with an amber `GAP 01`..`GAP 09` marker) so newly generated plates can be dropped directly onto their beats without disturbing surrounding sync, dialogue J-cuts, foley, or score bridges.
+All **9 previously missing storyboard slots** in the Neo-Noir / *Tokyo Story* Director’s Cut (`DIRECTORS_CUT_VERSION = 4`) have now been generated using the film's canonical character, prop, and location style sheets, conformed to exact `16:9` (`>= 1920×1080` Lanczos, zero downscaling), installed under `public/film/img/`, indexed in `src/data/media-index.json`, and wired directly into `src/core/directorsCut.ts` (`SHOT 01`..`SHOT 09` timeline ruler markers).
 
-All 9 plates should be composed for **2.39:1 widescreen safe framing inside a 16:9 (`1920×1080`) master**, lit with motivated practical sources, deep shadow falloff, restrained highlights, and neutral-cool shadow density compatible with the film-wide **`tokyo-noir`** color grade.
-
-| Gap | Timeline Marker | Scene | Beat ID | Frames (`24 fps`) | Timecode | Duration | Suggested Media Path |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **01** | `GAP 01 · S12 Coin` | `nw_s12` (*12 — The strap*) | `nw_b307` | `21386 – 21461` | `14:51:02` | `76f` (`3.17s`) | `/film/img/s12/307-vending-coffee-can.jpg` |
-| **02** | `GAP 02 · S12 Shutter` | `nw_s12` (*12 — The strap*) | `nw_b325` | `22360 – 22423` | `15:31:16` | `64f` (`2.67s`) | `/film/img/s12/325-barber-shutter-closing.jpg` |
-| **03** | `GAP 03 · 77A Avenue` | `nw_s77a` (*77 — The black glass*) | `nw_b1290` | `83155 – 83256` | `57:44:19` | `102f` (`4.25s`) | `/film/img/s77a/1290-predawn-avenue.jpg` |
-| **04** | `GAP 04 · 77A Sedan` | `nw_s77a` (*77 — The black glass*) | `nw_b1293` | `83257 – 83340` | `57:49:01` | `84f` (`3.50s`) | `/film/img/s77a/1293-sedan-keeps-pace.jpg` |
-| **05** | `GAP 05 · 77A Window` | `nw_s77a` (*77 — The black glass*) | `nw_b1294` | `83341 – 83418` | `57:52:13` | `78f` (`3.25s`) | `/film/img/s77a/1294-hand-and-watch-on-sill.jpg` |
-| **06** | `GAP 06 · 77A Exchange` | `nw_s77a` (*77 — The black glass*) | `nw_b1296` | `83419 – 83842` | `57:55:19` | `424f` (`17.67s`) | `/film/img/s77a/1296-everyone-is-allowed-one.jpg` |
-| **07** | `GAP 07 · 77A Glass` | `nw_s77a` (*77 — The black glass*) | `nw_b1303` | `83843 – 83920` | `58:13:11` | `78f` (`3.25s`) | `/film/img/s77a/1303-reflection-in-black-glass.jpg` |
-| **08** | `GAP 08 · 77A Taillights` | `nw_s77a` (*77 — The black glass*) | `nw_b1304` | `83921 – 84028` | `58:16:17` | `108f` (`4.50s`) | `/film/img/s77a/1304-sedan-turns-off.jpg` |
-| **09** | `GAP 09 · S78 Door` | `nw_s78` (*78 — No name*) | `nw_b1309` | `84250 – 84327` | `58:30:10` | `78f` (`3.25s`) | `/film/img/s78/1309-vera-opens-door-dawn.jpg` |
+| Slot | Timeline Marker | Scene | Beat ID | Frames (`24 fps`) | Timecode | Duration | Installed Plate (`public/film/img/...`) | Resolution |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **01** | `SHOT 01 · S12 Coin` | `nw_s12` (*12 — The strap*) | `nw_b307` | `21386 – 21461` | `14:51:02` | `76f` (`3.17s`) | `/film/img/s12/307-vending-coffee-can.jpg` | `1920×1080` |
+| **02** | `SHOT 02 · S12 Shutter` | `nw_s12` (*12 — The strap*) | `nw_b325` | `22360 – 22423` | `15:31:16` | `64f` (`2.67s`) | `/film/img/s12/325-barber-shutter-closing.jpg` | `2816×1584` |
+| **03** | `SHOT 03 · 77A Avenue` | `nw_s77a` (*77 — The black glass*) | `nw_b1290` | `83155 – 83256` | `57:44:19` | `102f` (`4.25s`) | `/film/img/s77a/1290-predawn-avenue.jpg` | `1920×1080` |
+| **04** | `SHOT 04 · 77A Sedan` | `nw_s77a` (*77 — The black glass*) | `nw_b1293` | `83257 – 83340` | `57:49:01` | `84f` (`3.50s`) | `/film/img/s77a/1293-sedan-keeps-pace.jpg` | `1920×1080` |
+| **05** | `SHOT 05 · 77A Window` | `nw_s77a` (*77 — The black glass*) | `nw_b1294` | `83341 – 83418` | `57:52:13` | `78f` (`3.25s`) | `/film/img/s77a/1294-hand-and-watch-on-sill.jpg` | `2730×1536` |
+| **06** | `SHOT 06 · 77A Exchange` | `nw_s77a` (*77 — The black glass*) | `nw_b1296` | `83419 – 83842` | `57:55:19` | `424f` (`17.67s`) | `/film/img/s77a/1296-everyone-is-allowed-one.jpg` | `1920×1080` |
+| **07** | `SHOT 07 · 77A Glass` | `nw_s77a` (*77 — The black glass*) | `nw_b1303` | `83843 – 83920` | `58:13:11` | `78f` (`3.25s`) | `/film/img/s77a/1303-reflection-in-black-glass.jpg` | `1920×1080` |
+| **08** | `SHOT 08 · 77A Taillights` | `nw_s77a` (*77 — The black glass*) | `nw_b1304` | `83921 – 84028` | `58:16:17` | `108f` (`4.50s`) | `/film/img/s77a/1304-sedan-turns-off.jpg` | `2844×1600` |
+| **09** | `SHOT 09 · S78 Door` | `nw_s78` (*78 — No name*) | `nw_b1309` | `84250 – 84327` | `58:30:10` | `78f` (`3.25s`) | `/film/img/s78/1309-vera-opens-door-dawn.jpg` | `2844×1600` |
 
 ---
 

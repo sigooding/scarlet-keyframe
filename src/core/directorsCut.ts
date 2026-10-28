@@ -32,7 +32,7 @@ import {
   type TimelineClip,
 } from "../sequence/animate";
 
-export const DIRECTORS_CUT_VERSION = 3;
+export const DIRECTORS_CUT_VERSION = 4;
 
 export interface MissingFrameSpec {
   slotNumber: number;
@@ -520,23 +520,28 @@ function structureScene77AGaps(scene: SceneLike): void {
 
   delete scene.background;
 
-  const configureGap = (beat: BeatLike, frames: number, caps: BeatCaption[]) => {
-    beat.gap = true;
+  const configurePlate = (
+    beat: BeatLike,
+    picture: string,
+    frames: number,
+    caps: BeatCaption[],
+  ) => {
+    delete beat.gap;
+    beat.background = picture;
     beat.durationFrames = frames;
     beat.captions = caps;
-    delete beat.background;
     delete beat.cinematic;
     delete beat.animation;
     delete beat.backgroundTransition;
     delete beat.backgroundTransitionSpeed;
   };
 
-  configureGap(g1, 102, []);
-  configureGap(g2, 84, []);
-  configureGap(g3, 78, []);
+  configurePlate(g1, "/film/img/s77a/1290-predawn-avenue.jpg", 102, []);
+  configurePlate(g2, "/film/img/s77a/1293-sedan-keeps-pace.jpg", 84, []);
+  configurePlate(g3, "/film/img/s77a/1294-hand-and-watch-on-sill.jpg", 78, []);
 
   // 6 spoken/silent-acted lines between Kurose and Jack across 424 frames (17.67s, <16 c/s on every cue)
-  configureGap(g4, 424, [
+  configurePlate(g4, "/film/img/s77a/1296-everyone-is-allowed-one.jpg", 424, [
     { text: "Detective.", inFrame: 8, outFrame: 44, speaker: "KUROSE", isNarration: false },
     { text: "Not any more.", inFrame: 52, outFrame: 92, speaker: "JACK", isNarration: false },
     {
@@ -569,8 +574,8 @@ function structureScene77AGaps(scene: SceneLike): void {
     },
   ]);
 
-  configureGap(g5, 78, []);
-  configureGap(g6, 108, []);
+  configurePlate(g5, "/film/img/s77a/1303-reflection-in-black-glass.jpg", 78, []);
+  configurePlate(g6, "/film/img/s77a/1304-sedan-turns-off.jpg", 108, []);
 
   scene.dialogueBeats = [g1, g2, g3, g4, g5, g6];
 }
@@ -826,9 +831,36 @@ export function buildDirectorsCutProject(
       scene.letterbox = true;
     }
 
-    // Special 6-shot gap structure for Scene 77A ("The black glass")
+    // Special 6-shot sequence for Scene 77A ("The black glass"), now fully pictured
     if (sceneId === "nw_s77a") {
       structureScene77AGaps(scene);
+      const pace = classifyScenePace(sceneId);
+      const beats = scene.dialogueBeats ?? [];
+      beats.forEach((b, idx) => {
+        const durF = Number(b.durationFrames) || 96;
+        authorNeoNoirCamera(b, sceneId, idx, durF, pace);
+        if (b.id === "nw_b1296") {
+          const lastF = Math.max(1, durF - 1);
+          b.animation = {
+            zoom: [
+              {
+                frame: 0,
+                value: 1.012,
+                easing: "bezier",
+                bezier: [0.33, 0, 0.2, 1],
+              },
+              { frame: lastF, value: 1.052, easing: "linear" },
+            ],
+            values: { gradeStrength: 0.88 },
+          };
+        }
+        if (idx === 0) {
+          b.backgroundTransition = "dip-to-black";
+          b.backgroundTransitionSpeed = 1.0;
+          b.transitionAlignment = "at-cut";
+        }
+        if (b.background) carriedAcrossScenesPic = String(b.background);
+      });
       return;
     }
 
@@ -863,6 +895,7 @@ export function buildDirectorsCutProject(
       beat: BeatLike;
       picture: string | undefined;
       isGap: boolean;
+      standalone?: boolean;
       hasTitleCard: boolean;
       durationFrames: number;
       captions: BeatCaption[] | undefined; // undefined = use default beat.text (for spoken dialogue)
@@ -884,8 +917,8 @@ export function buildDirectorsCutProject(
 
       if (EXPLICIT_GAP_BEAT_IDS.has(beatId)) {
         const spec = MISSING_FRAME_SPECS.find((s) => s.beatId === beatId)!;
-        beat.gap = true;
-        delete beat.background;
+        delete beat.gap;
+        beat.background = spec.suggestedPath;
         delete beat.cinematic;
         delete beat.animation;
         beat.captions = [];
@@ -893,8 +926,9 @@ export function buildDirectorsCutProject(
         const sfxDur = sfxUrl ? lookupAudioDurationMs(sfxUrl, voiceDurations) ?? 1500 : 0;
         prepared.push({
           beat,
-          picture: undefined,
-          isGap: true,
+          picture: spec.suggestedPath,
+          isGap: false,
+          standalone: true,
           hasTitleCard: false,
           durationFrames: spec.durationFrames,
           captions: [],
@@ -1114,7 +1148,8 @@ export function buildDirectorsCutProject(
     let idx = 0;
     while (idx < prepared.length) {
       const head = prepared[idx];
-      if (head.isGap || head.hasTitleCard || !head.picture) {
+      if (head.isGap || head.standalone || head.hasTitleCard || !head.picture) {
+        if (head.picture) head.beat.background = head.picture;
         head.beat.durationFrames = head.durationFrames;
         if (head.captions !== undefined) head.beat.captions = head.captions;
         consolidated.push(head.beat);
@@ -1126,6 +1161,7 @@ export function buildDirectorsCutProject(
       while (
         end < prepared.length &&
         !prepared[end].isGap &&
+        !prepared[end].standalone &&
         !prepared[end].hasTitleCard &&
         prepared[end].picture === head.picture
       ) {
@@ -1469,7 +1505,7 @@ export function buildDirectorsCutProject(
     };
   });
 
-  // 5. Place Timeline Note Markers on all 9 explicit Missing-Frame Gap slots so the editor can jump right to them
+  // 5. Place Timeline Note Markers on all 9 newly generated plate slots so the editor can jump right to them
   const existingMarkers: NoteMarker[] = Array.isArray(story.markers)
     ? story.markers.filter((m) => !m.id.startsWith("marker-gap-"))
     : [];
@@ -1480,8 +1516,8 @@ export function buildDirectorsCutProject(
     gapMarkers.push({
       id: `marker-gap-${String(spec.slotNumber).padStart(2, "0")}`,
       frame: gapClip.startFrame,
-      name: spec.markerLabel,
-      color: "#e8a24a",
+      name: spec.markerLabel.replace(/^GAP\s+/, "SHOT "),
+      color: "#56b6c2",
     });
   }
   story.markers = [...existingMarkers, ...gapMarkers].sort((a, b) => a.frame - b.frame);

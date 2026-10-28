@@ -1,10 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CinematicPreview } from "../components/CinematicPreview";
 import { Topbar } from "../components/Topbar";
 import bundledAudioDurations from "../data/audio-durations.json";
+import bundledMediaIndex from "../data/media-index.json";
 import bundledFilm from "../data/nobodys-witness-film.json";
 import bundledEdits from "../data/studio-edits.json";
 import {
@@ -274,14 +275,26 @@ describe("Turn 18 — Speed ramps, Tokyo-Noir viewer engine, and Full-Film Direc
       expect(clampPoseToPictureEdges(endPose).clamped).toBe(false);
     }
 
-    // 8. Leaves all 9 explicit missing-frame gap slots + matching timeline noteMarkers
-    const gapClips = clips.filter((c) => c.keyframe.beat.gap);
-    expect(gapClips.length).toBe(9);
+    // 8. Wires all 9 newly generated plates into the Director's Cut (zero remaining gap/gradient placeholders!)
+    const gapClips = clips.filter(
+      (c) =>
+        Boolean(c.keyframe.beat.gap) ||
+        String(c.keyframe.beat.background || "").startsWith("gradient:"),
+    );
+    expect(gapClips.length).toBe(0);
     expect(MISSING_FRAME_SPECS.length).toBe(9);
+    const mediaSet = new Set(bundledMediaIndex as string[]);
     for (const spec of MISSING_FRAME_SPECS) {
-      const match = gapClips.find((c) => c.keyframe.id === spec.beatId);
+      const match = clips.find((c) => c.keyframe.id === spec.beatId);
       expect(match).toBeDefined();
       expect(match!.durationFrames).toBe(spec.durationFrames);
+      expect(match!.keyframe.beat.gap).toBeFalsy();
+      expect(match!.keyframe.beat.background).toBe(spec.suggestedPath);
+      expect(match!.keyframe.beat.cinematic?.colorGrade).toBe("tokyo-noir");
+      expect(mediaSet.has(spec.suggestedPath)).toBe(true);
+      expect(
+        existsSync(resolve(process.cwd(), "public", spec.suggestedPath.replace(/^\//, ""))),
+      ).toBe(true);
       const marker = dcProj.story.markers?.find((m) => m.frame === match!.startFrame);
       expect(marker).toBeDefined();
     }
