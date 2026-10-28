@@ -1000,6 +1000,91 @@ export function applyPoseAtPlayhead(
   return next;
 }
 
+/**
+ * Direct-viewer framing helper (`CinematicPreview` pan, wheel-zoom, rotation handle, `Alt+Click`):
+ * ALWAYS creates or updates real ◆ diamond keyframes at `localFrame` for every edited camera
+ * channel (`zoom`, `x`, `y`, `rotation`)—even when that channel previously had 0 keyframes.
+ * When `localFrame > 0` on a previously un-keyframed channel, anchors frame `0` at its prior
+ * baseline value so the shot smoothly animates from `0` to `localFrame` instead of jumping.
+ */
+export function applyDirectViewerPoseAtFrame(
+  animation: BeatAnimation | undefined,
+  localFrame: number,
+  nextPose: Partial<Pick<EvaluatedPose, "zoom" | "x" | "y" | "rotation">>,
+  baselinePose?: Partial<Pick<EvaluatedPose, "zoom" | "x" | "y" | "rotation">>,
+  defaultEasing: KeyEasing = "ease-in-out",
+): BeatAnimation | undefined {
+  const frame = Math.max(0, Math.round(localFrame));
+  const props: Array<"zoom" | "x" | "y" | "rotation"> = ["zoom", "x", "y", "rotation"];
+
+  let next: BeatAnimation = animation
+    ? {
+        ...animation,
+        ...(animation.values ? { values: { ...animation.values } } : {}),
+      }
+    : {};
+
+  for (const prop of props) {
+    const rawVal = nextPose[prop];
+    if (typeof rawVal !== "number" || !Number.isFinite(rawVal)) continue;
+    const clamped = clampPropValue(prop, rawVal);
+    const existing = sortedKeys(next[prop] ?? []);
+
+    if (existing.length > 0) {
+      const atIndex = existing.findIndex((key) => key.frame === frame);
+      let nextKeys: Key[];
+      if (atIndex >= 0) {
+        nextKeys = existing.map((key, idx) =>
+          idx === atIndex ? { ...key, value: clamped } : key,
+        );
+      } else {
+        const prior = [...existing].reverse().find((key) => key.frame < frame);
+        const inheritedEasing = prior?.easing ?? existing[0]?.easing ?? defaultEasing;
+        const inheritedBezier =
+          inheritedEasing === "bezier"
+            ? ([...(prior?.bezier ?? existing[0]?.bezier ?? DEFAULT_BEZIER)] as CubicBezierTuple)
+            : undefined;
+        nextKeys = [
+          ...existing,
+          {
+            frame,
+            value: clamped,
+            easing: inheritedEasing,
+            ...(inheritedBezier ? { bezier: inheritedBezier } : {}),
+          },
+        ];
+      }
+      next[prop] = nextKeys;
+    } else {
+      const plainVal = next.values?.[prop];
+      const baseFallback =
+        typeof plainVal === "number" && Number.isFinite(plainVal)
+          ? plainVal
+          : typeof baselinePose?.[prop] === "number" && Number.isFinite(baselinePose[prop])
+            ? baselinePose[prop]!
+            : ANIM_PROP_META[prop].defaultValue;
+      const clampedBase = clampPropValue(prop, baseFallback);
+
+      if (next.values && prop in next.values) {
+        const cleanedValues = { ...next.values };
+        delete cleanedValues[prop];
+        next.values = Object.keys(cleanedValues).length > 0 ? cleanedValues : undefined;
+      }
+
+      if (frame === 0) {
+        next[prop] = [{ frame: 0, value: clamped, easing: defaultEasing }];
+      } else {
+        next[prop] = [
+          { frame: 0, value: clampedBase, easing: defaultEasing },
+          { frame, value: clamped, easing: defaultEasing },
+        ];
+      }
+    }
+  }
+
+  return normalizeAnimation(next);
+}
+
 export function setKeyEasingAtFrame(
   animation: BeatAnimation | undefined,
   prop: AnimProp,

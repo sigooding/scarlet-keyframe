@@ -653,8 +653,65 @@ export function convertFramesCameraMovesToKeyframes(
     startCursor += durationFrames;
 
     if (kf.beat.gap) continue;
-    if (hasHandEditedCamera(kf.beat.animation)) continue;
+    const anim = kf.beat.animation;
+    const alreadyHasKeyframes = Boolean(
+      anim?.kenBurns ||
+        anim?.zoom?.length ||
+        anim?.x?.length ||
+        anim?.y?.length ||
+        anim?.rotation?.length,
+    );
+    if (alreadyHasKeyframes) continue;
 
+    // 1. Convert plain static camera framing (`animation.values.{zoom,x,y,rotation}`) into ◆ keyframes
+    const v = anim?.values;
+    const hasPlainCameraFraming = Boolean(
+      v &&
+        ((typeof v.zoom === "number" && Math.abs(v.zoom - 1) > 1e-6) ||
+          (typeof v.x === "number" && Math.abs(v.x) > 1e-6) ||
+          (typeof v.y === "number" && Math.abs(v.y) > 1e-6) ||
+          (typeof v.rotation === "number" && Math.abs(v.rotation) > 1e-6)),
+    );
+    if (hasPlainCameraFraming && v) {
+      const lastFrame = Math.max(0, Math.round(durationFrames) - 1);
+      const z = roundKeyValue(typeof v.zoom === "number" && Number.isFinite(v.zoom) ? v.zoom : 1);
+      const x = roundKeyValue(typeof v.x === "number" && Number.isFinite(v.x) ? v.x : 0);
+      const y = roundKeyValue(typeof v.y === "number" && Number.isFinite(v.y) ? v.y : 0);
+      const r = roundKeyValue(
+        typeof v.rotation === "number" && Number.isFinite(v.rotation) ? v.rotation : 0,
+      );
+      const makeSpan = (val: number): Key[] =>
+        lastFrame > 0
+          ? [
+              { frame: 0, value: val, easing: "linear" },
+              { frame: lastFrame, value: val, easing: "linear" },
+            ]
+          : [{ frame: 0, value: val, easing: "linear" }];
+
+      const convertedStatic: BeatAnimation = { ...anim };
+      convertedStatic.zoom = makeSpan(z);
+      if (Math.abs(x) > 1e-6) convertedStatic.x = makeSpan(x);
+      if (Math.abs(y) > 1e-6) convertedStatic.y = makeSpan(y);
+      if (Math.abs(r) > 1e-6) convertedStatic.rotation = makeSpan(r);
+
+      const restValues = { ...v };
+      delete restValues.zoom;
+      delete restValues.x;
+      delete restValues.y;
+      delete restValues.rotation;
+      if (Object.keys(restValues).length > 0) {
+        convertedStatic.values = restValues;
+      } else {
+        delete convertedStatic.values;
+      }
+      kf.beat.animation = convertedStatic;
+      convertedCount += 1;
+      continue;
+    }
+
+    if (hasHandEditedCamera(anim)) continue;
+
+    // 2. Convert un-keyframed Scarlet Reel preset or depth camera moves into ◆ keyframes
     const cin = effectiveFrameCinematic(kf);
     const run = runs[i];
     const runOffsetFrames = Math.max(0, clipStartFrame - run.runStartFrame);
