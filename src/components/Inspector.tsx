@@ -987,9 +987,9 @@ export function Inspector(props: InspectorProps) {
                   className="button button-quiet"
                   onClick={props.onSplit}
                   disabled={!props.canSplit}
-                  title="Split clip at playhead (S)"
+                  title={props.selectedCaptionIndices?.length ? "Split selected caption at playhead (S)" : "Split clip at playhead (S)"}
                 >
-                  ✂ Split (S)
+                  ✂ {props.selectedCaptionIndices?.length ? "Split CC" : "Split"} (S)
                 </button>
                 <button className="button button-quiet" onClick={props.onInsert}>
                   ＋ Add after

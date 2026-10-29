@@ -1315,9 +1315,9 @@ export function Timeline({
             className="button button-quiet"
             onClick={onSplit}
             disabled={!canSplit}
-            title="Split selected clip at playhead (S)"
+            title={selectedCaption ? "Split selected caption at playhead (S)" : "Split selected clip at playhead (S)"}
           >
-            ✂ Split (S)
+            ✂ {selectedCaption ? "Split CC" : "Split"} (S)
           </button>
           {onMergeFrames && (
             <button

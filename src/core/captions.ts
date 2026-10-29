@@ -369,6 +369,24 @@ export function splitCaptionAtCursor(
   return { captions: next, didSplit: true };
 }
 
+/** Split a selected cue at the playhead without changing its picture or audio clip. */
+export function splitCaptionAtFrame(
+  beat: BeatLike, clipDurationFrames: number, index: number, localFrame: number,
+): { captions: BeatCaption[]; didSplit: boolean } {
+  const base = effectiveCaptionsForBeat(beat, clipDurationFrames);
+  const cue = base[index];
+  const cut = Math.round(localFrame);
+  if (!cue || !Number.isFinite(cut) || cut <= cue.inFrame || cut >= cue.outFrame) {
+    return { captions: base, didSplit: false };
+  }
+  const [left, right] = splitCaptionTextAtRatio(cue.text, (cut - cue.inFrame) / (cue.outFrame - cue.inFrame));
+  if (!left || !right || (left === cue.text.trim() && right === left)) {
+    return { captions: base, didSplit: false };
+  }
+  return { captions: [...base.slice(0, index), { ...cue, text: left, outFrame: cut },
+    { ...cue, text: right, inFrame: cut }, ...base.slice(index + 1)], didSplit: true };
+}
+
 /**
  * Splits a beat's effective captions across a picture cut at `cutFrame` (local frames) so each
  * half of a split clip keeps its own share of the closed captions:

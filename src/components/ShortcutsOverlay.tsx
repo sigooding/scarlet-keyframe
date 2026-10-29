@@ -34,7 +34,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "Edit",
     rows: [
-      { keys: "S", label: "Split clip at playhead (splits its CC too)" },
+      { keys: "S", label: "Split selected caption or clip at playhead" },
       { keys: "Delete", label: "Lift picture to black gap" },
       { keys: "Shift + Delete", label: "Ripple delete shot & anchored sounds" },
       { keys: "Ctrl/⌘ + C  ·  V", label: "Copy · paste at playhead" },
