@@ -865,7 +865,7 @@ export interface CreditsSettings {
   font?: "pulp" | "poster" | "elegant" | "epic" | "modern" | "type";
   /** Motion applied to each card as it enters and leaves (default "blur-rise").
    * Only used by the "cards" style. "slam" is the pulp main-title punch: the
-   * card lands oversized and snaps to size — the Tarantino chapter-card move. */
+   * card lands oversized and snaps to size — the grindhouse chapter-card move. */
   cardMotion?: "blur-rise" | "letterspace" | "scale-down" | "slide" | "flicker" | "fade" | "slam" | "iris";
   /** how the title enters (default "fade-up"); "slam" punches it in oversized */
   titleEntrance?: "fade-up" | "typewriter" | "slam";
@@ -890,7 +890,7 @@ export interface CreditsSettings {
   montageSeconds?: number;
   /** how one still hands over to the next:
    * - dissolve (default): long cross-fade
-   * - cut: hard cut — the Tarantino title-sequence bang, still to still */
+   * - cut: hard cut — the punchy title-sequence bang, still to still */
   montageTransition?: "dissolve" | "cut";
   /** loop the montage back to the first still (default true). When false it
    * holds on the last image. */
@@ -1040,7 +1040,6 @@ export interface ParallaxLayer {
 /** Named colour grade presets (see GRADE_PRESETS in src/cinematic.ts). */
 export type GradePresetId =
   | "nolan-imax"
-  | "tarantino-35mm"
   | "spielberg-golden"
   | "noir-1940s"
   /** Crushed blacks, magenta/cyan neon bloom — the rain-city tech-noir look. */

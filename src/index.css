@@ -6544,9 +6544,9 @@ kbd {
   background: #d8dee9;
 }
 
-.topbar-cut-trigger-dot.is-tarantino {
-  background: #ffd400;
-  box-shadow: 0 0 0 1px rgba(225, 29, 46, 0.75);
+.topbar-cut-trigger-dot.is-noir-1940s {
+  background: #d9cdb0;
+  box-shadow: 0 0 0 1px rgba(120, 108, 84, 0.7);
 }
 
 .topbar-cut-trigger-dot.is-uncut {
@@ -6743,13 +6743,7 @@ kbd {
   animation: none !important;
 }
 
-/* Tarantino Director's Cut: Saturated 35mm Grindhouse & House of Blue Leaves B&W grades (zero transitions/animations) */
-.cin-grade-tarantino-35mm {
-  filter: saturate(1.35) contrast(1.28) brightness(1.02) sepia(0.12) hue-rotate(-6deg);
-  transition: none !important;
-  animation: none !important;
-}
-
+/* 1940s Noir Director's Cut: silver-print monochrome grade (zero transitions/animations) */
 .cin-grade-noir-1940s {
   filter: grayscale(1) contrast(1.35) brightness(0.92);
   transition: none !important;
@@ -6828,43 +6822,6 @@ kbd {
 
 .cin-title-card.is-monochrome .cin-title-card-sub {
   color: rgba(210, 212, 216, 0.85);
-  transition: none !important;
-  animation: none !important;
-}
-
-.cin-title-card.is-tarantino .cin-title-card-kicker {
-  font-family: "Oswald", "Bebas Neue", Impact, sans-serif;
-  font-weight: 700;
-  font-size: clamp(11px, 1.3vw, 17px);
-  letter-spacing: 0.3em;
-  color: #ff2442;
-  text-shadow: 2px 2px 0 #000000, 0 3px 14px rgba(0, 0, 0, 0.96);
-  transition: none !important;
-  animation: none !important;
-}
-
-.cin-title-card.is-tarantino .cin-title-card-main {
-  font-family: "Bebas Neue", "Oswald", Impact, "Arial Black", sans-serif;
-  font-weight: 800;
-  text-transform: uppercase;
-  font-size: clamp(26px, 4.1vw, 58px);
-  letter-spacing: 0.1em;
-  line-height: 1.08;
-  color: #ffd400;
-  text-shadow: 3px 3px 0 #000000, -1px -1px 0 #000000, 0 4px 20px rgba(0, 0, 0, 0.96);
-  transition: none !important;
-  animation: none !important;
-}
-
-.cin-title-card.is-tarantino .cin-title-card-sub {
-  font-family: "Oswald", "Helvetica Neue", sans-serif;
-  font-style: normal;
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: clamp(11px, 1.25vw, 17px);
-  letter-spacing: 0.22em;
-  color: #fff6d6;
-  text-shadow: 2px 2px 0 #000000, 0 2px 12px rgba(0, 0, 0, 0.95);
   transition: none !important;
   animation: none !important;
 }

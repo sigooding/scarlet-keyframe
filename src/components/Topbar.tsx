@@ -187,10 +187,10 @@ export function Topbar({
                 className={`topbar-cut-trigger-dot ${
                   activeOption.id === "creative"
                     ? "is-creative"
-                    : activeOption.id === "noir-1950s"
-                      ? "is-noir-1950s"
-                      : activeOption.id === "tarantino"
-                        ? "is-tarantino"
+                    : activeOption.id === "noir-1940s"
+                      ? "is-noir-1940s"
+                      : activeOption.id === "noir-1950s"
+                        ? "is-noir-1950s"
                         : activeOption.id === "uncut"
                           ? "is-uncut"
                           : ""
@@ -240,10 +240,10 @@ export function Topbar({
                               className={`topbar-cut-trigger-dot ${
                                 opt.id === "creative"
                                   ? "is-creative"
-                                  : opt.id === "noir-1950s"
-                                    ? "is-noir-1950s"
-                                    : opt.id === "tarantino"
-                                      ? "is-tarantino"
+                                  : opt.id === "noir-1940s"
+                                    ? "is-noir-1940s"
+                                    : opt.id === "noir-1950s"
+                                      ? "is-noir-1950s"
                                       : opt.id === "uncut"
                                         ? "is-uncut"
                                         : ""
@@ -326,12 +326,12 @@ export function Topbar({
                             onChangeCutOptions(
                               { classic1950sLeader: e.target.checked },
                               e.target.checked
-                                ? "Enabled 1950s monochrome studio crest leader"
+                                ? "Enabled silver-monochrome studio crest leader"
                                 : "Restored standard studio logo video leader",
                             )
                           }
                         />
-                        <span>Bespoke 1950s monochrome studio crest leader</span>
+                        <span>Bespoke silver-monochrome studio crest leader (1940s / 1950s)</span>
                       </label>
 
                       <label className="topbar-cut-check-row">

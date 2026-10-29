@@ -44,19 +44,21 @@ function buildBaseProjectFixture() {
   return { baseProj, voiceMap, musicMap };
 }
 
-describe("Turn 21 — Multi-Cut Director's Cuts (Creative, 1950s Noir, Neo-Noir, Uncut) & Dropdown", () => {
+describe("Turn 21 — Multi-Cut Director's Cuts (Creative, 1940s/1950s Noir, Neo-Noir, Uncut) & Dropdown", () => {
   it("keeps Neo-Noir Director's Cut bit-for-bit intact across round-trip cut switches", () => {
     const { baseProj, voiceMap, musicMap } = buildBaseProjectFixture();
     const neoBaseline = buildDirectorsCutProject(baseProj, voiceMap, musicMap);
     expect(neoBaseline.directorsCutId).toBe("neo-noir");
 
-    // Round-trip: Neo-Noir -> Creative -> 1950s Noir -> Uncut -> Neo-Noir
+    // Round-trip: Neo-Noir -> Creative -> 1940s Noir -> 1950s Noir -> Uncut -> Neo-Noir
     const creative = buildDirectorsCutById(neoBaseline, "creative", voiceMap, musicMap);
-    const noir50s = buildDirectorsCutById(creative, "noir-1950s", voiceMap, musicMap);
+    const noir40s = buildDirectorsCutById(creative, "noir-1940s", voiceMap, musicMap);
+    const noir50s = buildDirectorsCutById(noir40s, "noir-1950s", voiceMap, musicMap);
     const uncut = buildDirectorsCutById(noir50s, "uncut", voiceMap, musicMap);
     const neoAfterRoundTrip = buildDirectorsCutById(uncut, "neo-noir", voiceMap, musicMap);
 
     expect(creative.directorsCutId).toBe("creative");
+    expect(noir40s.directorsCutId).toBe("noir-1940s");
     expect(noir50s.directorsCutId).toBe("noir-1950s");
     expect(uncut.directorsCutId).toBe("uncut");
     expect(neoAfterRoundTrip.directorsCutId).toBe("neo-noir");
@@ -298,8 +300,8 @@ describe("Turn 21 — Multi-Cut Director's Cuts (Creative, 1950s Noir, Neo-Noir,
     expect(DIRECTORS_CUT_OPTIONS.map((o) => o.id)).toEqual([
       "neo-noir",
       "creative",
+      "noir-1940s",
       "noir-1950s",
-      "tarantino",
       "uncut",
     ]);
     for (const opt of DIRECTORS_CUT_OPTIONS) {

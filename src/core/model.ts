@@ -19,7 +19,7 @@ export interface CutOptions {
   newPlateDepthMaps?: boolean;
   /** Theatrical aspect framing mask ("2.35:1" Scope, "1.37:1" Academy pillarbox, or "16:9" Full Gate) */
   aspectFraming?: AspectFramingMode;
-  /** Replace nw_logo with bespoke 1950s silver-monochrome studio crest card */
+  /** Replace nw_logo with the bespoke silver-monochrome studio crest card (1940s cut gets the 1940s crest) */
   classic1950sLeader?: boolean;
   /** Apply warm 1950s optical-print EQ curve (85 Hz – 7.8 kHz) in preview & MP4 export */
   opticalPrintEq?: boolean;
@@ -164,11 +164,11 @@ export interface ProjectState {
   sourceEdits?: AnyRecord;
   snapshots: ProjectSnapshot[];
   directorsCutVersion?: number;
-  directorsCutId?: "neo-noir" | "creative" | "noir-1950s" | "tarantino" | "uncut";
+  directorsCutId?: "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "uncut";
   cutOptions?: CutOptions;
   savedCutStates?: Partial<
     Record<
-      "neo-noir" | "creative" | "noir-1950s" | "tarantino" | "uncut",
+      "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "uncut",
       { story: StoryLike; audioClips?: AudioClip[]; updatedAt: number }
     >
   >;
