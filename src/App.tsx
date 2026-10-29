@@ -491,6 +491,7 @@ export default function App() {
   multiClipboardRef.current = multiClipboard;
 
   const [snapEnabled, setSnapEnabled] = useState(true);
+  const [resizeLeaveGaps, setResizeLeaveGaps] = useState(false);
   const [editingMarkerId, setEditingMarkerId] = useState<string | null>(null);
   const [copiedClips, setCopiedClips] = useState<BeatLike[]>([]);
   const copiedClipsRef = useRef<BeatLike[]>([]);
@@ -1625,6 +1626,30 @@ export default function App() {
       }
     },
     [applyProject, voiceDurations],
+  );
+
+  const handleNudgeClips = useCallback(
+    (frameIds: string[], delta: -1 | 1) => {
+      const current = projectRef.current;
+      if (!current || !frameIds.length) return;
+      const result = reorderKeyframeWithResult(current, frameIds, delta);
+      if (result.project === current) return;
+      applyProject(
+        result.project,
+        delta < 0 ? "Clip moved earlier" : "Clip moved later",
+      );
+      if (result.resultIds.length > 0) {
+        setSelectedFrameIds(result.resultIds);
+        setSelectedFrameId(result.resultIds[0]);
+        setMultiSelection({
+          pictureIds: result.resultIds,
+          captions: [],
+          audioClipIds: [],
+          keyframes: [],
+        });
+      }
+    },
+    [applyProject],
   );
 
   const handleCopyClips = useCallback(() => {
@@ -5458,6 +5483,10 @@ export default function App() {
             onSetTrackLevel={handleSetTrackLevel}
             onFocusInspectorTab={setInspectorTab}
             onToggleSnap={() => setSnapEnabled((prev) => !prev)}
+            resizeLeaveGaps={resizeLeaveGaps}
+            onToggleResizeLeaveGaps={() => setResizeLeaveGaps((prev) => !prev)}
+            onNudgeClips={handleNudgeClips}
+            onDuplicateFrame={duplicateCurrent}
             onAddNoteMarker={handleAddMarkerAtPlayhead}
             onUpdateNoteMarker={(markerId, name) =>
               editProject((current) => updateNoteMarker(current, markerId, { name }), `Marker renamed to "${name}"`)
@@ -5472,7 +5501,11 @@ export default function App() {
             onDragStart={beginDragEdit}
             onDragEnd={endDragEdit}
             onTrimPreview={(frameId, durationFrames) =>
-              previewProjectEdit((current) => trimKeyframe(current, frameId, durationFrames))
+              previewProjectEdit((current) =>
+                trimKeyframe(current, frameId, durationFrames, {
+                  leaveGap: resizeLeaveGaps,
+                }),
+              )
             }
             onRollPreview={(leftId, rightId, leftDur, rightDur) =>
               previewProjectEdit((current) => setRollDurations(current, leftId, rightId, leftDur, rightDur))

@@ -13,6 +13,7 @@ import {
   normalizeCaptions,
   normalizeCaptionStyle,
   resolveTimelineCaptions,
+  splitCaptionsAcrossCut,
   type BeatCaption,
   type CaptionStyle,
 } from "./captions";
@@ -261,14 +262,85 @@ export function pasteEffectBlock(
   return { ...project, story, updatedAt: Date.now() };
 }
 
-export function trimKeyframe(project: ProjectState, frameId: string, durationFrames: number): ProjectState {
+/**
+ * Resizes a picture keyframe to `durationFrames`.
+ *
+ * With `options.leaveGap` (the **Resize leaves gaps** timeline option), downstream keyframes
+ * never shift while the clip is resized: shortening opens (or extends) a black gap right after
+ * the clip — fillable later via right-click → **Add picture here…** — and lengthening eats into
+ * that gap first, only rippling further downstream once the gap is exhausted. Without the option
+ * the classic behaviour applies: later keyframes slide with every resize.
+ */
+export function trimKeyframe(
+  project: ProjectState,
+  frameId: string,
+  durationFrames: number,
+  options: { leaveGap?: boolean } = {},
+): ProjectState {
   const clamped = Math.max(MIN_CLIP_FRAMES, Math.round(durationFrames));
-  return updateBeat(project, frameId, (beat) => {
-    beat.durationFrames = clamped;
-    if (Array.isArray(beat.captions)) {
-      beat.captions = normalizeCaptions(beat.captions, clamped);
+  const story = cloneStory(project.story);
+  const location = locateBeat(story, frameId);
+  if (!location) return project;
+  const prevDuration = Math.max(
+    MIN_CLIP_FRAMES,
+    Math.round(Number(location.beat.durationFrames) || clamped),
+  );
+  location.beat.durationFrames = clamped;
+  if (Array.isArray(location.beat.captions)) {
+    location.beat.captions = normalizeCaptions(location.beat.captions, clamped);
+  }
+
+  const delta = prevDuration - clamped;
+  if (!options.leaveGap || delta === 0) {
+    return { ...project, story, updatedAt: Date.now() };
+  }
+
+  ensureAllBeatIds(story);
+  const frames = buildKeyframes(story);
+  const myIdx = frames.findIndex((f) => f.id === frameId);
+  const nextKf = myIdx >= 0 && myIdx + 1 < frames.length ? frames[myIdx + 1] : undefined;
+  const nextBeat = nextKf?.beat;
+
+  if (delta > 0) {
+    // Shortened → open or extend a gap directly after the clip so later keyframes hold position.
+    const chain = captureSceneChain(story);
+    if (nextBeat?.gap) {
+      nextBeat.durationFrames =
+        Math.max(0, Math.round(Number(nextBeat.durationFrames) || 0)) + delta;
+    } else {
+      const gapBeat: BeatLike = {
+        id: uniqueBeatId(story, location.scene.id),
+        gap: true,
+        durationFrames: delta,
+        text: "",
+      };
+      location.scene.dialogueBeats!.splice(location.index + 1, 0, gapBeat);
     }
-  });
+    restoreSceneChain(story, chain);
+    return { ...project, story, updatedAt: Date.now() };
+  }
+
+  // Lengthened → absorb frames from the following gap when present; only a leftover overflow
+  // (gap exhausted) ripples further downstream.
+  const grow = -delta;
+  if (!nextBeat?.gap) return { ...project, story, updatedAt: Date.now() };
+  const gapFrames = Math.max(0, Math.round(Number(nextBeat.durationFrames) || 0));
+  const remaining = gapFrames - grow;
+  const grownProject = { ...project, story, updatedAt: Date.now() };
+  if (remaining > 0) {
+    nextBeat.durationFrames = remaining;
+    return grownProject;
+  }
+  // Gap fully consumed: close it (also re-anchors any sounds anchored to the gap).
+  const gapId = nextBeat.id ? String(nextBeat.id) : "";
+  if (gapId) return closeGapKeyframes(grownProject, [gapId]);
+  const chain = captureSceneChain(story);
+  for (const scene of story.scenes) {
+    if (!scene.dialogueBeats?.length) continue;
+    scene.dialogueBeats = scene.dialogueBeats.filter((b) => b !== nextBeat);
+  }
+  restoreSceneChain(story, chain);
+  return { ...project, story, updatedAt: Date.now() };
 }
 
 export function setBeatCaptions(
@@ -592,6 +664,23 @@ export function splitKeyframeAt(
   else delete leftBeat.animation;
   if (rightAnim) rightBeat.animation = rightAnim;
   else delete rightBeat.animation;
+
+  // Split the closed captions (CC) with the picture: partition cues at the cut so each half keeps
+  // its own share instead of duplicating the full cue list (authored `beat.captions` or the
+  // caption derived from `beat.text` on the left half — the right half keeps `text: ""`).
+  const authoredCaptions = Array.isArray(leftBeat.captions);
+  const sourceCaptions = effectiveCaptionsForBeat(leftBeat, total);
+  const splitCaptions = splitCaptionsAcrossCut(sourceCaptions, cut);
+  if (authoredCaptions || splitCaptions.left.length > 0) {
+    leftBeat.captions = normalizeCaptions(splitCaptions.left, cut);
+  } else {
+    delete leftBeat.captions;
+  }
+  if (authoredCaptions || splitCaptions.right.length > 0) {
+    rightBeat.captions = normalizeCaptions(splitCaptions.right, Math.max(1, total - cut));
+  } else {
+    delete rightBeat.captions;
+  }
 
   location.scene.dialogueBeats!.splice(location.index + 1, 0, rightBeat);
 

@@ -5315,6 +5315,58 @@ kbd {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Right-click context menu on video keyframes (picture clips & gaps) */
+.clip-context-menu {
+  min-width: 208px;
+}
+
+.clip-context-menu .diamond-menu-item.is-primary {
+  color: var(--accent-cyan);
+}
+
+.clip-context-menu .diamond-menu-item:disabled {
+  opacity: 0.36;
+  cursor: not-allowed;
+}
+
+.clip-context-menu .diamond-menu-item:disabled:hover {
+  background: transparent;
+}
+
+/* Media Bin roll-over preview (stills) */
+.media-bin-hover-preview {
+  position: fixed;
+  z-index: 2600;
+  width: 256px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: #11161f;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.66);
+}
+
+.media-bin-hover-preview img {
+  width: 100%;
+  height: 144px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #05070b;
+  display: block;
+}
+
+.media-bin-hover-preview-name {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Curve Editor Panel */
 
 .curve-editor-panel {

@@ -1,4 +1,4 @@
-import { useMemo, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 import type { BrowserAsset } from "./AssetBrowser";
 
 export const ASSET_DRAG_MIME = "application/x-frame24-asset";
@@ -62,6 +62,11 @@ export function MediaBin({
 }: MediaBinProps) {
   const [tab, setTab] = useState<"image" | "audio">("image");
   const [query, setQuery] = useState("");
+  const [hover, setHover] = useState<{ item: BrowserAsset; x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    setHover(null);
+  }, [tab, query]);
 
   const filtered = useMemo(() => {
     const source = tab === "image" ? imageAssets : audioAssets;
@@ -151,6 +156,11 @@ export function MediaBin({
                 name: item.name,
               })
             }
+            onMouseEnter={(e) => setHover({ item, x: e.clientX, y: e.clientY })}
+            onMouseMove={(e) => setHover({ item, x: e.clientX, y: e.clientY })}
+            onMouseLeave={() =>
+              setHover((prev) => (prev?.item.id === item.id ? null : prev))
+            }
             onDoubleClick={() => {
               if (tab === "image") onApplyImageToSelection?.(item.ref);
               else onInsertAudioAtPlayhead?.(item.ref);
@@ -178,6 +188,34 @@ export function MediaBin({
           <div className="media-bin-empty">No matching media items.</div>
         )}
       </div>
+
+      {/* Hover preview: large roll-over preview for stills (follows the cursor, never blocks it) */}
+      {hover && tab === "image" && hover.item.src && (
+        <div
+          className="media-bin-hover-preview"
+          data-testid="media-bin-hover-preview"
+          aria-hidden="true"
+          style={{
+            left: Math.max(
+              8,
+              Math.min(
+                hover.x + 18,
+                (typeof window !== "undefined" ? window.innerWidth : 1600) - 272,
+              ),
+            ),
+            top: Math.max(
+              8,
+              Math.min(
+                hover.y + 18,
+                (typeof window !== "undefined" ? window.innerHeight : 900) - 216,
+              ),
+            ),
+          }}
+        >
+          <img src={hover.item.src} alt={hover.item.name} />
+          <span className="media-bin-hover-preview-name">{hover.item.name}</span>
+        </div>
+      )}
     </aside>
   );
 }
