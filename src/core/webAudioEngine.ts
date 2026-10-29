@@ -1,5 +1,6 @@
 import {
   AUDIO_LANES,
+  buildClipGainEnvelope,
   computeScheduleWindow,
   DEFAULT_DUCK_DEPTH,
   isVoicePlayingAtMs,
@@ -464,16 +465,8 @@ export class WebAudioPlaybackEngine {
       offsetInFileMs: clip.inMs,
       remainingMs: clip.durationMs,
       elapsedInClipMs: 0,
-      gainEnvelope: [
-        { offsetMs: 0, gain: clip.fadeInMs > 0 ? 0 : clip.gain },
-        ...(clip.fadeInMs > 0 ? [{ offsetMs: clip.fadeInMs, gain: clip.gain }] : []),
-        ...(clip.fadeOutMs > 0
-          ? [
-              { offsetMs: Math.max(0, clip.durationMs - clip.fadeOutMs), gain: clip.gain },
-              { offsetMs: clip.durationMs, gain: 0 },
-            ]
-          : []),
-      ],
+      // Shared envelope: static gain × fade in/out × volume-curve points (music automation)
+      gainEnvelope: buildClipGainEnvelope(clip, 0, clip.durationMs),
     };
     this.spawnSlice(ctx, slice);
   }

@@ -97,6 +97,13 @@ export interface TimelineProps {
   onSetTrackLevel?: (track: TrackId, level: number) => void;
   onFocusInspectorTab?: (tab: InspectorTab) => void;
   onToggleSnap: () => void;
+  /** Resize-leaves-gaps mode: trimming shorter opens/extends a black gap instead of shifting later keyframes. */
+  resizeLeaveGaps?: boolean;
+  onToggleResizeLeaveGaps?: () => void;
+  /** Nudges the given picture keyframes one slot earlier/later in running order (context menu). */
+  onNudgeClips?: (frameIds: string[], delta: -1 | 1) => void;
+  /** Duplicates the current/selected picture keyframe (context menu). */
+  onDuplicateFrame?: () => void;
   onAddNoteMarker: () => void;
   onUpdateNoteMarker: (markerId: string, name: string) => void;
   onDeleteNoteMarker: (markerId: string) => void;
@@ -226,6 +233,10 @@ export function Timeline({
   onSetTrackLevel,
   onFocusInspectorTab,
   onToggleSnap,
+  resizeLeaveGaps = false,
+  onToggleResizeLeaveGaps,
+  onNudgeClips,
+  onDuplicateFrame,
   onAddNoteMarker,
   onUpdateNoteMarker,
   onDeleteNoteMarker,
@@ -353,6 +364,41 @@ export function Timeline({
     window.addEventListener("pointerdown", close);
     return () => window.removeEventListener("pointerdown", close);
   }, [diamondMenu]);
+
+  const [clipMenu, setClipMenu] = useState<{
+    frameId: string;
+    clientX: number;
+    clientY: number;
+    isGap: boolean;
+  } | null>(null);
+  const pictureInputRef = useRef<HTMLInputElement | null>(null);
+  const pictureInputTargetRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!clipMenu) return;
+    const close = () => setClipMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setClipMenu(null);
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [clipMenu]);
+
+  const openClipMenu = useCallback(
+    (frameId: string, clientX: number, clientY: number, isGap: boolean) => {
+      setClipMenu({ frameId, clientX, clientY, isGap });
+    },
+    [],
+  );
+
+  const openPicturePicker = useCallback((frameId: string) => {
+    pictureInputTargetRef.current = frameId;
+    pictureInputRef.current?.click();
+  }, []);
 
   const openKeyframeProps = useMemo<AnimProp[]>(() => {
     if (expandedClipIds.size === 0) return [];
@@ -1098,6 +1144,16 @@ export function Timeline({
             title="Toggle magnetic snapping within 8px (N) — hold Ctrl/Cmd to ignore"
           >
             🧲 Snap (N)
+          </button>
+          <button
+            type="button"
+            className={`button button-quiet ${resizeLeaveGaps ? "is-active-tool" : ""}`}
+            data-testid="resize-gap-toggle"
+            aria-pressed={resizeLeaveGaps}
+            onClick={onToggleResizeLeaveGaps}
+            title="Resize leaves gaps: trimming a keyframe shorter keeps every later keyframe in place by opening a black gap after it (right-click the gap → Add picture here…) instead of shifting the rest of the timeline — click to toggle"
+          >
+            ▭ Leave gaps
           </button>
           <button
             type="button"
@@ -1924,6 +1980,7 @@ export function Timeline({
                     onSelectKeyframeDiamond={onSelectKeyframeDiamond}
                     onDropFile={onDropFile}
                     onDropImageAsset={onDropImageAsset}
+                    onOpenClipMenu={openClipMenu}
                   />
 
                   {prevClip && cutTrans && (
@@ -2534,6 +2591,155 @@ export function Timeline({
           </button>
         </div>
       )}
+
+      {/* Right-click context menu on video keyframes (picture clips & gaps) */}
+      {clipMenu &&
+        (() => {
+          const targetClip = clips.find((c) => c.keyframe.id === clipMenu.frameId);
+          const menuIds =
+            selectedFrameIds.includes(clipMenu.frameId) && selectedFrameIds.length > 0
+              ? selectedFrameIds
+              : [clipMenu.frameId];
+          const move = (delta: -1 | 1) => {
+            const ids = menuIds;
+            setClipMenu(null);
+            onNudgeClips?.(ids, delta);
+          };
+          return (
+            <div
+              className="diamond-easing-menu clip-context-menu"
+              data-testid="clip-context-menu"
+              role="menu"
+              style={{
+                left: Math.min(
+                  typeof window !== "undefined" ? window.innerWidth - 240 : clipMenu.clientX,
+                  clipMenu.clientX,
+                ),
+                top: Math.min(
+                  typeof window !== "undefined" ? window.innerHeight - 350 : clipMenu.clientY,
+                  clipMenu.clientY,
+                ),
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="diamond-menu-head">
+                <span>
+                  {clipMenu.isGap
+                    ? "Gap"
+                    : `SC ${targetClip?.keyframe.mark ?? ""} · ${targetClip?.keyframe.number ?? ""}`}
+                </span>
+                <small>
+                  {targetClip
+                    ? `${formatTimecode(targetClip.startFrame)} · ${targetClip.durationFrames}f`
+                    : ""}
+                </small>
+              </div>
+
+              {clipMenu.isGap ? (
+                <button
+                  type="button"
+                  className="diamond-menu-item is-primary"
+                  data-testid="clip-menu-add-picture"
+                  onClick={() => {
+                    const frameId = clipMenu.frameId;
+                    setClipMenu(null);
+                    openPicturePicker(frameId);
+                  }}
+                >
+                  <span>Add picture here…</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="diamond-menu-item is-primary"
+                  data-testid="clip-menu-replace-picture"
+                  onClick={() => {
+                    const frameId = clipMenu.frameId;
+                    setClipMenu(null);
+                    openPicturePicker(frameId);
+                  }}
+                >
+                  <span>Replace picture…</span>
+                </button>
+              )}
+
+              {!clipMenu.isGap && (
+                <button
+                  type="button"
+                  className="diamond-menu-item"
+                  data-testid="clip-menu-split"
+                  disabled={!canSplit}
+                  onClick={() => {
+                    setClipMenu(null);
+                    onSplit();
+                  }}
+                >
+                  <span>Split at playhead</span>
+                  <small>S</small>
+                </button>
+              )}
+              <button
+                type="button"
+                className="diamond-menu-item"
+                data-testid="clip-menu-duplicate"
+                onClick={() => {
+                  setClipMenu(null);
+                  onDuplicateFrame?.();
+                }}
+              >
+                <span>Duplicate</span>
+              </button>
+              <hr className="diamond-menu-sep" />
+              <button
+                type="button"
+                className="diamond-menu-item"
+                data-testid="clip-menu-move-earlier"
+                onClick={() => move(-1)}
+              >
+                <span>Move earlier</span>
+                <small>⟲</small>
+              </button>
+              <button
+                type="button"
+                className="diamond-menu-item"
+                data-testid="clip-menu-move-later"
+                onClick={() => move(1)}
+              >
+                <span>Move later</span>
+                <small>⟳</small>
+              </button>
+              <hr className="diamond-menu-sep" />
+              <button
+                type="button"
+                className="diamond-menu-item"
+                data-testid="clip-menu-delete"
+                onClick={() => {
+                  setClipMenu(null);
+                  onExecuteDelete?.(false);
+                }}
+              >
+                <span>{clipMenu.isGap ? "Close gap" : "Delete (lift to gap)"}</span>
+                <small>Del</small>
+              </button>
+            </div>
+          );
+        })()}
+
+      {/* File picker for context-menu Replace / Add picture actions */}
+      <input
+        ref={pictureInputRef}
+        type="file"
+        accept="image/*"
+        data-testid="clip-picture-input"
+        style={{ display: "none" }}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          const frameId = pictureInputTargetRef.current;
+          event.target.value = "";
+          pictureInputTargetRef.current = null;
+          if (file && frameId) onDropFile(file, frameId);
+        }}
+      />
     </section>
   );
 }
@@ -2549,6 +2755,7 @@ function ClipItem({
   isLanesOpen = false,
   onToggleLanes,
   onOpenDiamondMenu,
+  onOpenClipMenu,
   selectedFrameIds,
   selectedDiamonds = [],
   hasCoSelectedOtherLanes = false,
@@ -2587,6 +2794,7 @@ function ClipItem({
     clientX: number,
     clientY: number,
   ) => void;
+  onOpenClipMenu?: (frameId: string, clientX: number, clientY: number, isGap: boolean) => void;
   selectedFrameIds: string[];
   selectedDiamonds?: ReadonlyArray<SelectedKeyframeDiamond>;
   hasCoSelectedOtherLanes?: boolean;
@@ -2691,6 +2899,14 @@ function ClipItem({
       data-start-frame={clip.startFrame}
       data-duration-frames={clip.durationFrames}
       data-has-voice={kf.beat.audioUrl ? "true" : "false"}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!selectedFrameIds.includes(kf.id)) {
+          onSetSelection([kf.id], kf.id);
+        }
+        onOpenClipMenu?.(kf.id, event.clientX, event.clientY, isGap);
+      }}
       onPointerDown={(event) => {
         if (event.button !== 0) return;
         event.stopPropagation();
@@ -2797,10 +3013,10 @@ function ClipItem({
       }}
       title={
         isGap
-          ? `Gap · drop a picture (${clip.durationFrames}f · ${formatTimecode(clip.startFrame)}) — press Delete to close gap`
+          ? `Gap · drop a picture or right-click → Add picture here (${clip.durationFrames}f · ${formatTimecode(clip.startFrame)}) — press Delete to close gap`
           : isVoiceCut
             ? `SC ${kf.mark} / ${kf.number} — Picture (${clip.durationFrames}f) ends before voice (${clip.voiceFrames}f)`
-            : `SC ${kf.mark} / ${kf.number} · ${formatTimecode(clip.startFrame)} (${clip.durationFrames}f) — drag to move, Alt+drag to copy`
+            : `SC ${kf.mark} / ${kf.number} · ${formatTimecode(clip.startFrame)} (${clip.durationFrames}f) — drag to move, Alt+drag to copy, right-click for replace/split/duplicate`
       }
     >
       {thumbSrc && <img className="timeline-clip-thumb" src={thumbSrc} alt="" loading="lazy" decoding="async" />}

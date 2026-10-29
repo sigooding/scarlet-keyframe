@@ -11,15 +11,19 @@ import {
   audioLabelFromSrc,
   formatMsTimecode,
   frameToMs,
+  MAX_VOLUME_KEY_SCALE,
   msToFrameFloat,
   resolveAmbienceSpans,
   roundMicros,
   snapAudioMs,
+  sortedVolumeKeys,
   trimAudioClipLeft,
   trimAudioClipRight,
+  volumeScaleAtMs,
   type AmbienceSpan,
   type AudioClip,
   type AudioLaneId,
+  type AudioVolumeKey,
   type ResolvedAudioClip,
 } from "../core/audioClips";
 import type { NoteMarker } from "../core/model";
@@ -427,6 +431,16 @@ function AudioClipItem({
         excludeIds: Set<string>;
         initialClip: ResolvedAudioClip;
       }
+    | {
+        mode: "volume-key";
+        keyIndex: number;
+        startX: number;
+        startY: number;
+        boxHeightPx: number;
+        started: boolean;
+        initialKeys: AudioVolumeKey[];
+        initialClip: ResolvedAudioClip;
+      }
     | null
   >(null);
 
@@ -441,6 +455,36 @@ function AudioClipItem({
   // Gain line y: gain 0 => 92% from top, gain 1.0 => 46%, gain 2.0 => 6%
   const gainNorm = Math.max(0, Math.min(MAX_GAIN, clip.gain)) / MAX_GAIN;
   const gainTopPct = Math.round((0.92 - gainNorm * 0.86) * 1000) / 10;
+  const valueToTopPct = (value: number) => {
+    const norm = Math.max(0, Math.min(MAX_GAIN, value)) / MAX_GAIN;
+    return Math.round((0.92 - norm * 0.86) * 1000) / 10;
+  };
+
+  // Music-lane volume automation: while this clip's key is being dragged, render the
+  // session's key order (stable indices for pointer capture); otherwise sorted by position.
+  const isMusicLane = clip.lane === "music";
+  const liveKeySession =
+    dragSession.current?.mode === "volume-key" &&
+    dragSession.current.initialClip.id === clip.id
+      ? dragSession.current
+      : null;
+  const volumeKeys: AudioVolumeKey[] = liveKeySession
+    ? (clip.volumeKeys ?? liveKeySession.initialKeys)
+    : sortedVolumeKeys(clip);
+  const curvePolyline =
+    isMusicLane && volumeKeys.length > 0
+      ? [
+          0,
+          ...volumeKeys.map((key) => Math.max(0, Math.min(clip.durationMs, key.atMs))),
+          clip.durationMs,
+        ]
+          .map((t) => {
+            const x = Math.max(0, Math.min(widthPx, t * pxPerMs));
+            const y = valueToTopPct(clip.gain * volumeScaleAtMs(clip, t));
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+          })
+          .join(" ")
+      : null;
 
   return (
     <div
@@ -611,7 +655,11 @@ function AudioClipItem({
         className="audio-gain-line"
         data-testid={`audio-gain-line-${clip.id}`}
         style={{ top: `${gainTopPct}%` }}
-        title={`Clip gain: ${Math.round(clip.gain * 100)}% — drag vertically to adjust`}
+        title={
+          isMusicLane
+            ? `Clip gain: ${Math.round(clip.gain * 100)}% — drag vertically to adjust (scales the whole volume curve)${volumeKeys.length ? "" : " · double-click to add a volume point"}`
+            : `Clip gain: ${Math.round(clip.gain * 100)}% — drag vertically to adjust`
+        }
         onPointerDown={(e: ReactPointerEvent<HTMLDivElement>) => {
           if (e.button !== 0) return;
           e.stopPropagation();
@@ -702,7 +750,148 @@ function AudioClipItem({
           onSetSnapGuide(null);
           if (s && s.mode === "gain" && s.decided !== "pending") onDragEnd("");
         }}
+        onDoubleClick={(e) => {
+          // Music lane: double-click the gain line to insert a volume automation point
+          if (!isMusicLane) return;
+          e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const atMs = Math.max(
+            0,
+            Math.min(
+              clip.durationMs,
+              Math.round((e.clientX - rect.left) / Math.max(1e-6, pxPerMs)),
+            ),
+          );
+          const nextKeys = [
+            ...sortedVolumeKeys(clip),
+            { atMs, gain: Math.round(volumeScaleAtMs(clip, atMs) * 100) / 100 },
+          ].sort((a, b) => a.atMs - b.atMs);
+          onDragStart();
+          onPreviewUpdate(clip.id, { ...plainAudio(clip), volumeKeys: nextKeys });
+          onDragEnd("Volume point added");
+        }}
       />
+
+      {/* Music-lane volume automation curve (flat master-gain line stays draggable above) */}
+      {curvePolyline && (
+        <svg
+          className="audio-volume-curve"
+          data-testid={`volume-curve-${clip.id}`}
+          width={widthPx}
+          height="100%"
+          viewBox={`0 0 ${Math.max(1, widthPx)} 100`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <polyline
+            points={curvePolyline}
+            fill="none"
+            stroke="var(--accent-violet, #a57bff)"
+            strokeWidth="2"
+            strokeOpacity="0.9"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      )}
+      {isMusicLane &&
+        volumeKeys.map((key, keyIndex) => {
+          const keyTopPct = valueToTopPct(clip.gain * key.gain);
+          return (
+            <button
+              key={keyIndex}
+              type="button"
+              className="audio-volume-key"
+              data-testid={`volume-key-${clip.id}-${keyIndex}`}
+              style={{
+                left: `${Math.max(0, Math.min(widthPx, key.atMs * pxPerMs))}px`,
+                top: `${keyTopPct}%`,
+              }}
+              title={`Volume ${Math.round(key.gain * 100)}% at +${(key.atMs / 1000).toFixed(2)}s — drag to adjust, right-click to remove`}
+              onPointerDown={(e) => {
+                if (e.button !== 0) return;
+                e.stopPropagation();
+                e.preventDefault();
+                const boxRect = e.currentTarget
+                  .closest(".audio-clip-box")
+                  ?.getBoundingClientRect();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                dragSession.current = {
+                  mode: "volume-key",
+                  keyIndex,
+                  startX: e.clientX,
+                  startY: e.clientY,
+                  boxHeightPx: Math.max(1, boxRect?.height ?? 48),
+                  started: false,
+                  initialKeys: volumeKeys.map((k) => ({ ...k })),
+                  initialClip: clip,
+                };
+              }}
+              onPointerMove={(e) => {
+                const s = dragSession.current;
+                if (!s || s.mode !== "volume-key" || s.keyIndex !== keyIndex) return;
+                const dx = e.clientX - s.startX;
+                const dy = e.clientY - s.startY;
+                if (!s.started && Math.hypot(dx, dy) < 3) return;
+                if (!s.started) {
+                  s.started = true;
+                  onDragStart();
+                }
+                const initial = s.initialKeys[s.keyIndex];
+                if (!initial) return;
+                const nextAtMs = Math.max(
+                  0,
+                  Math.min(clip.durationMs, Math.round(initial.atMs + dx / Math.max(1e-6, pxPerMs))),
+                );
+                const startTopPct = valueToTopPct(s.initialClip.gain * initial.gain);
+                const nextTopPct = Math.max(
+                  6,
+                  Math.min(92, startTopPct + (dy / s.boxHeightPx) * 100),
+                );
+                const nextValue = ((0.92 - nextTopPct / 100) / 0.86) * MAX_GAIN;
+                const nextScale = Math.max(
+                  0,
+                  Math.min(
+                    MAX_VOLUME_KEY_SCALE,
+                    Math.round((nextValue / Math.max(0.02, s.initialClip.gain)) * 100) / 100,
+                  ),
+                );
+                const nextKeys = s.initialKeys.map((k, i) =>
+                  i === s.keyIndex ? { ...k, atMs: nextAtMs, gain: nextScale } : k,
+                );
+                onPreviewUpdate(clip.id, { ...plainAudio(clip), volumeKeys: nextKeys });
+                setLiveBadge(`Volume ${Math.round(nextScale * 100)}% · +${(nextAtMs / 1000).toFixed(2)}s`);
+              }}
+              onPointerUp={(e) => {
+                e.stopPropagation();
+                const s = dragSession.current;
+                if (!s || s.mode !== "volume-key") return;
+                dragSession.current = null;
+                setLiveBadge(null);
+                if (s.started) onDragEnd("Volume point adjusted");
+              }}
+              onPointerCancel={() => {
+                const s = dragSession.current;
+                if (s?.mode === "volume-key" && s.started) onDragEnd("");
+                dragSession.current = null;
+                setLiveBadge(null);
+              }}
+              onDoubleClick={(e) => e.stopPropagation()}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const nextKeys = volumeKeys.filter((_, i) => i !== keyIndex);
+                onDragStart();
+                onPreviewUpdate(clip.id, {
+                  ...plainAudio(clip),
+                  volumeKeys: nextKeys.length > 0 ? nextKeys : undefined,
+                });
+                onDragEnd("Volume point removed");
+              }}
+            >
+              <i className="volume-key-shape" aria-hidden="true" />
+            </button>
+          );
+        })}
 
       {/* Left edge trim (`inMs`) */}
       <span

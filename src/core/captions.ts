@@ -370,6 +370,80 @@ export function splitCaptionAtCursor(
 }
 
 /**
+ * Splits a beat's effective captions across a picture cut at `cutFrame` (local frames) so each
+ * half of a split clip keeps its own share of the closed captions:
+ * - cues ending at/before the cut stay on the left half unchanged,
+ * - cues starting at/after the cut move to the right half with frames rebased to zero,
+ * - cues spanning the cut are divided — timing at the cut, text at the nearest word boundary
+ *   (a cue whose text cannot be divided keeps its full text on both halves so no caption is lost).
+ */
+export function splitCaptionsAcrossCut(
+  captions: readonly BeatCaption[],
+  cutFrame: number,
+): { left: BeatCaption[]; right: BeatCaption[] } {
+  const cut = Math.max(1, Math.round(cutFrame));
+  const left: BeatCaption[] = [];
+  const right: BeatCaption[] = [];
+  for (const cap of captions) {
+    const inFrame = Math.max(0, Math.round(cap.inFrame));
+    const outFrame = Math.max(inFrame + 1, Math.round(cap.outFrame));
+    const carryMeta = {
+      ...(cap.free ? { free: true } : {}),
+      ...(cap.speaker !== undefined ? { speaker: cap.speaker } : {}),
+      ...(cap.isNarration !== undefined ? { isNarration: cap.isNarration } : {}),
+    };
+    if (outFrame <= cut) {
+      left.push({ ...cap, inFrame, outFrame });
+      continue;
+    }
+    if (inFrame >= cut) {
+      const nextIn = inFrame - cut;
+      right.push({ ...cap, inFrame: nextIn, outFrame: Math.max(nextIn + 1, outFrame - cut) });
+      continue;
+    }
+    const span = Math.max(1, outFrame - inFrame);
+    const [leftText, rightText] = splitCaptionTextAtRatio(cap.text, (cut - inFrame) / span);
+    left.push({ text: leftText, inFrame, outFrame: cut, ...carryMeta });
+    right.push({
+      text: rightText,
+      inFrame: 0,
+      outFrame: Math.max(1, outFrame - cut),
+      ...carryMeta,
+    });
+  }
+  return { left, right };
+}
+
+/** Divides caption text at the nearest word boundary to `ratio`; char-level or full-text fallback. */
+function splitCaptionTextAtRatio(rawText: string, ratio: number): [string, string] {
+  const trimmed = String(rawText ?? "").trim();
+  if (trimmed.length < 2) return [trimmed, trimmed];
+  const clampedRatio = Math.max(0.05, Math.min(0.95, ratio));
+  const target = Math.max(1, Math.min(trimmed.length - 1, Math.round(trimmed.length * clampedRatio)));
+  let splitAt = -1;
+  for (let d = 0; d < trimmed.length; d += 1) {
+    const forward = target + d;
+    const backward = target - d;
+    if (forward < trimmed.length && /\s/.test(trimmed[forward])) {
+      splitAt = forward;
+      break;
+    }
+    if (backward >= 1 && /\s/.test(trimmed[backward])) {
+      splitAt = backward;
+      break;
+    }
+  }
+  if (splitAt < 0) {
+    // Single word with no space to split on — keep the whole cue text on both halves.
+    return [trimmed, trimmed];
+  }
+  const first = trimmed.slice(0, splitAt).trim();
+  const second = trimmed.slice(splitAt).trim();
+  if (!first || !second) return [trimmed, trimmed];
+  return [first, second];
+}
+
+/**
  * Merges two neighbouring captions (`firstIndex` and `firstIndex + 1`) inside a clip.
  */
 export function mergeAdjacentCaptions(

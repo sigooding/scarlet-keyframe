@@ -18,6 +18,7 @@ import {
 import { MediaBin } from "./components/MediaBin";
 import { MissingMediaModal } from "./components/MissingMediaModal";
 import { SnapshotModal } from "./components/SnapshotModal";
+import { ShortcutsOverlay } from "./components/ShortcutsOverlay";
 import { Timeline } from "./components/Timeline";
 import { Topbar } from "./components/Topbar";
 import { resolveAmbienceSpans } from "./components/Tracks";
@@ -491,6 +492,7 @@ export default function App() {
   multiClipboardRef.current = multiClipboard;
 
   const [snapEnabled, setSnapEnabled] = useState(true);
+  const [resizeLeaveGaps, setResizeLeaveGaps] = useState(false);
   const [editingMarkerId, setEditingMarkerId] = useState<string | null>(null);
   const [copiedClips, setCopiedClips] = useState<BeatLike[]>([]);
   const copiedClipsRef = useRef<BeatLike[]>([]);
@@ -642,6 +644,9 @@ export default function App() {
   const [compareTargetId, setCompareTargetId] = useState<DirectorsCutId>("uncut");
   const [snapshotName, setSnapshotName] = useState("");
   const [snapshotModal, setSnapshotModal] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const shortcutsOpenRef = useRef(false);
+  shortcutsOpenRef.current = shortcutsOpen;
 
   const [paneSizes, setPaneSizes] = useState<PaneSizes>(() => readStoredPaneSizes());
   const paneSizesRef = useRef<PaneSizes>(paneSizes);
@@ -1625,6 +1630,30 @@ export default function App() {
       }
     },
     [applyProject, voiceDurations],
+  );
+
+  const handleNudgeClips = useCallback(
+    (frameIds: string[], delta: -1 | 1) => {
+      const current = projectRef.current;
+      if (!current || !frameIds.length) return;
+      const result = reorderKeyframeWithResult(current, frameIds, delta);
+      if (result.project === current) return;
+      applyProject(
+        result.project,
+        delta < 0 ? "Clip moved earlier" : "Clip moved later",
+      );
+      if (result.resultIds.length > 0) {
+        setSelectedFrameIds(result.resultIds);
+        setSelectedFrameId(result.resultIds[0]);
+        setMultiSelection({
+          pictureIds: result.resultIds,
+          captions: [],
+          audioClipIds: [],
+          keyframes: [],
+        });
+      }
+    },
+    [applyProject],
   );
 
   const handleCopyClips = useCallback(() => {
@@ -3592,6 +3621,10 @@ export default function App() {
       }
       if (event.key === "Escape") {
         event.preventDefault();
+        if (shortcutsOpenRef.current) {
+          setShortcutsOpen(false);
+          return;
+        }
         if (kenBurnsDrawStep !== null) {
           setKenBurnsDrawStep(null);
           setKenBurnsDraftStart(null);
@@ -3602,6 +3635,11 @@ export default function App() {
           return;
         }
         clearAllSelection();
+        return;
+      }
+      if (!mod && !event.altKey && event.key === "?") {
+        event.preventDefault();
+        setShortcutsOpen((prev) => !prev);
         return;
       }
       if (!mod && !event.altKey && event.key.toLowerCase() === "f") {
@@ -4521,6 +4559,7 @@ export default function App() {
         }}
         folderLabel={folderLabel}
         onSnapshot={() => setSnapshotModal(true)}
+        onShowShortcuts={() => setShortcutsOpen(true)}
         onExport={() => {
           if (inPointRef.current !== null || outPointRef.current !== null) {
             const maxIdx = Math.max(0, totalFrames - 1);
@@ -5458,6 +5497,10 @@ export default function App() {
             onSetTrackLevel={handleSetTrackLevel}
             onFocusInspectorTab={setInspectorTab}
             onToggleSnap={() => setSnapEnabled((prev) => !prev)}
+            resizeLeaveGaps={resizeLeaveGaps}
+            onToggleResizeLeaveGaps={() => setResizeLeaveGaps((prev) => !prev)}
+            onNudgeClips={handleNudgeClips}
+            onDuplicateFrame={duplicateCurrent}
             onAddNoteMarker={handleAddMarkerAtPlayhead}
             onUpdateNoteMarker={(markerId, name) =>
               editProject((current) => updateNoteMarker(current, markerId, { name }), `Marker renamed to "${name}"`)
@@ -5472,7 +5515,11 @@ export default function App() {
             onDragStart={beginDragEdit}
             onDragEnd={endDragEdit}
             onTrimPreview={(frameId, durationFrames) =>
-              previewProjectEdit((current) => trimKeyframe(current, frameId, durationFrames))
+              previewProjectEdit((current) =>
+                trimKeyframe(current, frameId, durationFrames, {
+                  leaveGap: resizeLeaveGaps,
+                }),
+              )
             }
             onRollPreview={(leftId, rightId, leftDur, rightDur) =>
               previewProjectEdit((current) => setRollDurations(current, leftId, rightId, leftDur, rightDur))
@@ -5679,6 +5726,7 @@ export default function App() {
           onRestore={restoreSnapshot}
         />
       )}
+      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       {cropState && (
         <CropModal
           crop={cropState}
