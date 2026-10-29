@@ -4679,6 +4679,94 @@ kbd {
   touch-action: none;
 }
 
+/* Music-lane volume automation curve + draggable points */
+.audio-volume-curve {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 5;
+  overflow: visible;
+}
+
+.audio-volume-key {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  border: 1.5px solid #0b0f16;
+  border-radius: 50%;
+  background: #c9a7ff;
+  box-shadow: 0 0 0 1px rgba(186, 128, 255, 0.85), 0 2px 6px rgba(0, 0, 0, 0.55);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  z-index: 6;
+  touch-action: none;
+}
+
+.audio-volume-key:hover,
+.audio-volume-key:focus-visible {
+  background: #e2d0ff;
+  box-shadow: 0 0 0 2px rgba(201, 167, 255, 0.9), 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.audio-volume-key:active {
+  cursor: grabbing;
+}
+
+.audio-volume-key .volume-key-shape {
+  display: none;
+}
+
+/* Keyboard shortcuts overlay (Topbar "⌨ Shortcuts" / "?") */
+.shortcuts-panel {
+  width: min(900px, calc(100vw - 48px));
+  max-height: min(86vh, 800px);
+}
+
+.shortcuts-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px 28px;
+}
+
+.shortcut-group h3 {
+  margin: 0 0 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-amber);
+}
+
+.shortcut-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shortcut-group li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.shortcut-group li kbd {
+  flex: 0 0 auto;
+  min-width: 128px;
+  text-align: center;
+  color: var(--ink-bright);
+}
+
+.shortcut-group li span {
+  flex: 1 1 auto;
+}
+
 .audio-gain-line::after {
   content: "";
   position: absolute;

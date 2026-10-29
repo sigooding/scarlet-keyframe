@@ -21,6 +21,7 @@ export interface TopbarProps {
   onSnapshot: () => void;
   onExport: () => void;
   onSave: () => void;
+  onShowShortcuts?: () => void;
   missingCount: number;
   onMissing: () => void;
   editLabel: string;
@@ -53,6 +54,7 @@ export function Topbar({
   onSnapshot,
   onExport,
   onSave,
+  onShowShortcuts,
   missingCount,
   onMissing,
   editLabel,
@@ -413,6 +415,15 @@ export function Topbar({
         </button>
         <button className="button button-quiet" onClick={onSave} title="Save to browser storage (Ctrl/Cmd+S)">
           Save
+        </button>
+        <button
+          type="button"
+          className="button button-quiet"
+          data-testid="shortcuts-btn"
+          onClick={onShowShortcuts}
+          title="Keyboard shortcuts & mouse gestures (?)"
+        >
+          ⌨ Shortcuts
         </button>
         <button className="button button-primary" onClick={onExport}>
           Export

@@ -18,6 +18,7 @@ import {
 import { MediaBin } from "./components/MediaBin";
 import { MissingMediaModal } from "./components/MissingMediaModal";
 import { SnapshotModal } from "./components/SnapshotModal";
+import { ShortcutsOverlay } from "./components/ShortcutsOverlay";
 import { Timeline } from "./components/Timeline";
 import { Topbar } from "./components/Topbar";
 import { resolveAmbienceSpans } from "./components/Tracks";
@@ -643,6 +644,9 @@ export default function App() {
   const [compareTargetId, setCompareTargetId] = useState<DirectorsCutId>("uncut");
   const [snapshotName, setSnapshotName] = useState("");
   const [snapshotModal, setSnapshotModal] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const shortcutsOpenRef = useRef(false);
+  shortcutsOpenRef.current = shortcutsOpen;
 
   const [paneSizes, setPaneSizes] = useState<PaneSizes>(() => readStoredPaneSizes());
   const paneSizesRef = useRef<PaneSizes>(paneSizes);
@@ -3617,6 +3621,10 @@ export default function App() {
       }
       if (event.key === "Escape") {
         event.preventDefault();
+        if (shortcutsOpenRef.current) {
+          setShortcutsOpen(false);
+          return;
+        }
         if (kenBurnsDrawStep !== null) {
           setKenBurnsDrawStep(null);
           setKenBurnsDraftStart(null);
@@ -3627,6 +3635,11 @@ export default function App() {
           return;
         }
         clearAllSelection();
+        return;
+      }
+      if (!mod && !event.altKey && event.key === "?") {
+        event.preventDefault();
+        setShortcutsOpen((prev) => !prev);
         return;
       }
       if (!mod && !event.altKey && event.key.toLowerCase() === "f") {
@@ -4546,6 +4559,7 @@ export default function App() {
         }}
         folderLabel={folderLabel}
         onSnapshot={() => setSnapshotModal(true)}
+        onShowShortcuts={() => setShortcutsOpen(true)}
         onExport={() => {
           if (inPointRef.current !== null || outPointRef.current !== null) {
             const maxIdx = Math.max(0, totalFrames - 1);
@@ -5712,6 +5726,7 @@ export default function App() {
           onRestore={restoreSnapshot}
         />
       )}
+      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       {cropState && (
         <CropModal
           crop={cropState}

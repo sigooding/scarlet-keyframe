@@ -1640,6 +1640,9 @@ function stripResolvedAudioFields(rc: AudioClip): AudioClip {
     fadeInMs: rc.fadeInMs,
     fadeOutMs: rc.fadeOutMs,
     ...(rc.loop !== undefined ? { loop: rc.loop } : {}),
+    ...(rc.volumeKeys?.length
+      ? { volumeKeys: rc.volumeKeys.map((key) => ({ ...key })) }
+      : {}),
   };
 }
 

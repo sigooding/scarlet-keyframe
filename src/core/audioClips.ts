@@ -28,6 +28,59 @@ export interface AudioClip {
   fadeInMs: number;
   fadeOutMs: number;
   loop?: boolean;
+  /**
+   * Optional volume automation curve (music lane). Each point is a relative scale
+   * (0–`MAX_VOLUME_KEY_SCALE`) evaluated piecewise-linearly at its `atMs` position inside the
+   * clip and multiplied over the clip's static `gain` and fade-in/out shape — so the static
+   * gain stays a master level and fades keep ramping the curve at both edges.
+   */
+  volumeKeys?: AudioVolumeKey[];
+}
+
+export interface AudioVolumeKey {
+  /** Position inside the clip in ms from its start (evaluated clamped to `[0, durationMs]`). */
+  atMs: number;
+  /** Relative volume scale at this point (`0`–`MAX_VOLUME_KEY_SCALE`), multiplied over static gain. */
+  gain: number;
+}
+
+/** Upper bound for volume-curve point scales (points may push above unity up to 150%). */
+export const MAX_VOLUME_KEY_SCALE = 1.5;
+
+/** Sorts a clip's volume keys by position without mutating the input. */
+export function sortedVolumeKeys(clip: Pick<AudioClip, "volumeKeys">): AudioVolumeKey[] {
+  return [...(clip.volumeKeys ?? [])].sort((a, b) => a.atMs - b.atMs);
+}
+
+/**
+ * Piecewise-linear volume-curve scale at `elapsedMs` inside the clip (`1` when no keys).
+ */
+export function volumeScaleAtMs(
+  clip: Pick<AudioClip, "volumeKeys" | "durationMs">,
+  elapsedMs: number,
+): number {
+  const keys = clip.volumeKeys;
+  if (!keys || keys.length === 0) return 1;
+  const sorted = [...keys].sort((a, b) => a.atMs - b.atMs);
+  const clampScale = (v: number) =>
+    Math.max(0, Math.min(MAX_VOLUME_KEY_SCALE, Number.isFinite(v) ? v : 1));
+  const duration = Math.max(0, clip.durationMs);
+  const t = Math.max(0, Math.min(duration, elapsedMs));
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  if (t <= first.atMs) return clampScale(first.gain);
+  if (t >= last.atMs) return clampScale(last.gain);
+  for (let i = 0; i < sorted.length - 1; i += 1) {
+    const a = sorted[i];
+    const b = sorted[i + 1];
+    if (t >= a.atMs && t <= b.atMs) {
+      const span = b.atMs - a.atMs;
+      if (span <= 1e-6) return clampScale(b.gain);
+      const ratio = (t - a.atMs) / span;
+      return clampScale(a.gain + (b.gain - a.gain) * ratio);
+    }
+  }
+  return 1;
 }
 
 export interface ResolvedAudioClip extends AudioClip {
@@ -561,14 +614,16 @@ export function evaluateClipGainAtElapsedMs(clip: AudioClip, elapsedMs: number):
   const dur = Math.max(1, clip.durationMs);
   const t = Math.max(0, Math.min(dur, elapsedMs));
   const targetGain = Math.max(0, clip.gain);
+  let fadeGain: number;
   if (clip.fadeInMs > 0 && t < clip.fadeInMs) {
-    return targetGain * (t / clip.fadeInMs);
+    fadeGain = targetGain * (t / clip.fadeInMs);
+  } else if (clip.fadeOutMs > 0 && t > dur - clip.fadeOutMs) {
+    fadeGain = targetGain * Math.max(0, (dur - t) / clip.fadeOutMs);
+  } else {
+    fadeGain = targetGain;
   }
-  const fadeOutStart = dur - clip.fadeOutMs;
-  if (clip.fadeOutMs > 0 && t > fadeOutStart) {
-    return targetGain * Math.max(0, (dur - t) / clip.fadeOutMs);
-  }
-  return targetGain;
+  // Volume-curve shape (relative scale; 1 when the clip has no automation points)
+  return fadeGain * volumeScaleAtMs(clip, t);
 }
 
 export function buildClipGainEnvelope(
@@ -602,6 +657,42 @@ export function buildClipGainEnvelope(
       offsetMs: roundMicros(tEnd - t0),
       gain: clip.fadeOutMs > 0 && tEnd >= clip.durationMs ? 0 : evaluateClipGainAtElapsedMs(clip, tEnd),
     });
+  }
+
+  // Volume-curve breakpoints: add each automation point inside the slice, then a midpoint
+  // between consecutive points so the (curve × fade) product tracks accurately under linear
+  // ramping. Without keys the envelope stays exactly the classic fade-only shape.
+  const keys = clip.volumeKeys;
+  if (keys && keys.length > 0) {
+    for (const key of keys) {
+      const at = Math.max(0, Math.min(clip.durationMs, key.atMs));
+      if (at > t0 && at < tEnd) {
+        points.push({
+          offsetMs: roundMicros(at - t0),
+          gain: evaluateClipGainAtElapsedMs(clip, at),
+        });
+      }
+    }
+    points.sort((a, b) => a.offsetMs - b.offsetMs);
+    const expanded: Array<{ offsetMs: number; gain: number }> = [];
+    for (let i = 0; i < points.length; i += 1) {
+      const prev = expanded[expanded.length - 1];
+      const point = points[i];
+      if (prev && Math.abs(point.offsetMs - prev.offsetMs) < 0.5) {
+        expanded[expanded.length - 1] = point;
+        continue;
+      }
+      expanded.push(point);
+      const next = points[i + 1];
+      if (next && next.offsetMs - point.offsetMs > 1) {
+        const midOffset = (point.offsetMs + next.offsetMs) / 2;
+        expanded.push({
+          offsetMs: roundMicros(midOffset),
+          gain: evaluateClipGainAtElapsedMs(clip, t0 + midOffset),
+        });
+      }
+    }
+    return expanded;
   }
   return points;
 }
