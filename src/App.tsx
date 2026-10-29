@@ -48,6 +48,7 @@ import {
   mergeAdjacentCaptions,
   normalizeCaptionStyle,
   resolveTimelineCaptions,
+  splitCaptionAtFrame,
   type BeatCaption,
   type CaptionStyle,
   type ResolvedTimelineCaption,
@@ -2523,13 +2524,37 @@ export default function App() {
     [applyProject],
   );
 
-  const canSplit = Boolean(
-    selectedClip && playheadFrame > selectedClip.startFrame && playheadFrame < selectedClip.endFrame,
-  );
+  const canSplit = useMemo(() => {
+    if (selectedCaption) {
+      if (selectedCaption.indices.length !== 1) return false;
+      const clip = clips.find(c => c.keyframe.id === selectedCaption.frameId);
+      if (!clip) return false;
+      return splitCaptionAtFrame(clip.keyframe.beat, clip.durationFrames,
+        selectedCaption.indices[0], playheadFrame - clip.startFrame).didSplit;
+    }
+    return Boolean(selectedClip && playheadFrame > selectedClip.startFrame && playheadFrame < selectedClip.endFrame);
+  }, [selectedCaption, selectedClip, clips, playheadFrame]);
 
   const splitAtPlayhead = useCallback(() => {
     const current = projectRef.current;
-    if (!current || !selectedClip) return;
+    if (!current) return;
+    const selected = selectedCaptionRef.current;
+    if (selected) {
+      if (selected.indices.length !== 1) return;
+      const clip = clips.find(c => c.keyframe.id === selected.frameId);
+      if (!clip) return;
+      const index = selected.indices[0];
+      const result = splitCaptionAtFrame(clip.keyframe.beat, clip.durationFrames, index,
+        playheadRef.current - clip.startFrame);
+      if (!result.didSplit) return;
+      applyProject(setBeatCaptions(current, clip.keyframe.id, result.captions, clip.durationFrames), "Caption split at playhead");
+      const nextSel = { frameId: clip.keyframe.id, indices: [index + 1] };
+      selectedCaptionRef.current = nextSel;
+      setSelectedCaption(nextSel);
+      setMultiSelection({ pictureIds: [], captions: [{ frameId: clip.keyframe.id, index: index + 1 }], audioClipIds: [], keyframes: [] });
+      return;
+    }
+    if (!selectedClip) return;
     const localOffset = playheadRef.current - selectedClip.startFrame;
     if (localOffset <= 0 || localOffset >= selectedClip.durationFrames) return;
     const audioRef = selectedClip.keyframe.beat.audioUrl;
@@ -2539,13 +2564,8 @@ export default function App() {
     applyProject(result.project, "Clip split at playhead");
     setSelectedFrameId(result.rightId);
     setSelectedFrameIds([result.rightId]);
-    setMultiSelection({
-      pictureIds: [result.rightId],
-      captions: [],
-      audioClipIds: [],
-      keyframes: [],
-    });
-  }, [applyProject, selectedClip, voiceDurations]);
+    setMultiSelection({ pictureIds: [result.rightId], captions: [], audioClipIds: [], keyframes: [] });
+  }, [applyProject, clips, selectedClip, voiceDurations]);
 
   const captionStyle = useMemo<CaptionStyle>(
     () => normalizeCaptionStyle(project?.story.captionStyle ?? DEFAULT_CAPTION_STYLE),

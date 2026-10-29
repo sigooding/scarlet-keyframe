@@ -2830,6 +2830,7 @@ kbd {
 }
 
 .timeline-goto-group {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2856,6 +2857,11 @@ kbd {
 }
 
 .marker-inline-editor {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
   display: inline-flex;
   align-items: center;
   gap: 4px;

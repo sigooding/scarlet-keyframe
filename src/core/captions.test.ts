@@ -10,6 +10,7 @@ import {
   makeCaptionsVtt,
   mergeAdjacentCaptions,
   splitCaptionAtCursor,
+  splitCaptionAtFrame,
   updateCaptionText,
 } from "./captions";
 import { resetBeatCaptions, setBeatCaptions, setStoryCaptionStyle } from "./edits";
@@ -240,5 +241,28 @@ describe("Captions (CC) editor model & exports", () => {
       showSpeaker: false,
       italicNarration: true,
     });
+  });
+});
+
+
+describe("caption-only playhead split", () => {
+  it("splits the selected cue at its local frame and preserves metadata", () => {
+    const beat = { id: "b", text: "unchanged", audioUrl: "/voice.mp3", captions: [
+      { text: "One two three four", inFrame: 10, outFrame: 50, free: true, speaker: "Jack", isNarration: false },
+    ] };
+    const original = structuredClone(beat);
+    const result = splitCaptionAtFrame(beat, 100, 0, 30);
+    expect(result.didSplit).toBe(true);
+    expect(result.captions).toEqual([
+      { text: "One two", inFrame: 10, outFrame: 30, free: true, speaker: "Jack", isNarration: false },
+      { text: "three four", inFrame: 30, outFrame: 50, free: true, speaker: "Jack", isNarration: false },
+    ]);
+    expect(beat).toEqual(original);
+  });
+  it("does not split on cue boundaries, a missing cue, or indivisible text", () => {
+    const beat = { id: "b", text: "Hello world", captions: [{ text: "Hello world", inFrame: 5, outFrame: 20 }] };
+    for (const [index, cut] of [[0, 5], [0, 20], [1, 10]])
+      expect(splitCaptionAtFrame(beat, 30, index, cut).didSplit).toBe(false);
+    expect(splitCaptionAtFrame({ ...beat, captions: [{ text: "Hello", inFrame: 5, outFrame: 20 }] }, 30, 0, 10).didSplit).toBe(false);
   });
 });
