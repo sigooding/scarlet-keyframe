@@ -1,6 +1,6 @@
 # Editorial Cuts — Project Notes (`Nobody's Witness`)
 
-Scarlet Keyframe Studio provides four non-destructive selectable film versions via the topbar cut selector dropdown (`data-testid="topbar-directors-cut-btn"`). Every cut is constructed deterministically from `project.originalStory` without mutating any underlying `beat.text`, story dialogue, or existing snapshots, and switching between cuts preserves undo/redo history as well as the current narrative beat/scene under the playhead.
+Scarlet Keyframe Studio provides five non-destructive selectable film versions via the topbar cut selector dropdown (`data-testid="topbar-directors-cut-btn"`). Every cut is constructed deterministically from `project.originalStory` without mutating any underlying `beat.text`, story dialogue, or existing snapshots, and switching between cuts preserves undo/redo history as well as the current narrative beat/scene under the playhead.
 
 ---
 
@@ -32,7 +32,32 @@ Scarlet Keyframe Studio provides four non-destructive selectable film versions v
 
 ---
 
-## 3. 1950s Noir Director’s Cut (`"noir-1950s"`)
+## 3. 1940s Noir Director’s Cut (`"noir-1940s"`)
+- **Editorial Vision**: Classic Hollywood 1940s noir photographed on the film’s **original running order** — the uncut chronological story assembly, consolidated but never re-ordered — in the silver-print monochrome of *Double Indemnity*, *The Maltese Falcon*, *Laura*, *Mildred Pierce*, and *The Third Man*: deep-focus lock-offs, low-key carbon-arc fixtures, five titled reels joined by optical dissolves, and a hushed period score.
+- **Structure & Five Reels (original running order preserved)**:
+  - Chronological cold open (`nw_intro -> nw_logo -> nw_s1 -> nw_s2 -> nw_title -> nw_prologue -> nw_s3`) intact; `256` scenes split into `1,152` continuous clips (`+449` shot/reverse-shot coverage clips over Neo-Noir’s `703`; `127,689` total frames).
+  - Five film reels, each headlined by an in-frame decorative intertitle card (`monochrome: true`, double-rule design) with a matching bone-silver `#dcd2b8` ruler marker:
+    1. `REEL 1 · Three Days in the Rain` — **THREE DAYS IN THE RAIN** (`nw_s3`, frame `7,087`)
+    2. `REEL 2 · The Number 114` — **THE NUMBER 114** (`nw_s25`, frame `48,219`)
+    3. `REEL 3 · Tyres on Gravel` — **THE COASTAL INN** (`nw_cut_inn-raid_01`, frame `65,079`)
+    4. `REEL 4 · Nine O’Clock` — **NINE O’CLOCK UNDER THE EXPRESSWAY** (`nw_s61`, frame `78,582`)
+    5. `REEL 5 · The Fortieth Floor` — **THE FORTIETH FLOOR** (`nw_s83`, frame `107,261`)
+- **Silver-Print Monochrome & Period Low-Key Lighting**:
+  - `.cin-grade-noir-1940s` high-contrast silver-print optical curve applied to **100% of the `1,152` clips** at `gradeStrength: 1.0` — including the `<video>` studio leaders (`nw_intro`, `nw_logo`) — with zero picture-edge clamping.
+  - Low-key carbon-arc fixtures only: `silhouette-rim`, `key-slash`, `venetian-slats`, `eye-light`, plus volumetric light shafts on `897` shots; colored point lights, lens flares, crash-exposure flashes, and speed ramps stripped entirely (zero occurrences).
+- **Classical Camera Grammar**:
+  - **`> 84%` locked-off single-camera compositions** (`973` still clips vs `179` slow moving); deep-focus conversational coverage punches into static `≥ 1.2x` singles on `491` clips while the camera stays on the tripod.
+  - Period-appropriate moves only: `51` subtle Dutch cants (`> 0.5°`, *Third Man*-style tension angles), `46` lateral dolly tracks (`|Δx| ≥ 6`), `63` slow dolly / clue push-ins (`Δz ≥ 0.25`) — and **zero whip pull-outs, zero multi-step zoom machinery, zero exposure crashes**.
+  - Optical-lab transitions: `11` slow curtain `dip-to-black`s (`speed: 0.78`) at reel heads & act curtains, `70` stately lap-`dissolve`s (`speed: 0.74`) across location and day/night shifts, **zero directional wipes**.
+- **Scene 77A Period Plate**: uniform `noir-1940s` grade with explicit `rainOnLens` and zero interior cabin light in Kurose’s sedan across all `7` beats (beat-level rain preserved; eye-light on `nw_b1296`).
+- **Restrained Period Sound**:
+  - Classical straight dialogue cuts: gentle `-80 ms` breath softening on one-third of eligible lines only when `≥ 800 ms` clear air precedes (`172` clips pre-lapped; **zero `≤ -200 ms` deep pre-laps**, no voice overlap).
+  - Hushed period score (`gain ≤ 0.42`, `3,000 ms` fade-in / `3,400 ms` fade-out, `560 ms` score pre-rolls), quiet rain/room-tone beds (`gain ≤ 0.28`), and understated diegetic foley (`gain ≤ 0.50`) — including the diegetic gravel-tyres roll on the Reel Three head.
+- **Bespoke 1940s Crest Leader**: the exact `9.9s` (`238f`) `nw_logo` leader slot swaps to a purpose-built Art Deco `1920×1080` searchlight studio crest (`/film/img/leaders/scarlet-reel-1940s-crest.jpg`, *“A Motion Picture in Five Reels”*) whenever the silver-monochrome studio crest leader option is enabled — zero downstream shot or audio shifts.
+
+---
+
+## 4. 1950s Noir Director’s Cut (`"noir-1950s"`)
 - **Editorial Vision**: Cohesive classical 1950s Alfred Hitchcock & silver-gelatin monochrome suspense (*Vertigo*, *Rear Window*, *The Wrong Man*, *Notorious*, *Dial M for Murder*) — chiaroscuro monochrome lighting, *Vertigo* contra-zooms on psychological revelations, crisp static shot/reverse-shot character zoom coverage during conversations, surgical clue pushes, deliberate studio pacing, and restrained nocturnal sound.
 - **Silver-Gelatin Monochrome & Hitchcock Chiaroscuro Lighting**:
   - `.cin-grade-noir-1950s` panchromatic B&W optical curve (`grayscale(1) contrast(1.38) brightness(0.91)` + neutral silver-selenium `NOIR_1950S_WASH`, `gradeStrength: 1.0`) applied uniformly across **100% of shots**, including `<video>` studio leaders (`nw_intro`, `nw_logo`), WebGL/2D depth-parallax plates, and foreground cutouts.
@@ -53,7 +78,7 @@ Scarlet Keyframe Studio provides four non-destructive selectable film versions v
 
 ---
 
-## 4. Original Uncut Import (`"uncut"`)
+## 5. Original Uncut Import (`"uncut"`)
 - Restores the raw `1,584`-beat source assembly from `project.originalStory` prior to editorial consolidation, camera authoring, or optical grading.
 
 ---
@@ -64,7 +89,7 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
 ### 1. Visual & Period Craft
 - **Aspect Gate (`2.35:1 Scope` · `1.37:1 Academy` · `16:9 Open`)**: Switch between `2.35:1` Scope letterbox bars, classic `1.37:1` Academy (`4:3`) side pillarboxing (`11.33%` matte bars with automatic title-card and caption safe insets), or open `16:9`.
 - **2.5D Depth Maps on 9 New Shots (`s12` / `77A` / `s78`)**: Optional greyscale depth maps (`/film/depth/{s12,s77a,s78}/*-depth.jpg`) driving edge-clamped WebGL 2.5D parallax on all nine newly generated plates without shifting any frame timings.
-- **Bespoke 1950s Monochrome Studio Crest Leader**: Optional `1920x1080` silver-gelatin Art Deco studio crest (`/film/img/leaders/scarlet-reel-1950s-crest.jpg`) on `nw_logo` with frame-driven fade-in/out over the exact `9.9s` (`238f`) leader slot so zero downstream shots or audio cues shift.
+- **Bespoke Silver-Monochrome Studio Crest Leader (1940s / 1950s)**: Optional `1920×1080` monochrome Art Deco studio crest on `nw_logo` with frame-driven fade-in/out over the exact `9.9s` (`238f`) leader slot so zero downstream shots or audio cues shift — period-correct `scarlet-reel-1940s-crest.jpg` (searchlights, *“A Motion Picture in Five Reels”*) on the 1940s cut, silver-gelatin `scarlet-reel-1950s-crest.jpg` on the 1950s cut.
 
 ### 2. Sound & Mastering
 - **Warm 1950s Optical-Print EQ (`85 Hz – 7.8 kHz`)**: Optional 3-stage Web Audio `BiquadFilterNode` chain (`85 Hz` high-pass, `+1.8 dB` @ `1.8 kHz` `Q=1.1` presence peak, `7.8 kHz` low-pass) shared across live `webAudioEngine` playback and `OfflineAudioContext` MP4 export (`--optical-eq` / `--no-optical-eq`).
@@ -72,6 +97,6 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
 
 ### 3. Editorial & Screening UX
 - **Per-Cut Saved Working State + Factory Reset**: Optional `Remember custom edits per cut when switching` stashes custom trims, keyframes, notes, and `audioClips` per cut slot (`savedCutStates`) across cut switches, paired with a one-click `Reset <Cut> to factory` control.
-- **Instant Cut-Compare (`\` Hold / Toggle)**: Hold `\` (or click `Compare (\)` in the viewer) to preview the exact matching beat and normalized shot progress in any selectable reference cut (`Neo-Noir`, `Creative`, `1950s B&W`, or `Uncut`) without mutating the active project, timeline, or undo stack.
+- **Instant Cut-Compare (`\` Hold / Toggle)**: Hold `\` (or click `Compare (\)` in the viewer) to preview the exact matching beat and normalized shot progress in any selectable reference cut (`Neo-Noir`, `Creative`, `1940s B&W`, `1950s B&W`, or `Uncut`) without mutating the active project, timeline, or undo stack.
 - **Embedded MP4 Chapter Markers (`FFMETADATA1`)**: Selectable `Embed MP4 chapters` (`--chapters` / `--no-chapters`) muxes timeline chapter/part markers (with scene-boundary fallback) directly into the `.mp4` container for QuickTime, VLC, and Apple TV scrub-bar navigation.
 

@@ -632,18 +632,6 @@ export const GRADE_PRESETS: Record<GradePresetId, GradePreset> = {
     tintOpacity: 0.85,
     tintBlend: "soft-light",
   },
-  "tarantino-35mm": {
-    id: "tarantino-35mm",
-    name: "Tarantino — Warm 35mm",
-    tagline: "Hot reds, teal-green shadows, bleach-bypass punch — the Pulp Fiction / Kill Bill print.",
-    badge: "🩸 Warm Grindhouse",
-    filter: "saturate(1.35) contrast(1.28) brightness(1.02) sepia(0.12) hue-rotate(-6deg)",
-    filterWithBlur: "saturate(1.35) contrast(1.28) brightness(1.02) sepia(0.12) hue-rotate(-6deg) blur(var(--cin-dolly-zoom-blur, 0px))",
-    tint:
-      "linear-gradient(180deg, rgba(122, 26, 20, 0.3) 0%, rgba(0,0,0,0) 40%, rgba(18, 64, 60, 0.32) 100%)",
-    tintOpacity: 0.8,
-    tintBlend: "overlay",
-  },
   "spielberg-golden": {
     id: "spielberg-golden",
     name: "Spielberg — Golden Hour",
@@ -700,7 +688,6 @@ export const GRADE_PRESETS: Record<GradePresetId, GradePreset> = {
 
 export const GRADE_PRESET_LIST: GradePreset[] = [
   GRADE_PRESETS["nolan-imax"],
-  GRADE_PRESETS["tarantino-35mm"],
   GRADE_PRESETS["spielberg-golden"],
   GRADE_PRESETS["noir-1940s"],
   GRADE_PRESETS["neon-noir"],

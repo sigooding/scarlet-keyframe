@@ -1387,8 +1387,8 @@ export function CinematicPreview({
             >
               <option value="neo-noir">vs Neo-Noir</option>
               <option value="creative">vs Creative</option>
+              <option value="noir-1940s">vs 1940s B&amp;W</option>
               <option value="noir-1950s">vs 1950s B&amp;W</option>
-              <option value="tarantino">vs Tarantino</option>
               <option value="uncut">vs Uncut</option>
             </select>
           )}
@@ -1479,7 +1479,6 @@ export function CinematicPreview({
               subtitle?: string;
               align?: "center" | "lower-left";
               monochrome?: boolean;
-              tarantino?: boolean;
             }
           | undefined;
         if (!tc || (!tc.title && !tc.kicker && !tc.subtitle)) return null;
@@ -1488,9 +1487,12 @@ export function CinematicPreview({
         const inOp = Math.min(1, (localFrame + 1) / fadeFrames);
         const outOp = Math.min(1, Math.max(0, dur - localFrame) / fadeFrames);
         const cardOpacity = Math.max(0, Math.min(1, Math.min(inOp, outOp)));
+        const isMonoGrade =
+          cinematic.colorGrade === "noir-1950s" ||
+          cinematic.colorGrade === "noir-1940s";
         return (
           <div
-            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"} ${tc.monochrome || cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : ""} ${tc.tarantino ? "is-tarantino" : ""} ${isAcademy ? "has-academy" : ""}`}
+            className={`cin-title-card ${tc.align === "lower-left" ? "is-lower-left" : "is-center"} ${tc.monochrome || isMonoGrade ? "is-monochrome" : ""} ${isAcademy ? "has-academy" : ""}`}
             data-testid="viewer-title-card"
             style={{
               opacity: Number(cardOpacity.toFixed(4)),
@@ -1514,7 +1516,10 @@ export function CinematicPreview({
             isAcademy ? "has-academy" : "",
             `size-${style.size.toLowerCase()}`,
             style.backgroundBox ? "has-box" : "no-box",
-            cinematic.colorGrade === "noir-1950s" ? "is-monochrome" : "",
+            cinematic.colorGrade === "noir-1950s" ||
+            cinematic.colorGrade === "noir-1940s"
+              ? "is-monochrome"
+              : "",
           ]
             .filter(Boolean)
             .join(" ")}

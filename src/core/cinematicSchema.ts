@@ -88,7 +88,7 @@ export const CINEMATIC_GROUPS: CinematicGroup[] = [
     id: "look",
     label: "Grade & texture",
     fields: [
-      field("colorGrade", "Color grade", "select", { options: ["", "tokyo-noir", "sodium-amber", "noir-1950s", "midnight-teal", "neon-noir", "noir-1940s", "nolan-imax", "tarantino-35mm", "spielberg-golden"] }),
+      field("colorGrade", "Color grade", "select", { options: ["", "tokyo-noir", "sodium-amber", "noir-1950s", "midnight-teal", "neon-noir", "noir-1940s", "nolan-imax", "spielberg-golden"] }),
       field("filmGrade", "Film stock", "boolean"),
       field("filmGradeStrength", "Film strength", "number", { min: 0, max: 1, step: 0.01 }),
       field("dimAmount", "Dim amount", "number", { min: 0, max: 1, step: 0.01 }),
@@ -102,16 +102,6 @@ export const CINEMATIC_GROUPS: CinematicGroup[] = [
     id: "lights",
     label: "Lights & flare",
     fields: [
-      field("tarantinoLighting", "Tarantino lighting", "select", {
-        options: [
-          "",
-          "richardson-toplight",
-          "pulp-gold-glow",
-          "neon-crimson-slash",
-          "raid-katana-strobe",
-        ],
-        extension: true,
-      }),
       field("hitchcockLighting", "Hitchcock lighting", "select", {
         options: ["", "eye-light", "venetian-slats", "key-slash", "silhouette-rim"],
         extension: true,
