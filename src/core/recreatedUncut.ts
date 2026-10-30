@@ -27,6 +27,10 @@ import jackStands from "../assets/recreated-uncut/1358-jack-stands.jpg?url&inlin
 import onlyTea from "../assets/recreated-uncut/1565-only-tea.jpg?url&inline";
 import howDidSheSeem from "../assets/recreated-uncut/148-how-did-she-seem.jpg?url&inline";
 import seaWallRoad from "../assets/recreated-uncut/716-sea-wall-road.jpg?url&inline";
+import heHangsUp from "../assets/recreated-uncut/115-he-hangs-up.jpg?url&inline";
+import reconstructingIt from "../assets/recreated-uncut/314-reconstructing-it.jpg?url&inline";
+import umbrellaSwings from "../assets/recreated-uncut/418-umbrella-swings.jpg?url&inline";
+import somethingSlow from "../assets/recreated-uncut/1176-something-slow.jpg?url&inline";
 import dinner from "../assets/recreated-uncut/1020-dinner-with-me.jpg?url&inline";
 import noMessages from "../assets/recreated-uncut/1177-no-messages.jpg?url&inline";
 import headlights from "../assets/recreated-uncut/027-headlights.jpg?url&inline";
@@ -89,8 +93,12 @@ const plates = [
   { id: "recreated-uncut-1177", beat: "nw_b1177", scene: "nw_s72", source: "/film/img/s72/69-the-wait.jpg", name: "No messages.jpg", data: noMessages, version: 5 },
   { id: "recreated-uncut-148", beat: "nw_b148", scene: "nw_s6", source: "/film/img/s6/56-three-days-ago.jpg", name: "How did she seem.jpg", data: howDidSheSeem, version: 6 },
   { id: "recreated-uncut-716", beat: "nw_b716", scene: "nw_s28", source: "/film/img/s28/203-the-sea-wall-steps.jpg", name: "Sea wall road.jpg", data: seaWallRoad, version: 6 },
+  { id: "duplicate-uncut-115", beat: "nw_b115", scene: "nw_s5", source: "/film/img/s5/48-the-quiet-phone-call.jpg", name: "He hangs up.jpg", data: heHangsUp, version: 16 },
+  { id: "duplicate-uncut-314", beat: "nw_b314", scene: "nw_s12", source: "/film/img/s12/168-the-strap.jpg", name: "Reconstructing it.jpg", data: reconstructingIt, version: 16 },
+  { id: "duplicate-uncut-418", beat: "nw_b418", scene: "nw_s14a", source: "/film/img/s14a/340-the-shuttered-door.jpg", name: "The umbrella swings.jpg", data: umbrellaSwings, version: 16 },
+  { id: "duplicate-uncut-1176", beat: "nw_b1176", scene: "nw_s72", source: "/film/img/s72/69-the-wait.jpg", name: "Something slow.jpg", data: somethingSlow, version: 16 },
 ] as const;
-const COVERAGE_VERSION = 15;
+const COVERAGE_VERSION = 16;
 
 function addBundledJpeg(assets: ProjectAsset[], plate: { id: string; name: string; data: string }): void {
   if (assets.some(asset => asset.id === plate.id)) return;
