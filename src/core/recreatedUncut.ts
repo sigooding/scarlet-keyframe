@@ -1,3 +1,13 @@
+import danielVossPortrait from "../assets/recreated-uncut/284-daniel-voss-portrait.jpg?url&inline";
+import whereIsIt from "../assets/recreated-uncut/1360-where-is-it.jpg?url&inline";
+import missingPersonForm from "../assets/recreated-uncut/128-missing-person-form.jpg?url&inline";
+import beyondTheCurtain from "../assets/recreated-uncut/1686-beyond-the-curtain.jpg?url&inline";
+import wineRedDress from "../assets/recreated-uncut/1073-wine-red-dress.jpg?url&inline";
+import sedanDeparts from "../assets/recreated-uncut/038-sedan-departs.jpg?url&inline";
+import jackWhat from "../assets/recreated-uncut/893-jack-what.jpg?url&inline";
+import veraHesitates from "../assets/recreated-uncut/099-vera-hesitates.jpg?url&inline";
+import jackStands from "../assets/recreated-uncut/1358-jack-stands.jpg?url&inline";
+import onlyTea from "../assets/recreated-uncut/1565-only-tea.jpg?url&inline";
 import howDidSheSeem from "../assets/recreated-uncut/148-how-did-she-seem.jpg?url&inline";
 import seaWallRoad from "../assets/recreated-uncut/716-sea-wall-road.jpg?url&inline";
 import dinner from "../assets/recreated-uncut/1020-dinner-with-me.jpg?url&inline";
@@ -18,6 +28,16 @@ import { buildKeyframes, type ProjectAsset, type ProjectState, type StoryLike } 
 // Only replacements selected in this recovery are listed here. The original
 // imported story is never modified, and saved user pictures are left intact.
 const plates = [
+  { id: "gap-uncut-284", beat: "nw_b284", scene: "nw_s11", source: "/film/img/s11/244-daniel-voss-41.jpg", name: "Daniel Voss portrait.jpg", data: danielVossPortrait, version: 11 },
+  { id: "gap-uncut-1360", beat: "nw_b1360", scene: "nw_s80", source: "/film/img/s80/the-blood-on-his-hand.jpg", name: "Where is it.jpg", data: whereIsIt, version: 11 },
+  { id: "gap-uncut-128", beat: "nw_b128", scene: "nw_s6", source: "/film/img/s6/321-the-form.jpg", name: "Missing person form.jpg", data: missingPersonForm, version: 10 },
+  { id: "gap-uncut-1686", beat: "nw_b1686", scene: "nw_s100", source: "/film/img/s100/1685-money-on-the-counter.jpg", name: "Beyond the curtain.jpg", data: beyondTheCurtain, version: 10 },
+  { id: "gap-uncut-1073", beat: "nw_b1073", scene: "nw_s65", source: "/film/img/s65/488-wine-red-silk.jpg", name: "Wine red dress.jpg", data: wineRedDress, version: 9 },
+  { id: "gap-uncut-038", beat: "nw_b38", scene: "nw_s1", source: "/film/img/s1/13-taillights-gone.jpg", name: "Sedan departs.jpg", data: sedanDeparts, version: 8 },
+  { id: "gap-uncut-893", beat: "nw_b893", scene: "nw_s53", source: "/film/img/s53/467-it-frightens-her.jpg", name: "Jack what.jpg", data: jackWhat, version: 8 },
+  { id: "gap-uncut-099", beat: "nw_b99", scene: "nw_s4", source: "/film/img/s4/41-three-looks.jpg", name: "Vera hesitates.jpg", data: veraHesitates, version: 7 },
+  { id: "gap-uncut-1358", beat: "nw_b1358", scene: "nw_s80", source: "/film/img/s80/not-to-jack.jpg", name: "Jack stands.jpg", data: jackStands, version: 7 },
+  { id: "gap-uncut-1565", beat: "nw_b1565", scene: "nw_s94", source: "/film/img/s94/141-he-drinks.jpg", name: "Only tea.jpg", data: onlyTea, version: 7 },
   { id: "recreated-uncut-1573", beat: "nw_b1573", scene: "nw_s96", source: "/film/img/s96/303-he-left-a-statement.jpg", name: "Empty chair.jpg", data: emptyChair, version: 1 },
   { id: "recreated-uncut-031", beat: "nw_b31", scene: "nw_s1", source: "/film/img/s1/333-the-white-light.jpg", name: "After twenty years.jpg", data: twentyYears, version: 1 },
   { id: "recreated-uncut-1637", beat: "nw_b1637", scene: "nw_s98", source: "/film/img/s98/526-at-the-end.jpg", name: "Vera goes still.jpg", data: veraStill, version: 1 },
@@ -34,7 +54,7 @@ const plates = [
   { id: "recreated-uncut-148", beat: "nw_b148", scene: "nw_s6", source: "/film/img/s6/56-three-days-ago.jpg", name: "How did she seem.jpg", data: howDidSheSeem, version: 6 },
   { id: "recreated-uncut-716", beat: "nw_b716", scene: "nw_s28", source: "/film/img/s28/203-the-sea-wall-steps.jpg", name: "Sea wall road.jpg", data: seaWallRoad, version: 6 },
 ] as const;
-const COVERAGE_VERSION = 6;
+const COVERAGE_VERSION = 11;
 
 export function addRecreatedUncutCoverage(story: StoryLike, existing: ProjectAsset[], afterVersion = 0): ProjectAsset[] {
   if (story.id !== "nobodys-witness-film") return existing;
