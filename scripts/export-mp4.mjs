@@ -6,8 +6,8 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
 import { createServer as createViteServer } from "vite";
+import { prepareChromiumLauncher } from "./chromium-launcher.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,6 +50,10 @@ Options:
   --job <id>              Dev-server live project job ID
   --progress-json         Emit JSON progress events on stdout
   --help                  Show this help
+
+Browser: Playwright Chromium, installed Chrome or Edge, or bundled Linux x64 Chromium.
+Set PLAYWRIGHT_CHROMIUM_PATH to use a specific browser executable. If none is found,
+run: npx playwright install chromium
 `);
 }
 
@@ -228,57 +232,6 @@ function resolveMediaDir(rawMedia) {
     return nestedPublic;
   }
   return abs;
-}
-
-/**
- * Resolves the headless Chromium launch options ONCE so spawning N parallel workers
- * never extracts @sparticuz/chromium concurrently.
- */
-async function prepareChromiumLauncher() {
-  const webglArgs = [
-    "--use-gl=angle",
-    "--use-angle=swiftshader",
-    "--enable-unsafe-swiftshader",
-    "--ignore-gpu-blocklist",
-    "--autoplay-policy=no-user-gesture-required",
-    "--hide-scrollbars",
-  ];
-
-  if (process.env.PLAYWRIGHT_CHROMIUM_PATH && fs.existsSync(process.env.PLAYWRIGHT_CHROMIUM_PATH)) {
-    return () =>
-      chromium.launch({
-        executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH,
-        headless: true,
-        args: webglArgs,
-        env: { ...process.env },
-      });
-  }
-
-  try {
-    const probe = await chromium.launch({ headless: true, args: webglArgs });
-    await probe.close();
-    return () => chromium.launch({ headless: true, args: webglArgs });
-  } catch {
-    if (!process.env.AWS_LAMBDA_JS_RUNTIME) {
-      process.env.AWS_LAMBDA_JS_RUNTIME = "nodejs22.x";
-    }
-    const sparticuzMod = await import("@sparticuz/chromium");
-    const sparticuz = sparticuzMod.default ?? sparticuzMod;
-    const executablePath = await sparticuz.executablePath();
-    const args = [
-      ...sparticuz.args,
-      "--autoplay-policy=no-user-gesture-required",
-      "--hide-scrollbars",
-    ];
-    const env = { ...process.env };
-    return () =>
-      chromium.launch({
-        executablePath,
-        headless: true,
-        args,
-        env,
-      });
-  }
 }
 
 function makeWavHeader(dataSizeBytes, sampleRate = SAMPLE_RATE) {
