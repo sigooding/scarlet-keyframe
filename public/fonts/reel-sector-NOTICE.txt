@@ -1,0 +1,8 @@
+Reel Sector
+===========
+
+reel-sector.woff2 is an original bitmap display font drawn for Scarlet Reel.
+Its glyph outlines are generated from the hand-authored 5x7 patterns in
+scripts/hollywood/prepare-fidelity-v6.py. It contains no extracted Duke Nukem
+font data. It is provided under the same terms as this repository's source.
+The separately bundled Oswald font retains its own existing OFL license.

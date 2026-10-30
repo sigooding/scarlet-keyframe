@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scarlet Reel — storage diagnostic</title>
+    <style>
+      body {
+        background: #0a0b0e;
+        color: #f4ecdd;
+        font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+        margin: 0;
+        padding: 28px;
+      }
+      h1 { font-size: 18px; letter-spacing: 0.18em; text-transform: uppercase; color: #e8b647; margin: 0 0 4px; }
+      p.sub { color: #8d8579; margin: 0 0 22px; }
+      table { border-collapse: collapse; width: 100%; margin-bottom: 26px; }
+      th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #23252b; vertical-align: top; }
+      th { color: #2ad9d9; font-weight: normal; text-transform: uppercase; font-size: 11px; letter-spacing: 0.14em; }
+      td.k { color: #f4ecdd; word-break: break-all; }
+      .bad { color: #ff5f56; font-weight: bold; }
+      .good { color: #4ade80; }
+      .warn { color: #e8b647; }
+      button {
+        background: #16181d; color: #e8b647; border: 2px solid #e8b647;
+        padding: 11px 20px; font: inherit; text-transform: uppercase;
+        letter-spacing: 0.16em; cursor: pointer; margin: 0 10px 10px 0;
+      }
+      button:hover { background: #e8b647; color: #0a0b0e; }
+      button.danger { color: #ff5f56; border-color: #ff5f56; }
+      button.danger:hover { background: #ff5f56; color: #0a0b0e; }
+      pre { background: #101217; border: 1px solid #23252b; padding: 14px; overflow: auto; max-height: 320px; }
+    </style>
+  </head>
+  <body>
+    <h1>Scarlet Reel — storage diagnostic</h1>
+    <p class="sub">
+      Reads the saved data this browser holds for the game. Nothing is changed
+      unless you press a button below.
+    </p>
+
+    <div id="verdict"></div>
+    <div id="out"></div>
+
+    <button onclick="fixAll()">Fix it — clear overrides &amp; saves, keep backups</button>
+    <button class="danger" onclick="nuke()">Remove every Scarlet Reel key</button>
+    <button onclick="location.reload()">Re-scan</button>
+
+    <h1 style="margin-top: 30px; font-size: 14px">Raw report</h1>
+    <pre id="raw"></pre>
+
+    <script>
+      const PREFIX = /^(scarlet-reel|scarlet-studio)/;
+      const report = [];
+
+      function scan() {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && PREFIX.test(k)) keys.push(k);
+        }
+        keys.sort();
+
+        let rows = "";
+        const problems = [];
+
+        for (const k of keys) {
+          const raw = localStorage.getItem(k) || "";
+          let note = "";
+          let cls = "";
+
+          // Does this key hold a story that overrides a built-in?
+          if (
+            k.startsWith("scarlet-reel-published-") ||
+            k.startsWith("scarlet-studio-draft-") ||
+            k === "scarlet-reel-custom-stories-v1"
+          ) {
+            try {
+              const parsed = JSON.parse(raw);
+              const list = Array.isArray(parsed) ? parsed : [parsed];
+              for (const st of list) {
+                if (!st || !st.id) continue;
+                const eps = Array.isArray(st.episodes) ? st.episodes.length : 0;
+                const scenes = Array.isArray(st.scenes) ? st.scenes.length : 0;
+                const acts = Array.isArray(st.acts) ? st.acts.length : 0;
+                note += `story "${st.id}" · ${scenes} scenes · ${eps} episodes · ${acts} acts`;
+                if (eps > 0) {
+                  cls = "bad";
+                  note += "  ← EPISODIC OVERRIDE (this is the bug)";
+                  problems.push(`${k} holds an episodic copy of "${st.id}"`);
+                }
+                if (!acts && st.id === "nobodys-witness-flagship") {
+                  cls = cls || "warn";
+                  note += "  ← stale: predates acts";
+                  problems.push(`${k} holds a pre-acts copy of "${st.id}"`);
+                }
+              }
+            } catch (e) {
+              cls = "bad";
+              note = "UNPARSEABLE JSON — " + e.message;
+              problems.push(`${k} is corrupt JSON`);
+            }
+          }
+
+          if (k === "scarlet-reel-content-revision") note = "revision = " + raw;
+          if (k.startsWith("scarlet-reel-save-")) {
+            try {
+              const s = JSON.parse(raw);
+              note = `save · scene=${s.sceneId} · journey=${(s.journey || []).length}`;
+              if (!Array.isArray(s.inventory)) {
+                cls = "bad";
+                note += "  ← MISSING inventory[]";
+                problems.push(`${k} is a malformed save`);
+              }
+            } catch (e) {
+              cls = "bad";
+              note = "UNPARSEABLE JSON";
+              problems.push(`${k} is corrupt JSON`);
+            }
+          }
+          if (k.includes("hidden-stories")) note = "hidden = " + raw;
+
+          rows += `<tr><td class="k">${k}</td><td>${(raw.length / 1024).toFixed(1)} kB</td><td class="${cls}">${note}</td></tr>`;
+          report.push(`${k}  (${raw.length} bytes)  ${note}`);
+        }
+
+        document.getElementById("out").innerHTML =
+          `<table><tr><th>key</th><th>size</th><th>notes</th></tr>${rows}</table>`;
+
+        const v = document.getElementById("verdict");
+        if (!keys.length) {
+          v.innerHTML = `<p class="good">No Scarlet Reel data in this browser — storage is already clean.</p>`;
+        } else if (problems.length) {
+          v.innerHTML =
+            `<p class="bad">Found ${problems.length} problem(s):</p><ul class="bad"><li>` +
+            problems.join("</li><li>") +
+            `</li></ul><p>Press <b>Fix it</b> below.</p>`;
+        } else {
+          v.innerHTML = `<p class="good">Nothing obviously wrong in storage.</p>`;
+        }
+
+        document.getElementById("raw").textContent =
+          report.join("\n") + "\n\nUA: " + navigator.userAgent;
+      }
+
+      function backupAndRemove(k) {
+        const old = localStorage.getItem(k);
+        if (old) localStorage.setItem(k + "-backup-diag", old);
+        localStorage.removeItem(k);
+      }
+
+      function fixAll() {
+        const kill = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!k || k.includes("-backup")) continue;
+          if (
+            k.startsWith("scarlet-reel-published-") ||
+            k.startsWith("scarlet-studio-draft-") ||
+            k.startsWith("scarlet-reel-save-") ||
+            k === "scarlet-reel-custom-stories-v1" ||
+            k === "scarlet-reel-hidden-stories" ||
+            k === "scarlet-reel-content-revision" ||
+            k === "scarlet-reel-season-progress-v1"
+          )
+            kill.push(k);
+        }
+        kill.forEach(backupAndRemove);
+        alert("Cleared " + kill.length + " key(s). Backups kept. Now reload the game.");
+        location.reload();
+      }
+
+      function nuke() {
+        if (!confirm("Remove EVERY Scarlet Reel key, including backups?")) return;
+        const kill = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && PREFIX.test(k)) kill.push(k);
+        }
+        kill.forEach((k) => localStorage.removeItem(k));
+        alert("Removed " + kill.length + " key(s).");
+        location.reload();
+      }
+
+      scan();
+    </script>
+  </body>
+</html>
