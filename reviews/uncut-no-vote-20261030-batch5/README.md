@@ -1,27 +1,27 @@
 # Original Uncut: ten-shot directory batch 5 (`2026-10-30`)
 
-Ten additional distinct-scene Original Uncut duplicate/hold targets chosen at random (seed `20261030`), reviewed and **saved exclusively to this directory** (`cutModified: false`, `src/core/recreatedUncut.ts` untouched).
+Ten additional distinct-scene Original Uncut duplicate/hold targets chosen at random (seed `20261030`), each voted with two candidates and **saved exclusively to this directory** (`cutModified: false`, `src/core/recreatedUncut.ts` untouched). All ten were selected and saved; nothing has been installed into any cut.
 
-**Status: 1 of 10 saved.** The image provider rejected the other nine requests with `HTTP 403 – Request rejected due to terms of use violation. Your account has been flagged for suspicious activity.` The assistant turn also hit its limit of ten image-generation attempts. The nine blocked shots keep their exact prompts and reference previews here and will be retried.
+An earlier attempt generated the same ten prompts as a single unvoted burst: nine were rejected by the provider with `HTTP 403` (account flagged). Retrying them as two-candidate votes (`offer_options`) succeeded for every shot, so voting is the working path for this provider.
 
 [Open the numbered image review gallery](index.html) · [Machine-readable manifest](manifest.json)
 
-| # | Scene | Target beat | Shot | Result |
+| # | Scene | Target beat | Shot | Vote result |
 |---:|---|---|---|---|
-| 1 | `nw_s58` | `nw_b963` | Bring her | **Blocked** — provider HTTP 403, retry |
-| 2 | `nw_s25a` | `nw_b658` | Paying too much | **Blocked** — provider HTTP 403, retry |
-| 3 | `nw_s1` | `nw_b40` | Mr Sakai | **Blocked** — provider HTTP 403, retry |
-| 4 | `nw_s82` | `nw_b1371` | Harada in the glass office | **Blocked** — provider HTTP 403, retry |
-| 5 | `nw_s29` | `nw_b730` | Every January | **Blocked** — provider HTTP 403, retry |
-| 6 | `nw_s20_b` | `nw_b504` | Something gives way | **Blocked** — provider HTTP 403, retry |
-| 7 | `nw_s14` | `nw_b349` | The sketchbook opens | [Saved](images/07-nw-b349-the-sketchbook-opens.jpg) (`1376x768`) |
-| 8 | `nw_s83` | `nw_b1441` | She goes | **Blocked** — provider HTTP 403, retry |
-| 9 | `nw_s71` | `nw_b1167` | The split bag | **Blocked** — provider HTTP 403, retry |
-| 10 | `nw_s65_b` | `nw_b1078` | Out of practice | **Blocked** — provider HTTP 403, retry |
+| 1 | `nw_s58` | `nw_b963` | Bring her | Option 1 of 2 selected · [image](images/01-nw-b963-bring-her.jpg) (`2730x1536`) |
+| 2 | `nw_s25a` | `nw_b658` | Paying too much | Option 1 of 2 selected · [image](images/02-nw-b658-paying-too-much.jpg) (`2848x1600`) |
+| 3 | `nw_s1` | `nw_b40` | Mr Sakai | Option 2 of 2 selected · [image](images/03-nw-b40-mr-sakai.jpg) (`2784x1504`) |
+| 4 | `nw_s82` | `nw_b1371` | Harada in the glass office | Option 1 of 2 selected · [image](images/04-nw-b1371-haradas-office.jpg) (`1672x941`) |
+| 5 | `nw_s29` | `nw_b730` | Every January | Option 1 of 2 selected · [image](images/05-nw-b730-every-january.jpg) (`2784x1504`) |
+| 6 | `nw_s20_b` | `nw_b504` | Something gives way | Option 2 of 2 selected · [image](images/06-nw-b504-something-gives-way.jpg) (`1536x864`) |
+| 7 | `nw_s14` | `nw_b349` | The sketchbook opens | Single candidate saved (earlier turn, no vote) · [image](images/07-nw-b349-the-sketchbook-opens.jpg) (`1376x768`) |
+| 8 | `nw_s83` | `nw_b1441` | She goes | Option 2 of 2 selected · [image](images/08-nw-b1441-she-goes.jpg) (`1672x941`) |
+| 9 | `nw_s71` | `nw_b1167` | The split bag | Option 2 of 2 selected · [image](images/09-nw-b1167-the-split-bag.jpg) (`1920x1072`) |
+| 10 | `nw_s65_b` | `nw_b1078` | Out of practice | Option 2 of 2 selected · [image](images/10-nw-b1078-out-of-practice.jpg) (`1672x941`) |
 
 ## Exact prompts and ordered reference frames
 
-Each target uses the immediately preceding shared still and the following still as references, in that order.
+Each target uses the immediately preceding shared still and the following still as references, in that order. Hold splits show what the frame would cover if it is installed later at its beat boundary.
 
 ### 1. Bring her — `nw_b963` (`nw_s58`, 58 — Bring her)
 
@@ -29,7 +29,8 @@ Target text: “My sister would love this place. She's never seen it. She only k
 
 Hold split if installed later: `17.96s -> 5.25s + 12.71s`
 
-Result: **blocked by the provider (HTTP 403); prompt kept for retry**.
+Result: **option 1 of 2 selected**; saved to `reviews/uncut-no-vote-20261030-batch5/images/01-nw-b963-bring-her.jpg` (`2730x1536`, uninstalled).
+
 
 Reference order:
 1. Preceding shared still: `/film/img/s58/225-bring-her.jpg`
@@ -45,7 +46,8 @@ Target text: “She reaches for her purse. He is already at the till, paying. To
 
 Hold split if installed later: `7.42s -> 1.79s + 5.62s`
 
-Result: **blocked by the provider (HTTP 403); prompt kept for retry**.
+Result: **option 1 of 2 selected**; saved to `reviews/uncut-no-vote-20261030-batch5/images/02-nw-b658-paying-too-much.jpg` (`2848x1600`, uninstalled).
+
 
 Reference order:
 1. Preceding shared still: `/film/img/s25a/289-for-making-me.jpg`
@@ -61,7 +63,8 @@ Target text: “Mr. Sakai?”
 
 Hold split if installed later: `11.88s -> 5.83s + 6.04s`
 
-Result: **blocked by the provider (HTTP 403); prompt kept for retry**.
+Result: **option 2 of 2 selected**; saved to `reviews/uncut-no-vote-20261030-batch5/images/03-nw-b40-mr-sakai.jpg` (`2784x1504`, uninstalled).
+
 
 Reference order:
 1. Preceding shared still: `/film/img/s1/14-she-kneels.jpg`
@@ -77,7 +80,8 @@ Target text: “In a glass-walled office at the back: HARADA (50s), the editor, 
 
 Hold split if installed later: `20.17s -> 10.46s + 9.71s`
 
-Result: **blocked by the provider (HTTP 403); prompt kept for retry**.
+Result: **option 1 of 2 selected**; saved to `reviews/uncut-no-vote-20261030-batch5/images/04-nw-b1371-haradas-office.jpg` (`1672x941`, uninstalled).
+
 
 Reference order:
 1. Preceding shared still: `/film/img/s82/new-empty-newsroom.jpg`
@@ -93,7 +97,8 @@ Target text: “Every January. Cash, in an envelope. For years. Even after he le
 
 Hold split if installed later: `20.21s -> 6.12s + 14.08s`
 
-Result: **blocked by the provider (HTTP 403); prompt kept for retry**.
+Result: **option 1 of 2 selected**; saved to `reviews/uncut-no-vote-20261030-batch5/images/05-nw-b730-every-january.jpg` (`2784x1504`, uninstalled).
+
 
 Reference order:
 1. Preceding shared still: `/film/img/s29/355-did-he-ever-pay-rent.jpg`
@@ -109,7 +114,8 @@ Target text: “Something in Mara's face gives way.”
 
 Hold split if installed later: `19.33s -> 11.67s + 7.67s`
 
-Result: **blocked by the provider (HTTP 403); prompt kept for retry**.
+Result: **option 2 of 2 selected**; saved to `reviews/uncut-no-vote-20261030-batch5/images/06-nw-b504-something-gives-way.jpg` (`1536x864`, uninstalled).
+Conform: provider returned 1536x1024 (3:2); cropped 30px top / 130px bottom to 1536x864 (exact 16:9), full landscape frame preserved.
 
 Reference order:
 1. Preceding shared still: `/film/img/s20/192-the-red-bird-clip.jpg`
@@ -125,7 +131,8 @@ Target text: “Jack says nothing. He knows better than to comfort it away.”
 
 Hold split if installed later: `31.08s -> 25.71s + 5.38s`
 
-Result: **saved**; saved to `reviews/uncut-no-vote-20261030-batch5/images/07-nw-b349-the-sketchbook-opens.jpg` (`1376x768`, uninstalled).
+Result: **single candidate saved (earlier turn, no vote)**; saved to `reviews/uncut-no-vote-20261030-batch5/images/07-nw-b349-the-sketchbook-opens.jpg` (`1376x768`, uninstalled).
+
 
 Reference order:
 1. Preceding shared still: `/film/img/s14/424-its-always-about-dad.jpg`
@@ -141,7 +148,8 @@ Target text: “She goes.”
 
 Hold split if installed later: `8.08s -> 2.54s + 5.54s`
 
-Result: **blocked by the provider (HTTP 403); prompt kept for retry**.
+Result: **option 2 of 2 selected**; saved to `reviews/uncut-no-vote-20261030-batch5/images/08-nw-b1441-she-goes.jpg` (`1672x941`, uninstalled).
+
 
 Reference order:
 1. Preceding shared still: `/film/img/s83/113-very-clean.jpg`
@@ -157,7 +165,8 @@ Target text: “Pages of drawings, soaking in the thin shining stream that runs 
 
 Hold split if installed later: `8.83s -> 4.54s + 4.29s`
 
-Result: **blocked by the provider (HTTP 403); prompt kept for retry**.
+Result: **option 2 of 2 selected**; saved to `reviews/uncut-no-vote-20261030-batch5/images/09-nw-b1167-the-split-bag.jpg` (`1920x1072`, uninstalled).
+
 
 Reference order:
 1. Preceding shared still: `/film/img/s71/313-drawings-in-the-water.jpg`
@@ -173,7 +182,8 @@ Target text: “She wipes off the lipstick and does it again. Her hands aren't q
 
 Hold split if installed later: `14.08s -> 5.25s + 8.83s`
 
-Result: **blocked by the provider (HTTP 403); prompt kept for retry**.
+Result: **option 2 of 2 selected**; saved to `reviews/uncut-no-vote-20261030-batch5/images/10-nw-b1078-out-of-practice.jpg` (`1672x941`, uninstalled).
+
 
 Reference order:
 1. Preceding shared still: `/film/img/s65/489-out-of-practice.jpg`
@@ -185,4 +195,4 @@ Prompt:
 
 ## Continuation
 
-Retry the nine blocked shots one at a time (the provider flagged a burst of parallel requests), keep the prompts above, and save each result here. Nothing has been installed into any cut: the Original Uncut pictures, timing, audio, captions and saved custom edits are unchanged. After the batch is complete, rebuild the gallery and update `IMAGE_RECOVERY.md`.
+Review these ten in the gallery, then install only the ones to keep: copy the chosen JPEG into `src/assets/recreated-uncut/` and register it in `src/core/recreatedUncut.ts` exactly as the earlier plates do, preserving the original source pictures, timing, audio, captions and any saved custom pictures. There are still 295 scene-bounded holds over seven seconds and 894 adjacent duplicate pairs, so another random ten can follow the same way.
