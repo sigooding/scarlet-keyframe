@@ -27,6 +27,10 @@ The earlier generated images were lost in a workspace reset. These are **new gen
 
 Quality-rejected options (do not install, retry with improved prompts): nw_b1157, nw_b997, nw_b1322, nw_b16, nw_b19, nw_b727, nw_b745. Other earlier selected images still to recreate: nw_b918, nw_b900, nw_b1678, nw_b1679. The last two must be separate sequential TV frames: Kurose first, Ishida's police portrait second; Kaneko and Jack are present in the shop, Vera arrives afterwards.
 
+## Pending ten-shot no-vote batch
+
+The user requested ten new candidates **without voting**, with review afterward. Ten randomly selected targets, their neighbouring reference paths and hashes, and the exact prompts are saved in [`reviews/uncut-no-vote-20261030/`](reviews/uncut-no-vote-20261030/README.md). The image provider rejected all ten requests with HTTP 403, so **no candidates were generated or installed**. Once the service is available, generate one image per target without voting and present the numbered candidates for review; do not install any until the user approves them. Do not offer image votes or options in this session unless the user explicitly changes the no-vote instruction; that overrides the historical vote instructions below.
+
 ## Continuation prompt
 
 > Continue recreating the missing Original Uncut images listed in IMAGE_RECOVERY.md. For each image, use the original neighbouring frames and character references, offer a vote, and install only the chosen option. A skip means the quality was not good enough: leave the current image untouched and retry with an improved prompt. Choose ordinary batch targets at random; keep the kiss and the two final-TV shots at their requested beats. Preserve the original pictures in the source snapshot, narrative, captions, audio, timing, running order, and saved custom picture edits. Include the prompts used, update the recovery list and tests, and commit the selected images as work progresses.

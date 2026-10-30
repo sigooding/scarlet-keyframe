@@ -23,6 +23,10 @@ The workspace was reset to the base checkout during this session. The previously
 - At the user's request Harada's initial tight crop was replaced with a separately voted wide newsroom shot. The earlier selected image remains saved; the v13 migration changes the previous bundled shot only where other pictures and effective looks remain intact.
 - `scripts/audit-uncut-duplicates.ts` reports adjacent stills sharing the same effective image reference, including short holds and cross-scene pairs. The factory cut went from 914 to 907 pairs; this is incomplete and does not detect differently named files with identical pixels. See `IMAGE_RECOVERY.md` for exact prompts, votes and continuation instructions.
 
+## Pending no-vote review batch
+
+- Ten randomly selected Original Uncut duplicate targets and their exact image prompts are documented in `reviews/uncut-no-vote-20261030/`. All ten image requests were blocked by an HTTP 403 provider account restriction, so no candidate images were created or installed. The user requested no votes for this batch and will review any eventual candidates before installation.
+
 ## Select and grade image frames
 
 - Use Ctrl+A (Cmd+A on Mac), or **Select all images** in the timeline, to select all still-image frames. Text fields keep their normal Select All shortcut; videos, gaps, gradients and other non-image frames are excluded.
