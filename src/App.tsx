@@ -111,6 +111,15 @@ import {
   type MultiLaneClipboard,
   type ReorderDestination,
 } from "./core/edits";
+import {
+  addFrameCutout,
+  clearFrameCutouts,
+  moveFrameCutoutLayer,
+  setFrameCutoutLayer,
+  setFrameDepthMap,
+  setFrameDepthPlate,
+  updateFrameCutoutDepth,
+} from "./core/depthLanes";
 import { buildPortableBundle } from "./core/exportBundle";
 import {
   applyCutOptionsToProject,
@@ -184,7 +193,7 @@ import bundledFilm from "./data/nobodys-witness-film.json";
 import bundledEdits from "./data/studio-edits.json";
 
 type BrowseTarget = BrowseMediaTarget;
-type BrowserState = { kind: "image" | "audio"; target: BrowseTarget };
+type BrowserState = { kind: "image" | "audio"; target: BrowseTarget; frameId?: string };
 type UploadIntent = { kind: "image" | "audio"; target: UploadMediaTarget; frameId: string };
 
 export interface Mp4ExportJobState {
@@ -599,6 +608,18 @@ export default function App() {
   const [showCaptions, setShowCaptions] = useState(() =>
     renderParams ? renderParams.captions : true,
   );
+  const [showDepthMaps, setShowDepthMaps] = useState(true);
+  const [showDepthMapOverlay, setShowDepthMapOverlay] = useState(false);
+  const [showCutouts, setShowCutouts] = useState(true);
+  const [mutedCutoutLayers, setMutedCutoutLayers] = useState<Set<number>>(() => new Set());
+  const toggleMutedCutoutLayer = useCallback((layerIndex: number) => {
+    setMutedCutoutLayers((prev) => {
+      const next = new Set(prev);
+      if (next.has(layerIndex)) next.delete(layerIndex);
+      else next.add(layerIndex);
+      return next;
+    });
+  }, []);
   const [ccStyleOpen, setCcStyleOpen] = useState(false);
   const [selectedCaption, setSelectedCaption] = useState<SelectedCaptionState | null>(null);
   const selectedCaptionRef = useRef<SelectedCaptionState | null>(null);
@@ -1934,18 +1955,47 @@ export default function App() {
     [activeAudioClip, editProject, fileDurationMap, resolvedAudioClips, selectedClip],
   );
 
-  const openBrowser = useCallback((kind: "image" | "audio", target: BrowseTarget) => setBrowser({ kind, target }), []);
+  const openBrowser = useCallback(
+    (kind: "image" | "audio", target: BrowseTarget, frameId?: string) =>
+      setBrowser({ kind, target, frameId }),
+    [],
+  );
 
   const chooseBrowserAsset = useCallback(
     (asset: BrowserAsset) => {
       const target = browser?.target;
-      if (!project || !selectedFrame || !target) return;
+      const targetFrameId = browser?.frameId || selectedFrame?.id;
+      if (!project || !selectedFrame || !target || !targetFrameId) return;
       if (target === "picture") setFramePicture(asset.ref);
       else if (target === "scenePicture")
-        editProject((current) => setSceneField(current, selectedFrame.sceneId, "background", asset.ref), "Scene plate changed");
-      else if (target === "depthMap" || target === "foregroundImage")
         editProject(
-          (current) => setEffectField(current, selectedFrame.id, `cinematic.${target}`, asset.ref),
+          (current) => setSceneField(current, selectedFrame.sceneId, "background", asset.ref),
+          "Scene plate changed",
+        );
+      else if (target === "depthMap")
+        editProject(
+          (current) => setFrameDepthMap(current, targetFrameId, asset.ref),
+          "Depth map changed",
+        );
+      else if (target === "depthPlate")
+        editProject(
+          (current) => setFrameDepthPlate(current, targetFrameId, asset.ref),
+          "Clean plate changed",
+        );
+      else if (target === "cutout:add")
+        editProject(
+          (current) => addFrameCutout(current, targetFrameId, asset.ref).project,
+          "Cutout layer added",
+        );
+      else if (target.startsWith("cutout:")) {
+        const layerIndex = Number(target.split(":")[1]) || 0;
+        editProject(
+          (current) => setFrameCutoutLayer(current, targetFrameId, layerIndex, { image: asset.ref }),
+          `Cutout ${layerIndex + 1} changed`,
+        );
+      } else if (target === "foregroundImage")
+        editProject(
+          (current) => setEffectField(current, targetFrameId, `cinematic.${target}`, asset.ref),
           `${target} changed`,
         );
       else if (target === "voice")
@@ -1962,9 +2012,10 @@ export default function App() {
   );
 
   const imageInputRefTarget = useCallback(
-    (kind: "image" | "audio", target: UploadIntent["target"]) => {
-      if (!selectedFrame) return;
-      setUploadIntent({ kind, target, frameId: selectedFrame.id });
+    (kind: "image" | "audio", target: UploadIntent["target"], explicitFrameId?: string) => {
+      const fid = explicitFrameId || selectedFrame?.id;
+      if (!fid) return;
+      setUploadIntent({ kind, target, frameId: fid });
       window.setTimeout(() => (kind === "image" ? imageInputRef.current : audioInputRef.current)?.click(), 0);
     },
     [selectedFrame],
@@ -1978,8 +2029,22 @@ export default function App() {
     const asset = await createUploadAsset(file);
     let next: ProjectState = { ...current, assets: [...current.assets, asset], updatedAt: Date.now() };
     const assetRef = `asset:${asset.id}`;
+    let historyLabel = `${intent.kind === "image" ? "Picture" : "Sound"} uploaded`;
     if (intent.target === "picture") {
       next = setPicture(next, intent.frameId, assetRef);
+    } else if (intent.target === "depthMap") {
+      next = setFrameDepthMap(next, intent.frameId, assetRef);
+      historyLabel = "Depth map uploaded";
+    } else if (intent.target === "depthPlate") {
+      next = setFrameDepthPlate(next, intent.frameId, assetRef);
+      historyLabel = "Clean plate uploaded";
+    } else if (intent.target === "cutout:add") {
+      next = addFrameCutout(next, intent.frameId, assetRef).project;
+      historyLabel = "Cutout layer uploaded";
+    } else if (intent.target.startsWith("cutout:")) {
+      const layerIndex = Number(intent.target.split(":")[1]) || 0;
+      next = setFrameCutoutLayer(next, intent.frameId, layerIndex, { image: assetRef });
+      historyLabel = `Cutout ${layerIndex + 1} uploaded`;
     } else if (
       intent.target === "voice" ||
       intent.target === "sfx" ||
@@ -2001,10 +2066,16 @@ export default function App() {
       };
       next = setAudioClips(next, [...(next.audioClips ?? []), newClip]);
     }
-    applyProject(next, `${intent.kind === "image" ? "Picture" : "Sound"} uploaded`);
+    applyProject(next, historyLabel);
     setSelectedFrameId(intent.frameId);
     setSelectedFrameIds([intent.frameId]);
-    if (asset.type === "image" && asset.width && asset.height && Math.abs(asset.width / asset.height - 16 / 9) > 0.015) {
+    if (
+      intent.target === "picture" &&
+      asset.type === "image" &&
+      asset.width &&
+      asset.height &&
+      Math.abs(asset.width / asset.height - 16 / 9) > 0.015
+    ) {
       setCropState({ assetId: asset.id, frameId: intent.frameId, x: 50, y: 50 });
     }
   }
@@ -5037,6 +5108,10 @@ export default function App() {
                   soundOn={soundOn}
                   showCaption={showCaptions}
                   showMark={showMarks}
+                  showDepthMaps={showDepthMaps}
+                  showDepthMapOverlay={showDepthMapOverlay}
+                  showCutouts={showCutouts}
+                  mutedCutoutLayers={mutedCutoutLayers}
                   showTimecodeOverlay={showTimecodeOverlay}
                   showSafeGuides={showSafeGuides}
                   showOnionSkin={showOnionSkin && !comparePreviewState}
@@ -5618,6 +5693,66 @@ export default function App() {
             onDeleteCaptions={() => {
               void handleDeleteSelectedCaptions();
             }}
+            showDepthMaps={showDepthMaps}
+            onToggleShowDepthMaps={() => setShowDepthMaps((v) => !v)}
+            showDepthMapOverlay={showDepthMapOverlay}
+            onToggleShowDepthMapOverlay={() => setShowDepthMapOverlay((v) => !v)}
+            showCutouts={showCutouts}
+            onToggleShowCutouts={() => setShowCutouts((v) => !v)}
+            mutedCutoutLayers={mutedCutoutLayers}
+            onToggleMuteCutoutLayer={toggleMutedCutoutLayer}
+            onBrowseMediaForFrame={(frameId, target) => openBrowser("image", target, frameId)}
+            onUploadMediaForFrame={(frameId, target) =>
+              imageInputRefTarget("image", target, frameId)
+            }
+            onAssignDepthMap={(frameId, ref, label = "Depth map updated") =>
+              editProject((cur) => setFrameDepthMap(cur, frameId, ref), label)
+            }
+            onAssignDepthPlate={(frameId, ref, label = "Clean plate updated") =>
+              editProject((cur) => setFrameDepthPlate(cur, frameId, ref), label)
+            }
+            onDropDepthFile={(file, frameId) =>
+              void saveUploadedFile(file, { kind: "image", target: "depthMap", frameId })
+            }
+            onAddCutout={(frameId, ref) =>
+              editProject(
+                (cur) => addFrameCutout(cur, frameId, ref).project,
+                "Cutout layer added",
+              )
+            }
+            onSetCutoutLayer={(frameId, layerIndex, cutout, label) =>
+              editProject(
+                (cur) => setFrameCutoutLayer(cur, frameId, layerIndex, cutout),
+                label || `Cutout ${layerIndex + 1} updated`,
+              )
+            }
+            onDropCutoutFile={(file, frameId, layerIndex) =>
+              void saveUploadedFile(file, {
+                kind: "image",
+                target: layerIndex === undefined ? "cutout:add" : `cutout:${layerIndex}`,
+                frameId,
+              })
+            }
+            onPreviewCutoutDepth={(frameId, layerIndex, depth) =>
+              previewProjectEdit((cur) =>
+                updateFrameCutoutDepth(cur, frameId, layerIndex, depth),
+              )
+            }
+            onCommitCutoutDepth={(frameId, layerIndex, depth, label) =>
+              editProject(
+                (cur) => updateFrameCutoutDepth(cur, frameId, layerIndex, depth),
+                label || `Cutout ${layerIndex + 1} depth updated`,
+              )
+            }
+            onMoveCutoutLayer={(frameId, fromLayer, toLayer) =>
+              editProject(
+                (cur) => moveFrameCutoutLayer(cur, frameId, fromLayer, toLayer),
+                `Moved cutout to layer ${toLayer + 1}`,
+              )
+            }
+            onClearCutouts={(frameId) =>
+              editProject((cur) => clearFrameCutouts(cur, frameId), "Cutout layers cleared")
+            }
             resolvedAudioClips={resolvedAudioClips}
             audioDurations={audioDurationSecondsMap}
             multiSelection={multiSelection}
@@ -5680,18 +5815,23 @@ export default function App() {
       {browser && (
         <AssetBrowser
           title={
-            browser.target === "picture" ||
-            browser.target === "scenePicture" ||
-            browser.target === "depthMap" ||
-            browser.target === "foregroundImage"
-              ? "Choose a picture"
-              : browser.target === "voice"
-                ? "Choose a voice take"
-                : browser.target === "sfx"
-                  ? "Choose a sound effect"
-                  : browser.target === "music"
-                    ? "Choose a music cue"
-                    : "Choose an ambience file"
+            browser.target === "depthMap"
+              ? "Choose a depth map"
+              : browser.target === "depthPlate"
+                ? "Choose a clean plate"
+                : browser.target.startsWith("cutout:")
+                  ? "Choose a cutout layer"
+                  : browser.target === "picture" ||
+                      browser.target === "scenePicture" ||
+                      browser.target === "foregroundImage"
+                    ? "Choose a picture"
+                    : browser.target === "voice"
+                      ? "Choose a voice take"
+                      : browser.target === "sfx"
+                        ? "Choose a sound effect"
+                        : browser.target === "music"
+                          ? "Choose a music cue"
+                          : "Choose an ambience file"
           }
           kind={browser.kind}
           items={browser.kind === "image" ? imageBrowserItems : audioBrowserItems}

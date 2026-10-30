@@ -9,6 +9,7 @@ import {
 } from "./FrameCinematicOverlays";
 import { FrameDepthParallaxLayer } from "./FrameDepthParallax";
 import { FrameParticles, type ParticleKind } from "./FrameParticles";
+import { filterActiveCutoutsForPreview } from "../core/depthLanes";
 import {
   activeCaptionAtLocalFrame,
   DEFAULT_CAPTION_STYLE,
@@ -70,6 +71,10 @@ export interface CinematicPreviewProps {
   soundOn: boolean;
   showCaption: boolean;
   showMark: boolean;
+  showDepthMaps?: boolean;
+  showDepthMapOverlay?: boolean;
+  showCutouts?: boolean;
+  mutedCutoutLayers?: ReadonlySet<number>;
   showTimecodeOverlay?: boolean;
   showSafeGuides?: boolean;
   showOnionSkin?: boolean;
@@ -136,6 +141,10 @@ export function CinematicPreview({
   soundOn,
   showCaption,
   showMark,
+  showDepthMaps = true,
+  showDepthMapOverlay = false,
+  showCutouts = true,
+  mutedCutoutLayers,
   showTimecodeOverlay = false,
   showSafeGuides = false,
   showOnionSkin = false,
@@ -769,6 +778,10 @@ export function CinematicPreview({
                 soundOn={item.shotSoundOn}
                 plateTestId={item.plateTestId}
                 forceUncropped={item.forceUncropped}
+                showDepthMaps={showDepthMaps}
+                showDepthMapOverlay={showDepthMapOverlay && !renderMode}
+                showCutouts={showCutouts}
+                mutedCutoutLayers={mutedCutoutLayers}
               />
             </div>
           ));
@@ -1564,6 +1577,10 @@ function ShotLayer({
   soundOn,
   plateTestId,
   forceUncropped = false,
+  showDepthMaps = true,
+  showDepthMapOverlay = false,
+  showCutouts = true,
+  mutedCutoutLayers,
 }: {
   frame: Keyframe;
   seedId: string;
@@ -1577,6 +1594,10 @@ function ShotLayer({
   soundOn: boolean;
   plateTestId: string;
   forceUncropped?: boolean;
+  showDepthMaps?: boolean;
+  showDepthMapOverlay?: boolean;
+  showCutouts?: boolean;
+  mutedCutoutLayers?: ReadonlySet<number>;
 }) {
   const cinematic = (effectiveFrameCinematic(frame) || {}) as Record<string, any>;
   const anim = frame.beat.animation;
@@ -1627,9 +1648,17 @@ function ShotLayer({
     [ungradedCinematic, plateUrl],
   );
 
+  const filteredCutouts = useMemo(
+    () => filterActiveCutoutsForPreview(cinematic.depthCutouts, showCutouts, mutedCutoutLayers),
+    [cinematic.depthCutouts, showCutouts, mutedCutoutLayers],
+  );
+  const effectiveDepthMap = showDepthMaps ? cinematic.depthMap : undefined;
+
   const hasDepth = Boolean(
     !forceUncropped &&
-      (cinematic.depthMap || cinematic.vertigoContraZoom) &&
+      (effectiveDepthMap ||
+        cinematic.vertigoContraZoom ||
+        (filteredCutouts && filteredCutouts.length > 0)) &&
       imageSrc &&
       !videoSrc &&
       !isGradient &&
@@ -1721,10 +1750,10 @@ function ShotLayer({
       ({
         ...effectiveCinematic,
         depthAmount: currentDepthAmount,
-        depthMap: resolveMedia(cinematic.depthMap),
+        depthMap: effectiveDepthMap ? resolveMedia(effectiveDepthMap) : undefined,
         depthPlate: resolveMedia(cinematic.depthPlate),
-        depthCutouts: Array.isArray(cinematic.depthCutouts)
-          ? cinematic.depthCutouts.map((cutout: Record<string, any>) => ({
+        depthCutouts: filteredCutouts
+          ? filteredCutouts.map((cutout) => ({
               ...cutout,
               image: resolveMedia(cutout.image) || cutout.image,
             }))
@@ -1733,9 +1762,9 @@ function ShotLayer({
     [
       effectiveCinematic,
       currentDepthAmount,
-      cinematic.depthMap,
+      effectiveDepthMap,
       cinematic.depthPlate,
-      cinematic.depthCutouts,
+      filteredCutouts,
       resolveMedia,
     ],
   );
@@ -1861,7 +1890,15 @@ function ShotLayer({
           gradeClassName={gradeClass}
         />
       )}
-      {cinematic.foregroundImage && (
+      {showDepthMapOverlay && cinematic.depthMap && resolveMedia(cinematic.depthMap) && (
+        <img
+          className="cin-preview-depth-map-overlay"
+          data-testid="viewer-depth-map-overlay"
+          src={resolveMedia(cinematic.depthMap)}
+          alt=""
+        />
+      )}
+      {showCutouts && cinematic.foregroundImage && (
         <img
           className={`cin-preview-foreground ${gradeClass}`.trim()}
           src={resolveMedia(cinematic.foregroundImage)}
@@ -1875,7 +1912,8 @@ function ShotLayer({
           }}
         />
       )}
-      {Array.isArray(cinematic.foregroundExtras) &&
+      {showCutouts &&
+        Array.isArray(cinematic.foregroundExtras) &&
         cinematic.foregroundExtras.map((extra: Record<string, any>, index: number) => (
           <img
             key={`${extra.image}-${index}`}

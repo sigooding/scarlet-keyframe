@@ -350,12 +350,15 @@ export function FrameDepthParallaxLayer({
   const vertigoContraZoom: VertigoContraZoomMode | undefined =
     rawVertigo === "recede" || rawVertigo === "loom" ? rawVertigo : undefined;
 
-  const on = Boolean(picture && (hasDepthParallax(cinematic, picture) || vertigoContraZoom));
   const depthMap = cinematic?.depthMap;
   const plate = cinematic?.depthPlate;
   const cutouts: DepthCutout[] = (cinematic?.depthCutouts ?? [])
     .filter((k) => k.image)
     .slice(0, MAX_CUTOUTS);
+  const hasCutouts = cutouts.length > 0;
+  const on = Boolean(
+    picture && (hasDepthParallax(cinematic, picture) || vertigoContraZoom || hasCutouts),
+  );
   const cutKey = cutouts.map((k) => `${k.image}@${k.depth}`).join(",");
 
   const effectiveAmount = clamp(
@@ -400,7 +403,9 @@ export function FrameDepthParallaxLayer({
   });
 
   const isSynchronouslyCached = (() => {
-    if (!on || (!depthMap && !vertigoContraZoom) || typeof window === "undefined") return false;
+    if (!on || (!depthMap && !vertigoContraZoom && !hasCutouts) || typeof window === "undefined") {
+      return false;
+    }
     const picSrc = assetBackground(picture);
     const plateSrc = assetBackground(plate || picture);
     return Boolean(getCachedImage(picSrc) || getCachedImage(plateSrc));
@@ -410,7 +415,7 @@ export function FrameDepthParallaxLayer({
 
   useIsomorphicLayoutEffect(() => {
     drawFrameRef.current = null;
-    if (!on || (!depthMap && !vertigoContraZoom)) {
+    if (!on || (!depthMap && !vertigoContraZoom && !hasCutouts)) {
       setReady(false);
       return;
     }
@@ -557,18 +562,29 @@ export function FrameDepthParallaxLayer({
     const cachedDepth = depthSrc ? getCachedImage(depthSrc) : undefined;
     const cachedCuts = cutSrcs.map((s) => getCachedImage(s));
 
-    if (!depthSrc && vertigoContraZoom) {
-      if (cachedPlate || cachedPic) {
+    if (!depthSrc && (vertigoContraZoom || hasCutouts)) {
+      if ((cachedPlate || cachedPic) && cachedCuts.every(Boolean)) {
         activePlateImg = (cachedPlate || cachedPic)!;
+        activeCutImgs = cachedCuts as HTMLImageElement[];
         fullDepthReady = true;
         drawFrame();
         setReady(true);
       } else {
-        setReady(false);
-        loadCachedImage(plateSrc || picSrc)
-          .then((img) => {
+        if (cachedPic) {
+          activePlateImg = cachedPic;
+          drawFrame();
+          setReady(true);
+        } else {
+          setReady(false);
+        }
+        Promise.all([
+          loadCachedImage(plateSrc || picSrc),
+          ...cutSrcs.map((s) => loadCachedImage(s)),
+        ])
+          .then(([plateImg, ...cutImgs]) => {
             if (!alive) return;
-            activePlateImg = img;
+            activePlateImg = plateImg;
+            activeCutImgs = cutImgs;
             fullDepthReady = true;
             drawFrame();
             setReady(true);
