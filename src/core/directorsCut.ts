@@ -1,3 +1,4 @@
+import { addRecreatedUncutCoverage } from "./recreatedUncut";
 import {
   buildAudioClipsFromFilm,
   frameToMs,
@@ -3813,6 +3814,7 @@ export function buildDirectorsCutById(
       story: clone(baseProject.originalStory),
     };
     const story = clone(baseProject.originalStory);
+    const assets = addRecreatedUncutCoverage(story, baseProject.assets);
     const audioClips = buildAudioClipsFromFilm(story, voiceDurations, musicDurations);
     const existingSnapshots = (baseProject.snapshots || []).filter(
       (s) => s.id !== uncutSnapshot.id,
@@ -3820,6 +3822,7 @@ export function buildDirectorsCutById(
     const builtUncut: ProjectState = {
       ...baseProject,
       story,
+      assets,
       audioClips,
       snapshots: [uncutSnapshot, ...existingSnapshots],
       directorsCutVersion: DIRECTORS_CUT_VERSION,

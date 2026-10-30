@@ -1,3 +1,4 @@
+import { upgradeSavedRecreatedUncut } from "./core/recreatedUncut";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { flushSync } from "react-dom";
 import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
@@ -886,6 +887,7 @@ export default function App() {
             ),
           };
         }
+        initialProject = upgradeSavedRecreatedUncut(initialProject);
         initialProject.missing = evaluateMissingMedia(initialProject, new Map(), paths);
 
         projectRef.current = initialProject;

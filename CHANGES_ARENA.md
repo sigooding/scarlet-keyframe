@@ -6,4 +6,4 @@
 
 ## Recovery limitation
 
-The workspace was reset to the base checkout during this session. The previously generated and voted images, including the two final-TV images, and other earlier uncommitted work (including Directed Uncut and character cutout) were not available in this checkout and are **not included** in this branch. They require restoration from an earlier workspace snapshot or backup; this branch does not recreate them.
+The workspace was reset to the base checkout during this session. The previously generated and voted images and other earlier uncommitted work (including Directed Uncut and character cutout) were not available in this checkout. Image recreation is underway; see IMAGE_RECOVERY.md for what has been recreated and what remains. The other earlier features have not been restored.

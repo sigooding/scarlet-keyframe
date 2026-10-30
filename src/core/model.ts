@@ -164,6 +164,7 @@ export interface ProjectState {
   sourceEdits?: AnyRecord;
   snapshots: ProjectSnapshot[];
   directorsCutVersion?: number;
+  recreatedUncutCoverageVersion?: number;
   directorsCutId?: "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "uncut";
   cutOptions?: CutOptions;
   savedCutStates?: Partial<
