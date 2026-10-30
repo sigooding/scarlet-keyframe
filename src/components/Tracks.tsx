@@ -81,6 +81,8 @@ export interface SyncedAudioLanesProps {
   onShiftAudioDragPreview: (deltaMs: number, primaryClipId: string) => void;
   onCommitAudioDrag: (deltaMs: number, copy: boolean, primaryClipId: string) => void;
   onDropAudioAsset?: (lane: AudioLaneId, ref: string, dropStartMs: number) => void;
+  laneHeights?: Partial<Record<AudioLaneId, number>>;
+  hiddenLanes?: ReadonlySet<string>;
 }
 
 export function Tracks({
@@ -107,6 +109,8 @@ export function Tracks({
   onShiftAudioDragPreview,
   onCommitAudioDrag,
   onDropAudioAsset,
+  laneHeights,
+  hiddenLanes,
 }: SyncedAudioLanesProps) {
   const [decodeTick, setDecodeTick] = useState(0);
   useEffect(() => {
@@ -156,8 +160,10 @@ export function Tracks({
   return (
     <div className="synced-audio-lanes" data-testid="synced-audio-lanes">
       {AUDIO_LANES.map((lane) => {
+        if (hiddenLanes?.has(lane)) return null;
         const silenced = trackMix ? effectiveTrackLevel(trackMix, lane) === 0 : false;
         const laneClips = visibleByLane[lane];
+        const rowHeight = laneHeights?.[lane] ?? 36;
         return (
           <div
             key={lane}
@@ -165,6 +171,7 @@ export function Tracks({
             className={`synced-audio-lane ${lane}-lane ${silenced ? "is-silenced" : ""}`}
             data-testid={`lane-${lane}`}
             data-lane-id={lane}
+            style={{ height: rowHeight, minHeight: rowHeight, maxHeight: rowHeight }}
             onDragOver={(e) => {
               if ([...e.dataTransfer.types].length > 0) e.preventDefault();
             }}
@@ -188,6 +195,7 @@ export function Tracks({
                 audioDurations={audioDurations}
                 resolveMedia={resolveMedia}
                 decodeTick={decodeTick}
+                laneRowHeight={rowHeight}
                 onSetSnapGuide={onSetSnapGuide}
                 onSelect={onSelectAudioClip}
                 onDragStart={onDragStart}
@@ -220,6 +228,7 @@ interface AudioClipItemProps {
   audioDurations?: ReadonlyMap<string, number>;
   resolveMedia: (value: string | undefined) => string | undefined;
   decodeTick: number;
+  laneRowHeight?: number;
   onSetSnapGuide: (frame: number | null) => void;
   onSelect: (clip: ResolvedAudioClip, additive: boolean, targetFrame?: number) => void;
   onDragStart: () => void;
@@ -245,6 +254,7 @@ function AudioClipItem({
   audioDurations,
   resolveMedia,
   decodeTick,
+  laneRowHeight = 36,
   onSetSnapGuide,
   onSelect,
   onDragStart,
@@ -292,7 +302,7 @@ function AudioClipItem({
   const visMaxX = Math.min(widthPx, scrollLeft + viewportWidth + overscan - leftPx);
   const canvasCssLeft = Math.floor(visMinX);
   const canvasCssWidth = Math.max(0, Math.min(2400, Math.ceil(visMaxX - canvasCssLeft)));
-  const laneHeight = 36;
+  const laneHeight = Math.max(18, laneRowHeight - 4);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 

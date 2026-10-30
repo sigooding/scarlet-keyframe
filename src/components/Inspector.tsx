@@ -20,6 +20,14 @@ import {
   type BeatCaption,
 } from "../core/captions";
 import { CINEMATIC_GROUPS, type CinematicField } from "../core/cinematicSchema";
+import {
+  CUTOUT_LAYER_COLORS,
+  defaultDepthForCutoutLayer,
+  depthAssetLabel,
+  extractKeyframeDepthInfo,
+  MAX_DEPTH_CUTOUTS,
+  serializeCutoutSlots,
+} from "../core/depthLanes";
 import { getEffectValue } from "../core/edits";
 import { pictureLabel } from "../core/helpers";
 import type { BeatAnimation, KeyEasing, Keyframe, ProjectState } from "../core/model";
@@ -51,14 +59,26 @@ export type BrowseMediaTarget =
   | "picture"
   | "scenePicture"
   | "depthMap"
+  | "depthPlate"
   | "foregroundImage"
+  | "cutout:add"
+  | `cutout:${number}`
   | "voice"
   | "sfx"
   | "music"
   | "ambience"
   | `ambience:${number}`;
 
-export type UploadMediaTarget = "picture" | "voice" | "sfx" | "music" | "ambience";
+export type UploadMediaTarget =
+  | "picture"
+  | "depthMap"
+  | "depthPlate"
+  | "cutout:add"
+  | `cutout:${number}`
+  | "voice"
+  | "sfx"
+  | "music"
+  | "ambience";
 
 export interface InheritedMusicInfo {
   sceneId: string;
@@ -1249,6 +1269,107 @@ export function Inspector(props: InspectorProps) {
                       Grade and texture changes apply to all selected image frames.
                     </p>
                   )}
+                  {group.id === "depth" && (() => {
+                    const depthInfo = extractKeyframeDepthInfo(frame);
+                    const hasOpenSlot = depthInfo.cutoutSlots.some((s) => !s || !s.image);
+                    return (
+                      <div className="inspector-cutout-layers" data-testid="inspector-cutout-layers">
+                        <div className="inspector-cutout-layers-head">
+                          <span>Cutout layers ({depthInfo.activeCutouts.length}/{MAX_DEPTH_CUTOUTS})</span>
+                          <div className="inspector-cutout-layers-actions">
+                            <button
+                              type="button"
+                              className="button button-quiet"
+                              data-testid="inspector-add-cutout-btn"
+                              disabled={!hasOpenSlot}
+                              onClick={() => props.onBrowse("image", "cutout:add")}
+                            >
+                              + Choose
+                            </button>
+                            <button
+                              type="button"
+                              className="button button-quiet"
+                              data-testid="inspector-upload-cutout-btn"
+                              disabled={!hasOpenSlot}
+                              onClick={() => props.onUpload("image", "cutout:add")}
+                            >
+                              ↑ Upload
+                            </button>
+                          </div>
+                        </div>
+                        {depthInfo.activeCutouts.length === 0 ? (
+                          <p className="inspector-note">
+                            No cutout layers on this shot. Drop PNGs onto the Cutouts timeline lane or click + Choose.
+                          </p>
+                        ) : (
+                          depthInfo.cutoutSlots.map((slot, idx) => {
+                            if (!slot || !slot.image) return null;
+                            const color = CUTOUT_LAYER_COLORS[idx] ?? CUTOUT_LAYER_COLORS[0];
+                            return (
+                              <div
+                                key={`inspector-cutout-${idx}`}
+                                className="inspector-cutout-row"
+                                data-testid={`inspector-cutout-row-${idx}`}
+                              >
+                                <div className="inspector-cutout-row-top">
+                                  <span className="kf-sublane-dot" style={{ background: color }} />
+                                  <strong title={slot.image}>
+                                    L{idx + 1} · {depthAssetLabel(slot.image)}
+                                  </strong>
+                                  <button
+                                    type="button"
+                                    className="field-reset"
+                                    onClick={() => props.onBrowse("image", `cutout:${idx}`)}
+                                  >
+                                    SWAP
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="field-reset"
+                                    data-testid={`inspector-remove-cutout-${idx}`}
+                                    onClick={() => {
+                                      const nextSlots = [...depthInfo.cutoutSlots];
+                                      nextSlots[idx] = null;
+                                      props.onSetEffect(
+                                        "cinematic.depthCutouts",
+                                        serializeCutoutSlots(nextSlots),
+                                      );
+                                    }}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                                <div className="inspector-cutout-depth-line">
+                                  <span>Depth</span>
+                                  <input
+                                    type="range"
+                                    min={0}
+                                    max={1}
+                                    step={0.01}
+                                    aria-label={`Cutout ${idx + 1} depth`}
+                                    data-testid={`inspector-cutout-depth-${idx}`}
+                                    value={slot.depth ?? defaultDepthForCutoutLayer(idx)}
+                                    onChange={(e) => {
+                                      const nextSlots = [...depthInfo.cutoutSlots];
+                                      nextSlots[idx] = {
+                                        ...slot,
+                                        depth: Number(e.target.value),
+                                      };
+                                      props.onSetEffect(
+                                        "cinematic.depthCutouts",
+                                        serializeCutoutSlots(nextSlots),
+                                      );
+                                    }}
+                                  />
+                                  <output>{slot.depth.toFixed(2)}</output>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div className="effect-fields">
                     {group.fields.map((field) => (
                       <EffectField
@@ -1257,7 +1378,16 @@ export function Inspector(props: InspectorProps) {
                         value={getEffectValue(frame, `cinematic.${field.key}`)}
                         onChange={(value) => props.onSetEffect(`cinematic.${field.key}`, value)}
                         onReset={() => props.onResetEffect(`cinematic.${field.key}`)}
-                        onBrowse={() => props.onBrowse("image", field.key === "depthMap" ? "depthMap" : "foregroundImage")}
+                        onBrowse={() =>
+                          props.onBrowse(
+                            "image",
+                            field.key === "depthMap"
+                              ? "depthMap"
+                              : field.key === "depthPlate"
+                                ? "depthPlate"
+                                : "foregroundImage",
+                          )
+                        }
                         jsonError={jsonError}
                         setJsonError={setJsonError}
                       />

@@ -34,9 +34,31 @@ import type {
   BeatCaption,
   ResolvedTimelineCaption,
 } from "../core/captions";
+import {
+  clampLaneHeight,
+  computeVisibleCutoutSublaneCount,
+  createCompactLaneHeights,
+  createDefaultLaneHeights,
+  extractClipDepthInfo,
+  LANE_HEIGHT_SPECS,
+  MAX_DEPTH_CUTOUTS,
+  parseStoredHiddenLanes,
+  parseStoredLaneHeights,
+  TIMELINE_LANE_ORDER,
+  type ResizableLaneKey,
+  type TimelineLaneId,
+} from "../core/depthLanes";
 import { FPS, formatTimecode, MIN_CLIP_FRAMES } from "../core/timing";
 import { CaptionLane, type SelectedCaptionState } from "./CaptionLane";
-import type { InspectorTab } from "./Inspector";
+import {
+  DepthCutoutCanvasLanes,
+  DepthCutoutLaneHeaders,
+  EyeIcon,
+  LaneEyeButton,
+  LaneResizeHandle,
+  type SelectedCutoutLayerState,
+} from "./DepthCutoutLanes";
+import type { BrowseMediaTarget, InspectorTab, UploadMediaTarget } from "./Inspector";
 import { decodeDraggedAsset } from "./MediaBin";
 import { Tracks } from "./Tracks";
 import {
@@ -190,6 +212,36 @@ export interface TimelineProps {
   onCancelFreeCaptionMove?: () => void;
   onMergeCaptions?: () => void;
   onDeleteCaptions?: () => void;
+  showDepthMaps?: boolean;
+  onToggleShowDepthMaps?: () => void;
+  showDepthMapOverlay?: boolean;
+  onToggleShowDepthMapOverlay?: () => void;
+  showCutouts?: boolean;
+  onToggleShowCutouts?: () => void;
+  mutedCutoutLayers?: ReadonlySet<number>;
+  onToggleMuteCutoutLayer?: (layerIndex: number) => void;
+  onBrowseMediaForFrame?: (frameId: string, target: BrowseMediaTarget) => void;
+  onUploadMediaForFrame?: (frameId: string, target: UploadMediaTarget) => void;
+  onAssignDepthMap?: (frameId: string, ref: string | undefined, label?: string) => void;
+  onAssignDepthPlate?: (frameId: string, ref: string | undefined, label?: string) => void;
+  onDropDepthFile?: (file: File, frameId: string) => void;
+  onAddCutout?: (frameId: string, ref: string) => void;
+  onSetCutoutLayer?: (
+    frameId: string,
+    layerIndex: number,
+    cutout: { image: string; depth?: number } | null,
+    label?: string,
+  ) => void;
+  onDropCutoutFile?: (file: File, frameId: string, layerIndex?: number) => void;
+  onPreviewCutoutDepth?: (frameId: string, layerIndex: number, depth: number) => void;
+  onCommitCutoutDepth?: (
+    frameId: string,
+    layerIndex: number,
+    depth: number,
+    label?: string,
+  ) => void;
+  onMoveCutoutLayer?: (frameId: string, fromLayer: number, toLayer: number) => void;
+  onClearCutouts?: (frameId: string) => void;
   inPointFrame?: number | null;
   outPointFrame?: number | null;
   loopPlayback?: boolean;
@@ -206,6 +258,8 @@ const DEFAULT_TRACK_HEADER_WIDTH = 196;
 const MIN_TRACK_HEADER_WIDTH = 136;
 const MAX_TRACK_HEADER_WIDTH = 380;
 const TRACK_HEADER_STORAGE_KEY = "frame24-track-header-width";
+const LANE_HEIGHTS_STORAGE_KEY = "frame24-lane-heights";
+const HIDDEN_LANES_STORAGE_KEY = "frame24-hidden-lanes";
 const TICK_INTERVALS = [1, 2, 4, 6, 12, 24, 48, 120, 240, 360, 720, 1440, 2880, 7200];
 
 function chooseMajorTickFrames(pxPerFrame: number): number {
@@ -292,6 +346,26 @@ export function Timeline({
   onCancelFreeCaptionMove,
   onMergeCaptions,
   onDeleteCaptions,
+  showDepthMaps: showDepthMapsProp,
+  onToggleShowDepthMaps,
+  showDepthMapOverlay: showDepthMapOverlayProp,
+  onToggleShowDepthMapOverlay,
+  showCutouts: showCutoutsProp,
+  onToggleShowCutouts,
+  mutedCutoutLayers: mutedCutoutLayersProp,
+  onToggleMuteCutoutLayer,
+  onBrowseMediaForFrame,
+  onUploadMediaForFrame,
+  onAssignDepthMap,
+  onAssignDepthPlate,
+  onDropDepthFile,
+  onAddCutout,
+  onSetCutoutLayer,
+  onDropCutoutFile,
+  onPreviewCutoutDepth,
+  onCommitCutoutDepth,
+  onMoveCutoutLayer,
+  onClearCutouts,
   inPointFrame = null,
   outPointFrame = null,
   loopPlayback = false,
@@ -300,6 +374,69 @@ export function Timeline({
   onClearInOut,
   onToggleLoop,
 }: TimelineProps) {
+  const [cutoutsExpanded, setCutoutsExpanded] = useState(false);
+  const [manualCutoutSublanes, setManualCutoutSublanes] = useState(2);
+  const [selectedCutoutLayer, setSelectedCutoutLayer] =
+    useState<SelectedCutoutLayerState | null>(null);
+  const [localShowDepthMaps, setLocalShowDepthMaps] = useState(true);
+  const [localShowDepthMapOverlay, setLocalShowDepthMapOverlay] = useState(false);
+  const [localShowCutouts, setLocalShowCutouts] = useState(true);
+  const [localMutedCutoutLayers, setLocalMutedCutoutLayers] = useState<Set<number>>(
+    () => new Set(),
+  );
+
+  const effectiveShowDepthMaps = showDepthMapsProp ?? localShowDepthMaps;
+  const effectiveShowDepthMapOverlay = showDepthMapOverlayProp ?? localShowDepthMapOverlay;
+  const effectiveShowCutouts = showCutoutsProp ?? localShowCutouts;
+  const effectiveMutedCutoutLayers = mutedCutoutLayersProp ?? localMutedCutoutLayers;
+
+  const handleToggleDepthMaps = useCallback(() => {
+    if (onToggleShowDepthMaps) onToggleShowDepthMaps();
+    else setLocalShowDepthMaps((v) => !v);
+  }, [onToggleShowDepthMaps]);
+
+  const handleToggleDepthMapOverlay = useCallback(() => {
+    if (onToggleShowDepthMapOverlay) onToggleShowDepthMapOverlay();
+    else setLocalShowDepthMapOverlay((v) => !v);
+  }, [onToggleShowDepthMapOverlay]);
+
+  const handleToggleCutouts = useCallback(() => {
+    if (onToggleShowCutouts) onToggleShowCutouts();
+    else setLocalShowCutouts((v) => !v);
+  }, [onToggleShowCutouts]);
+
+  const handleToggleMuteCutoutLayer = useCallback(
+    (layerIndex: number) => {
+      if (onToggleMuteCutoutLayer) {
+        onToggleMuteCutoutLayer(layerIndex);
+      } else {
+        setLocalMutedCutoutLayers((prev) => {
+          const next = new Set(prev);
+          if (next.has(layerIndex)) next.delete(layerIndex);
+          else next.add(layerIndex);
+          return next;
+        });
+      }
+    },
+    [onToggleMuteCutoutLayer],
+  );
+
+  const cutoutSublaneCount = useMemo(
+    () => computeVisibleCutoutSublaneCount(clips, manualCutoutSublanes),
+    [clips, manualCutoutSublanes],
+  );
+
+  const { depthClipCount, cutoutClipCount } = useMemo(() => {
+    let dCount = 0;
+    let cCount = 0;
+    for (const clip of clips) {
+      if (clip.keyframe.beat.gap) continue;
+      const info = extractClipDepthInfo(clip);
+      if (info.depthMap) dCount += 1;
+      if (info.activeCutouts.length > 0 || info.foregroundImage) cCount += 1;
+    }
+    return { depthClipCount: dCount, cutoutClipCount: cCount };
+  }, [clips]);
   const [pxPerFrame, setPxPerFrame] = useState(DEFAULT_PX_PER_FRAME);
   const ioDragRef = useRef<{ which: "in" | "out"; pointerId: number; moved: boolean } | null>(null);
   const [trackHeaderWidth, setTrackHeaderWidth] = useState<number>(() => {
@@ -315,6 +452,135 @@ export function Timeline({
   });
   const headerResizeRef = useRef<{ pointerId: number; startX: number; startWidth: number } | null>(null);
   const [isResizingHeaders, setIsResizingHeaders] = useState(false);
+
+  const [laneHeights, setLaneHeights] = useState<Record<ResizableLaneKey, number>>(() => {
+    try {
+      return parseStoredLaneHeights(window.localStorage.getItem(LANE_HEIGHTS_STORAGE_KEY));
+    } catch {
+      return createDefaultLaneHeights();
+    }
+  });
+  const [hiddenLanes, setHiddenLanes] = useState<Set<TimelineLaneId>>(() => {
+    try {
+      return parseStoredHiddenLanes(window.localStorage.getItem(HIDDEN_LANES_STORAGE_KEY));
+    } catch {
+      return new Set();
+    }
+  });
+  const [hiddenCutoutSublanes, setHiddenCutoutSublanes] = useState<Set<number>>(() => new Set());
+  const [tracksPopoverPos, setTracksPopoverPos] = useState<{ left: number; top: number } | null>(
+    null,
+  );
+  const tracksVisBtnRef = useRef<HTMLButtonElement | null>(null);
+  const tracksPopoverRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LANE_HEIGHTS_STORAGE_KEY, JSON.stringify(laneHeights));
+    } catch {
+      // ignore storage errors
+    }
+  }, [laneHeights]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(HIDDEN_LANES_STORAGE_KEY, JSON.stringify([...hiddenLanes]));
+    } catch {
+      // ignore storage errors
+    }
+  }, [hiddenLanes]);
+
+  useEffect(() => {
+    if (!tracksPopoverPos) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      if (
+        target &&
+        (tracksPopoverRef.current?.contains(target) || tracksVisBtnRef.current?.contains(target))
+      ) {
+        return;
+      }
+      setTracksPopoverPos(null);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTracksPopoverPos(null);
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [tracksPopoverPos]);
+
+  const handleResizeLane = useCallback((key: ResizableLaneKey, nextHeight: number) => {
+    const clamped = clampLaneHeight(key, nextHeight);
+    setLaneHeights((prev) => (prev[key] === clamped ? prev : { ...prev, [key]: clamped }));
+  }, []);
+
+  const handleResetLaneHeight = useCallback((key: ResizableLaneKey) => {
+    const def = LANE_HEIGHT_SPECS[key].defaultHeight;
+    setLaneHeights((prev) => (prev[key] === def ? prev : { ...prev, [key]: def }));
+  }, []);
+
+  const handleCompactLaneHeights = useCallback(() => {
+    setLaneHeights(createCompactLaneHeights());
+  }, []);
+
+  const handleResetAllLaneHeights = useCallback(() => {
+    setLaneHeights(createDefaultLaneHeights());
+  }, []);
+
+  const handleToggleLaneVisible = useCallback((lane: TimelineLaneId) => {
+    setHiddenLanes((prev) => {
+      const next = new Set(prev);
+      if (next.has(lane)) next.delete(lane);
+      else next.add(lane);
+      return next;
+    });
+  }, []);
+
+  const handleToggleCutoutSublaneVisible = useCallback((layerIndex: number) => {
+    setHiddenCutoutSublanes((prev) => {
+      const next = new Set(prev);
+      if (next.has(layerIndex)) next.delete(layerIndex);
+      else next.add(layerIndex);
+      return next;
+    });
+  }, []);
+
+  const handleShowAllCutoutSublanes = useCallback(() => {
+    setHiddenCutoutSublanes(new Set());
+  }, []);
+
+  const handleShowAllLanes = useCallback(() => {
+    setHiddenLanes(new Set());
+    setHiddenCutoutSublanes(new Set());
+  }, []);
+
+  const hiddenSublaneVisibleCount = useMemo(() => {
+    if (!cutoutsExpanded || hiddenLanes.has("cutouts")) return 0;
+    let count = 0;
+    for (let i = 0; i < cutoutSublaneCount; i += 1) {
+      if (hiddenCutoutSublanes.has(i)) count += 1;
+    }
+    return count;
+  }, [cutoutsExpanded, cutoutSublaneCount, hiddenCutoutSublanes, hiddenLanes]);
+
+  const totalHiddenLaneCount = hiddenLanes.size + hiddenSublaneVisibleCount;
+  const toggleTracksPopover = useCallback(() => {
+    setTracksPopoverPos((prev) => {
+      if (prev) return null;
+      const rect = tracksVisBtnRef.current?.getBoundingClientRect();
+      if (!rect) return { left: 12, top: 120 };
+      const maxLeft = typeof window !== "undefined" ? Math.max(8, window.innerWidth - 248) : rect.left;
+      const maxTop = typeof window !== "undefined" ? Math.max(8, window.innerHeight - 448) : rect.bottom + 4;
+      return {
+        left: Math.min(maxLeft, Math.max(8, rect.left)),
+        top: Math.min(maxTop, rect.bottom + 4),
+      };
+    });
+  }, []);
   const lastMultiCaptionDeltaMsRef = useRef(0);
   const [scrollLeft, setScrollLeft] = useState(() =>
     Math.max(0, playheadFrame * DEFAULT_PX_PER_FRAME - 300),
@@ -835,7 +1101,7 @@ export function Timeline({
     const targetEl = event.target as HTMLElement | null;
     if (
       targetEl?.closest(
-        ".timeline-ruler, .timeline-playhead, .timeline-clip, .caption-block, .audio-clip-box, .timeline-transition-box, .timeline-roll-handle, .transition-kind-popover, .kf-lane-diamond, .diamond-easing-menu, button, input, textarea, select",
+        ".timeline-ruler, .timeline-playhead, .timeline-clip, .caption-block, .depth-lane-block, .cutout-lane-block, .depth-cutout-context-menu, .lane-resize-handle, .tracks-visibility-popover, .audio-clip-box, .timeline-transition-box, .timeline-roll-handle, .transition-kind-popover, .kf-lane-diamond, .diamond-easing-menu, button, input, textarea, select",
       )
     ) {
       return;
@@ -1410,105 +1676,183 @@ export function Timeline({
         <aside className="timeline-track-headers" data-testid="timeline-track-headers" aria-label="Track headers">
           <div className="track-header-ruler">
             <span>TRACKS</span>
-          </div>
-          <div
-            className={`track-header-row is-captions ${!showCaptions ? "is-silenced" : ""}`}
-            data-testid="track-header-captions"
-          >
-            <div className="track-header-top">
-              <button
-                type="button"
-                className="track-header-title"
-                onClick={() => onFocusInspectorTab?.("clip")}
-                title="Open Caption section in Inspector"
-              >
-                <i aria-hidden>CC</i> Captions
-              </button>
-              <div className="track-header-btns">
-                {canMergeCaptions && (
-                  <button
-                    type="button"
-                    className="track-caption-merge-btn"
-                    data-testid="merge-captions-btn"
-                    onClick={() => onMergeCaptions?.()}
-                    title="Merge two neighbouring captions"
-                  >
-                    Merge
-                  </button>
-                )}
+            <div className="track-header-ruler-actions">
+              {totalHiddenLaneCount > 0 && (
                 <button
                   type="button"
-                  className={`track-ms-btn is-cc ${showCaptions ? "is-active" : ""}`}
-                  data-testid="track-toggle-captions"
-                  aria-label="Toggle captions in viewer"
-                  aria-pressed={showCaptions}
-                  title={showCaptions ? "Hide captions in viewer" : "Show captions in viewer"}
-                  onClick={() => onToggleShowCaptions?.()}
+                  className="tracks-show-all-inline-btn"
+                  data-testid="tracks-show-all-inline-btn"
+                  title="Restore all hidden lanes"
+                  onClick={handleShowAllLanes}
                 >
-                  CC
+                  Show all
                 </button>
-              </div>
+              )}
+              <button
+                ref={tracksVisBtnRef}
+                type="button"
+                className={`tracks-visibility-btn ${tracksPopoverPos ? "is-open" : ""} ${totalHiddenLaneCount > 0 ? "has-hidden" : ""}`}
+                data-testid="tracks-visibility-btn"
+                aria-label="Show, hide, or resize timeline lanes"
+                aria-expanded={Boolean(tracksPopoverPos)}
+                title={
+                  totalHiddenLaneCount > 0
+                    ? `${totalHiddenLaneCount} lane${totalHiddenLaneCount === 1 ? "" : "s"} hidden — click to show/hide or resize lanes`
+                    : "Show/hide lanes or compact lane heights"
+                }
+                onClick={toggleTracksPopover}
+              >
+                <EyeIcon visible={totalHiddenLaneCount === 0} size={11} />
+                {totalHiddenLaneCount > 0 && (
+                  <span className="tracks-hidden-badge" data-testid="tracks-hidden-count">
+                    {totalHiddenLaneCount}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
+          {!hiddenLanes.has("captions") && (
+            <div
+              className={`track-header-row is-captions ${!showCaptions ? "is-silenced" : ""}`}
+              data-testid="track-header-captions"
+              style={{
+                height: laneHeights.captions,
+                minHeight: laneHeights.captions,
+                maxHeight: laneHeights.captions,
+              }}
+            >
+              <div className="track-header-top">
+                <button
+                  type="button"
+                  className="track-header-title"
+                  onClick={() => onFocusInspectorTab?.("clip")}
+                  title="Open Caption section in Inspector"
+                >
+                  <i aria-hidden>CC</i> Captions
+                </button>
+                <div className="track-header-btns">
+                  {canMergeCaptions && (
+                    <button
+                      type="button"
+                      className="track-caption-merge-btn"
+                      data-testid="merge-captions-btn"
+                      onClick={() => onMergeCaptions?.()}
+                      title="Merge two neighbouring captions"
+                    >
+                      Merge
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={`track-ms-btn is-cc ${showCaptions ? "is-active" : ""}`}
+                    data-testid="track-toggle-captions"
+                    aria-label="Toggle captions in viewer"
+                    aria-pressed={showCaptions}
+                    title={showCaptions ? "Hide captions in viewer" : "Show captions in viewer"}
+                    onClick={() => onToggleShowCaptions?.()}
+                  >
+                    CC
+                  </button>
+                  <LaneEyeButton
+                    laneLabel="Captions"
+                    testId="track-eye-captions"
+                    visible
+                    onClick={() => handleToggleLaneVisible("captions")}
+                  />
+                </div>
+              </div>
+              <LaneResizeHandle
+                laneKey="captions"
+                label="Captions"
+                currentHeight={laneHeights.captions}
+                onResize={handleResizeLane}
+                onReset={handleResetLaneHeight}
+              />
+            </div>
+          )}
           {TRACK_HEADERS.map((header) => {
             const state = effectiveMix[header.id];
             const effective = effectiveTrackLevel(effectiveMix, header.id);
+            const isHidden = hiddenLanes.has(header.id);
+            const rowHeight = laneHeights[header.id];
+            const isCompactVideo = header.id === "video" && rowHeight < 62;
             return (
               <Fragment key={header.id}>
-                <div
-                  className={`track-header-row is-${header.id} ${effective === 0 ? "is-silenced" : ""}`}
-                  data-testid={`track-header-${header.id}`}
-                >
-                  <div className="track-header-top">
-                    <button
-                      type="button"
-                      className="track-header-title"
-                      onClick={() => onFocusInspectorTab?.(header.id === "video" ? "clip" : header.id)}
-                      title={`Open ${header.label} settings in Inspector`}
-                    >
-                      <i aria-hidden>{header.icon}</i> {header.label}
-                    </button>
-                    <div className="track-header-btns">
+                {!isHidden && (
+                  <div
+                    className={`track-header-row is-${header.id} ${effective === 0 ? "is-silenced" : ""} ${isCompactVideo ? "is-compact-height" : ""}`}
+                    data-testid={`track-header-${header.id}`}
+                    style={{
+                      height: rowHeight,
+                      minHeight: rowHeight,
+                      maxHeight: rowHeight,
+                    }}
+                  >
+                    <div className="track-header-top">
                       <button
                         type="button"
-                        className={`track-ms-btn is-mute ${state.mute ? "is-active" : ""}`}
-                        data-testid={`track-mute-${header.id}`}
-                        aria-label={`Mute ${header.label}`}
-                        aria-pressed={state.mute}
-                        title={`Mute ${header.label}`}
-                        onClick={() => onToggleTrackMute?.(header.id)}
+                        className="track-header-title"
+                        onClick={() => onFocusInspectorTab?.(header.id === "video" ? "clip" : header.id)}
+                        title={`Open ${header.label} settings in Inspector`}
                       >
-                        M
+                        <i aria-hidden>{header.icon}</i> {header.label}
                       </button>
-                      <button
-                        type="button"
-                        className={`track-ms-btn is-solo ${state.solo ? "is-active" : ""}`}
-                        data-testid={`track-solo-${header.id}`}
-                        aria-label={`Solo ${header.label}`}
-                        aria-pressed={state.solo}
-                        title={`Solo ${header.label}`}
-                        onClick={() => onToggleTrackSolo?.(header.id)}
-                      >
-                        S
-                      </button>
+                      <div className="track-header-btns">
+                        <button
+                          type="button"
+                          className={`track-ms-btn is-mute ${state.mute ? "is-active" : ""}`}
+                          data-testid={`track-mute-${header.id}`}
+                          aria-label={`Mute ${header.label}`}
+                          aria-pressed={state.mute}
+                          title={`Mute ${header.label}`}
+                          onClick={() => onToggleTrackMute?.(header.id)}
+                        >
+                          M
+                        </button>
+                        <button
+                          type="button"
+                          className={`track-ms-btn is-solo ${state.solo ? "is-active" : ""}`}
+                          data-testid={`track-solo-${header.id}`}
+                          aria-label={`Solo ${header.label}`}
+                          aria-pressed={state.solo}
+                          title={`Solo ${header.label}`}
+                          onClick={() => onToggleTrackSolo?.(header.id)}
+                        >
+                          S
+                        </button>
+                        <LaneEyeButton
+                          laneLabel={header.label}
+                          testId={`track-eye-${header.id}`}
+                          visible
+                          onClick={() => handleToggleLaneVisible(header.id)}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <label className="track-header-level">
-                    <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={state.level}
-                      aria-label={`${header.label} level`}
-                      data-testid={`track-level-${header.id}`}
-                      onChange={(event) => onSetTrackLevel?.(header.id, Number(event.target.value))}
+                    <label className="track-header-level">
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={state.level}
+                        aria-label={`${header.label} level`}
+                        data-testid={`track-level-${header.id}`}
+                        onChange={(event) => onSetTrackLevel?.(header.id, Number(event.target.value))}
+                      />
+                      <span>{Math.round(state.level * 100)}%</span>
+                    </label>
+                    <LaneResizeHandle
+                      laneKey={header.id}
+                      label={header.label}
+                      currentHeight={rowHeight}
+                      onResize={handleResizeLane}
+                      onReset={handleResetLaneHeight}
                     />
-                    <span>{Math.round(state.level * 100)}%</span>
-                  </label>
-                </div>
+                  </div>
+                )}
 
                 {header.id === "video" &&
+                  !isHidden &&
                   openKeyframeProps.map((prop) => {
                     const meta = ANIM_PROP_META[prop];
                     const targetClip =
@@ -1551,7 +1895,7 @@ export function Timeline({
                     );
                   })}
 
-                {header.id === "video" && hasExpandedWithoutKeys && (
+                {header.id === "video" && !isHidden && hasExpandedWithoutKeys && (
                   <div
                     className="track-header-row is-kf-sublane is-empty"
                     data-testid="kf-lane-header-empty"
@@ -1560,6 +1904,40 @@ export function Timeline({
                       <span className="kf-sublane-title">Keyframes</span>
                     </div>
                   </div>
+                )}
+
+                {header.id === "video" && (
+                  <DepthCutoutLaneHeaders
+                    sublaneCount={cutoutSublaneCount}
+                    cutoutsExpanded={cutoutsExpanded}
+                    showDepthMaps={effectiveShowDepthMaps}
+                    showDepthMapOverlay={effectiveShowDepthMapOverlay}
+                    showCutouts={effectiveShowCutouts}
+                    mutedCutoutLayers={effectiveMutedCutoutLayers}
+                    depthClipCount={depthClipCount}
+                    cutoutClipCount={cutoutClipCount}
+                    depthHeight={laneHeights.depth}
+                    cutoutsHeight={laneHeights.cutouts}
+                    cutoutSublaneHeight={laneHeights.cutoutSublane}
+                    hiddenLanes={hiddenLanes}
+                    hiddenCutoutSublanes={hiddenCutoutSublanes}
+                    onToggleLaneVisible={handleToggleLaneVisible}
+                    onToggleCutoutSublaneVisible={handleToggleCutoutSublaneVisible}
+                    onShowAllCutoutSublanes={handleShowAllCutoutSublanes}
+                    onResizeLane={handleResizeLane}
+                    onResetLaneHeight={handleResetLaneHeight}
+                    onToggleCutoutsExpanded={() => setCutoutsExpanded((v) => !v)}
+                    onAddCutoutSublane={() =>
+                      setManualCutoutSublanes((cur) =>
+                        Math.min(MAX_DEPTH_CUTOUTS, Math.max(cur, cutoutSublaneCount) + 1),
+                      )
+                    }
+                    onToggleShowDepthMaps={handleToggleDepthMaps}
+                    onToggleShowDepthMapOverlay={handleToggleDepthMapOverlay}
+                    onToggleShowCutouts={handleToggleCutouts}
+                    onToggleMuteCutoutLayer={handleToggleMuteCutoutLayer}
+                    onFocusInspectorTab={onFocusInspectorTab}
+                  />
                 )}
               </Fragment>
             );
@@ -1841,82 +2219,92 @@ export function Timeline({
             );
           })()}
 
-          <CaptionLane
-            laneRef={(el) => {
-              captionsLaneRef.current = el;
-            }}
-            allClips={clips}
-            visibleClips={visibleClips}
-            resolvedCaptions={resolvedCaptionsProp}
-            totalFrames={totalFrames}
-            pxPerFrame={pxPerFrame}
-            playheadFrame={playheadFrame}
-            snapEnabled={snapEnabled}
-            selectedFrameId={selectedFrameId}
-            selectedCaption={selectedCaption}
-            multiSelectedCaptions={multiSelection.captions}
-            multiSelectionTotalCount={
-              multiSelection.pictureIds.length +
-              multiSelection.audioClipIds.length +
-              multiSelection.captions.length
-            }
-            rawFrameFromClientX={rawFrameFromClientX}
-            onSetSnapGuide={setSnapGuideFrame}
-            onSelectCaption={(frameId, captionIndex, extendNeighbour, targetFrame) =>
-              onSelectCaption?.(frameId, captionIndex, extendNeighbour, targetFrame)
-            }
-            onClearCaptionSelection={() => onClearCaptionSelection?.()}
-            onCommitCaptions={(
-              frameId,
-              captions,
-              clipDurationFrames,
-              label,
-              nextSelectedIndices,
-            ) =>
-              onCommitCaptions?.(
+          {!hiddenLanes.has("captions") && (
+            <CaptionLane
+              laneRef={(el) => {
+                captionsLaneRef.current = el;
+              }}
+              height={laneHeights.captions}
+              allClips={clips}
+              visibleClips={visibleClips}
+              resolvedCaptions={resolvedCaptionsProp}
+              totalFrames={totalFrames}
+              pxPerFrame={pxPerFrame}
+              playheadFrame={playheadFrame}
+              snapEnabled={snapEnabled}
+              selectedFrameId={selectedFrameId}
+              selectedCaption={selectedCaption}
+              multiSelectedCaptions={multiSelection.captions}
+              multiSelectionTotalCount={
+                multiSelection.pictureIds.length +
+                multiSelection.audioClipIds.length +
+                multiSelection.captions.length
+              }
+              rawFrameFromClientX={rawFrameFromClientX}
+              onSetSnapGuide={setSnapGuideFrame}
+              onSelectCaption={(frameId, captionIndex, extendNeighbour, targetFrame) =>
+                onSelectCaption?.(frameId, captionIndex, extendNeighbour, targetFrame)
+              }
+              onClearCaptionSelection={() => onClearCaptionSelection?.()}
+              onCommitCaptions={(
                 frameId,
                 captions,
                 clipDurationFrames,
                 label,
                 nextSelectedIndices,
-              )
-            }
-            onCaptionPreview={(frameId, captions, clipDurationFrames) =>
-              onCaptionPreview?.(frameId, captions, clipDurationFrames)
-            }
-            onBeginFreeCaptionDrag={onBeginFreeCaptionDrag}
-            onPreviewFreeCaptionMove={onPreviewFreeCaptionMove}
-            onCommitFreeCaptionMove={onCommitFreeCaptionMove}
-            onCancelFreeCaptionMove={onCancelFreeCaptionMove}
-            onBeginMultiDrag={() => {
-              lastMultiCaptionDeltaMsRef.current = 0;
-              onDragStart();
-            }}
-            onPreviewMultiDrag={(deltaMs) => {
-              lastMultiCaptionDeltaMsRef.current = deltaMs;
-              onShiftSelectionPreview?.(deltaMs);
-            }}
-            onCommitMultiDrag={(copy) => {
-              const deltaMs = lastMultiCaptionDeltaMsRef.current;
-              lastMultiCaptionDeltaMsRef.current = 0;
-              onCommitSelectionShift?.(
-                deltaMs,
-                copy,
-                copy ? "Selection duplicated" : "Selection moved",
-              );
-            }}
-            onCancelMultiDrag={() => {
-              lastMultiCaptionDeltaMsRef.current = 0;
-              onDragEnd("");
-            }}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-          />
+              ) =>
+                onCommitCaptions?.(
+                  frameId,
+                  captions,
+                  clipDurationFrames,
+                  label,
+                  nextSelectedIndices,
+                )
+              }
+              onCaptionPreview={(frameId, captions, clipDurationFrames) =>
+                onCaptionPreview?.(frameId, captions, clipDurationFrames)
+              }
+              onBeginFreeCaptionDrag={onBeginFreeCaptionDrag}
+              onPreviewFreeCaptionMove={onPreviewFreeCaptionMove}
+              onCommitFreeCaptionMove={onCommitFreeCaptionMove}
+              onCancelFreeCaptionMove={onCancelFreeCaptionMove}
+              onBeginMultiDrag={() => {
+                lastMultiCaptionDeltaMsRef.current = 0;
+                onDragStart();
+              }}
+              onPreviewMultiDrag={(deltaMs) => {
+                lastMultiCaptionDeltaMsRef.current = deltaMs;
+                onShiftSelectionPreview?.(deltaMs);
+              }}
+              onCommitMultiDrag={(copy) => {
+                const deltaMs = lastMultiCaptionDeltaMsRef.current;
+                lastMultiCaptionDeltaMsRef.current = 0;
+                onCommitSelectionShift?.(
+                  deltaMs,
+                  copy,
+                  copy ? "Selection duplicated" : "Selection moved",
+                );
+              }}
+              onCancelMultiDrag={() => {
+                lastMultiCaptionDeltaMsRef.current = 0;
+                onDragEnd("");
+              }}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+            />
+          )}
 
+          {!hiddenLanes.has("video") && (
+          <>
           <div
             ref={trackRef}
-            className={`timeline-picture-track ${videoSilenced ? "is-silenced" : ""}`}
+            className={`timeline-picture-track ${videoSilenced ? "is-silenced" : ""} ${laneHeights.video < 62 ? "is-compact-height" : ""}`}
             data-testid="picture-track"
+            style={{
+              height: laneHeights.video,
+              minHeight: laneHeights.video,
+              maxHeight: laneHeights.video,
+            }}
           >
             {visibleClips.map((clip) => {
               const rawSrc = resolveMedia(clip.keyframe.picture);
@@ -2432,6 +2820,63 @@ export function Timeline({
                 ))}
             </div>
           )}
+          </>
+          )}
+
+          <DepthCutoutCanvasLanes
+            clips={clips}
+            visibleClips={visibleClips}
+            pxPerFrame={pxPerFrame}
+            selectedFrameId={selectedFrameId}
+            selectedFrameIds={selectedFrameIds}
+            selectedCutoutLayer={selectedCutoutLayer}
+            sublaneCount={cutoutSublaneCount}
+            cutoutsExpanded={cutoutsExpanded}
+            showDepthMaps={effectiveShowDepthMaps}
+            showCutouts={effectiveShowCutouts}
+            mutedCutoutLayers={effectiveMutedCutoutLayers}
+            depthHeight={laneHeights.depth}
+            cutoutsHeight={laneHeights.cutouts}
+            cutoutSublaneHeight={laneHeights.cutoutSublane}
+            hiddenLanes={hiddenLanes}
+            hiddenCutoutSublanes={hiddenCutoutSublanes}
+            resolveMedia={resolveMedia}
+            frameFromClientX={frameFromClientX}
+            onToggleCutoutsExpanded={() => setCutoutsExpanded((v) => !v)}
+            onSelectShot={(frameId, additive, targetFrame) => {
+              onClearCaptionSelection?.();
+              if (additive) {
+                const exists = selectedFrameIds.includes(frameId);
+                const nextIds = exists
+                  ? selectedFrameIds.length > 1
+                    ? selectedFrameIds.filter((item) => item !== frameId)
+                    : [frameId]
+                  : [...selectedFrameIds, frameId];
+                const nextPrimary = nextIds.includes(frameId)
+                  ? frameId
+                  : nextIds[nextIds.length - 1];
+                onSetSelection(nextIds, nextPrimary, targetFrame);
+              } else {
+                onSetSelection([frameId], frameId, targetFrame);
+              }
+            }}
+            onSelectCutoutLayer={setSelectedCutoutLayer}
+            onFocusInspectorTab={onFocusInspectorTab}
+            onBrowseMediaForFrame={onBrowseMediaForFrame}
+            onUploadMediaForFrame={onUploadMediaForFrame}
+            onAssignDepthMap={onAssignDepthMap}
+            onAssignDepthPlate={onAssignDepthPlate}
+            onDropDepthFile={onDropDepthFile}
+            onAddCutout={onAddCutout}
+            onSetCutoutLayer={onSetCutoutLayer}
+            onDropCutoutFile={onDropCutoutFile}
+            onPreviewCutoutDepth={onPreviewCutoutDepth}
+            onCommitCutoutDepth={onCommitCutoutDepth}
+            onMoveCutoutLayer={onMoveCutoutLayer}
+            onClearCutouts={onClearCutouts}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+          />
 
           <Tracks
             clips={clips}
@@ -2449,6 +2894,8 @@ export function Timeline({
             audioDurations={audioDurations ?? musicDurations}
             trackMix={effectiveMix}
             resolveMedia={resolveMedia}
+            laneHeights={laneHeights}
+            hiddenLanes={hiddenLanes}
             laneRefs={audioLaneRefSetters}
             onSetSnapGuide={setSnapGuideFrame}
             onSelectAudioClip={(clip, additive, targetFrame) => {
@@ -2512,9 +2959,131 @@ export function Timeline({
             />
             <div className="timeline-playhead-line" />
           </div>
+
+          {hiddenLanes.size >= TIMELINE_LANE_ORDER.length && (
+            <div className="timeline-all-lanes-hidden" data-testid="timeline-all-lanes-hidden">
+              <span>All timeline lanes are hidden.</span>
+              <button
+                type="button"
+                className="button button-quiet"
+                onClick={handleShowAllLanes}
+              >
+                Show all lanes
+              </button>
+            </div>
+          )}
         </div>
         </div>
       </div>
+
+      {tracksPopoverPos && (
+        <div
+          ref={tracksPopoverRef}
+          className="tracks-visibility-popover"
+          data-testid="tracks-visibility-popover"
+          role="dialog"
+          aria-label="Timeline lanes visibility and height"
+          style={{
+            left: tracksPopoverPos.left,
+            top: tracksPopoverPos.top,
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="tracks-popover-head">
+            <span>LANES &amp; SIZING</span>
+            {totalHiddenLaneCount > 0 && (
+              <button
+                type="button"
+                className="tracks-popover-link"
+                data-testid="tracks-popover-show-all"
+                onClick={handleShowAllLanes}
+              >
+                Show all ({totalHiddenLaneCount})
+              </button>
+            )}
+          </div>
+
+          <div className="tracks-popover-presets">
+            <button
+              type="button"
+              className="tracks-preset-btn"
+              data-testid="tracks-preset-compact"
+              title="Compact all lane heights so more tracks fit at once"
+              onClick={handleCompactLaneHeights}
+            >
+              Compact lanes
+            </button>
+            <button
+              type="button"
+              className="tracks-preset-btn"
+              data-testid="tracks-preset-reset"
+              title="Restore default lane heights"
+              onClick={handleResetAllLaneHeights}
+            >
+              Reset sizes
+            </button>
+          </div>
+
+          <div className="tracks-popover-list">
+            {(
+              [
+                { id: "captions", label: "Captions" },
+                { id: "video", label: "Video" },
+                { id: "depth", label: "Depth Maps" },
+                { id: "cutouts", label: "Cutouts" },
+                { id: "voice", label: "Voice" },
+                { id: "sfx", label: "SFX" },
+                { id: "music", label: "Music" },
+                { id: "ambience", label: "Ambience" },
+              ] as const
+            ).map((lane) => {
+              const visible = !hiddenLanes.has(lane.id);
+              const px = laneHeights[lane.id];
+              return (
+                <button
+                  key={lane.id}
+                  type="button"
+                  className={`tracks-popover-row ${!visible ? "is-hidden-lane" : ""}`}
+                  data-testid={`tracks-vis-toggle-${lane.id}`}
+                  aria-pressed={visible}
+                  onClick={() => handleToggleLaneVisible(lane.id)}
+                >
+                  <span className="tracks-popover-eye">
+                    <EyeIcon visible={visible} size={11} />
+                  </span>
+                  <span className="tracks-popover-name">{lane.label}</span>
+                  <span className="tracks-popover-px">{px}px</span>
+                </button>
+              );
+            })}
+
+            {cutoutsExpanded &&
+              !hiddenLanes.has("cutouts") &&
+              Array.from({ length: cutoutSublaneCount }, (_, layerIndex) => {
+                const visible = !hiddenCutoutSublanes.has(layerIndex);
+                return (
+                  <button
+                    key={`sub-${layerIndex}`}
+                    type="button"
+                    className={`tracks-popover-row is-sublane ${!visible ? "is-hidden-lane" : ""}`}
+                    data-testid={`tracks-vis-toggle-cutout-${layerIndex}`}
+                    aria-pressed={visible}
+                    onClick={() => handleToggleCutoutSublaneVisible(layerIndex)}
+                  >
+                    <span className="tracks-popover-eye">
+                      <EyeIcon visible={visible} size={10} />
+                    </span>
+                    <span className="tracks-popover-name">↳ Cutout {layerIndex + 1}</span>
+                    <span className="tracks-popover-px">{laneHeights.cutoutSublane}px</span>
+                  </button>
+                );
+              })}
+          </div>
+          <div className="tracks-popover-hint">
+            Drag bottom edge of any track header to resize · double-click edge to reset
+          </div>
+        </div>
+      )}
 
       {diamondMenu && (
         <div

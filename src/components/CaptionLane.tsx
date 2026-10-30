@@ -26,6 +26,7 @@ export interface SelectedCaptionState {
 
 export interface CaptionLaneProps {
   laneRef?: (el: HTMLDivElement | null) => void;
+  height?: number;
   allClips?: TimelineClip[];
   visibleClips: TimelineClip[];
   resolvedCaptions?: ResolvedTimelineCaption[];
@@ -92,6 +93,7 @@ interface ActiveCaptionDrag {
 
 export function CaptionLane({
   laneRef,
+  height,
   allClips,
   visibleClips,
   resolvedCaptions: resolvedCaptionsProp,
@@ -445,6 +447,11 @@ export function CaptionLane({
       ref={laneRef}
       className="timeline-captions-lane"
       data-testid="lane-captions"
+      style={
+        height !== undefined
+          ? { height, minHeight: height, maxHeight: height }
+          : undefined
+      }
       onClick={(e) => {
         if (suppressClickRef.current) {
           suppressClickRef.current = false;
