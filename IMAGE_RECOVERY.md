@@ -133,6 +133,14 @@ Six more targets were chosen at random (seed `20261031`) from holds longer than 
 
 Every original file is kept unchanged: the source pictures in `public/film/img/` and the bundled plates were only read as references, and each selected JPEG was written straight from the provider with no crop, resize or re-encode. `cutModified: false` — the Original Uncut pictures, timing, audio, captions and saved custom edits are untouched.
 
+## Six-shot directory batch 7
+
+Six more targets were chosen at random (seed `20261101`) from multi-beat holds over nine seconds whose beats are not covered by batches 1-6 or by installed plates: `nw_b634` (s25a, Vera waiting at the breakfast counter), `nw_b363` (s14, "He takes both"), `nw_b703` (s27a, Vera through the counter flap), `nw_b1123` (s69, Mara and Jack walk on), `nw_b1452` (s84, the frayed strap) and `nw_b1639` (s98, Vera understands). Single-beat holds and the `nw_s4` television close-up were passed over, the latter because the very next frame is already the television.
+
+Five were voted and saved in `reviews/uncut-no-vote-20261030-batch7/`: `nw_b634` (option 2), `nw_b703` (option 1), `nw_b1123` (option 1), `nw_b1452` (option 2) and `nw_b1639` (option 2). `nw_b363` was skipped in both rounds — the original prompt and an improved two-shot retry — and remains unsaved; both prompts are recorded, and a single on Jack turning the clip in his fingers is the suggested next angle.
+
+Original files are unchanged: source pictures were only read as references and each selected JPEG was written straight from the provider with no crop, resize or re-encode. `cutModified: false` — pictures, timing, audio, captions and saved custom edits are untouched.
+
 ### Prompt to continue duplicate-image work
 
 > Continue Original Uncut coverage by running `scripts/audit-uncut-duplicates.ts` and `scripts/audit-uncut-holds.ts`. Find adjacent stills with the same effective picture, including short and cross-scene runs; check for other visually identical files manually. Choose ordinary targets at random, inspect the text and both neighbouring picture references, and offer a separate vote for each plausible replacement. Keep any selected original image files, treat skips as quality rejections and retry them with better prompts, and replace only the selected visual coverage, not timeline time, audio or captions. Respect direct and inherited custom pictures in active and stashed saves, and do not change other cuts. Also address longer-than-seven-second and single-beat holds without silently splitting audio or changing total timing. Update this document with votes, exact prompts and audit counts, run the tests, and commit approved work.
