@@ -2,7 +2,7 @@
 
 - A selected caption can be split at the playhead with S or Split CC without splitting its picture or audio clip. The cue text is divided at an estimated word boundary and can be edited afterwards; single-word cues cannot be divided this way. With no caption selected, Split continues to split the picture clip.
 - The marker name editor is positioned above the timeline toolbar controls so its buttons remain accessible.
-- No existing images were removed or replaced.
+- Original imported source images remain unchanged.
 
 ## Recovery limitation
 
@@ -15,7 +15,17 @@ The workspace was reset to the base checkout during this session. The previously
 ## Original Uncut long-hold coverage
 
 - Ten separately voted intermediate stills have been added at existing beat boundaries; the original source pictures, dialogue, captions, audio and total timing remain intact. Existing Uncut saves are upgraded only where their current pictures still match the original; custom active and stashed pictures are preserved. Other cuts are unchanged.
-- The reproducible audit in `scripts/audit-uncut-holds.ts` reports both scene-bounded and continuous still-image holds, including pictures carried over scene boundaries. Its current normal-playback result is 307 continuous holds over seven seconds, so this work remains incomplete. See `IMAGE_RECOVERY.md` for accepted and rejected votes, exact prompts, the continuation prompt and remaining earlier recreations.
+- The reproducible audit in `scripts/audit-uncut-holds.ts` reports both scene-bounded and continuous still-image holds, including pictures carried over scene boundaries. Its current normal-playback result is 304 continuous holds over seven seconds, so this work remains incomplete. See `IMAGE_RECOVERY.md` for accepted and rejected votes, exact prompts, the continuation prompt and remaining earlier recreations.
+
+## Original Uncut adjacent duplicate images
+
+- Sixteen randomly selected duplicate pairs have separately voted replacements at their existing beat boundaries. The original stills, dialogue, audio, captions and timeline duration remain intact; guarded v12–v15 migrations preserve direct and carried custom pictures in active or stashed saves. V15 also protects explicit holds and shot-specific edits and rolls back changes that would affect another frame's effective picture or look. Other cuts are unchanged.
+- At the user's request Harada's initial tight crop was replaced with a separately voted wide newsroom shot. The earlier selected image remains saved; the v13 migration changes the previous bundled shot only where other pictures and effective looks remain intact.
+- `scripts/audit-uncut-duplicates.ts` reports adjacent stills sharing the same effective image reference, including short holds and cross-scene pairs. The factory cut went from 914 to 898 pairs; this is incomplete and does not detect differently named files with identical pixels. See `IMAGE_RECOVERY.md` for exact prompts, votes and continuation instructions.
+
+## Ten-shot voting fallback
+
+- The no-vote image provider returned HTTP 403 on retry, so the user requested voting instead. Nine selected images were installed; `nw_b87` was skipped and remains unchanged. The selected originals, numbered review gallery, reference previews and exact prompts are in `reviews/uncut-no-vote-20261030/`.
 
 ## Select and grade image frames
 

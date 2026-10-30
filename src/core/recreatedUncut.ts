@@ -1,3 +1,20 @@
+import openSedanDoor from "../assets/recreated-uncut/1562-sedan-door.jpg?url&inline";
+import veraAsksMara from "../assets/recreated-uncut/199-asking-about-mara.jpg?url&inline";
+import plazaMiniatures from "../assets/recreated-uncut/1439-plaza-miniatures.jpg?url&inline";
+import veraReadsNotebook from "../assets/recreated-uncut/1332-reading-notebook.jpg?url&inline";
+import kanekoAtCounter from "../assets/recreated-uncut/465-kaneko-at-counter.jpg?url&inline";
+import veraInStoreroom from "../assets/recreated-uncut/1464-vera-storeroom.jpg?url&inline";
+import ishidaDrives from "../assets/recreated-uncut/1007-ishida-drives.jpg?url&inline";
+import jackRemembers from "../assets/recreated-uncut/288-jack-remembers.jpg?url&inline";
+import shadowedCarWindow from "../assets/recreated-uncut/1302-black-sedan-window.jpg?url&inline";
+import ishidasAnswer from "../assets/recreated-uncut/1349-ishidas-answer.jpg?url&inline";
+import justAnInn from "../assets/recreated-uncut/773-just-an-inn.jpg?url&inline";
+import veraReadsLetter from "../assets/recreated-uncut/1316-vera-reads-letter.jpg?url&inline";
+import dressReady from "../assets/recreated-uncut/1076-dress-ready.jpg?url&inline";
+import ishidaWarning from "../assets/recreated-uncut/300-ishida-warning.jpg?url&inline";
+import previousListeningToTape from "../assets/recreated-uncut/1383-listening-to-tape.jpg?url&inline";
+import wideListeningToTape from "../assets/recreated-uncut/1383-listening-wide.jpg?url&inline";
+import later from "../assets/recreated-uncut/980-later.jpg?url&inline";
 import danielVossPortrait from "../assets/recreated-uncut/284-daniel-voss-portrait.jpg?url&inline";
 import whereIsIt from "../assets/recreated-uncut/1360-where-is-it.jpg?url&inline";
 import missingPersonForm from "../assets/recreated-uncut/128-missing-person-form.jpg?url&inline";
@@ -23,11 +40,30 @@ import wasThatYou from "../assets/recreated-uncut/1351-was-that-you.jpg?url&inli
 import emptyChair from "../assets/recreated-uncut/1573-empty-chair.jpg?url&inline";
 import twentyYears from "../assets/recreated-uncut/031-after-twenty-years.jpg?url&inline";
 import veraStill from "../assets/recreated-uncut/1637-vera-still.jpg?url&inline";
-import { buildKeyframes, type ProjectAsset, type ProjectState, type StoryLike } from "./model";
+import { buildKeyframes, type Keyframe, type ProjectAsset, type ProjectState, type StoryLike } from "./model";
+
+const OLD_HARADA_ID = "duplicate-uncut-1383";
+const wideHaradaPlate = { id: "duplicate-uncut-1383-wide", beat: "nw_b1383", scene: "nw_s82", source: "/film/img/s82/509-twenty-years-younger.jpg", name: "Listening to the tape (wide).jpg", data: wideListeningToTape, version: 13 } as const;
 
 // Only replacements selected in this recovery are listed here. The original
 // imported story is never modified, and saved user pictures are left intact.
 const plates = [
+  { id: "duplicate-uncut-1562", beat: "nw_b1562", scene: "nw_s94", source: "/film/img/s94/139-only-tea.jpg", name: "The open sedan door.jpg", data: openSedanDoor, version: 15 },
+  { id: "duplicate-uncut-199", beat: "nw_b199", scene: "nw_s8", source: "/film/img/s8/160-were-closed.jpg", name: "Vera asks about Mara.jpg", data: veraAsksMara, version: 15 },
+  { id: "duplicate-uncut-1439", beat: "nw_b1439", scene: "nw_s83", source: "/film/img/retakes_2026_10_20/112-every-page-r1.jpg", name: "The tiny plaza.jpg", data: plazaMiniatures, version: 15 },
+  { id: "duplicate-uncut-1332", beat: "nw_b1332", scene: "nw_s79", source: "/film/img/s79/92-underlined-twice.jpg", name: "Vera reads the notebook.jpg", data: veraReadsNotebook, version: 15 },
+  { id: "duplicate-uncut-465", beat: "nw_b465", scene: "nw_s17", source: "/film/img/s17/434-i-was-already-old.jpg", name: "Kaneko at the counter.jpg", data: kanekoAtCounter, version: 15 },
+  { id: "duplicate-uncut-1464", beat: "nw_b1464", scene: "nw_s84", source: "/film/img/s84/117-both-wrong.jpg", name: "Vera in the storeroom.jpg", data: veraInStoreroom, version: 15 },
+  { id: "duplicate-uncut-1007", beat: "nw_b1007", scene: "nw_s61", source: "/film/img/s61/481-the-side-of-his-face.jpg", name: "Ishida behind the wheel.jpg", data: ishidaDrives, version: 15 },
+  { id: "duplicate-uncut-288", beat: "nw_b288", scene: "nw_s11", source: "/film/img/s11/167-two-men-laughing.jpg", name: "Jack studies the photograph.jpg", data: jackRemembers, version: 15 },
+  { id: "duplicate-uncut-1302", beat: "nw_b1302", scene: "nw_s77a", source: "/film/img/s77a/1296-everyone-is-allowed-one.jpg", name: "The shadowed car window.jpg", data: shadowedCarWindow, version: 15 },
+  { id: "duplicate-uncut-1349", beat: "nw_b1349", scene: "nw_s80", source: "/film/img/s80/95-ishida-doesnt-look-up.jpg", name: "Ishida's answer.jpg", data: ishidasAnswer, version: 14 },
+  { id: "duplicate-uncut-773", beat: "nw_b773", scene: "nw_s36", source: "/film/img/s36/538-the-receipts-in-his-hand.jpg", name: "Just an inn.jpg", data: justAnInn, version: 14 },
+  { id: "duplicate-uncut-1316", beat: "nw_b1316", scene: "nw_s79", source: "/film/img/s79/91-grey-light.jpg", name: "Vera reads the letter.jpg", data: veraReadsLetter, version: 14 },
+  { id: "duplicate-uncut-1076", beat: "nw_b1076", scene: "nw_s65_b", source: "/film/img/s65/232-the-wine-red-dress.jpg", name: "The dress is ready.jpg", data: dressReady, version: 14 },
+  { id: "duplicate-uncut-300", beat: "nw_b300", scene: "nw_s11", source: "/film/img/s11/419-twenty-years.jpg", name: "Ishida's warning.jpg", data: ishidaWarning, version: 12 },
+  wideHaradaPlate,
+  { id: "duplicate-uncut-980", beat: "nw_b980", scene: "nw_s59", source: "/film/img/s59/477-he-hardly-hears-her.jpg", name: "Later.jpg", data: later, version: 12 },
   { id: "gap-uncut-284", beat: "nw_b284", scene: "nw_s11", source: "/film/img/s11/244-daniel-voss-41.jpg", name: "Daniel Voss portrait.jpg", data: danielVossPortrait, version: 11 },
   { id: "gap-uncut-1360", beat: "nw_b1360", scene: "nw_s80", source: "/film/img/s80/the-blood-on-his-hand.jpg", name: "Where is it.jpg", data: whereIsIt, version: 11 },
   { id: "gap-uncut-128", beat: "nw_b128", scene: "nw_s6", source: "/film/img/s6/321-the-form.jpg", name: "Missing person form.jpg", data: missingPersonForm, version: 10 },
@@ -54,16 +90,91 @@ const plates = [
   { id: "recreated-uncut-148", beat: "nw_b148", scene: "nw_s6", source: "/film/img/s6/56-three-days-ago.jpg", name: "How did she seem.jpg", data: howDidSheSeem, version: 6 },
   { id: "recreated-uncut-716", beat: "nw_b716", scene: "nw_s28", source: "/film/img/s28/203-the-sea-wall-steps.jpg", name: "Sea wall road.jpg", data: seaWallRoad, version: 6 },
 ] as const;
-const COVERAGE_VERSION = 11;
+const COVERAGE_VERSION = 15;
+
+function addBundledJpeg(assets: ProjectAsset[], plate: { id: string; name: string; data: string }): void {
+  if (assets.some(asset => asset.id === plate.id)) return;
+  const base64 = plate.data.split(",")[1] || "";
+  assets.push({ id: plate.id, name: plate.name, type: "image", mime: "image/jpeg",
+    size: Math.floor(base64.length * 3 / 4) - (base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0),
+    source: "bundle", dataUrl: plate.data });
+}
+
+/** Upgrade only the exact old bundled Harada image, retaining it for any other uses. */
+function upgradePreviousHarada(story: StoryLike, frames: Keyframe[], assets: ProjectAsset[], afterVersion: number): void {
+  if (afterVersion >= wideHaradaPlate.version) return;
+  const oldAsset = assets.find(asset => asset.id === OLD_HARADA_ID);
+  if (oldAsset?.source !== "bundle" || oldAsset.dataUrl !== previousListeningToTape) return;
+  const existingWide = assets.find(asset => asset.id === wideHaradaPlate.id);
+  if (existingWide && (existingWide.source !== "bundle" || existingWide.dataUrl !== wideHaradaPlate.data)) return;
+  const index = frames.findIndex(frame => frame.sceneId === wideHaradaPlate.scene && frame.id === wideHaradaPlate.beat);
+  const frame = frames[index];
+  const oldRef = `asset:${OLD_HARADA_ID}`;
+  if (!frame || frame.picture !== oldRef || frame.beat.background !== oldRef || frame.beat.backgroundRevert || frame.beat.gap) return;
+
+  // If a later beat carries the old image, keep that picture rather than
+  // changing an extra shot. Gaps do not end a held image. A cross-scene carry
+  // or an explicitly non-held next beat is too ambiguous to rewrite safely.
+  const next = frames.slice(index + 1).find(candidate => !candidate.beat.gap);
+  let restoredNext: Keyframe | undefined;
+  let hadBackground = false;
+  let hadCinematic = false;
+  let previousBackground: string | undefined;
+  let previousCinematic: Keyframe["beat"]["cinematic"];
+  if (next?.picture === oldRef && !next.beat.background && !next.beat.backgroundRevert) {
+    if (next.sceneId !== frame.sceneId || next.beat.backgroundHold === false) return;
+    restoredNext = next;
+    hadBackground = Object.prototype.hasOwnProperty.call(next.beat, "background");
+    hadCinematic = Object.prototype.hasOwnProperty.call(next.beat, "cinematic");
+    previousBackground = next.beat.background;
+    previousCinematic = next.beat.cinematic;
+    next.beat.background = oldRef;
+    if (!next.beat.cinematic && next.cinematic) {
+      next.beat.cinematic = JSON.parse(JSON.stringify(next.cinematic));
+    }
+  }
+  frame.beat.background = `asset:${wideHaradaPlate.id}`;
+  // A changed held picture can indirectly affect later frames. Validate the
+  // entire effective sequence and back out if any other picture or look moves.
+  const after = buildKeyframes(story);
+  const safe = after.length === frames.length && frames.every((before, i) => {
+    const current = after[i];
+    return before.id === current.id && (before.id === frame.id || before.picture === current.picture) &&
+      JSON.stringify(before.cinematic) === JSON.stringify(current.cinematic);
+  });
+  if (!safe) {
+    frame.beat.background = oldRef;
+    if (restoredNext) {
+      if (hadBackground) restoredNext.beat.background = previousBackground;
+      else delete restoredNext.beat.background;
+      if (hadCinematic) restoredNext.beat.cinematic = previousCinematic;
+      else delete restoredNext.beat.cinematic;
+    }
+    return;
+  }
+  // Keep any saved hold, camera, grade and animation settings intact.
+  addBundledJpeg(assets, wideHaradaPlate);
+}
 
 export function addRecreatedUncutCoverage(story: StoryLike, existing: ProjectAsset[], afterVersion = 0): ProjectAsset[] {
   if (story.id !== "nobodys-witness-film") return existing;
   const frames = buildKeyframes(story);
   const assets = [...existing];
+  upgradePreviousHarada(story, frames, assets, afterVersion);
   const candidates = plates.filter(plate => {
     if (plate.version <= afterVersion) return false;
+    // Never redirect a shot to a user asset that happens to share a bundled ID.
+    const already = assets.find(asset => asset.id === plate.id);
+    if (already && (already.source !== "bundle" || already.dataUrl !== plate.data)) return false;
     const frame = frames.find(f => f.sceneId === plate.scene && f.id === plate.beat);
     if (!frame || frame.picture !== plate.source || frame.beat.background || frame.beat.backgroundRevert || frame.beat.gap) return false;
+    if (plate.version >= 15) {
+      // Explicit shot-specific layers and hold settings are user edits; do not
+      // discard them merely because the underlying picture still matches.
+      const shotMedia = ["depthMap", "depthPlate", "depthCutouts", "foregroundImage", "foregroundExtras", "parallaxLayers", "foregroundAnimation"];
+      if (frame.beat.backgroundHold === true || (frame.beat.cinematic &&
+        shotMedia.some(key => Object.prototype.hasOwnProperty.call(frame.beat.cinematic, key)))) return false;
+    }
     const next = frames[frames.indexOf(frame) + 1];
     return !(next?.sceneId === frame.sceneId && next.picture === plate.source &&
       !next.beat.background && !next.beat.backgroundRevert && next.beat.backgroundHold === false);
@@ -72,6 +183,19 @@ export function addRecreatedUncutCoverage(story: StoryLike, existing: ProjectAss
   for (const plate of candidates) {
     const frame = frames.find(f => f.sceneId === plate.scene && f.id === plate.beat)!;
     const next = frames[frames.indexOf(frame) + 1];
+    // A saved edit can make the next still (or its look) depend on the held
+    // picture. Record the complete effective sequence before a v15 insertion;
+    // if any other frame changes, restore the original beat fields below.
+    const before = plate.version >= 15 ? buildKeyframes(story).map(item => ({
+      id: item.id, picture: item.picture, cinematic: JSON.stringify(item.cinematic),
+    })) : undefined;
+    const has = (object: object, key: string) => Object.prototype.hasOwnProperty.call(object, key);
+    const previous = before ? {
+      hadBackground: has(frame.beat, "background"), background: frame.beat.background,
+      hadHold: has(frame.beat, "backgroundHold"), hold: frame.beat.backgroundHold,
+      hadCinematic: has(frame.beat, "cinematic"), cinematic: frame.beat.cinematic,
+      nextHadBackground: !!next && has(next.beat, "background"), nextBackground: next?.beat.background,
+    } : undefined;
     // A non-held picture reverts to the scene background rather than the held
     // predecessor. Restore the next inherited picture unless it is itself a
     // selected replacement. Candidates are chosen before any mutation.
@@ -85,12 +209,28 @@ export function addRecreatedUncutCoverage(story: StoryLike, existing: ProjectAss
       delete cinematic.depthMap; delete cinematic.depthPlate; delete cinematic.depthCutouts;
       frame.beat.cinematic = cinematic;
     }
-    if (!assets.some(asset => asset.id === plate.id)) {
-      const base64 = plate.data.split(",")[1] || "";
-      assets.push({ id: plate.id, name: plate.name, type: "image", mime: "image/jpeg",
-        size: Math.floor(base64.length * 3 / 4) - (base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0),
-        source: "bundle", dataUrl: plate.data });
+    if (before && previous) {
+      const after = buildKeyframes(story);
+      const safe = after.length === before.length && before.every((old, index) => {
+        const current = after[index];
+        return old.id === current.id && (old.id === frame.id ||
+          (old.picture === current.picture && old.cinematic === JSON.stringify(current.cinematic)));
+      });
+      if (!safe) {
+        if (previous.hadBackground) frame.beat.background = previous.background;
+        else delete frame.beat.background;
+        if (previous.hadHold) frame.beat.backgroundHold = previous.hold;
+        else delete frame.beat.backgroundHold;
+        if (previous.hadCinematic) frame.beat.cinematic = previous.cinematic;
+        else delete frame.beat.cinematic;
+        if (next) {
+          if (previous.nextHadBackground) next.beat.background = previous.nextBackground;
+          else delete next.beat.background;
+        }
+        continue;
+      }
     }
+    addBundledJpeg(assets, plate);
   }
   return assets;
 }

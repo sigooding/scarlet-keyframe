@@ -1,0 +1,562 @@
+{
+  "date": "2026-10-30",
+  "project": "Original Uncut",
+  "selection": "Ten randomly selected duplicate-still targets in ten distinct scenes.",
+  "request": "Initially ten candidates without voting for later review; after the no-vote retry failed, the user explicitly requested fallback voting.",
+  "generation": {
+    "initialNoVote": {
+      "attempts": 10,
+      "succeeded": 0,
+      "error": "Provider returned HTTP 403 account restriction."
+    },
+    "retryNoVote": {
+      "attempts": 1,
+      "succeeded": 0,
+      "error": "Provider returned HTTP 403 account restriction."
+    },
+    "fallbackVoting": {
+      "attempts": 10,
+      "selected": 9,
+      "skipped": 1
+    }
+  },
+  "cutModified": true,
+  "frameRate": 24,
+  "shots": [
+    {
+      "number": 1,
+      "title": "The open sedan door",
+      "scene": "nw_s94",
+      "targetBeat": "nw_b1562",
+      "precedingBeat": "nw_b1561",
+      "nextBeat": "nw_b1563",
+      "targetText": "Its rear door stands open: warm amber light, leather.",
+      "targetDurationFrames": 71,
+      "intendedOutput": "reviews/uncut-no-vote-20261030/images/01-nw-b1562-sedan-door.jpg",
+      "status": "selected",
+      "installed": true,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s94/139-only-tea.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1562-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1562-before.jpg",
+          "sha256": "946eb5a5fdb0631e215d92685ce23a3cc4cdb639783bedb21bbbfc18698cd9df",
+          "reviewPreview": "context/01-before.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1562-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s94/140-where-are-we-going.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1562-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1562-after.jpg",
+          "sha256": "67b1035c7d9ebf57de4e18957b118c0b4de66f8f9f0b87638566e32042a7978a",
+          "reviewPreview": "context/01-after.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1562-after.jpg"
+        }
+      ],
+      "prompt": "Create one horizontal 16:9 photorealistic film still for Nobody's Witness at beat nw_b1562. Use both neighbouring reference images for the same rain-soaked black sedan, beige leather interior and warm amber cabin light. Show a distinct closer three-quarter view from the wet pavement of the open rear door and the inviting empty seat nearest the door. The same silver-haired older Japanese man in a dark suit remains quietly seated on the far side, as in the first reference; the driver is only a dim silhouette. Match the real car's black bodywork, rain droplets, leather and lighting. Ishida has not yet entered this shot; do not add another person beside the car. Restrained Tokyo-noir photographic realism, natural proportions, no captions, titles, readable added text, logos or watermark. A complete wide landscape frame, not a square or a tight crop.",
+      "voteOption": 2,
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030/images/01-nw-b1562-sedan-door.jpg",
+        "sha256": "952aec5e95f0f18d6e35800af2864dec7ebc3ca6eb57f3b945aeea9872c04bab",
+        "width": 1672,
+        "height": 941
+      },
+      "inlineAsset": {
+        "id": "duplicate-uncut-1562",
+        "file": "src/assets/recreated-uncut/1562-sedan-door.jpg",
+        "sha256": "7d03262425f9843d2dc73521eaa092192459859df607a989dc8a8e6ad7d89bd1",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "number": 2,
+      "title": "Vera asks about Mara",
+      "scene": "nw_s8",
+      "targetBeat": "nw_b199",
+      "precedingBeat": "nw_b198",
+      "nextBeat": "nw_b200",
+      "targetText": "My sister. Four nights ago. Was she here?",
+      "targetDurationFrames": 120,
+      "intendedOutput": "reviews/uncut-no-vote-20261030/images/02-nw-b199-asking-about-mara.jpg",
+      "status": "selected",
+      "installed": true,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s8/160-were-closed.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b199-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b199-before.jpg",
+          "sha256": "e7587b2c16d84897b0cfc796c1a13d270f145ca226333b19676e5b2d20cfc690",
+          "reviewPreview": "context/02-before.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b199-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s8/410-exactly-one-second.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b199-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b199-after.jpg",
+          "sha256": "76d2a00584fc01a8ff30724f79809df02db237ac70a2bfa01b28f9bde97d8051",
+          "reviewPreview": "context/02-after.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b199-after.jpg"
+        },
+        {
+          "order": 3,
+          "role": "Vera identity",
+          "sourceFilmPath": "/film/img/s6/58-why-kanda.jpg",
+          "generationInputPath": "/home/user/duplicate-six-references/nw_b154-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b199-vera-identity.jpg",
+          "sha256": "08c539a2fd9986cb02131fdb4807420d03e40cd2c2a72ad85fbcc20166859c03",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b199-vera-identity.jpg"
+        }
+      ],
+      "prompt": "Create one horizontal 16:9 photorealistic film still for Nobody's Witness at beat nw_b199. The first two references establish the same narrow, dim Kanda bar, elderly owner Okada in a dark apron and white shirt, and Vera holding up a phone; the third reference identifies Vera's face and clothes only. Show a distinct medium two-shot of the same blonde Vera in her dark coat and cream turtleneck politely asking Okada about her missing sister while holding her phone toward him. The back of the phone faces the camera, so its picture is not invented or readable. Okada looks at her before the following close-up. Keep the same wet windows, bottles, bar stools and subdued rainy daylight. Natural hands, quiet tension, no new foreground people, no captions, subtitles, added readable words or watermark. Wide landscape composition with comfortable headroom.",
+      "voteOption": 2,
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030/images/02-nw-b199-asking-about-mara.jpg",
+        "sha256": "689fc836f58ad13f2ffaa499686c915b52efb27e7a45769ea2d606183774b0b5",
+        "width": 2048,
+        "height": 1152
+      },
+      "inlineAsset": {
+        "id": "duplicate-uncut-199",
+        "file": "src/assets/recreated-uncut/199-asking-about-mara.jpg",
+        "sha256": "bf963067fd655ae73b797e336550b9b7887ee6a6bb07547eba80f555c7f20973",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "number": 3,
+      "title": "Vera makes the call",
+      "scene": "nw_s4",
+      "targetBeat": "nw_b87",
+      "precedingBeat": "nw_b86",
+      "nextBeat": "nw_b88",
+      "targetText": "Her phone lies face up in front of her. She calls. Waits.",
+      "targetDurationFrames": 76,
+      "intendedOutput": "reviews/uncut-no-vote-20261030/images/03-nw-b87-vera-calls.jpg",
+      "status": "skipped for quality",
+      "installed": false,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s4/385-the-empty-place.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b87-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b87-before.jpg",
+          "sha256": "dfd5b7b909db2a7d8621cb14095d7d8bd1f98b19b37b5ffba0b66eecc940561d",
+          "reviewPreview": "context/03-before.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b87-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s4/37-the-answerphone.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b87-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b87-after.jpg",
+          "sha256": "51dc88cdf33bbbeeb5eb8ff3496865fb3b1f0946828ed215fb6b2167bd4d4b0a",
+          "reviewPreview": "context/03-after.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b87-after.jpg"
+        }
+      ],
+      "prompt": "Create one horizontal 16:9 photorealistic film still for Nobody's Witness at beat nw_b87. Use both neighbouring images for the SAME blonde Vera, cream knit turtleneck, low wooden table, two pale cups, rainy window, television and apartment. Show a distinct medium-wide view of Vera seated at that table, having picked up the black smartphone and holding it to her ear as she waits for her sister to answer. One cup contains cold tea and the second remains empty. Match the quiet grey daylight and warm interior hints, her recognisable face and subdued worried expression. No other people, phone-screen text, subtitles, titles or watermark; natural hands and restrained realistic cinematic photography. A complete landscape 16:9 frame, not a square or extreme close-up.",
+      "voteOption": null,
+      "selectedImage": null,
+      "inlineAsset": null
+    },
+    {
+      "number": 4,
+      "title": "The tiny plaza",
+      "scene": "nw_s83",
+      "targetBeat": "nw_b1439",
+      "precedingBeat": "nw_b1438",
+      "nextBeat": "nw_b1440",
+      "targetText": "Tiny painted people cross it.",
+      "targetDurationFrames": 42,
+      "intendedOutput": "reviews/uncut-no-vote-20261030/images/04-nw-b1439-plaza-miniatures.jpg",
+      "status": "selected",
+      "installed": true,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/retakes_2026_10_20/112-every-page-r1.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1439-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1439-before.jpg",
+          "sha256": "960696b267456d13ccaeed2662d4ff2cda7114ee3e6b1b34efca4e7fc4da28d5",
+          "reviewPreview": "context/04-before.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1439-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s83/113-very-clean.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1439-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1439-after.jpg",
+          "sha256": "f4cd8785b8dd4e15110a2e5efe94143a770da6c107986fa0f15a92294dd6dba9",
+          "reviewPreview": "context/04-after.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1439-after.jpg"
+        }
+      ],
+      "prompt": "Create one horizontal 16:9 photorealistic film still for Nobody's Witness at beat nw_b1439. Use both references for Kurose's pale high-rise office and especially the architectural scale model under its glass cover. Make a distinct close view of the actual miniature model: an immaculate white paved plaza with a round fountain, small pale model trees, geometric green patches and a handful of tiny painted model people. The miniature figures should clearly be small scale-model objects, not full-size live people. Match the towers and orderly layout from the second reference, with soft overcast daylight and a hint of the glass case. No new buildings, readable writing, subtitles, graphic overlays or watermark. Restrained realistic cinematic photography, true wide landscape framing.",
+      "voteOption": 1,
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030/images/04-nw-b1439-plaza-miniatures.jpg",
+        "sha256": "60fdbb1d52fc54e84fab961bdd6c4e1be36654f18b6860a577980a0d6b4e5c5e",
+        "width": 2048,
+        "height": 1152
+      },
+      "inlineAsset": {
+        "id": "duplicate-uncut-1439",
+        "file": "src/assets/recreated-uncut/1439-plaza-miniatures.jpg",
+        "sha256": "6a0e0dbca1cf25359e70e2b0219538f5875452e7c7c75a3ca1029ac254e36496",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "number": 5,
+      "title": "Vera reads the notebook",
+      "scene": "nw_s79",
+      "targetBeat": "nw_b1332",
+      "precedingBeat": "nw_b1331",
+      "nextBeat": "nw_b1333",
+      "targetText": "I'll go on alone. I've done it before.",
+      "targetDurationFrames": 95,
+      "intendedOutput": "reviews/uncut-no-vote-20261030/images/05-nw-b1332-reading-notebook.jpg",
+      "status": "selected",
+      "installed": true,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s79/92-underlined-twice.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1332-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1332-before.jpg",
+          "sha256": "fa6addccbd2dc83b6d07939b1837c2c09d275ecead2839c4f8b042db5c6350c6",
+          "reviewPreview": "context/05-before.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1332-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s79/508-almost-unrecognisable.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1332-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1332-after.jpg",
+          "sha256": "4a79858eb810bf47690f6284c6eaff836842d57060b263f2d09c6aa3e165b7f6",
+          "reviewPreview": "context/05-after.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1332-after.jpg"
+        },
+        {
+          "order": 3,
+          "role": "Vera identity and apartment",
+          "sourceFilmPath": "/film/img/s79/91-grey-light.jpg",
+          "generationInputPath": "/home/user/duplicate-six-references/nw_b1316-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1332-vera-identity.jpg",
+          "sha256": "6973c967d5f86f0efc27f7fcf12aafb2e4a7498ec2f11a23fe1f07ff28eb1a31",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1332-vera-identity.jpg"
+        }
+      ],
+      "prompt": "Create one horizontal 16:9 photorealistic film still for Nobody's Witness at beat nw_b1332. The first two references show the same open old notebook on Vera's low wooden table and its later increasingly disordered handwriting; the third establishes Vera's face, wine-red sleeveless dress and rainy dawn apartment. Show a distinct medium three-quarter view of the SAME blonde Vera reading the open notebook, one hand resting near the page, her face quietly affected by what she is learning about her father. Preserve the two pale cups, table, window and restrained cold morning light. The notebook is a physical object with indistinct handwriting; do not invent legible words or add captions. No other people, subtitles or watermark. Natural hands and grounded cinematic realism, a full landscape frame with headroom.",
+      "voteOption": 1,
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030/images/05-nw-b1332-reading-notebook.jpg",
+        "sha256": "5f1fff4e605a26a64c5a1ae69d02f84a8e60607a151fbebec85845003b8b6529",
+        "width": 1672,
+        "height": 941
+      },
+      "inlineAsset": {
+        "id": "duplicate-uncut-1332",
+        "file": "src/assets/recreated-uncut/1332-reading-notebook.jpg",
+        "sha256": "08d74c270268f643e3dbf7e4836fe83125ff543d1138536861734e25971ff31a",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "number": 6,
+      "title": "Kaneko at the counter",
+      "scene": "nw_s17",
+      "targetBeat": "nw_b465",
+      "precedingBeat": "nw_b464",
+      "nextBeat": "nw_b466",
+      "targetText": "Everything is going. We are just slower.",
+      "targetDurationFrames": 97,
+      "intendedOutput": "reviews/uncut-no-vote-20261030/images/06-nw-b465-kaneko-at-counter.jpg",
+      "status": "selected",
+      "installed": true,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s17/434-i-was-already-old.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b465-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b465-before.jpg",
+          "sha256": "d1328a651d9c68fa02acaf0e47d67ae07399fbb3e639a4cb9bd2b665f9524968",
+          "reviewPreview": "context/06-before.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b465-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s17/358-the-empty-third-stool.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b465-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b465-after.jpg",
+          "sha256": "dba6aabb6bd7831172f487cdaea4dad9b60b95076531aac55052ef4b1d99b314",
+          "reviewPreview": "context/06-after.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b465-after.jpg"
+        }
+      ],
+      "prompt": "Create one horizontal 16:9 photorealistic film still for Nobody's Witness at beat nw_b465. Use both neighbouring references for Kaneko's small noodle shop: the same elderly Japanese woman with grey hair, brown cardigan and blue apron works behind the steaming pot; Jack sits at the wooden counter in a dark coat. Show a distinct medium-wide side angle of the two: Kaneko speaks with quiet warmth while tending the pot with long chopsticks, and the same dark-haired Jack listens from his stool. Match their faces, positions, counter, crockery, curtain, steam and low warm lights. Natural human proportions and understated feeling, realistic Tokyo-noir cinematography. No invented foreground people, captions, subtitles, added readable text or watermark. Complete widescreen frame with room around both heads.",
+      "voteOption": 1,
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030/images/06-nw-b465-kaneko-at-counter.jpg",
+        "sha256": "c24181a8900c753666978d399c9eb78fbc30dd8e2c8576aef55edfb6334c3c57",
+        "width": 2048,
+        "height": 1152
+      },
+      "inlineAsset": {
+        "id": "duplicate-uncut-465",
+        "file": "src/assets/recreated-uncut/465-kaneko-at-counter.jpg",
+        "sha256": "dc44a41e9a8264c5871dfef79dc184b970919baff7ce9bd4d89bf4d3a5c21628",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "number": 7,
+      "title": "Vera in the storeroom",
+      "scene": "nw_s84",
+      "targetBeat": "nw_b1464",
+      "precedingBeat": "nw_b1463",
+      "nextBeat": "nw_b1465",
+      "targetText": "Ishida called me before it was on any news. He knew exactly where she was.",
+      "targetDurationFrames": 132,
+      "intendedOutput": "reviews/uncut-no-vote-20261030/images/07-nw-b1464-vera-storeroom.jpg",
+      "status": "selected",
+      "installed": true,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s84/117-both-wrong.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1464-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1464-before.jpg",
+          "sha256": "448fd1292a52f78a9779a35dbafa6b173d491d26b0158ed6a691057cb9f36cbb",
+          "reviewPreview": "context/07-before.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1464-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s84/518-thats-mine.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1464-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1464-after.jpg",
+          "sha256": "740e468e91c1229cb932918ca232999fccf5b784268676152f8347bc9e82cbfb",
+          "reviewPreview": "context/07-after.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1464-after.jpg"
+        },
+        {
+          "order": 3,
+          "role": "Vera identity in the storeroom",
+          "sourceFilmPath": "/film/img/s84/519-not-all-right.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1464-vera.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1464-vera.jpg",
+          "sha256": "144fc1607b88302fa36191e6948460a211491d8ee1cab4427c2d76c04c23480b",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1464-vera.jpg"
+        }
+      ],
+      "prompt": "Create one horizontal 16:9 photorealistic film still for Nobody's Witness at beat nw_b1464. Use the first two images for the cramped noodle-shop storeroom and Jack, and the third for Vera's exact face, tied-back blonde hair and dark coat over a pale shirt. Show a distinct medium shot of the SAME Vera standing near the curtain and taped sketches, speaking seriously toward Jack across the room; he may appear only as a blurred shoulder in the foreground. Keep the same bare bulb, worn walls, flour sacks and warm dim light from the references. Preserve their distance and the quiet, difficult emotional tone; no new people or objects, no captions, subtitles, overlaid words or watermark. Natural anatomy and grounded cinematic realism, complete landscape framing with headroom.",
+      "voteOption": 2,
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030/images/07-nw-b1464-vera-storeroom.jpg",
+        "sha256": "6bcd0e0f2080314cc26221be1663ebdbdc3220c047be27b76b650bf6a3682846",
+        "width": 1672,
+        "height": 941
+      },
+      "inlineAsset": {
+        "id": "duplicate-uncut-1464",
+        "file": "src/assets/recreated-uncut/1464-vera-storeroom.jpg",
+        "sha256": "fda8f6ef0fec2d01623563a9bd72d5886ed1322980784f09e55ed6a2579a76cf",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "number": 8,
+      "title": "Ishida behind the wheel",
+      "scene": "nw_s61",
+      "targetBeat": "nw_b1007",
+      "precedingBeat": "nw_b1006",
+      "nextBeat": "nw_b1008",
+      "targetText": "The sister.",
+      "targetDurationFrames": 43,
+      "intendedOutput": "reviews/uncut-no-vote-20261030/images/08-nw-b1007-ishida-drives.jpg",
+      "status": "selected",
+      "installed": true,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s61/481-the-side-of-his-face.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1007-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1007-before.jpg",
+          "sha256": "c32f77171ddd4c178d1fa7547d1c74fd473fd7c963d1cf268fd6a3846941e75a",
+          "reviewPreview": "context/08-before.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1007-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s61/482-just-you.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1007-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1007-after.jpg",
+          "sha256": "38aad11d5ee648a516891422d955b87b3514c5db9423ce889b3b18b8434572f7",
+          "reviewPreview": "context/08-after.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1007-after.jpg"
+        }
+      ],
+      "prompt": "Create one horizontal 16:9 photorealistic film still for Nobody's Witness at beat nw_b1007. Use both neighbouring images for the exact two men and the same car on a rainy night: Ishida drives, Jack sits in the passenger seat. Show a distinct medium angle from near the dashboard toward the SAME older Japanese Ishida in his dark jacket and pale shirt, hands naturally on the wheel, his face composed as he briefly responds without taking his attention from the road. Keep Jack out of the foreground, but preserve the car interior, wet glass, elevated road and muted amber streetlights in the references. No new characters, phones, weapons, captions, subtitles, added writing or watermark. Restrained suspense and natural anatomy, a full landscape 16:9 composition rather than a square crop.",
+      "voteOption": 2,
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030/images/08-nw-b1007-ishida-drives.jpg",
+        "sha256": "e1c82ba789b5e25b6e45fb84597e82ccb57573d45496dab40027e5937c699386",
+        "width": 1672,
+        "height": 941
+      },
+      "inlineAsset": {
+        "id": "duplicate-uncut-1007",
+        "file": "src/assets/recreated-uncut/1007-ishida-drives.jpg",
+        "sha256": "3a26af6b9ff008d79daf49611b94c7c0663ac0d9fe5bc0baac5c356cfda39c10",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "number": 9,
+      "title": "Jack studies the photograph",
+      "scene": "nw_s11",
+      "targetBeat": "nw_b288",
+      "precedingBeat": "nw_b287",
+      "nextBeat": "nw_b289",
+      "targetText": "Jack looks at it for a long time.",
+      "targetDurationFrames": 35,
+      "intendedOutput": "reviews/uncut-no-vote-20261030/images/09-nw-b288-jack-remembers.jpg",
+      "status": "selected",
+      "installed": true,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s11/167-two-men-laughing.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b288-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b288-before.jpg",
+          "sha256": "cdc8231b65e63d4cb1ab834a45027849ee73269eeaca00581a1640ab94bae825",
+          "reviewPreview": "context/09-before.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b288-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s11/418-it-takes-a-long-time-to-dial.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b288-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b288-after.jpg",
+          "sha256": "d30839116079137562fa1f163f4885822fc1fe04f611ff518f9a2097caa2fe12",
+          "reviewPreview": "context/09-after.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b288-after.jpg"
+        },
+        {
+          "order": 3,
+          "role": "Jack identity",
+          "sourceFilmPath": "/film/img/s11/419-twenty-years.jpg",
+          "generationInputPath": "/home/user/duplicate-references/nw_b300-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b288-jack-identity.jpg",
+          "sha256": "4e70a9ad2b38e684e722c30c802082c484dd1bdaa187fb618e9abfe514183385",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b288-jack-identity.jpg"
+        }
+      ],
+      "prompt": "Create one horizontal 16:9 photorealistic film still for Nobody's Witness at beat nw_b288. The first reference is Jack's old photograph of two laughing men on his wooden office desk; the second shows the green banker's lamp and black rotary phone he will dial next. The third identifies Jack's exact face and hair. Show a distinct medium view of the same middle-aged Western Jack in his dark coat and pale shirt, seated in the same dim rainy office and looking down at the old photograph with quiet grief. The photograph lies partly visible and softly out of focus on the desk, with the green lamp and rotary phone nearby; he has not started dialling yet. No invented readable text, extra people, subtitles or watermark. Natural anatomy and restrained, realistic noir cinematography, a complete wide landscape frame with headroom.",
+      "voteOption": 2,
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030/images/09-nw-b288-jack-remembers.jpg",
+        "sha256": "ede0c29ceab2394ccbd6d3f2f7c69ad82edd348a2f4da6afce9399fdd7334703",
+        "width": 1672,
+        "height": 941
+      },
+      "inlineAsset": {
+        "id": "duplicate-uncut-288",
+        "file": "src/assets/recreated-uncut/288-jack-remembers.jpg",
+        "sha256": "a50c7ef1c138691876c7ba6b4f983ab15fc7e211c7c506aed5fc216fb63ecc30",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "number": 10,
+      "title": "The shadowed car window",
+      "scene": "nw_s77a",
+      "targetBeat": "nw_b1302",
+      "precedingBeat": "nw_b1301",
+      "nextBeat": "nw_b1303",
+      "targetText": "Everyone is allowed one.",
+      "targetDurationFrames": 36,
+      "intendedOutput": "reviews/uncut-no-vote-20261030/images/10-nw-b1302-black-sedan-window.jpg",
+      "status": "selected",
+      "installed": true,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s77a/1296-everyone-is-allowed-one.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1302-before.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1302-before.jpg",
+          "sha256": "76795e642326c05b9467a0913bc1d48b29946e63db09fdb952921e9004a72ff3",
+          "reviewPreview": "context/10-before.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1302-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s77a/1303-reflection-in-black-glass.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1302-after.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1302-after.jpg",
+          "sha256": "921f790f14dffe727219ddfc52bbb1e3f9252fc76b6ab9f2b5cf993c7379547e",
+          "reviewPreview": "context/10-after.jpg",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1302-after.jpg"
+        },
+        {
+          "order": 3,
+          "role": "Watch and hand at the lowered window",
+          "sourceFilmPath": "/film/img/s77a/1294-hand-and-watch-on-sill.jpg",
+          "generationInputPath": "/home/user/uncut-review-refs-20261030/nw_b1302-hand.jpg",
+          "retainedWorkspaceCopy": "/home/user/uncut-review-refs-20261030/nw_b1302-hand.jpg",
+          "sha256": "df17ebe3dd1f45a9c8c339bb36aba950788da516462f695a291d63e88b5f0c80",
+          "fallbackVotingInputPath": "/home/user/uncut-review-refs-20261030/nw_b1302-hand.jpg"
+        }
+      ],
+      "prompt": "Create one horizontal 16:9 photorealistic film still for Nobody's Witness at beat nw_b1302. Use all three references for the same rain-wet black sedan, empty pre-dawn avenue, Jack outside and the clean hand with wristwatch resting on the lowered rear-window sill. Show a distinct exterior medium view of that partially open rear window as the unseen passenger speaks; the watch and hand are visible, while the passenger's face remains completely hidden in the dark interior. Jack, the same dark-haired Western man in a dark coat, is visible outside the car in a restrained side view. The window is still down; the next shot will show it raised with Jack's reflection. Match the wet black bodywork, cool white streetlights and tense muted noir atmosphere. No new characters, no clear face inside the car, no captions, subtitles, overlaid words or watermark. Complete wide landscape framing.",
+      "voteOption": 2,
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030/images/10-nw-b1302-black-sedan-window.jpg",
+        "sha256": "785b43266b12f6cf1a987360d1fbc6b34e3c6d8a90fd34a90fdfc46c6d123b39",
+        "width": 1672,
+        "height": 941
+      },
+      "inlineAsset": {
+        "id": "duplicate-uncut-1302",
+        "file": "src/assets/recreated-uncut/1302-black-sedan-window.jpg",
+        "sha256": "88456ce47007513037338e4c94628bbac5b8a1285d319776103ee9c59baf763d",
+        "width": 1280,
+        "height": 720
+      }
+    }
+  ],
+  "installation": "Nine voted images added at their existing Original Uncut beat boundaries with guarded v15 saved-project migration; the skipped beat remains unchanged."
+}

@@ -1,11 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { auditPictureHolds, type HoldAuditClip } from "./uncutHoldAudit";
+import { auditAdjacentImagePairs, auditPictureHolds, type HoldAuditClip } from "./uncutHoldAudit";
 
 const clip = (id: string, scene: string, picture: string | undefined, durationFrames: number, isImage = true): HoldAuditClip => ({
   id, scene, picture, durationFrames, isImage, text: id,
 });
 
 describe("Original Uncut hold audit", () => {
+  it("finds overlapping repeated stills across scenes while ignoring gaps and non-images", () => {
+    const clips = [
+      clip("one", "scene-a", "/same.jpg", 24),
+      clip("two", "scene-a", "/same.jpg", 12),
+      clip("three", "scene-b", "/same.jpg", 12),
+      clip("four", "scene-b", "/next.jpg", 24),
+      clip("gap", "scene-b", undefined, 24, false),
+      clip("five", "scene-b", "/next.jpg", 24),
+      clip("gradient-1", "scene-b", "gradient:black", 24, false),
+      clip("gradient-2", "scene-b", "gradient:black", 24, false),
+    ];
+    const pairs = auditAdjacentImagePairs(clips);
+    expect(pairs.map(pair => [pair.first.id, pair.second.id])).toEqual([["one", "two"], ["two", "three"]]);
+    expect(pairs[0].before).toBeUndefined();
+    expect(pairs[0].after?.id).toBe("three");
+    expect(pairs[1].before?.id).toBe("one");
+    expect(pairs[1].after?.id).toBe("four");
+    expect(clips[0].picture).toBe("/same.jpg");
+  });
+
   it("detects one continuous still across scene boundaries and preserves the following frame", () => {
     const clips = [
       clip("one", "scene-a", "/same.jpg", 144),
