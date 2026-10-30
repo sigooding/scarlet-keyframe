@@ -1,3 +1,5 @@
+import dinner from "../assets/recreated-uncut/1020-dinner-with-me.jpg?url&inline";
+import noMessages from "../assets/recreated-uncut/1177-no-messages.jpg?url&inline";
 import headlights from "../assets/recreated-uncut/027-headlights.jpg?url&inline";
 import sedan from "../assets/recreated-uncut/1054-the-sedan.jpg?url&inline";
 import promisedCar from "../assets/recreated-uncut/1467-promised-a-car.jpg?url&inline";
@@ -25,8 +27,10 @@ const plates = [
   { id: "recreated-uncut-027", beat: "nw_b27", scene: "nw_s1", source: "/film/img/s1/332-the-sedan-blocks-the-lane.jpg", name: "Headlights.jpg", data: headlights, version: 4 },
   { id: "recreated-uncut-1054", beat: "nw_b1054", scene: "nw_s63a", source: "/film/img/s63a/295-they-give-up.jpg", name: "The sedan.jpg", data: sedan, version: 4 },
   { id: "recreated-uncut-1467", beat: "nw_b1467", scene: "nw_s84", source: "/film/img/s84/518-thats-mine.jpg", name: "Promised a car.jpg", data: promisedCar, version: 4 },
+  { id: "recreated-uncut-1020", beat: "nw_b1020", scene: "nw_s62", source: "/film/img/s62/485-the-signal-is-red.jpg", name: "Dinner with me.jpg", data: dinner, version: 5 },
+  { id: "recreated-uncut-1177", beat: "nw_b1177", scene: "nw_s72", source: "/film/img/s72/69-the-wait.jpg", name: "No messages.jpg", data: noMessages, version: 5 },
 ] as const;
-const COVERAGE_VERSION = 4;
+const COVERAGE_VERSION = 5;
 
 export function addRecreatedUncutCoverage(story: StoryLike, existing: ProjectAsset[], afterVersion = 0): ProjectAsset[] {
   if (story.id !== "nobodys-witness-film") return existing;
