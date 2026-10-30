@@ -29,6 +29,7 @@ The workspace was reset to the base checkout during this session. The previously
 
 - The no-vote image provider returned HTTP 403 on retry, so the user requested voting instead. Nine selected images were installed; `nw_b87` was skipped and remains unchanged. The selected originals, numbered review gallery, reference previews and exact prompts are in `reviews/uncut-no-vote-20261030/`.
 - Three additional directory-only ten-shot review batches (`reviews/uncut-no-vote-20261030-batch2/`, `-batch3/`, and `-batch4/`, saving 7, 8, and 6 voted frames respectively) are preserved with their manifests and side-by-side galleries without modifying any cut (`cutModified: false`).
+- Directory-only batch 5 (`reviews/uncut-no-vote-20261030-batch5/`) records ten more randomly chosen hold targets. The image provider rejected nine of the ten requests with HTTP 403 ("account has been flagged for suspicious activity") and the turn's image-generation limit was reached, so only `nw_b349` was saved. All ten exact prompts, preceding/following reference previews and the gallery are saved for retry; no cut was modified (`cutModified: false`).
 
 ## Select and grade image frames
 
