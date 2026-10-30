@@ -127,6 +127,12 @@ The first attempt generated the same ten prompts as a single unvoted burst; the 
 
 Nothing is installed: the Original Uncut pictures, timing, audio, captions and saved custom edits are unchanged.
 
+## Six-shot directory batch 6
+
+Six more targets were chosen at random (seed `20261031`) from holds longer than nine seconds whose beats are not covered by any earlier batch or installed plate: `nw_b1335` (s79, Vera closes the notebook), `nw_b93` (s4, "Just call me"), `nw_b1102` (s68, Kaneko hands over the newspaper parcel), `nw_b614` (s25, "Sakai was bringing him something"), `nw_b1299` (s77a, Jack's hand closes on the envelope) and `nw_b51` (s2, the journalist looks up). Each used its preceding and following still as references and was offered as a two-candidate vote, and **all six selections are saved** in `reviews/uncut-no-vote-20261030-batch6/`.
+
+Every original file is kept unchanged: the source pictures in `public/film/img/` and the bundled plates were only read as references, and each selected JPEG was written straight from the provider with no crop, resize or re-encode. `cutModified: false` — the Original Uncut pictures, timing, audio, captions and saved custom edits are untouched.
+
 ### Prompt to continue duplicate-image work
 
 > Continue Original Uncut coverage by running `scripts/audit-uncut-duplicates.ts` and `scripts/audit-uncut-holds.ts`. Find adjacent stills with the same effective picture, including short and cross-scene runs; check for other visually identical files manually. Choose ordinary targets at random, inspect the text and both neighbouring picture references, and offer a separate vote for each plausible replacement. Keep any selected original image files, treat skips as quality rejections and retry them with better prompts, and replace only the selected visual coverage, not timeline time, audio or captions. Respect direct and inherited custom pictures in active and stashed saves, and do not change other cuts. Also address longer-than-seven-second and single-beat holds without silently splitting audio or changing total timing. Update this document with votes, exact prompts and audit counts, run the tests, and commit approved work.
