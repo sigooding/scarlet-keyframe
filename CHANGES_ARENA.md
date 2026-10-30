@@ -8,24 +8,27 @@
 
 The workspace was reset to the base checkout during this session. The previously generated and voted images and other earlier uncommitted work (including Directed Uncut and character cutout) were not available in this checkout. Image recreation is underway; see IMAGE_RECOVERY.md for what has been recreated and what remains. The other earlier features have not been restored.
 
-## MP4 export browser selection
+## MP4 export browser selection & GPU acceleration
 
 - On Windows and macOS, MP4 export can use an installed Chrome or Edge when Playwright's Chromium is not installed. The serverless Chromium package is used only on its supported Linux x64 platform. If no browser can launch, export now explains how to install one or configure `PLAYWRIGHT_CHROMIUM_PATH`.
+- MP4 export now enables hardware GPU acceleration by default (`--gpu`, with `--no-gpu` CPU override and an in-app **GPU acceleration** toggle): Chromium launches with hardware WebGL, 2D canvas, and OOP GPU rasterization (with automatic SwiftShader fallback if hardware GPU init fails), and FFmpeg probes hardware H.264 encoders (`h264_nvenc`, `h264_videotoolbox`, `h264_amf`, `h264_qsv`, `h264_vaapi`) with automatic `libx264` fallback and concurrent session-cap staging.
+- Export supports up to 6 parallel Chromium + FFmpeg segment workers (`1..6` in the Export Modal and `--workers 1..6` on the CLI), launching worker browsers concurrently.
 
 ## Original Uncut long-hold coverage
 
-- Ten separately voted intermediate stills have been added at existing beat boundaries; the original source pictures, dialogue, captions, audio and total timing remain intact. Existing Uncut saves are upgraded only where their current pictures still match the original; custom active and stashed pictures are preserved. Other cuts are unchanged.
-- The reproducible audit in `scripts/audit-uncut-holds.ts` reports both scene-bounded and continuous still-image holds, including pictures carried over scene boundaries. Its current normal-playback result is 304 continuous holds over seven seconds, so this work remains incomplete. See `IMAGE_RECOVERY.md` for accepted and rejected votes, exact prompts, the continuation prompt and remaining earlier recreations.
+- Fourteen separately voted intermediate stills (`v7–v11` and `v16`) have been added at existing beat boundaries; the original source pictures, dialogue, captions, audio and total timing remain intact. Existing Uncut saves are upgraded only where their current pictures still match the original; custom active and stashed pictures are preserved. Other cuts are unchanged.
+- The reproducible audit in `scripts/audit-uncut-holds.ts` reports both scene-bounded and continuous still-image holds, including pictures carried over scene boundaries. Its current normal-playback result is 300 continuous holds over seven seconds (295 scene-bounded), so this work remains incomplete. See `IMAGE_RECOVERY.md` for accepted and rejected votes, exact prompts, the continuation prompt and remaining earlier recreations.
 
 ## Original Uncut adjacent duplicate images
 
-- Sixteen randomly selected duplicate pairs have separately voted replacements at their existing beat boundaries. The original stills, dialogue, audio, captions and timeline duration remain intact; guarded v12–v15 migrations preserve direct and carried custom pictures in active or stashed saves. V15 also protects explicit holds and shot-specific edits and rolls back changes that would affect another frame's effective picture or look. Other cuts are unchanged.
+- Twenty randomly selected duplicate pairs (`v12–v16`) have separately voted replacements at their existing beat boundaries. The original stills, dialogue, audio, captions and timeline duration remain intact; guarded v12–v16 migrations preserve direct and carried custom pictures in active or stashed saves. V15–v16 also protect explicit holds and shot-specific edits and roll back changes that would affect another frame's effective picture or look. Other cuts are unchanged.
 - At the user's request Harada's initial tight crop was replaced with a separately voted wide newsroom shot. The earlier selected image remains saved; the v13 migration changes the previous bundled shot only where other pictures and effective looks remain intact.
-- `scripts/audit-uncut-duplicates.ts` reports adjacent stills sharing the same effective image reference, including short holds and cross-scene pairs. The factory cut went from 914 to 898 pairs; this is incomplete and does not detect differently named files with identical pixels. See `IMAGE_RECOVERY.md` for exact prompts, votes and continuation instructions.
+- `scripts/audit-uncut-duplicates.ts` reports adjacent stills sharing the same effective image reference, including short holds and cross-scene pairs. The factory cut went from 914 to 894 pairs; this is incomplete and does not detect differently named files with identical pixels. See `IMAGE_RECOVERY.md` for exact prompts, votes and continuation instructions.
 
 ## Ten-shot voting fallback
 
 - The no-vote image provider returned HTTP 403 on retry, so the user requested voting instead. Nine selected images were installed; `nw_b87` was skipped and remains unchanged. The selected originals, numbered review gallery, reference previews and exact prompts are in `reviews/uncut-no-vote-20261030/`.
+- Three additional directory-only ten-shot review batches (`reviews/uncut-no-vote-20261030-batch2/`, `-batch3/`, and `-batch4/`, saving 7, 8, and 6 voted frames respectively) are preserved with their manifests and side-by-side galleries without modifying any cut (`cutModified: false`).
 
 ## Select and grade image frames
 

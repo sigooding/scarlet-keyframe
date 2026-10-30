@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { once } from "node:events";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
@@ -7,7 +7,16 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer as createViteServer } from "vite";
-import { prepareChromiumLauncher } from "./chromium-launcher.mjs";
+import { isSoftwareWebglRenderer, prepareChromiumLauncher } from "./chromium-launcher.mjs";
+import {
+  buildSegmentEncodeArgs,
+  clampExportWorkers,
+  MAX_EXPORT_WORKERS,
+  makeSoftwareEncoderPlan,
+  normalizeRequestedEncoder,
+  resolveFfmpegBinary,
+  selectVideoEncoder,
+} from "./video-encoder.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,7 +41,10 @@ Options:
   --name <slug>           Base output filename when --out is a directory (default: project slug)
   --quality <master|draft> master = 1920x1080 PNG CRF 18 (default); draft = 1280x720 JPEG fast
   --draft                 Shorthand for --quality draft (1280x720 fast review render)
-  --workers <1..8>        Parallel headless Chromium + ffmpeg segment workers (default: 1)
+  --workers <1..6>        Parallel headless Chromium + ffmpeg segment workers (default: 1)
+  --gpu                   Enable GPU WebGL/compositor rendering + hardware H.264 encoding (default: on)
+  --no-gpu                Force CPU SwiftShader rendering and libx264 software encoding
+  --encoder <name>        H.264 encoder: auto, nvenc, videotoolbox, amf, qsv, vaapi, libx264 (default: auto)
   --loudnorm <off|-16|-14> Loudness mastering target: off, -16 LUFS (theatrical), -14 LUFS (streaming)
   --normalize             Shorthand for --loudnorm -14 (-14 LUFS with -1.0 dBTP peak ceiling)
   --no-normalize          Shorthand for --loudnorm off (default)
@@ -57,7 +69,7 @@ run: npx playwright install chromium
 `);
 }
 
-function parseCliArgs(argv) {
+export function parseCliArgs(argv) {
   const opts = {
     from: null,
     to: null,
@@ -67,6 +79,8 @@ function parseCliArgs(argv) {
     name: "",
     quality: "master",
     workers: 1,
+    gpu: true,
+    encoder: "auto",
     normalize: false,
     loudnorm: "off",
     opticalEq: undefined,
@@ -139,11 +153,19 @@ function parseCliArgs(argv) {
     } else if (arg === "--workers") {
       const w = Number(next());
       if (!Number.isFinite(w) || w < 1) throw new Error(`Invalid --workers count: ${argv[i]}`);
-      opts.workers = Math.max(1, Math.min(8, Math.round(w)));
+      opts.workers = Math.max(1, Math.min(MAX_EXPORT_WORKERS, Math.round(w)));
     } else if (arg.startsWith("--workers=")) {
       const w = Number(arg.slice(10));
       if (!Number.isFinite(w) || w < 1) throw new Error(`Invalid --workers count: ${arg}`);
-      opts.workers = Math.max(1, Math.min(8, Math.round(w)));
+      opts.workers = Math.max(1, Math.min(MAX_EXPORT_WORKERS, Math.round(w)));
+    } else if (arg === "--gpu" || arg === "--hwaccel") {
+      opts.gpu = true;
+    } else if (arg === "--no-gpu" || arg === "--no-hwaccel") {
+      opts.gpu = false;
+    } else if (arg === "--encoder") {
+      opts.encoder = normalizeRequestedEncoder(next());
+    } else if (arg.startsWith("--encoder=")) {
+      opts.encoder = normalizeRequestedEncoder(arg.slice(10));
     } else if (arg === "--normalize") {
       opts.normalize = true;
       opts.loudnorm = "-14";
@@ -198,22 +220,6 @@ function parseCliArgs(argv) {
   }
 
   return opts;
-}
-
-async function resolveFfmpegBinary() {
-  if (process.env.FFMPEG) return process.env.FFMPEG;
-  const sys = spawnSync("ffmpeg", ["-version"], { stdio: "ignore" });
-  if (sys.status === 0) return "ffmpeg";
-  try {
-    const mod = await import("@ffmpeg-installer/ffmpeg");
-    const p = mod.default?.path || mod.path;
-    if (p && fs.existsSync(p)) return p;
-  } catch {
-    // ignore
-  }
-  throw new Error(
-    "ffmpeg binary not found. Install system ffmpeg, set FFMPEG=/path/to/ffmpeg, or install @ffmpeg-installer/ffmpeg.",
-  );
 }
 
 function resolveMediaDir(rawMedia) {
@@ -388,6 +394,26 @@ function runFfmpeg(ffmpegBin, args, onChild) {
   });
 }
 
+function createSemaphore(limit) {
+  let active = 0;
+  const queue = [];
+  const acquire = () =>
+    new Promise((resolve) => {
+      if (active < limit) {
+        active += 1;
+        resolve();
+      } else {
+        queue.push(resolve);
+      }
+    });
+  const release = () => {
+    const next = queue.shift();
+    if (next) next();
+    else active = Math.max(0, active - 1);
+  };
+  return { acquire, release };
+}
+
 async function main() {
   const opts = parseCliArgs(process.argv.slice(2));
   if (opts.help) {
@@ -502,13 +528,13 @@ async function main() {
     }
 
     emitProgress({
-      phase: `Launching headless Chromium (${renderWidth}×${renderHeight}${opts.workers > 1 ? `, ${opts.workers} workers` : ""})…`,
+      phase: `Launching headless Chromium (${renderWidth}×${renderHeight}${opts.workers > 1 ? `, ${opts.workers} workers` : ""}, ${opts.gpu ? "GPU" : "CPU"})…`,
       completedFrames: 0,
       totalFrames: 1,
       percent: 3,
     });
 
-    const launchBrowser = await prepareChromiumLauncher();
+    const launchBrowser = await prepareChromiumLauncher({ gpu: opts.gpu });
 
     const makeRenderUrl = (fFrom, fTo) => {
       const query = new URLSearchParams();
@@ -544,11 +570,33 @@ async function main() {
     );
     await primaryPage.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true));
 
-    const filmBounds = await primaryPage.evaluate(() => ({
-      totalFrames: window.__render.totalFrames,
-      from: window.__render.from,
-      to: window.__render.to,
-    }));
+    const filmBounds = await primaryPage.evaluate(() => {
+      let webglRenderer = "";
+      try {
+        const c = document.createElement("canvas");
+        const gl = c.getContext("webgl", { powerPreference: "high-performance" });
+        if (gl) {
+          const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+          webglRenderer = String(
+            dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+          );
+          gl.getExtension("WEBGL_lose_context")?.loseContext();
+        }
+      } catch {
+        // ignore
+      }
+      return {
+        totalFrames: window.__render.totalFrames,
+        from: window.__render.from,
+        to: window.__render.to,
+        webglRenderer,
+      };
+    });
+
+    const browserGpuActive =
+      opts.gpu &&
+      Boolean(launchBrowser.gpuAccelerated) &&
+      !isSoftwareWebglRenderer(filmBounds.webglRenderer);
 
     const maxFrameIdx = Math.max(0, filmBounds.totalFrames - 1);
     const fromFrame =
@@ -586,8 +634,11 @@ async function main() {
     const tempVideoPath = path.join(tmpDir, "picture.mp4");
     const tempWavPath = path.join(tmpDir, "sound.wav");
 
-    // 1. Partition [fromFrame..toFrame] across W workers (exact sum == expectedFrames)
-    const workerCount = Math.max(1, Math.min(opts.workers, Math.ceil(expectedFrames / 2)));
+    // 1. Partition [fromFrame..toFrame] across W workers (1..6, exact sum == expectedFrames)
+    const workerCount = Math.max(
+      1,
+      Math.min(clampExportWorkers(opts.workers), Math.ceil(expectedFrames / 2)),
+    );
     const segments = [];
     const basePerWorker = Math.floor(expectedFrames / workerCount);
     const remainder = expectedFrames % workerCount;
@@ -608,110 +659,216 @@ async function main() {
       segCursor += segFrames;
     }
 
-    const extraPages = [];
-    const extraBrowsers = [];
-    if (workerCount > 1) {
-      for (let w = 1; w < workerCount; w += 1) {
-        const seg = segments[w];
-        const b = await launchBrowser();
-        activeBrowsers.add(b);
-        extraBrowsers.push(b);
-        const ctx = await b.newContext({
-          viewport: { width: renderWidth, height: renderHeight },
-          deviceScaleFactor: 1,
-        });
-        const p = await ctx.newPage();
-        await p.goto(makeRenderUrl(seg.from, seg.to), {
-          waitUntil: "domcontentloaded",
-          timeout: 60000,
-        });
-        await p.waitForFunction(
-          () => Boolean(window.__render && window.__render.ready),
-          null,
-          { timeout: 60000 },
-        );
-        await p.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true));
-        extraPages.push(p);
-      }
-    }
+    // Select hardware GPU or CPU H.264 encoder and launch secondary workers in parallel
+    const [initialEncoderPlan, extraWorkers] = await Promise.all([
+      selectVideoEncoder({
+        ffmpegBin,
+        gpu: opts.gpu,
+        requestedEncoder: opts.encoder,
+        quality: opts.quality,
+        workers: workerCount,
+      }),
+      workerCount > 1
+        ? Promise.all(
+            segments.slice(1).map(async (seg) => {
+              const b = await launchBrowser();
+              activeBrowsers.add(b);
+              const ctx = await b.newContext({
+                viewport: { width: renderWidth, height: renderHeight },
+                deviceScaleFactor: 1,
+              });
+              const p = await ctx.newPage();
+              await p.goto(makeRenderUrl(seg.from, seg.to), {
+                waitUntil: "domcontentloaded",
+                timeout: 60000,
+              });
+              await p.waitForFunction(
+                () => Boolean(window.__render && window.__render.ready),
+                null,
+                { timeout: 60000 },
+              );
+              await p.evaluate(() =>
+                document.fonts ? document.fonts.ready.then(() => true) : true,
+              );
+              return { browser: b, page: p };
+            }),
+          )
+        : Promise.resolve([]),
+    ]);
 
+    const extraBrowsers = extraWorkers.map((w) => w.browser);
+    const extraPages = extraWorkers.map((w) => w.page);
+
+    let activeEncoderPlan = initialEncoderPlan;
     let completedFramesTotal = 0;
 
-    const encodeSegment = async (seg, page) => {
-      const segArgs = [
-        "-y",
-        "-f",
-        "image2pipe",
-        "-vcodec",
-        isDraft ? "mjpeg" : "png",
-        "-framerate",
-        String(FPS),
-        "-i",
-        "-",
-        "-an",
-        "-frames:v",
-        String(seg.count),
-        "-c:v",
-        "libx264",
-        "-preset",
-        isDraft ? "veryfast" : "fast",
-        "-crf",
-        isDraft ? "21" : "18",
-        "-pix_fmt",
-        "yuv420p",
-        "-r",
-        String(FPS),
-        seg.outPath,
-      ];
-
-      const encoder = spawn(ffmpegBin, segArgs, {
-        stdio: ["pipe", "ignore", "pipe"],
-      });
-      activeFfmpegs.add(encoder);
-      let stderr = "";
-      encoder.stderr.on("data", (d) => {
-        stderr += d.toString();
-        if (stderr.length > 12000) stderr = stderr.slice(-12000);
-      });
-      const exitPromise = new Promise((resolve, reject) => {
-        encoder.on("error", reject);
-        encoder.on("close", (code) => {
-          activeFfmpegs.delete(encoder);
-          if (code === 0) resolve();
-          else reject(new Error(`ffmpeg segment ${seg.index} exited ${code}: ${stderr.slice(-800)}`));
-        });
-      });
-
-      for (let f = seg.from; f <= seg.to; f += 1) {
-        if (cancelled) throw new Error("Export cancelled");
-        await page.evaluate((frameIndex) => window.__render.setFrame(frameIndex), f);
-        const imgBuf = isDraft
-          ? await page.screenshot({ type: "jpeg", quality: 92, animations: "disabled" })
-          : await page.screenshot({ type: "png", animations: "disabled" });
-        const canContinue = encoder.stdin.write(imgBuf);
-        if (!canContinue) {
-          await once(encoder.stdin, "drain");
-        }
-        completedFramesTotal += 1;
-        const pct = Math.min(82, 5 + (completedFramesTotal / expectedFrames) * 77);
-        emitProgress({
-          phase: `Rendering picture frame ${completedFramesTotal} / ${expectedFrames}${workerCount > 1 ? ` (${workerCount}w)` : ""}`,
-          frame: f,
-          completedFrames: completedFramesTotal,
-          totalFrames: expectedFrames,
-          percent: pct,
-        });
-      }
-
-      encoder.stdin.end();
-      await exitPromise;
+    const formatAccelBadge = (plan) => {
+      const parts = [];
+      if (workerCount > 1) parts.push(`${workerCount}w`);
+      parts.push(browserGpuActive ? "GPU WebGL" : "CPU WebGL");
+      parts.push(plan.id);
+      return parts.join(" · ");
     };
 
-    await Promise.all(
-      segments.map((seg, idx) =>
-        encodeSegment(seg, idx === 0 ? primaryPage : extraPages[idx - 1]),
-      ),
-    );
+    const runAllSegments = async (plan) => {
+      const streamDirect = (plan.maxConcurrentSessions ?? workerCount) >= workerCount;
+      const encodeSem = streamDirect
+        ? null
+        : createSemaphore(Math.max(1, plan.maxConcurrentSessions ?? 1));
+      const accelBadge = formatAccelBadge(plan);
+
+      const encodeSegmentStreaming = async (seg, page) => {
+        const segArgs = buildSegmentEncodeArgs({
+          plan,
+          quality: opts.quality,
+          fps: FPS,
+          frameCount: seg.count,
+          outPath: seg.outPath,
+        });
+
+        const encoder = spawn(ffmpegBin, segArgs, {
+          stdio: ["pipe", "ignore", "pipe"],
+        });
+        activeFfmpegs.add(encoder);
+        encoder.stdin.on("error", () => {});
+        let stderr = "";
+        encoder.stderr.on("data", (d) => {
+          stderr += d.toString();
+          if (stderr.length > 12000) stderr = stderr.slice(-12000);
+        });
+        const exitPromise = new Promise((resolve, reject) => {
+          encoder.on("error", reject);
+          encoder.on("close", (code) => {
+            activeFfmpegs.delete(encoder);
+            if (code === 0) resolve();
+            else reject(new Error(`ffmpeg segment ${seg.index} exited ${code}: ${stderr.slice(-800)}`));
+          });
+        });
+
+        try {
+          for (let f = seg.from; f <= seg.to; f += 1) {
+            if (cancelled) throw new Error("Export cancelled");
+            await page.evaluate((frameIndex) => window.__render.setFrame(frameIndex), f);
+            const imgBuf = isDraft
+              ? await page.screenshot({ type: "jpeg", quality: 92, animations: "disabled" })
+              : await page.screenshot({ type: "png", animations: "disabled" });
+            const canContinue = encoder.stdin.write(imgBuf);
+            if (!canContinue) {
+              await once(encoder.stdin, "drain");
+            }
+            completedFramesTotal += 1;
+            const pct = Math.min(82, 5 + (completedFramesTotal / expectedFrames) * 77);
+            emitProgress({
+              phase: `Rendering picture frame ${completedFramesTotal} / ${expectedFrames} (${accelBadge})`,
+              frame: f,
+              completedFrames: completedFramesTotal,
+              totalFrames: expectedFrames,
+              percent: pct,
+            });
+          }
+          encoder.stdin.end();
+        } catch (err) {
+          try {
+            encoder.kill("SIGKILL");
+          } catch {
+            // ignore
+          }
+          await exitPromise.catch(() => undefined);
+          throw err;
+        }
+
+        await exitPromise;
+      };
+
+      const encodeSegmentStaged = async (seg, page) => {
+        const ext = isDraft ? "jpg" : "png";
+        const segFramesDir = path.join(tmpDir, `frames-${String(seg.index).padStart(3, "0")}`);
+        await fsp.mkdir(segFramesDir, { recursive: true });
+        try {
+          let localIdx = 0;
+          for (let f = seg.from; f <= seg.to; f += 1) {
+            if (cancelled) throw new Error("Export cancelled");
+            await page.evaluate((frameIndex) => window.__render.setFrame(frameIndex), f);
+            const imgBuf = isDraft
+              ? await page.screenshot({ type: "jpeg", quality: 92, animations: "disabled" })
+              : await page.screenshot({ type: "png", animations: "disabled" });
+            const frameFile = path.join(
+              segFramesDir,
+              `frame-${String(localIdx).padStart(6, "0")}.${ext}`,
+            );
+            await fsp.writeFile(frameFile, imgBuf);
+            localIdx += 1;
+            completedFramesTotal += 1;
+            const pct = Math.min(80, 5 + (completedFramesTotal / expectedFrames) * 75);
+            emitProgress({
+              phase: `Rendering picture frame ${completedFramesTotal} / ${expectedFrames} (${accelBadge})`,
+              frame: f,
+              completedFrames: completedFramesTotal,
+              totalFrames: expectedFrames,
+              percent: pct,
+            });
+          }
+
+          await encodeSem.acquire();
+          try {
+            if (cancelled) throw new Error("Export cancelled");
+            const segArgs = buildSegmentEncodeArgs({
+              plan,
+              quality: opts.quality,
+              fps: FPS,
+              frameCount: seg.count,
+              outPath: seg.outPath,
+              sequencePattern: path.join(segFramesDir, `frame-%06d.${ext}`),
+            });
+            await runFfmpeg(ffmpegBin, segArgs, (child) => activeFfmpegs.add(child));
+          } finally {
+            encodeSem.release();
+          }
+        } finally {
+          await fsp.rm(segFramesDir, { recursive: true, force: true }).catch(() => undefined);
+        }
+      };
+
+      await Promise.all(
+        segments.map((seg, idx) => {
+          const page = idx === 0 ? primaryPage : extraPages[idx - 1];
+          return streamDirect
+            ? encodeSegmentStreaming(seg, page)
+            : encodeSegmentStaged(seg, page);
+        }),
+      );
+    };
+
+    try {
+      await runAllSegments(activeEncoderPlan);
+    } catch (err) {
+      if (cancelled || !activeEncoderPlan.hardware || opts.encoder !== "auto") {
+        throw err;
+      }
+      // Runtime safety fallback: ensure all segments share identical libx264 SPS/PPS for concat copy
+      for (const proc of activeFfmpegs) {
+        if (proc && !proc.killed) {
+          try {
+            proc.kill("SIGKILL");
+          } catch {
+            // ignore
+          }
+        }
+      }
+      activeFfmpegs.clear();
+      await Promise.all(
+        segments.map((s) => fsp.rm(s.outPath, { force: true }).catch(() => undefined)),
+      );
+      completedFramesTotal = 0;
+      activeEncoderPlan = makeSoftwareEncoderPlan(opts.quality, workerCount);
+      emitProgress({
+        phase: "Hardware H.264 encoder failed mid-render; retrying with libx264 (CPU)…",
+        completedFrames: 0,
+        totalFrames: expectedFrames,
+        percent: 5,
+      });
+      await runAllSegments(activeEncoderPlan);
+    }
 
     // Close secondary worker browsers immediately after picture capture
     if (extraBrowsers.length > 0) {
@@ -746,6 +903,8 @@ async function main() {
           concatListPath,
           "-c",
           "copy",
+          "-video_track_timescale",
+          String(FPS),
           "-frames:v",
           String(expectedFrames),
           tempVideoPath,
@@ -863,6 +1022,8 @@ async function main() {
       ...(chaptersMetaPath ? ["-map_metadata", "2", "-map_chapters", "2"] : []),
       "-c:v",
       "copy",
+      "-video_track_timescale",
+      String(FPS),
       "-frames:v",
       String(expectedFrames),
       "-c:a",
@@ -884,7 +1045,7 @@ async function main() {
     if (!opts.progressJson) {
       process.stderr.write("\r\x1b[K");
       console.log(
-        `Exported ${expectedFrames} exact frame${expectedFrames === 1 ? "" : "s"} (${fromFrame}..${toFrame} @ ${FPS} fps, ${renderWidth}x${renderHeight}) -> ${finalMp4Path}${opts.srt ? ` (+ ${finalSrtPath})` : ""}`,
+        `Exported ${expectedFrames} exact frame${expectedFrames === 1 ? "" : "s"} (${fromFrame}..${toFrame} @ ${FPS} fps, ${renderWidth}x${renderHeight}, ${workerCount}w, ${browserGpuActive ? "GPU WebGL" : "CPU WebGL"}, ${activeEncoderPlan.id}) -> ${finalMp4Path}${opts.srt ? ` (+ ${finalSrtPath})` : ""}`,
       );
     } else {
       process.stdout.write(
@@ -893,6 +1054,15 @@ async function main() {
           fromFrame,
           toFrame,
           totalFrames: expectedFrames,
+          workers: workerCount,
+          videoEncoder: activeEncoderPlan.id,
+          gpu: {
+            requested: opts.gpu,
+            browserGpu: browserGpuActive,
+            webglRenderer: filmBounds.webglRenderer,
+            videoEncoder: activeEncoderPlan.id,
+            hardwareEncoding: activeEncoderPlan.hardware,
+          },
           mp4Path: finalMp4Path,
           srtPath: opts.srt ? finalSrtPath : null,
           percent: 100,
@@ -905,12 +1075,23 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  const message = err instanceof Error ? err.message : String(err);
-  if (process.argv.includes("--progress-json")) {
-    process.stdout.write(`${JSON.stringify({ type: "error", error: message })}\n`);
-  } else {
-    process.stderr.write(`\n[export] ERROR: ${message}\n`);
+const isDirectExecution = (() => {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync(process.argv[1]) === fs.realpathSync(__filename);
+  } catch {
+    return path.resolve(process.argv[1]) === __filename;
   }
-  process.exit(1);
-});
+})();
+
+if (isDirectExecution) {
+  main().catch((err) => {
+    const message = err instanceof Error ? err.message : String(err);
+    if (process.argv.includes("--progress-json")) {
+      process.stdout.write(`${JSON.stringify({ type: "error", error: message })}\n`);
+    } else {
+      process.stderr.write(`\n[export] ERROR: ${message}\n`);
+    }
+    process.exit(1);
+  });
+}

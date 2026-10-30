@@ -30,7 +30,14 @@ when the page reloads.
 
 Use the MP4 export button while the editor is running with `npm run dev`, or run a short CLI export:
 
-    npm run export -- --from 0 --to 47 --draft
+    npm run export -- --from 0 --to 47 --draft --workers 6
+
+GPU acceleration is enabled by default (`--gpu`, or disable with `--no-gpu`): Chromium renders WebGL depth parallax,
+2D canvas overlays, and compositing on the hardware GPU, and FFmpeg automatically probes hardware H.264 encoders
+(`h264_nvenc`, `h264_videotoolbox`, `h264_amf`, `h264_qsv`, `h264_vaapi`) across up to 6 parallel segment workers
+before falling back to `libx264` when no hardware encoder is available. Install a system `ffmpeg` (for example via
+`winget`, Homebrew, or `apt`) if you want hardware H.264 encoding instead of the minimal bundled `@ffmpeg-installer`
+binary; you can also force a specific encoder with `--encoder <auto|nvenc|videotoolbox|amf|qsv|vaapi|libx264>`.
 
 The exporter looks for Playwright's Chromium, then an installed Google Chrome or Microsoft Edge. The bundled
 serverless Chromium is used only on Linux x64. If no browser can be started, install Playwright's browser and

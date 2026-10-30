@@ -261,7 +261,12 @@ function mp4ExportDevPlugin(): Plugin {
             const srt = body.srt !== false;
             const marks = Boolean(body.marks);
             const quality = body.quality === "draft" ? "draft" : "master";
-            const workers = Math.max(1, Math.min(8, Math.round(Number(body.workers) || 1)));
+            const workers = Math.max(1, Math.min(6, Math.round(Number(body.workers) || 1)));
+            const gpu = body.gpu !== false;
+            const encoder =
+              typeof body.encoder === "string" && body.encoder.trim()
+                ? body.encoder.trim()
+                : "auto";
             const normalize = Boolean(body.normalize);
             const loudnessTarget =
               body.loudnessTarget === "-16" || body.loudnessTarget === "-14" || body.loudnessTarget === "off"
@@ -285,7 +290,9 @@ function mp4ExportDevPlugin(): Plugin {
               completedFrames: 0,
               totalFrames: toFrame - fromFrame + 1,
               percent: 1,
-              phase: "Starting headless Chromium & ffmpeg…",
+              phase: gpu
+                ? "Starting GPU-accelerated Chromium & ffmpeg…"
+                : "Starting headless Chromium & ffmpeg (CPU)…",
               mp4Path: null,
               srtPath: null,
               snapshot: {
@@ -317,6 +324,8 @@ function mp4ExportDevPlugin(): Plugin {
               quality,
               "--workers",
               String(workers),
+              gpu ? "--gpu" : "--no-gpu",
+              ...(encoder !== "auto" ? ["--encoder", encoder] : []),
               "--loudnorm",
               loudnessTarget,
               ...(opticalPrintEq === undefined
