@@ -1,3 +1,7 @@
+import ishidasAnswer from "../assets/recreated-uncut/1349-ishidas-answer.jpg?url&inline";
+import justAnInn from "../assets/recreated-uncut/773-just-an-inn.jpg?url&inline";
+import veraReadsLetter from "../assets/recreated-uncut/1316-vera-reads-letter.jpg?url&inline";
+import dressReady from "../assets/recreated-uncut/1076-dress-ready.jpg?url&inline";
 import ishidaWarning from "../assets/recreated-uncut/300-ishida-warning.jpg?url&inline";
 import previousListeningToTape from "../assets/recreated-uncut/1383-listening-to-tape.jpg?url&inline";
 import wideListeningToTape from "../assets/recreated-uncut/1383-listening-wide.jpg?url&inline";
@@ -35,6 +39,10 @@ const wideHaradaPlate = { id: "duplicate-uncut-1383-wide", beat: "nw_b1383", sce
 // Only replacements selected in this recovery are listed here. The original
 // imported story is never modified, and saved user pictures are left intact.
 const plates = [
+  { id: "duplicate-uncut-1349", beat: "nw_b1349", scene: "nw_s80", source: "/film/img/s80/95-ishida-doesnt-look-up.jpg", name: "Ishida's answer.jpg", data: ishidasAnswer, version: 14 },
+  { id: "duplicate-uncut-773", beat: "nw_b773", scene: "nw_s36", source: "/film/img/s36/538-the-receipts-in-his-hand.jpg", name: "Just an inn.jpg", data: justAnInn, version: 14 },
+  { id: "duplicate-uncut-1316", beat: "nw_b1316", scene: "nw_s79", source: "/film/img/s79/91-grey-light.jpg", name: "Vera reads the letter.jpg", data: veraReadsLetter, version: 14 },
+  { id: "duplicate-uncut-1076", beat: "nw_b1076", scene: "nw_s65_b", source: "/film/img/s65/232-the-wine-red-dress.jpg", name: "The dress is ready.jpg", data: dressReady, version: 14 },
   { id: "duplicate-uncut-300", beat: "nw_b300", scene: "nw_s11", source: "/film/img/s11/419-twenty-years.jpg", name: "Ishida's warning.jpg", data: ishidaWarning, version: 12 },
   wideHaradaPlate,
   { id: "duplicate-uncut-980", beat: "nw_b980", scene: "nw_s59", source: "/film/img/s59/477-he-hardly-hears-her.jpg", name: "Later.jpg", data: later, version: 12 },
@@ -64,7 +72,7 @@ const plates = [
   { id: "recreated-uncut-148", beat: "nw_b148", scene: "nw_s6", source: "/film/img/s6/56-three-days-ago.jpg", name: "How did she seem.jpg", data: howDidSheSeem, version: 6 },
   { id: "recreated-uncut-716", beat: "nw_b716", scene: "nw_s28", source: "/film/img/s28/203-the-sea-wall-steps.jpg", name: "Sea wall road.jpg", data: seaWallRoad, version: 6 },
 ] as const;
-const COVERAGE_VERSION = 13;
+const COVERAGE_VERSION = 14;
 
 function addBundledJpeg(assets: ProjectAsset[], plate: { id: string; name: string; data: string }): void {
   if (assets.some(asset => asset.id === plate.id)) return;
@@ -137,10 +145,9 @@ export function addRecreatedUncutCoverage(story: StoryLike, existing: ProjectAss
   upgradePreviousHarada(story, frames, assets, afterVersion);
   const candidates = plates.filter(plate => {
     if (plate.version <= afterVersion) return false;
-    if (plate.id === wideHaradaPlate.id) {
-      const already = assets.find(asset => asset.id === plate.id);
-      if (already && (already.source !== "bundle" || already.dataUrl !== plate.data)) return false;
-    }
+    // Never redirect a shot to a user asset that happens to share a bundled ID.
+    const already = assets.find(asset => asset.id === plate.id);
+    if (already && (already.source !== "bundle" || already.dataUrl !== plate.data)) return false;
     const frame = frames.find(f => f.sceneId === plate.scene && f.id === plate.beat);
     if (!frame || frame.picture !== plate.source || frame.beat.background || frame.beat.backgroundRevert || frame.beat.gap) return false;
     const next = frames[frames.indexOf(frame) + 1];
