@@ -637,6 +637,7 @@ export default function App() {
   const [marksExport, setMarksExport] = useState(false);
   const [exportQuality, setExportQuality] = useState<Mp4ExportQuality>("master");
   const [exportWorkers, setExportWorkers] = useState(1);
+  const [exportGpu, setExportGpu] = useState(true);
   const [exportNormalize, setExportNormalize] = useState(false);
   const [exportLoudnessTarget, setExportLoudnessTarget] = useState<LoudnessTargetMode>("off");
   const [exportOpticalEq, setExportOpticalEq] = useState(false);
@@ -4076,7 +4077,9 @@ export default function App() {
       completedFrames: 0,
       totalFrames: expectedCount,
       percent: 0,
-      phase: "Starting headless Chromium & ffmpeg…",
+      phase: exportGpu
+        ? "Starting GPU-accelerated Chromium & ffmpeg…"
+        : "Starting headless Chromium & ffmpeg (CPU)…",
     });
 
     try {
@@ -4094,6 +4097,7 @@ export default function App() {
           marks: marksExport,
           quality: exportQuality,
           workers: exportWorkers,
+          gpu: exportGpu,
           normalize: exportLoudnessTarget !== "off" || exportNormalize,
           loudnessTarget: exportLoudnessTarget,
           opticalPrintEq: exportOpticalEq,
@@ -5738,6 +5742,7 @@ export default function App() {
           marks={marksExport}
           quality={exportQuality}
           workers={exportWorkers}
+          gpu={exportGpu}
           normalizeAudio={exportNormalize}
           loudnessTarget={exportLoudnessTarget}
           opticalPrintEq={exportOpticalEq}
@@ -5747,6 +5752,7 @@ export default function App() {
           setMarks={setMarksExport}
           setQuality={setExportQuality}
           setWorkers={setExportWorkers}
+          setGpu={setExportGpu}
           setNormalizeAudio={setExportNormalize}
           setLoudnessTarget={setExportLoudnessTarget}
           setOpticalPrintEq={setExportOpticalEq}

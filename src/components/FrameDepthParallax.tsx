@@ -421,6 +421,7 @@ export function FrameDepthParallaxLayer({
       antialias: false,
       premultipliedAlpha: false,
       preserveDrawingBuffer: true,
+      powerPreference: "high-performance",
     });
     if (!gl) return;
 

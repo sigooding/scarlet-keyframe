@@ -40,6 +40,7 @@ export interface ExportModalProps {
   marks: boolean;
   quality?: Mp4ExportQuality;
   workers?: number;
+  gpu?: boolean;
   normalizeAudio?: boolean;
   loudnessTarget?: LoudnessTargetMode;
   opticalPrintEq?: boolean;
@@ -49,6 +50,7 @@ export interface ExportModalProps {
   setMarks: (value: boolean) => void;
   setQuality?: (quality: Mp4ExportQuality) => void;
   setWorkers?: (workers: number) => void;
+  setGpu?: (value: boolean) => void;
   setNormalizeAudio?: (value: boolean) => void;
   setLoudnessTarget?: (value: LoudnessTargetMode) => void;
   setOpticalPrintEq?: (value: boolean) => void;
@@ -94,6 +96,7 @@ export function ExportModal({
   marks,
   quality = "master",
   workers = 1,
+  gpu = true,
   normalizeAudio = false,
   loudnessTarget,
   opticalPrintEq = false,
@@ -103,6 +106,7 @@ export function ExportModal({
   setMarks,
   setQuality,
   setWorkers,
+  setGpu,
   setNormalizeAudio,
   setLoudnessTarget,
   setOpticalPrintEq,
@@ -216,7 +220,8 @@ export function ExportModal({
       "--out exports/",
     ];
     if (quality === "draft") args.push("--draft");
-    if (workers > 1) args.push(`--workers ${workers}`);
+    if (workers > 1) args.push(`--workers ${Math.min(6, workers)}`);
+    args.push(gpu ? "--gpu" : "--no-gpu");
     if (effectiveLoudness === "-16") args.push("--loudnorm -16");
     else if (effectiveLoudness === "-14") args.push("--loudnorm -14");
     if (opticalPrintEq) args.push("--optical-eq");
@@ -231,6 +236,7 @@ export function ExportModal({
     effectiveToFrame,
     quality,
     workers,
+    gpu,
     effectiveLoudness,
     opticalPrintEq,
     embedChapters,
@@ -455,7 +461,8 @@ export function ExportModal({
             <div className="export-pane">
               <p className="export-copy">
                 Renders 1920×1080 24 fps H.264 video using the exact viewer drawing (<code>/?render=1</code> via
-                headless Chromium) and mixes voices, SFX, music with fades &amp; ducking, and ambience into AAC.
+                GPU-accelerated Chromium and hardware H.264 encoding across up to 6 parallel workers, with automatic CPU
+                fallback) and mixes voices, SFX, music with fades &amp; ducking, and ambience into AAC.
               </p>
 
               <div className="export-mode-bar" role="group" aria-label="Export range mode">
@@ -689,17 +696,33 @@ export function ExportModal({
                       <select
                         data-testid="export-workers-select"
                         disabled={isRunningMp4}
-                        value={workers}
-                        onChange={(event) => setWorkers(Math.max(1, Math.min(8, Number(event.target.value) || 1)))}
-                        title="Split frame range across parallel headless Chromium + ffmpeg segment workers"
+                        value={Math.max(1, Math.min(6, workers))}
+                        onChange={(event) => setWorkers(Math.max(1, Math.min(6, Number(event.target.value) || 1)))}
+                        title="Split frame range across up to 6 parallel headless Chromium + ffmpeg segment workers"
                       >
                         <option value={1}>1 worker</option>
                         <option value={2}>2 workers</option>
                         <option value={3}>3 workers</option>
                         <option value={4}>4 workers</option>
+                        <option value={5}>5 workers</option>
+                        <option value={6}>6 workers</option>
                       </select>
                     </label>
                   )}
+
+                  <label
+                    className="checkbox-label"
+                    title="Use hardware GPU WebGL/compositor rendering in Chromium and hardware H.264 encoding (NVENC, VideoToolbox, AMF, QSV, VAAPI) with automatic CPU fallback"
+                  >
+                    <input
+                      type="checkbox"
+                      data-testid="export-opt-gpu"
+                      disabled={isRunningMp4 || !setGpu}
+                      checked={gpu}
+                      onChange={(event) => setGpu?.(event.target.checked)}
+                    />
+                    <span>GPU acceleration</span>
+                  </label>
 
                   {(setLoudnessTarget || setNormalizeAudio) && (
                     <label
