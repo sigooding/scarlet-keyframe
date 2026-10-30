@@ -1,0 +1,411 @@
+{
+  "date": "2026-10-30",
+  "project": "Original Uncut",
+  "outputDirectory": "reviews/uncut-no-vote-20261030-batch4",
+  "selection": "Ten additional distinct-scene same-scene duplicate/hold targets (excluding batches 1, 2, and 3 and all installed/skipped beats).",
+  "request": "Follow-up request (\"10 more\"): generate ten more shots and save exclusively to reviews/uncut-no-vote-20261030-batch4/ without modifying any cut.",
+  "generation": {
+    "voting": {
+      "attempts": 10,
+      "saved": 6,
+      "skipped": 4
+    }
+  },
+  "cutModified": false,
+  "frameRate": 24,
+  "shots": [
+    {
+      "number": 1,
+      "title": "Sakai — a gang matter",
+      "scene": "nw_s11",
+      "targetBeat": "nw_b297",
+      "precedingBeat": "nw_b296",
+      "nextBeat": "nw_b298",
+      "targetText": "Sakai. Yes. That Sakai. I know what you're thinking. Old debts, old enemies. It's a gang matter.",
+      "holdSplit": "11.29s -> 2.29s + 9.00s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch4/images/01-nw-b297-sakai-gang-matter.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s11/418-it-takes-a-long-time-to-dial.jpg",
+          "workspacePath": "public/film/img/s11/418-it-takes-a-long-time-to-dial.jpg",
+          "sha256": "d30839116079137562fa1f163f4885822fc1fe04f611ff518f9a2097caa2fe12",
+          "reviewPreview": "context/01-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s11/419-twenty-years.jpg",
+          "workspacePath": "public/film/img/s11/419-twenty-years.jpg",
+          "sha256": "4e70a9ad2b38e684e722c30c802082c484dd1bdaa187fb618e9abfe514183385",
+          "reviewPreview": "context/01-after.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b297, bridging the two supplied rainy-night office telephone references. Compose a wider medium side-angle shot at Jack's worn wooden office desk: middle-aged greying dark-haired Jack in his charcoal wool jacket and open-collar pale yellow shirt sits holding the black rotary telephone receiver to his ear, listening grimly in silence while his free hand rests on the desk beside the glowing green glass banker's lamp, the open silver flip lighter and the sepia photograph of the two laughing men from the first reference, with rain-beaded Venetian blinds behind him before the tighter frontal close-up in the second reference. Natural hands, restrained 35mm noir cinematography, full 16:9 landscape frame with headroom. No captions, subtitles, overlaid text or watermarks.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030-batch4/images/01-nw-b297-sakai-gang-matter.jpg",
+        "sha256": "18450ee2e0d95a47ac61690f51abc08bf2a57a111f5024251e1eb56b8c5ff6a1",
+        "width": 2848,
+        "height": 1600,
+        "bytes": 484040
+      }
+    },
+    {
+      "number": 2,
+      "title": "She always runs",
+      "scene": "nw_s14",
+      "targetBeat": "nw_b344",
+      "precedingBeat": "nw_b343",
+      "nextBeat": "nw_b345",
+      "targetText": "I didn't want her to run away again. That's what I said. The night she left. That she always runs.",
+      "holdSplit": "10.58s -> 2.46s + 8.13s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch4/images/02-nw-b344-she-always-runs.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": "single",
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s14/270-packed-and-zipped.jpg",
+          "workspacePath": "public/film/img/s14/270-packed-and-zipped.jpg",
+          "sha256": "4b8796e631de2831d0322aca08af0a8453e796c0d4b717958bb16c7014cc159a",
+          "reviewPreview": "context/02-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s14/361-the-wall-of-drawings.jpg",
+          "workspacePath": "public/film/img/s14/361-the-wall-of-drawings.jpg",
+          "sha256": "4a541035f0f04fbedc11881643820ad2c895052464ed3f599f766eee467bdc60",
+          "reviewPreview": "context/02-after.jpg"
+        },
+        {
+          "order": 3,
+          "role": "Character identity reference",
+          "sourceFilmPath": "/film/img/s11/419-twenty-years.jpg",
+          "workspacePath": "public/film/img/s11/419-twenty-years.jpg",
+          "sha256": "4e70a9ad2b38e684e722c30c802082c484dd1bdaa187fb618e9abfe514183385"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b344, bridging the first two tiny tatami-apartment references; use the third image only to identify Jack's exact face and charcoal coat. Inside Mara's cramped tatami room with the frosted sliding window and charcoal-and-watercolour train sketches taped across the pale wall, compose a quiet medium two-shot: blonde Vera in her charcoal wool coat and cream turtleneck stands near the window speaking with subdued self-reproach toward Jack, who kneels beside the zipped black hard-shell suitcase on the white futon mattress looking up at her, before Vera turns away toward the wall of drawings in the next shot. Soft overcast window light, natural hands and proportions, grounded 35mm film photography, full 16:9 widescreen composition with headroom. No captions, subtitles, overlaid text or watermarks.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030-batch4/images/02-nw-b344-she-always-runs.jpg",
+        "sha256": "bf7df9dbc4a66ec9f0f99a6d2ea549581bb13e924e010ec4f366f36e3b77bc5e",
+        "width": 1920,
+        "height": 1072,
+        "bytes": 219542
+      }
+    },
+    {
+      "number": 3,
+      "title": "Jack looks up at the Hive",
+      "scene": "nw_s15",
+      "targetBeat": "nw_b447",
+      "precedingBeat": "nw_b446",
+      "nextBeat": "nw_b448",
+      "targetText": "Jack stands on the pavement with the sketchbook under his coat. He looks up at the Hive for a long moment, as if at someone he used to know.",
+      "holdSplit": "9.38s -> 4.13s + 5.25s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch4/images/03-nw-b447-jack-looks-at-hive.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s15/432-the-hive.jpg",
+          "workspacePath": "public/film/img/s15/432-the-hive.jpg",
+          "sha256": "56854ae051d099fb96f82064b18972e7f91bc9dfb10e1d8726a6b6bcdac2dc0b",
+          "reviewPreview": "context/03-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s15/185-then-he-goes-in.jpg",
+          "workspacePath": "public/film/img/s15/185-then-he-goes-in.jpg",
+          "sha256": "f2d71295fb5803f6a859e0cfd7f56556efa3d7c482087bfd068122c7c276c121",
+          "reviewPreview": "context/03-after.jpg"
+        },
+        {
+          "order": 3,
+          "role": "Character identity reference",
+          "sourceFilmPath": "/film/img/s11/419-twenty-years.jpg",
+          "workspacePath": "public/film/img/s11/419-twenty-years.jpg",
+          "sha256": "4e70a9ad2b38e684e722c30c802082c484dd1bdaa187fb618e9abfe514183385"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b447, bridging the first two Hive exterior-and-entry references; use the third image only to identify Jack's exact face and charcoal overcoat. Standing still on the rain-wet pavement across the street from the weathered, steam-shrouded concrete Hive apartment block wedged between sleek glass office towers and the elevated train viaduct, dark-haired Jack in his charcoal overcoat holds his coat closed with one hand over the sketchbook tucked beneath it, looking up across the wet road at the old building with quiet recognition before he walks inside in the following shot. Softly blurred umbrella-carrying commuters pass in the grey rain. Grounded 35mm film cinematography, natural hands, full 16:9 landscape frame with headroom. No captions, subtitles, overlaid English text or watermarks.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030-batch4/images/03-nw-b447-jack-looks-at-hive.jpg",
+        "sha256": "b5e33cc16ada24cbf9ad8332e87995c42b4ee9bb10a28ac4776947e9055346c7",
+        "width": 1360,
+        "height": 768,
+        "bytes": 251609
+      }
+    },
+    {
+      "number": 4,
+      "title": "The two customers stop slurping",
+      "scene": "nw_s17",
+      "targetBeat": "nw_b471",
+      "precedingBeat": "nw_b470",
+      "nextBeat": "nw_b472",
+      "targetText": "The two customers at the end of the counter have stopped slurping.",
+      "holdSplit": "8.13s -> 4.54s + 3.58s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch4/images/04-nw-b471-stopped-slurping.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s17/358-the-empty-third-stool.jpg",
+          "workspacePath": "public/film/img/s17/358-the-empty-third-stool.jpg",
+          "sha256": "dba6aabb6bd7831172f487cdaea4dad9b60b95076531aac55052ef4b1d99b314",
+          "reviewPreview": "context/04-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s17/359-eat-then-go.jpg",
+          "workspacePath": "public/film/img/s17/359-eat-then-go.jpg",
+          "sha256": "0ae7c047cd62656a405fb49d1097176bd5283b07ed8e57270db13a9b8aeb7889",
+          "reviewPreview": "context/04-after.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b471, bridging the two supplied dim noodle-shop references. Compose an angled medium shot looking down the worn dark-wood L-shaped counter toward the two older grey-haired Japanese men seated at the far end: both men have suddenly frozen mid-meal with their wooden chopsticks held motionless above their steaming ceramic bowls, glancing sideways in tense, wary silence after overhearing Jack's quiet remark, while dark-haired Jack in his charcoal overcoat sits in soft foreground focus on his wooden stool and steam rises from Kaneko's pot behind the counter. Warm bare-bulb tungsten light, natural hands, grounded 35mm film photography, full 16:9 landscape frame with headroom. No captions, subtitles, overlaid English text or watermarks."
+    },
+    {
+      "number": 5,
+      "title": "Vera hesitates at the door",
+      "scene": "nw_s21",
+      "targetBeat": "nw_b542",
+      "precedingBeat": "nw_b541",
+      "nextBeat": "nw_b543",
+      "targetText": "She stands. At the door she hesitates, as though she wants to say something else. She doesn't. She goes.",
+      "holdSplit": "9.88s -> 4.38s + 5.50s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch4/images/05-nw-b542-hesitates-at-door.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s21/271-not-yet.jpg",
+          "workspacePath": "public/film/img/s21/271-not-yet.jpg",
+          "sha256": "8b61c0af01c66cf58aed11e49416b2669c27ca3869cb1f4a659e87d4316d4b03",
+          "reviewPreview": "context/05-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s21/194-he-holds-it-without-drinking.jpg",
+          "workspacePath": "public/film/img/s21/194-he-holds-it-without-drinking.jpg",
+          "sha256": "1bb5ea88f548b17274edbe370828a57ea6b7ea42f6e5e9ce242d8b0b56ec9b9c",
+          "reviewPreview": "context/05-after.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b542, bridging the two supplied grey-morning detective-office references. Inside Jack's muted rainy office with the Venetian-blinded window overlooking the train line, wooden desk, two paper coffee cups and closed beige notebook, blonde Vera in her charcoal wool coat and cream turtleneck has risen from her chair and stands at the frosted-glass office door on the left with her hand resting on the metal door handle, pausing and glancing half-back toward Jack as though about to say something more before leaving, while Jack sits very still in his dark coat at the desk. Cool overcast morning daylight, natural posture and hands, grounded 35mm film cinematography, full 16:9 widescreen composition with headroom. No captions, subtitles, overlaid text or watermarks."
+    },
+    {
+      "number": 6,
+      "title": "I still signed it",
+      "scene": "nw_s23",
+      "targetBeat": "nw_b588",
+      "precedingBeat": "nw_b587",
+      "nextBeat": "nw_b589",
+      "targetText": "I still signed it.",
+      "holdSplit": "18.71s -> 16.71s + 2.00s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch4/images/06-nw-b588-still-signed-it.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s23/442-he-puts-down-his-chopsticks.jpg",
+          "workspacePath": "public/film/img/s23/442-he-puts-down-his-chopsticks.jpg",
+          "sha256": "4564b43ae1d9034947c4be1131b721f1bdd28be2027f1b395aedb22681b0042c",
+          "reviewPreview": "context/06-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s23/536-carried-it-too.jpg",
+          "workspacePath": "public/film/img/s23/536-carried-it-too.jpg",
+          "sha256": "2be846445bae5cccf32109571c3f2be269844c1ebd321834c18612817499e074",
+          "reviewPreview": "context/06-after.jpg"
+        },
+        {
+          "order": 3,
+          "role": "Character identity reference",
+          "sourceFilmPath": "/film/img/s11/419-twenty-years.jpg",
+          "workspacePath": "public/film/img/s11/419-twenty-years.jpg",
+          "sha256": "4e70a9ad2b38e684e722c30c802082c484dd1bdaa187fb618e9abfe514183385"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b588, bridging the first two rainy-night under-the-tracks yakitori-stall references; use the third image only to match Jack's exact face. Compose the reverse over-the-shoulder medium close-up past Ishida's dark-suited shoulder onto dark-haired Western detective Jack in his charcoal overcoat and open-collar cream shirt seated across the red metal table under glowing red paper lanterns and rising charcoal-grill smoke, draft beer mugs and yakitori skewers between them. Jack looks quietly across the table at Ishida with somber, unsparing honesty as he answers in four quiet words. Softly blurred salarymen under the rusted railway viaduct behind him, rain glistening beyond the plastic curtain. Grounded 35mm film photography, natural anatomy, full 16:9 landscape frame with headroom. No captions, subtitles, overlaid text or watermarks."
+    },
+    {
+      "number": 7,
+      "title": "A promise you don't trust yourself to keep",
+      "scene": "nw_s26",
+      "targetBeat": "nw_b674",
+      "precedingBeat": "nw_b673",
+      "nextBeat": "nw_b675",
+      "targetText": "That's not a habit. That's a promise you don't trust yourself to keep.",
+      "holdSplit": "6.46s -> 1.58s + 4.88s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch4/images/07-nw-b674-promise-lighter.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s26/545-you-dont-smoke.jpg",
+          "workspacePath": "public/film/img/s26/545-you-dont-smoke.jpg",
+          "sha256": "299d97ae3cb1a7b0d75a6918ed78dc4fdcd2171034f52969af1bde91490347fd",
+          "reviewPreview": "context/07-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s26/546-how-true-that-is.jpg",
+          "workspacePath": "public/film/img/s26/546-how-true-that-is.jpg",
+          "sha256": "c99aecefd4ca6debb2d6237381b6b0ec0529eefa3a76eb16dce8cea136485e64",
+          "reviewPreview": "context/07-after.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b674, bridging the two supplied daytime commuter-train references. Compose the complementary medium close-up single on blonde Vera in her charcoal wool coat and cream knit turtleneck seated on the green-upholstered train bench against the rain-beaded window, holding Jack's open brushed-silver Zippo lighter gently in both hands as she looks over toward Jack (seen only as a soft dark-coat shoulder edge on the right) with quiet, perceptive candour. Match her exact face, blonde bangs, coat, sweater and soft grey rainy-afternoon train daylight from the first reference. Natural hands, grounded 35mm film photography, full 16:9 landscape frame with headroom. No captions, subtitles, overlaid text or watermarks.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030-batch4/images/07-nw-b674-promise-lighter.jpg",
+        "sha256": "9e1eec5db46259509fc90126cc2acad33dd485340d94fa35c08ab462bd2433c0",
+        "width": 2730,
+        "height": 1536,
+        "bytes": 473813
+      }
+    },
+    {
+      "number": 8,
+      "title": "What Mara saw from behind the crates",
+      "scene": "nw_s27a",
+      "targetBeat": "nw_b704",
+      "precedingBeat": "nw_b703",
+      "nextBeat": "nw_b705",
+      "targetText": "She sees what Mara saw: the underside of the counter, the crate of empty bottles, the place where the stool went over, the dark screen of the television on the ceiling.",
+      "holdSplit": "12.83s -> 5.83s + 7.00s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch4/images/08-nw-b704-what-mara-saw.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s27a/456-the-counter-flap.jpg",
+          "workspacePath": "public/film/img/s27a/456-the-counter-flap.jpg",
+          "sha256": "276f0ada6d4825b966dfe5d6d9fd9a0b9bbf5d40a09a8a22682a2f2c1ad1d446",
+          "reviewPreview": "context/08-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s27a/292-she-was-here.jpg",
+          "workspacePath": "public/film/img/s27a/292-she-was-here.jpg",
+          "sha256": "a513e125722a032c643d40d6cae66e8d597f2b9c187d549ea98e5a5ebb0dcf2c",
+          "reviewPreview": "context/08-after.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b704, bridging the two supplied daytime Kanda bar references. Compose a low crouching point-of-view shot from behind the far end of the dark wooden bar counter—no people in the foreground—looking out past the underside of the wooden counter, stacked plastic crates of empty brown beer bottles, wet dark floorboards and red leather bar stools toward the dark switched-off CRT television mounted high near the ceiling above the open rainy street doorway. Match the exact worn dark wood, bottle crates, red stools and muted grey daylight of the references. Grounded 35mm film cinematography, true 16:9 widescreen composition. No captions, subtitles, added English text or watermarks.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030-batch4/images/08-nw-b704-what-mara-saw.jpg",
+        "sha256": "c6cc248a9e20be3150ffc8a44a41c751e02c13c8d168e65304f661806255d609",
+        "width": 2848,
+        "height": 1600,
+        "bytes": 432612
+      }
+    },
+    {
+      "number": 9,
+      "title": "No one in the mirror",
+      "scene": "nw_s50",
+      "targetBeat": "nw_b858",
+      "precedingBeat": "nw_b857",
+      "nextBeat": "nw_b859",
+      "targetText": "He looks in the mirror. No one.",
+      "holdSplit": "8.38s -> 6.54s + 1.83s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch4/images/09-nw-b858-rearview-mirror.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": "single",
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s50/216-hand-starts-to-shake.jpg",
+          "workspacePath": "public/film/img/s50/216-hand-starts-to-shake.jpg",
+          "sha256": "2b4af54c8b098443b8467282c4429d7aab368645e0170577db5f215869afbd94",
+          "reviewPreview": "context/09-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s50/464-soaked-and-creased.jpg",
+          "workspacePath": "public/film/img/s50/464-soaked-and-creased.jpg",
+          "sha256": "d7a1e5be36102cc959d14acd4f5c4176f3d35d0db300fd9ffdbeee66d2f3b31f",
+          "reviewPreview": "context/09-after.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b858, bridging the two supplied rainy-night truck-cab references. Inside the dark pickup cab with the spiderweb-cracked, rain-streaked windshield and dim blue dashboard glow, compose a tense medium-close shot angled past blood-streaked dark-haired Jack in the driver's seat as he glances sharply up into the rectangular interior rearview mirror; inside the mirror glass, only an empty dark rain-slick two-lane highway stretches behind him with no pursuing headlights. Match Jack's exact face, blood streak from his hairline, soaked pale shirt and cracked windshield from the references. Grounded 35mm noir cinematography, full 16:9 widescreen frame. No captions, subtitles, overlaid text or watermarks.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261030-batch4/images/09-nw-b858-rearview-mirror.jpg",
+        "sha256": "b5149c90db81b456ae66e9c55a9e0b5ba926f990f9710c4063ececd6003f2e16",
+        "width": 1672,
+        "height": 940,
+        "bytes": 212328
+      }
+    },
+    {
+      "number": 10,
+      "title": "Oh my God",
+      "scene": "nw_s52",
+      "targetBeat": "nw_b874",
+      "precedingBeat": "nw_b873",
+      "nextBeat": "nw_b875",
+      "targetText": "Oh my God.",
+      "holdSplit": "5.13s -> 2.92s + 2.21s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch4/images/10-nw-b874-oh-my-god.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s52/541-a-knock-at-the-door.jpg",
+          "workspacePath": "public/film/img/s52/541-a-knock-at-the-door.jpg",
+          "sha256": "c98598bbfb4306c301b797be3c577aec7c12dc6538a80adc6852741abe2aae28",
+          "reviewPreview": "context/10-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s52/218-she-pulls-him-in.jpg",
+          "workspacePath": "public/film/img/s52/218-she-pulls-him-in.jpg",
+          "sha256": "6cd36d1ae370dda1da1c172c9d5f014e701ec60bd6c4b1e696322c5b33f56e04",
+          "reviewPreview": "context/10-after.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b874, bridging the two supplied rainy-walkway apartment-doorway references. Capture the exact instant the grey metal apartment door swings open from inside Vera's dim apartment onto the rain-swept exterior walkway: barefoot blonde Vera in her cream knit sweater and dark trousers stands frozen just inside the threshold with one hand raised to her mouth in sudden shocked alarm as she sees rain-drenched dark-haired Jack in his soaked black coat and open white shirt standing outside on the wet walkway with dried blood down his forehead, before she pulls him inside in the next shot. Match both exact faces, garments, grey concrete walkway railing and cold rainy morning light. Natural hands and proportions, grounded 35mm film photography, full 16:9 landscape frame with headroom. No captions, subtitles, overlaid text or watermarks."
+    }
+  ]
+}
