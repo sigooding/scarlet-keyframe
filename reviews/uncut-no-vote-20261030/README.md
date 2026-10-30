@@ -1,35 +1,37 @@
-# Original Uncut: ten-shot review batch (pending)
+# Original Uncut: ten-shot review
 
-**No images were generated.** All ten requests were rejected by the image provider with HTTP 403 / an account restriction. There are no candidates to review or install yet. Original Uncut, its timing, audio and captions remain unchanged.
+The no-vote generation service returned HTTP 403 on the original attempt and retry. At the user’s request, the batch then used voting: **nine images were selected and installed**, and image **3 was skipped** and left unchanged.
 
-The ten targets were randomly chosen from duplicate stills in ten different scenes. The exact attempted prompts, ordered reference paths and reference hashes are preserved in [manifest.json](manifest.json). The reference JPEGs also remain in `/home/user/uncut-review-refs-20261030/`; the source-film paths below identify the originals.
+[Open the numbered image review gallery](index.html) · [Machine-readable manifest](manifest.json)
 
-When image generation is available again, create **one image per target without voting**, using the same ordered references; save all outputs for user review. Do not add any image to Original Uncut until the user explicitly approves it.
+The gallery shows each selected image alongside the original preceding and following frames. Full-resolution voted JPEGs are preserved under `images/`; full-frame downsized JPEGs are bundled for Original Uncut. The pictures shown under `context/` are small previews of the original reference frames, not replacements.
 
-| # | Scene | Target beat | Proposed shot | Target text |
+The nine insertions use the existing beat boundaries. Timing, captions, audio, original source stills and other cuts are not changed. Saved or stashed Uncut edits are upgraded only when the original picture and safe carry conditions still match; user images, explicit holds and shot-specific layers are preserved.
+
+| # | Scene | Target beat | Shot | Vote result |
 |---:|---|---|---|---|
-| 1 | `nw_s94` | `nw_b1562` | The open sedan door | Its rear door stands open: warm amber light, leather. |
-| 2 | `nw_s8` | `nw_b199` | Vera asks about Mara | My sister. Four nights ago. Was she here? |
-| 3 | `nw_s4` | `nw_b87` | Vera makes the call | Her phone lies face up in front of her. She calls. Waits. |
-| 4 | `nw_s83` | `nw_b1439` | The tiny plaza | Tiny painted people cross it. |
-| 5 | `nw_s79` | `nw_b1332` | Vera reads the notebook | I'll go on alone. I've done it before. |
-| 6 | `nw_s17` | `nw_b465` | Kaneko at the counter | Everything is going. We are just slower. |
-| 7 | `nw_s84` | `nw_b1464` | Vera in the storeroom | Ishida called me before it was on any news. He knew exactly where she was. |
-| 8 | `nw_s61` | `nw_b1007` | Ishida behind the wheel | The sister. |
-| 9 | `nw_s11` | `nw_b288` | Jack studies the photograph | Jack looks at it for a long time. |
-| 10 | `nw_s77a` | `nw_b1302` | The shadowed car window | Everyone is allowed one. |
+| 1 | `nw_s94` | `nw_b1562` | The open sedan door | [Option 2 selected](images/01-nw-b1562-sedan-door.jpg) |
+| 2 | `nw_s8` | `nw_b199` | Vera asks about Mara | [Option 2 selected](images/02-nw-b199-asking-about-mara.jpg) |
+| 3 | `nw_s4` | `nw_b87` | Vera makes the call | **Skipped** — unchanged |
+| 4 | `nw_s83` | `nw_b1439` | The tiny plaza | [Option 1 selected](images/04-nw-b1439-plaza-miniatures.jpg) |
+| 5 | `nw_s79` | `nw_b1332` | Vera reads the notebook | [Option 1 selected](images/05-nw-b1332-reading-notebook.jpg) |
+| 6 | `nw_s17` | `nw_b465` | Kaneko at the counter | [Option 1 selected](images/06-nw-b465-kaneko-at-counter.jpg) |
+| 7 | `nw_s84` | `nw_b1464` | Vera in the storeroom | [Option 2 selected](images/07-nw-b1464-vera-storeroom.jpg) |
+| 8 | `nw_s61` | `nw_b1007` | Ishida behind the wheel | [Option 2 selected](images/08-nw-b1007-ishida-drives.jpg) |
+| 9 | `nw_s11` | `nw_b288` | Jack studies the photograph | [Option 2 selected](images/09-nw-b288-jack-remembers.jpg) |
+| 10 | `nw_s77a` | `nw_b1302` | The shadowed car window | [Option 2 selected](images/10-nw-b1302-black-sedan-window.jpg) |
 
-## Exact attempted prompts and references
+## Exact prompts and ordered reference frames
 
 ### 1. The open sedan door — `nw_b1562`
 
 Target text: “Its rear door stands open: warm amber light, leather.”
 
-Intended file: `reviews/uncut-no-vote-20261030/images/01-nw-b1562-sedan-door.jpg`
+Result: **option 2 selected**; original `reviews/uncut-no-vote-20261030/images/01-nw-b1562-sedan-door.jpg`; inline `src/assets/recreated-uncut/1562-sedan-door.jpg`.
 
 Reference order:
-1. Preceding shared still: `/film/img/s94/139-only-tea.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1562-before.jpg`)
-2. Following still: `/film/img/s94/140-where-are-we-going.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1562-after.jpg`)
+1. Preceding shared still: `/film/img/s94/139-only-tea.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1562-before.jpg`)
+2. Following still: `/film/img/s94/140-where-are-we-going.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1562-after.jpg`)
 
 Prompt:
 
@@ -39,12 +41,12 @@ Prompt:
 
 Target text: “My sister. Four nights ago. Was she here?”
 
-Intended file: `reviews/uncut-no-vote-20261030/images/02-nw-b199-asking-about-mara.jpg`
+Result: **option 2 selected**; original `reviews/uncut-no-vote-20261030/images/02-nw-b199-asking-about-mara.jpg`; inline `src/assets/recreated-uncut/199-asking-about-mara.jpg`.
 
 Reference order:
-1. Preceding shared still: `/film/img/s8/160-were-closed.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b199-before.jpg`)
-2. Following still: `/film/img/s8/410-exactly-one-second.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b199-after.jpg`)
-3. Vera identity: `/film/img/s6/58-why-kanda.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b199-vera-identity.jpg`)
+1. Preceding shared still: `/film/img/s8/160-were-closed.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b199-before.jpg`)
+2. Following still: `/film/img/s8/410-exactly-one-second.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b199-after.jpg`)
+3. Vera identity: `/film/img/s6/58-why-kanda.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b199-vera-identity.jpg`)
 
 Prompt:
 
@@ -54,11 +56,11 @@ Prompt:
 
 Target text: “Her phone lies face up in front of her. She calls. Waits.”
 
-Intended file: `reviews/uncut-no-vote-20261030/images/03-nw-b87-vera-calls.jpg`
+Result: **skipped**; no selected image was saved or installed. Retry with an improved prompt later.
 
 Reference order:
-1. Preceding shared still: `/film/img/s4/385-the-empty-place.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b87-before.jpg`)
-2. Following still: `/film/img/s4/37-the-answerphone.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b87-after.jpg`)
+1. Preceding shared still: `/film/img/s4/385-the-empty-place.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b87-before.jpg`)
+2. Following still: `/film/img/s4/37-the-answerphone.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b87-after.jpg`)
 
 Prompt:
 
@@ -68,11 +70,11 @@ Prompt:
 
 Target text: “Tiny painted people cross it.”
 
-Intended file: `reviews/uncut-no-vote-20261030/images/04-nw-b1439-plaza-miniatures.jpg`
+Result: **option 1 selected**; original `reviews/uncut-no-vote-20261030/images/04-nw-b1439-plaza-miniatures.jpg`; inline `src/assets/recreated-uncut/1439-plaza-miniatures.jpg`.
 
 Reference order:
-1. Preceding shared still: `/film/img/retakes_2026_10_20/112-every-page-r1.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1439-before.jpg`)
-2. Following still: `/film/img/s83/113-very-clean.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1439-after.jpg`)
+1. Preceding shared still: `/film/img/retakes_2026_10_20/112-every-page-r1.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1439-before.jpg`)
+2. Following still: `/film/img/s83/113-very-clean.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1439-after.jpg`)
 
 Prompt:
 
@@ -82,12 +84,12 @@ Prompt:
 
 Target text: “I'll go on alone. I've done it before.”
 
-Intended file: `reviews/uncut-no-vote-20261030/images/05-nw-b1332-reading-notebook.jpg`
+Result: **option 1 selected**; original `reviews/uncut-no-vote-20261030/images/05-nw-b1332-reading-notebook.jpg`; inline `src/assets/recreated-uncut/1332-reading-notebook.jpg`.
 
 Reference order:
-1. Preceding shared still: `/film/img/s79/92-underlined-twice.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1332-before.jpg`)
-2. Following still: `/film/img/s79/508-almost-unrecognisable.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1332-after.jpg`)
-3. Vera identity and apartment: `/film/img/s79/91-grey-light.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1332-vera-identity.jpg`)
+1. Preceding shared still: `/film/img/s79/92-underlined-twice.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1332-before.jpg`)
+2. Following still: `/film/img/s79/508-almost-unrecognisable.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1332-after.jpg`)
+3. Vera identity and apartment: `/film/img/s79/91-grey-light.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1332-vera-identity.jpg`)
 
 Prompt:
 
@@ -97,11 +99,11 @@ Prompt:
 
 Target text: “Everything is going. We are just slower.”
 
-Intended file: `reviews/uncut-no-vote-20261030/images/06-nw-b465-kaneko-at-counter.jpg`
+Result: **option 1 selected**; original `reviews/uncut-no-vote-20261030/images/06-nw-b465-kaneko-at-counter.jpg`; inline `src/assets/recreated-uncut/465-kaneko-at-counter.jpg`.
 
 Reference order:
-1. Preceding shared still: `/film/img/s17/434-i-was-already-old.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b465-before.jpg`)
-2. Following still: `/film/img/s17/358-the-empty-third-stool.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b465-after.jpg`)
+1. Preceding shared still: `/film/img/s17/434-i-was-already-old.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b465-before.jpg`)
+2. Following still: `/film/img/s17/358-the-empty-third-stool.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b465-after.jpg`)
 
 Prompt:
 
@@ -111,12 +113,12 @@ Prompt:
 
 Target text: “Ishida called me before it was on any news. He knew exactly where she was.”
 
-Intended file: `reviews/uncut-no-vote-20261030/images/07-nw-b1464-vera-storeroom.jpg`
+Result: **option 2 selected**; original `reviews/uncut-no-vote-20261030/images/07-nw-b1464-vera-storeroom.jpg`; inline `src/assets/recreated-uncut/1464-vera-storeroom.jpg`.
 
 Reference order:
-1. Preceding shared still: `/film/img/s84/117-both-wrong.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1464-before.jpg`)
-2. Following still: `/film/img/s84/518-thats-mine.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1464-after.jpg`)
-3. Vera identity in the storeroom: `/film/img/s84/519-not-all-right.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1464-vera.jpg`)
+1. Preceding shared still: `/film/img/s84/117-both-wrong.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1464-before.jpg`)
+2. Following still: `/film/img/s84/518-thats-mine.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1464-after.jpg`)
+3. Vera identity in the storeroom: `/film/img/s84/519-not-all-right.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1464-vera.jpg`)
 
 Prompt:
 
@@ -126,11 +128,11 @@ Prompt:
 
 Target text: “The sister.”
 
-Intended file: `reviews/uncut-no-vote-20261030/images/08-nw-b1007-ishida-drives.jpg`
+Result: **option 2 selected**; original `reviews/uncut-no-vote-20261030/images/08-nw-b1007-ishida-drives.jpg`; inline `src/assets/recreated-uncut/1007-ishida-drives.jpg`.
 
 Reference order:
-1. Preceding shared still: `/film/img/s61/481-the-side-of-his-face.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1007-before.jpg`)
-2. Following still: `/film/img/s61/482-just-you.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1007-after.jpg`)
+1. Preceding shared still: `/film/img/s61/481-the-side-of-his-face.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1007-before.jpg`)
+2. Following still: `/film/img/s61/482-just-you.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1007-after.jpg`)
 
 Prompt:
 
@@ -140,12 +142,12 @@ Prompt:
 
 Target text: “Jack looks at it for a long time.”
 
-Intended file: `reviews/uncut-no-vote-20261030/images/09-nw-b288-jack-remembers.jpg`
+Result: **option 2 selected**; original `reviews/uncut-no-vote-20261030/images/09-nw-b288-jack-remembers.jpg`; inline `src/assets/recreated-uncut/288-jack-remembers.jpg`.
 
 Reference order:
-1. Preceding shared still: `/film/img/s11/167-two-men-laughing.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b288-before.jpg`)
-2. Following still: `/film/img/s11/418-it-takes-a-long-time-to-dial.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b288-after.jpg`)
-3. Jack identity: `/film/img/s11/419-twenty-years.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b288-jack-identity.jpg`)
+1. Preceding shared still: `/film/img/s11/167-two-men-laughing.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b288-before.jpg`)
+2. Following still: `/film/img/s11/418-it-takes-a-long-time-to-dial.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b288-after.jpg`)
+3. Jack identity: `/film/img/s11/419-twenty-years.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b288-jack-identity.jpg`)
 
 Prompt:
 
@@ -155,12 +157,12 @@ Prompt:
 
 Target text: “Everyone is allowed one.”
 
-Intended file: `reviews/uncut-no-vote-20261030/images/10-nw-b1302-black-sedan-window.jpg`
+Result: **option 2 selected**; original `reviews/uncut-no-vote-20261030/images/10-nw-b1302-black-sedan-window.jpg`; inline `src/assets/recreated-uncut/1302-black-sedan-window.jpg`.
 
 Reference order:
-1. Preceding shared still: `/film/img/s77a/1296-everyone-is-allowed-one.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1302-before.jpg`)
-2. Following still: `/film/img/s77a/1303-reflection-in-black-glass.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1302-after.jpg`)
-3. Watch and hand at the lowered window: `/film/img/s77a/1294-hand-and-watch-on-sill.jpg` (saved copy: `/home/user/uncut-review-refs-20261030/nw_b1302-hand.jpg`)
+1. Preceding shared still: `/film/img/s77a/1296-everyone-is-allowed-one.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1302-before.jpg`)
+2. Following still: `/film/img/s77a/1303-reflection-in-black-glass.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1302-after.jpg`)
+3. Watch and hand at the lowered window: `/film/img/s77a/1294-hand-and-watch-on-sill.jpg` (workspace copy: `/home/user/uncut-review-refs-20261030/nw_b1302-hand.jpg`)
 
 Prompt:
 
@@ -168,4 +170,4 @@ Prompt:
 
 ## Continuation
 
-> Once the image service is working again, generate the ten pending images listed in `reviews/uncut-no-vote-20261030/manifest.json`, one per target, using both neighbouring references and any listed character reference. Use no voting or candidate-choice controls. Save every generated candidate and the exact prompts, inspect their aspect ratio and continuity, and provide a numbered review gallery. Do not install a candidate until the user approves it. Preserve the cut, timeline, captions, audio, other cuts and all custom edits.
+> Continue Original Uncut coverage by running the duplicate and long-hold audits. Pick ordinary targets at random and inspect the story text and neighbouring reference frames. The user requested voting as the fallback when no-vote generation was blocked; install only selected options, treat skips as quality rejections, and retry `nw_b87` with an improved prompt later. Preserve the original stills, timing, audio, captions, other cuts, and user edits. Save exact prompts and selected originals, verify migrations and run the tests before committing.
