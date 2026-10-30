@@ -111,6 +111,7 @@ export interface TimelineProps {
   onEditMarker: (markerId: string) => void;
   onScrub: (frame: number) => void;
   onSetSelection: (ids: string[], primaryId: string, targetFrame?: number) => void;
+  onSelectAllImages?: () => void;
   onDragStart: () => void;
   onDragEnd: (label: string) => void;
   onTrimPreview: (frameId: string, durationFrames: number) => void;
@@ -244,6 +245,7 @@ export function Timeline({
   onEditMarker,
   onScrub,
   onSetSelection,
+  onSelectAllImages,
   onDragStart,
   onDragEnd,
   onTrimPreview,
@@ -1310,6 +1312,12 @@ export function Timeline({
           >
             Paste
           </button>
+          {onSelectAllImages && (
+            <button type="button" className="button button-quiet" onClick={onSelectAllImages}
+              data-testid="select-all-images" title="Select all image frames (Ctrl/Cmd+A)">
+              Select all images
+            </button>
+          )}
           <button
             type="button"
             className="button button-quiet"

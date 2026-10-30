@@ -37,6 +37,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: "S", label: "Split selected caption or clip at playhead" },
       { keys: "Delete", label: "Lift picture to black gap" },
       { keys: "Shift + Delete", label: "Ripple delete shot & anchored sounds" },
+      { keys: "Ctrl/⌘ + A", label: "Select all image frames" },
       { keys: "Ctrl/⌘ + C  ·  V", label: "Copy · paste at playhead" },
       { keys: "Ctrl/⌘ + Z  ·  Shift + Z", label: "Undo · redo" },
       { keys: "Ctrl/⌘ + Alt + C  ·  V", label: "Copy / paste effects" },
