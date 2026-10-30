@@ -30,6 +30,26 @@ export interface LongPictureHold extends PictureRun {
   nextBeat?: HoldAuditBeat;
 }
 
+export interface AdjacentImagePair {
+  picture: string;
+  first: HoldAuditClip;
+  second: HoldAuditClip;
+  before?: HoldAuditClip;
+  after?: HoldAuditClip;
+}
+
+/** Find every adjacent pair sharing a still image, irrespective of its duration. */
+export function auditAdjacentImagePairs(clips: readonly HoldAuditClip[]): AdjacentImagePair[] {
+  const pairs: AdjacentImagePair[] = [];
+  for (let i = 1; i < clips.length; i += 1) {
+    const first = clips[i - 1];
+    const second = clips[i];
+    if (!first.isImage || !second.isImage || !first.picture || first.picture !== second.picture) continue;
+    pairs.push({ picture: first.picture, first, second, before: clips[i - 2], after: clips[i + 1] });
+  }
+  return pairs;
+}
+
 /** Inspect still-image holds without modifying the source timeline. */
 export function auditPictureHolds(
   clips: readonly HoldAuditClip[],

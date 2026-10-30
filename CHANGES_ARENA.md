@@ -2,7 +2,7 @@
 
 - A selected caption can be split at the playhead with S or Split CC without splitting its picture or audio clip. The cue text is divided at an estimated word boundary and can be edited afterwards; single-word cues cannot be divided this way. With no caption selected, Split continues to split the picture clip.
 - The marker name editor is positioned above the timeline toolbar controls so its buttons remain accessible.
-- No existing images were removed or replaced.
+- Original imported source images remain unchanged.
 
 ## Recovery limitation
 
@@ -16,6 +16,11 @@ The workspace was reset to the base checkout during this session. The previously
 
 - Ten separately voted intermediate stills have been added at existing beat boundaries; the original source pictures, dialogue, captions, audio and total timing remain intact. Existing Uncut saves are upgraded only where their current pictures still match the original; custom active and stashed pictures are preserved. Other cuts are unchanged.
 - The reproducible audit in `scripts/audit-uncut-holds.ts` reports both scene-bounded and continuous still-image holds, including pictures carried over scene boundaries. Its current normal-playback result is 307 continuous holds over seven seconds, so this work remains incomplete. See `IMAGE_RECOVERY.md` for accepted and rejected votes, exact prompts, the continuation prompt and remaining earlier recreations.
+
+## Original Uncut adjacent duplicate images
+
+- Three randomly selected duplicate pairs have separately voted replacements at their existing beat boundaries. The original stills, dialogue, audio, captions and timeline duration remain intact; guarded v12 migration preserves direct and carried custom pictures in active or stashed saves. Other cuts are unchanged.
+- `scripts/audit-uncut-duplicates.ts` reports adjacent stills sharing the same effective image reference, including short holds and cross-scene pairs. The factory cut went from 914 to 911 pairs; this is incomplete and does not detect differently named files with identical pixels. See `IMAGE_RECOVERY.md` for exact prompts, votes, the 16:9 crop of Harada's selected image, and continuation instructions.
 
 ## Select and grade image frames
 

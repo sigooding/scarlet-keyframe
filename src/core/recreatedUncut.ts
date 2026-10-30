@@ -1,3 +1,6 @@
+import ishidaWarning from "../assets/recreated-uncut/300-ishida-warning.jpg?url&inline";
+import listeningToTape from "../assets/recreated-uncut/1383-listening-to-tape.jpg?url&inline";
+import later from "../assets/recreated-uncut/980-later.jpg?url&inline";
 import danielVossPortrait from "../assets/recreated-uncut/284-daniel-voss-portrait.jpg?url&inline";
 import whereIsIt from "../assets/recreated-uncut/1360-where-is-it.jpg?url&inline";
 import missingPersonForm from "../assets/recreated-uncut/128-missing-person-form.jpg?url&inline";
@@ -28,6 +31,9 @@ import { buildKeyframes, type ProjectAsset, type ProjectState, type StoryLike } 
 // Only replacements selected in this recovery are listed here. The original
 // imported story is never modified, and saved user pictures are left intact.
 const plates = [
+  { id: "duplicate-uncut-300", beat: "nw_b300", scene: "nw_s11", source: "/film/img/s11/419-twenty-years.jpg", name: "Ishida's warning.jpg", data: ishidaWarning, version: 12 },
+  { id: "duplicate-uncut-1383", beat: "nw_b1383", scene: "nw_s82", source: "/film/img/s82/509-twenty-years-younger.jpg", name: "Listening to the tape.jpg", data: listeningToTape, version: 12 },
+  { id: "duplicate-uncut-980", beat: "nw_b980", scene: "nw_s59", source: "/film/img/s59/477-he-hardly-hears-her.jpg", name: "Later.jpg", data: later, version: 12 },
   { id: "gap-uncut-284", beat: "nw_b284", scene: "nw_s11", source: "/film/img/s11/244-daniel-voss-41.jpg", name: "Daniel Voss portrait.jpg", data: danielVossPortrait, version: 11 },
   { id: "gap-uncut-1360", beat: "nw_b1360", scene: "nw_s80", source: "/film/img/s80/the-blood-on-his-hand.jpg", name: "Where is it.jpg", data: whereIsIt, version: 11 },
   { id: "gap-uncut-128", beat: "nw_b128", scene: "nw_s6", source: "/film/img/s6/321-the-form.jpg", name: "Missing person form.jpg", data: missingPersonForm, version: 10 },
@@ -54,7 +60,7 @@ const plates = [
   { id: "recreated-uncut-148", beat: "nw_b148", scene: "nw_s6", source: "/film/img/s6/56-three-days-ago.jpg", name: "How did she seem.jpg", data: howDidSheSeem, version: 6 },
   { id: "recreated-uncut-716", beat: "nw_b716", scene: "nw_s28", source: "/film/img/s28/203-the-sea-wall-steps.jpg", name: "Sea wall road.jpg", data: seaWallRoad, version: 6 },
 ] as const;
-const COVERAGE_VERSION = 11;
+const COVERAGE_VERSION = 12;
 
 export function addRecreatedUncutCoverage(story: StoryLike, existing: ProjectAsset[], afterVersion = 0): ProjectAsset[] {
   if (story.id !== "nobodys-witness-film") return existing;
