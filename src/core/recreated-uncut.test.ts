@@ -17,6 +17,8 @@ vi.mock("../assets/recreated-uncut/1565-only-tea.jpg?url&inline", () => ({ defau
 vi.mock("../assets/recreated-uncut/038-sedan-departs.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,cw==" }));
 vi.mock("../assets/recreated-uncut/893-jack-what.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,dA==" }));
 
+vi.mock("../assets/recreated-uncut/1073-wine-red-dress.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,dQ==" }));
+
 const base = () => createProjectState(parseImportPayload(film, "film.json"), []);
 vi.mock("../assets/recreated-uncut/028-men-approach.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
 vi.mock("../assets/recreated-uncut/1037-the-notebook.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZQ==" }));
@@ -41,12 +43,12 @@ describe("recreated Original Uncut plates", () => {
     const result = buildDirectorsCutById(source, "uncut", new Map());
     const old = buildTimelineClips(buildKeyframes(source.originalStory)).clips;
     const next = buildTimelineClips(buildKeyframes(result.story)).clips;
-    const selected = ["nw_b31", "nw_b1573", "nw_b1637", "nw_b28", "nw_b1037", "nw_b1351", "nw_b17", "nw_b1671", "nw_b27", "nw_b1054", "nw_b1467", "nw_b1020", "nw_b1177", "nw_b148", "nw_b716", "nw_b99", "nw_b1358", "nw_b1565", "nw_b38", "nw_b893"];
+    const selected = ["nw_b31", "nw_b1573", "nw_b1637", "nw_b28", "nw_b1037", "nw_b1351", "nw_b17", "nw_b1671", "nw_b27", "nw_b1054", "nw_b1467", "nw_b1020", "nw_b1177", "nw_b148", "nw_b716", "nw_b99", "nw_b1358", "nw_b1565", "nw_b38", "nw_b893", "nw_b1073"];
     expect(next.map(c => [c.keyframe.id, c.keyframe.text, c.durationFrames, c.keyframe.beat.audioUrl]))
       .toEqual(old.map(c => [c.keyframe.id, c.keyframe.text, c.durationFrames, c.keyframe.beat.audioUrl]));
     expect(next.filter(c => !selected.includes(c.keyframe.id)).map(c => c.keyframe.picture))
       .toEqual(old.filter(c => !selected.includes(c.keyframe.id)).map(c => c.keyframe.picture));
-    for (const [id, asset] of [["nw_b31", "recreated-uncut-031"], ["nw_b1573", "recreated-uncut-1573"], ["nw_b1637", "recreated-uncut-1637"], ["nw_b28", "recreated-uncut-028"], ["nw_b1037", "recreated-uncut-1037"], ["nw_b1351", "recreated-uncut-1351"], ["nw_b17", "recreated-uncut-017"], ["nw_b1671", "recreated-uncut-1671"], ["nw_b27", "recreated-uncut-027"], ["nw_b1054", "recreated-uncut-1054"], ["nw_b1467", "recreated-uncut-1467"], ["nw_b1020", "recreated-uncut-1020"], ["nw_b1177", "recreated-uncut-1177"], ["nw_b148", "recreated-uncut-148"], ["nw_b716", "recreated-uncut-716"], ["nw_b99", "gap-uncut-099"], ["nw_b1358", "gap-uncut-1358"], ["nw_b1565", "gap-uncut-1565"], ["nw_b38", "gap-uncut-038"], ["nw_b893", "gap-uncut-893"]]) {
+    for (const [id, asset] of [["nw_b31", "recreated-uncut-031"], ["nw_b1573", "recreated-uncut-1573"], ["nw_b1637", "recreated-uncut-1637"], ["nw_b28", "recreated-uncut-028"], ["nw_b1037", "recreated-uncut-1037"], ["nw_b1351", "recreated-uncut-1351"], ["nw_b17", "recreated-uncut-017"], ["nw_b1671", "recreated-uncut-1671"], ["nw_b27", "recreated-uncut-027"], ["nw_b1054", "recreated-uncut-1054"], ["nw_b1467", "recreated-uncut-1467"], ["nw_b1020", "recreated-uncut-1020"], ["nw_b1177", "recreated-uncut-1177"], ["nw_b148", "recreated-uncut-148"], ["nw_b716", "recreated-uncut-716"], ["nw_b99", "gap-uncut-099"], ["nw_b1358", "gap-uncut-1358"], ["nw_b1565", "gap-uncut-1565"], ["nw_b38", "gap-uncut-038"], ["nw_b893", "gap-uncut-893"], ["nw_b1073", "gap-uncut-1073"]]) {
       expect(next.find(c => c.keyframe.id === id)?.keyframe.picture).toBe(`asset:${asset}`);
       expect(result.assets.find(a => a.id === asset)?.dataUrl).toMatch(/^data:image\/jpeg;base64,/);
     }
@@ -58,7 +60,7 @@ describe("recreated Original Uncut plates", () => {
     const durations = new Map(Object.entries(audioDurations));
     const before = buildTimelineClips(buildKeyframes(source.originalStory), durations).clips;
     const after = buildTimelineClips(buildKeyframes(result.story), durations).clips;
-    for (const [start, inserted, next] of [["nw_b98", "nw_b99", "nw_b100"], ["nw_b1357", "nw_b1358", "nw_b1359"], ["nw_b1564", "nw_b1565", "nw_b1566"], ["nw_b37", "nw_b38", "nw_b39"], ["nw_b892", "nw_b893", "nw_b894"]]) {
+    for (const [start, inserted, next] of [["nw_b98", "nw_b99", "nw_b100"], ["nw_b1357", "nw_b1358", "nw_b1359"], ["nw_b1564", "nw_b1565", "nw_b1566"], ["nw_b37", "nw_b38", "nw_b39"], ["nw_b892", "nw_b893", "nw_b894"], ["nw_b1072", "nw_b1073", "nw_b1074"]]) {
       const oldStart = before.find(c => c.keyframe.id === start)!;
       const oldInsert = before.find(c => c.keyframe.id === inserted)!;
       const newStart = after.find(c => c.keyframe.id === start)!;
@@ -79,6 +81,15 @@ describe("recreated Original Uncut plates", () => {
     buildKeyframes(story).find(f => f.id === "nw_b99")!.beat.background = "/custom.jpg";
     const upgraded = upgradeSavedRecreatedUncut({ ...project, story, directorsCutId: "uncut", recreatedUncutCoverageVersion: 6 });
     expect(buildKeyframes(upgraded.story).find(f => f.id === "nw_b99")!.picture).toBe("/custom.jpg");
+  });
+  it("upgrades the v9 dress shot without replacing saved custom pictures", () => {
+    const project = base();
+    const active = structuredClone(project.story);
+    const stashed = structuredClone(project.story);
+    buildKeyframes(active).find(f => f.id === "nw_b1073")!.beat.background = "/custom-dress.jpg";
+    const result = upgradeSavedRecreatedUncut({ ...project, story: active, directorsCutId: "uncut", recreatedUncutCoverageVersion: 8, savedCutStates: { uncut: { story: stashed, updatedAt: 1 } } });
+    expect(buildKeyframes(result.story).find(f => f.id === "nw_b1073")!.picture).toBe("/custom-dress.jpg");
+    expect(buildKeyframes(result.savedCutStates!.uncut!.story).find(f => f.id === "nw_b1073")!.picture).toBe("asset:gap-uncut-1073");
   });
   it("only upgrades matching v8 gaps in saved and stashed Uncut", () => {
     const project = base();
