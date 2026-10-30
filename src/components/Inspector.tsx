@@ -1244,6 +1244,11 @@ export function Inspector(props: InspectorProps) {
                     {group.label}
                     <span>{group.fields.length} fields</span>
                   </summary>
+                  {group.id === "look" && props.selectedCount > 1 && (
+                    <p className="preview-only-note" data-testid="bulk-grade-hint">
+                      Grade and texture changes apply to all selected image frames.
+                    </p>
+                  )}
                   <div className="effect-fields">
                     {group.fields.map((field) => (
                       <EffectField

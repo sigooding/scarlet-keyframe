@@ -1,3 +1,5 @@
+import { imageFrameIds, isImageGradePath, setImageGradeForFrames } from "./core/imageGrading";
+import { upgradeSavedRecreatedUncut } from "./core/recreatedUncut";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { flushSync } from "react-dom";
 import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
@@ -886,6 +888,7 @@ export default function App() {
             ),
           };
         }
+        initialProject = upgradeSavedRecreatedUncut(initialProject);
         initialProject.missing = evaluateMissingMedia(initialProject, new Map(), paths);
 
         projectRef.current = initialProject;
@@ -1585,6 +1588,17 @@ export default function App() {
     },
     [playback, resolvedAudioClips, totalFrames],
   );
+
+  const selectAllImages = useCallback(() => {
+    const current = projectRef.current;
+    if (!current) return;
+    const ids = imageFrameIds(clips.map(clip => clip.keyframe), current.assets);
+    if (!ids.length) return;
+    const primary = ids.includes(selectedFrameId) ? selectedFrameId : ids[0];
+    setSelection(ids, primary);
+    setInspectorTab("clip");
+    setEditLabel(`Selected ${ids.length} image frames`);
+  }, [clips, selectedFrameId, setSelection]);
 
   const clearAllSelection = useCallback(() => {
     multiSelectionRef.current = EMPTY_MULTI_SELECTION;
@@ -3615,6 +3629,12 @@ export default function App() {
         return;
       }
 
+      if (!typingText && mod && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "a" && !target?.closest('[role="dialog"], .modal-backdrop')) {
+        event.preventDefault();
+        selectAllImages();
+        return;
+      }
+
       if (!typingText && mod && event.altKey && event.key.toLowerCase() === "c") {
         event.preventDefault();
         copyEffectsRef.current();
@@ -3829,6 +3849,7 @@ export default function App() {
     resolvedAudioClips,
     scrubToFrame,
     selectRelativeClip,
+    selectAllImages,
     setInPoint,
     setOutPoint,
     soundOn,
@@ -5270,13 +5291,17 @@ export default function App() {
             }
             onSetEffect={(path, value) =>
               editProject(
-                (current) => setEffectField(current, selectedFrame.id, path, value),
-                `${path.replace("cinematic.", "")} changed`,
+                (current) => isImageGradePath(path) && selectedFrameIds.length > 1
+                  ? setImageGradeForFrames(current, selectedFrameIds, path, path === "cinematic.colorGrade" && value === undefined ? "" : value)
+                  : setEffectField(current, selectedFrame.id, path, path === "cinematic.colorGrade" && value === undefined ? "" : value),
+                `${path.replace("cinematic.", "")} changed${isImageGradePath(path) && selectedFrameIds.length > 1 ? ` on ${selectedFrameIds.length} selected frames` : ""}`,
               )
             }
             onResetEffect={(path) =>
               editProject(
-                (current) => resetEffectField(current, selectedFrame.id, path),
+                (current) => isImageGradePath(path) && selectedFrameIds.length > 1
+                  ? setImageGradeForFrames(current, selectedFrameIds, path, undefined, true)
+                  : resetEffectField(current, selectedFrame.id, path),
                 `${path.replace("cinematic.", "")} reset`,
               )
             }
@@ -5532,6 +5557,7 @@ export default function App() {
             onEditMarker={(markerId) => setEditingMarkerId(markerId)}
             onScrub={scrubToFrame}
             onSetSelection={setSelection}
+            onSelectAllImages={selectAllImages}
             onDragStart={beginDragEdit}
             onDragEnd={endDragEdit}
             onTrimPreview={(frameId, durationFrames) =>
