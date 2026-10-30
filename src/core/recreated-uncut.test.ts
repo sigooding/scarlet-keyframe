@@ -3,11 +3,12 @@ import film from "../data/nobodys-witness-film.json";
 import audioDurations from "../data/audio-durations.json";
 import { buildKeyframes, createProjectState, parseImportPayload } from "./model";
 import { buildDirectorsCutById } from "./directorsCut";
-import { upgradeSavedRecreatedUncut } from "./recreatedUncut";
+import { addRecreatedUncutCoverage, upgradeSavedRecreatedUncut } from "./recreatedUncut";
 import { buildTimelineClips } from "../sequence/animate";
 
 vi.mock("../assets/recreated-uncut/300-ishida-warning.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ejE=" }));
 vi.mock("../assets/recreated-uncut/1383-listening-to-tape.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ejI=" }));
+vi.mock("../assets/recreated-uncut/1383-listening-wide.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,d2lkZQ==" }));
 vi.mock("../assets/recreated-uncut/980-later.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ejM=" }));
 vi.mock("../assets/recreated-uncut/1573-empty-chair.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,YQ==" }));
 vi.mock("../assets/recreated-uncut/031-after-twenty-years.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,Yg==" }));
@@ -27,6 +28,13 @@ vi.mock("../assets/recreated-uncut/284-daniel-voss-portrait.jpg?url&inline", () 
 vi.mock("../assets/recreated-uncut/1360-where-is-it.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,eQ==" }));
 
 const base = () => createProjectState(parseImportPayload(film, "film.json"), []);
+const oldHarada = { id: "duplicate-uncut-1383", name: "Listening to the tape.jpg", type: "image" as const, source: "bundle" as const, size: 2, dataUrl: "data:image/jpeg;base64,ejI=" };
+const putOldHarada = (story: ReturnType<typeof base>["story"]) => {
+  const beat = buildKeyframes(story).find(f => f.id === "nw_b1383")!.beat;
+  beat.background = "asset:duplicate-uncut-1383";
+  beat.backgroundHold = false;
+  return beat;
+};
 vi.mock("../assets/recreated-uncut/028-men-approach.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
 vi.mock("../assets/recreated-uncut/1037-the-notebook.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZQ==" }));
 vi.mock("../assets/recreated-uncut/1351-was-that-you.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,Zg==" }));
@@ -55,7 +63,7 @@ describe("recreated Original Uncut plates", () => {
       .toEqual(old.map(c => [c.keyframe.id, c.keyframe.text, c.durationFrames, c.keyframe.beat.audioUrl]));
     expect(next.filter(c => !selected.includes(c.keyframe.id)).map(c => c.keyframe.picture))
       .toEqual(old.filter(c => !selected.includes(c.keyframe.id)).map(c => c.keyframe.picture));
-    for (const [id, asset] of [["nw_b31", "recreated-uncut-031"], ["nw_b1573", "recreated-uncut-1573"], ["nw_b1637", "recreated-uncut-1637"], ["nw_b28", "recreated-uncut-028"], ["nw_b1037", "recreated-uncut-1037"], ["nw_b1351", "recreated-uncut-1351"], ["nw_b17", "recreated-uncut-017"], ["nw_b1671", "recreated-uncut-1671"], ["nw_b27", "recreated-uncut-027"], ["nw_b1054", "recreated-uncut-1054"], ["nw_b1467", "recreated-uncut-1467"], ["nw_b1020", "recreated-uncut-1020"], ["nw_b1177", "recreated-uncut-1177"], ["nw_b148", "recreated-uncut-148"], ["nw_b716", "recreated-uncut-716"], ["nw_b99", "gap-uncut-099"], ["nw_b1358", "gap-uncut-1358"], ["nw_b1565", "gap-uncut-1565"], ["nw_b38", "gap-uncut-038"], ["nw_b893", "gap-uncut-893"], ["nw_b1073", "gap-uncut-1073"], ["nw_b128", "gap-uncut-128"], ["nw_b1686", "gap-uncut-1686"], ["nw_b284", "gap-uncut-284"], ["nw_b1360", "gap-uncut-1360"], ["nw_b300", "duplicate-uncut-300"], ["nw_b1383", "duplicate-uncut-1383"], ["nw_b980", "duplicate-uncut-980"]]) {
+    for (const [id, asset] of [["nw_b31", "recreated-uncut-031"], ["nw_b1573", "recreated-uncut-1573"], ["nw_b1637", "recreated-uncut-1637"], ["nw_b28", "recreated-uncut-028"], ["nw_b1037", "recreated-uncut-1037"], ["nw_b1351", "recreated-uncut-1351"], ["nw_b17", "recreated-uncut-017"], ["nw_b1671", "recreated-uncut-1671"], ["nw_b27", "recreated-uncut-027"], ["nw_b1054", "recreated-uncut-1054"], ["nw_b1467", "recreated-uncut-1467"], ["nw_b1020", "recreated-uncut-1020"], ["nw_b1177", "recreated-uncut-1177"], ["nw_b148", "recreated-uncut-148"], ["nw_b716", "recreated-uncut-716"], ["nw_b99", "gap-uncut-099"], ["nw_b1358", "gap-uncut-1358"], ["nw_b1565", "gap-uncut-1565"], ["nw_b38", "gap-uncut-038"], ["nw_b893", "gap-uncut-893"], ["nw_b1073", "gap-uncut-1073"], ["nw_b128", "gap-uncut-128"], ["nw_b1686", "gap-uncut-1686"], ["nw_b284", "gap-uncut-284"], ["nw_b1360", "gap-uncut-1360"], ["nw_b300", "duplicate-uncut-300"], ["nw_b1383", "duplicate-uncut-1383-wide"], ["nw_b980", "duplicate-uncut-980"]]) {
       expect(next.find(c => c.keyframe.id === id)?.keyframe.picture).toBe(`asset:${asset}`);
       expect(result.assets.find(a => a.id === asset)?.dataUrl).toMatch(/^data:image\/jpeg;base64,/);
     }
@@ -92,7 +100,7 @@ describe("recreated Original Uncut plates", () => {
     const after = buildTimelineClips(buildKeyframes(result.story), durations).clips;
     expect(after.map(c => [c.keyframe.id, c.startFrame, c.durationFrames, c.keyframe.text, c.keyframe.beat.audioUrl, c.keyframe.beat.captions]))
       .toEqual(before.map(c => [c.keyframe.id, c.startFrame, c.durationFrames, c.keyframe.text, c.keyframe.beat.audioUrl, c.keyframe.beat.captions]));
-    for (const [id, asset] of [["nw_b300", "duplicate-uncut-300"], ["nw_b1383", "duplicate-uncut-1383"], ["nw_b980", "duplicate-uncut-980"]]) {
+    for (const [id, asset] of [["nw_b300", "duplicate-uncut-300"], ["nw_b1383", "duplicate-uncut-1383-wide"], ["nw_b980", "duplicate-uncut-980"]]) {
       const index = before.findIndex(c => c.keyframe.id === id);
       expect(index).toBeGreaterThan(0);
       expect(before[index - 1].keyframe.picture).toBe(before[index].keyframe.picture);
@@ -114,15 +122,130 @@ describe("recreated Original Uncut plates", () => {
     const stashed = buildKeyframes(upgraded.savedCutStates!.uncut!.story);
     expect(active.find(f => f.id === "nw_b300")!.picture).toBe("/custom-phone.jpg");
     expect(active.find(f => f.id === "nw_b980")!.picture).toBe("/custom-rain.jpg");
-    expect(active.find(f => f.id === "nw_b1383")!.picture).toBe("asset:duplicate-uncut-1383");
+    expect(active.find(f => f.id === "nw_b1383")!.picture).toBe("asset:duplicate-uncut-1383-wide");
     expect(stashed.find(f => f.id === "nw_b1383")!.picture).toBe("/custom-cassette.jpg");
     expect(stashed.find(f => f.id === "nw_b300")!.picture).toBe("asset:duplicate-uncut-300");
     expect(stashed.find(f => f.id === "nw_b980")!.picture).toBe("asset:duplicate-uncut-980");
-    expect(upgraded.recreatedUncutCoverageVersion).toBe(12);
+    expect(upgraded.recreatedUncutCoverageVersion).toBe(13);
     expect(upgraded.audioClips).toBe(saved.audioClips);
     expect(buildKeyframes(saved.story).find(f => f.id === "nw_b1383")!.picture).toBe("/film/img/s82/509-twenty-years-younger.jpg");
     expect(buildKeyframes(saved.savedCutStates.uncut.story).find(f => f.id === "nw_b300")!.picture).toBe("/film/img/s11/419-twenty-years.jpg");
     expect(upgradeSavedRecreatedUncut(upgraded)).toBe(upgraded);
+  });
+  it("upgrades the exact old Harada image in active and stashed v12 cuts without changing edits or timing", () => {
+    const project = base();
+    const activeStory = structuredClone(project.story);
+    const stashedStory = structuredClone(project.story);
+    const beat = putOldHarada(activeStory);
+    beat.cinematic = { colorGrade: "user-grade", depthMap: "/user-depth.png" };
+    beat.animation = { values: { zoom: 1.12 } };
+    putOldHarada(stashedStory);
+    // Another use of the old asset is deliberately not changed.
+    buildKeyframes(activeStory).find(f => f.id === "nw_b1377")!.beat.background = "asset:duplicate-uncut-1383";
+    const saved = { ...project, assets: [oldHarada], story: activeStory, directorsCutId: "uncut" as const, recreatedUncutCoverageVersion: 12, savedCutStates: { uncut: { story: stashedStory, updatedAt: 1 } } };
+    const durations = new Map(Object.entries(audioDurations));
+    const before = buildTimelineClips(buildKeyframes(saved.story), durations).clips;
+    const upgraded = upgradeSavedRecreatedUncut(saved);
+    const after = buildTimelineClips(buildKeyframes(upgraded.story), durations).clips;
+    expect(after.map(c => [c.keyframe.id, c.startFrame, c.durationFrames, c.keyframe.text, c.keyframe.beat.audioUrl, c.keyframe.beat.captions, c.keyframe.beat.animation, c.keyframe.beat.cinematic]))
+      .toEqual(before.map(c => [c.keyframe.id, c.startFrame, c.durationFrames, c.keyframe.text, c.keyframe.beat.audioUrl, c.keyframe.beat.captions, c.keyframe.beat.animation, c.keyframe.beat.cinematic]));
+    expect(after.filter(c => c.keyframe.id !== "nw_b1383").map(c => c.keyframe.picture))
+      .toEqual(before.filter(c => c.keyframe.id !== "nw_b1383").map(c => c.keyframe.picture));
+    expect(after.find(c => c.keyframe.id === "nw_b1383")!.keyframe.picture).toBe("asset:duplicate-uncut-1383-wide");
+    expect(buildKeyframes(upgraded.savedCutStates!.uncut!.story).find(f => f.id === "nw_b1383")!.picture).toBe("asset:duplicate-uncut-1383-wide");
+    expect(upgraded.assets.find(asset => asset.id === oldHarada.id)).toEqual(oldHarada);
+    expect(upgraded.assets.find(asset => asset.id === "duplicate-uncut-1383-wide")?.dataUrl).toBe("data:image/jpeg;base64,d2lkZQ==");
+    expect(upgraded.recreatedUncutCoverageVersion).toBe(13);
+    expect(upgraded.audioClips).toBe(saved.audioClips);
+    expect(upgradeSavedRecreatedUncut(upgraded)).toBe(upgraded);
+    expect(buildKeyframes(saved.story).find(f => f.id === "nw_b1383")!.picture).toBe("asset:duplicate-uncut-1383");
+  });
+  it("upgrades a stashed Uncut without changing the active cut or its use of the old asset", () => {
+    const project = base();
+    const activeStory = structuredClone(project.story);
+    const stashedStory = structuredClone(project.story);
+    putOldHarada(activeStory);
+    putOldHarada(stashedStory);
+    const saved = { ...project, assets: [oldHarada], story: activeStory, directorsCutId: "creative" as const, recreatedUncutCoverageVersion: 12, savedCutStates: { uncut: { story: stashedStory, updatedAt: 1 } } };
+    const upgraded = upgradeSavedRecreatedUncut(saved);
+    expect(upgraded.story).toBe(activeStory);
+    expect(buildKeyframes(upgraded.story).find(f => f.id === "nw_b1383")!.picture).toBe("asset:duplicate-uncut-1383");
+    expect(buildKeyframes(upgraded.savedCutStates!.uncut!.story).find(f => f.id === "nw_b1383")!.picture).toBe("asset:duplicate-uncut-1383-wide");
+    expect(upgraded.assets.find(asset => asset.id === oldHarada.id)).toEqual(oldHarada);
+  });
+  it("leaves modified old images and colliding custom wide assets untouched", () => {
+    const project = base();
+    for (const assets of [
+      [{ ...oldHarada, dataUrl: "data:image/jpeg;base64,Y3VzdG9t" }],
+      [oldHarada, { id: "duplicate-uncut-1383-wide", name: "Custom.jpg", type: "image" as const, source: "upload" as const, size: 6, dataUrl: "data:image/jpeg;base64,Y3VzdG9t" }],
+    ]) {
+      const story = structuredClone(project.story);
+      putOldHarada(story);
+      const saved = { ...project, assets, story, directorsCutId: "uncut" as const, recreatedUncutCoverageVersion: 12 };
+      const upgraded = upgradeSavedRecreatedUncut(saved);
+      expect(buildKeyframes(upgraded.story).find(f => f.id === "nw_b1383")!.picture).toBe("asset:duplicate-uncut-1383");
+      expect(upgraded.assets).toEqual(assets);
+    }
+  });
+  it("preserves a carried old picture and its cinematic settings after a gap", () => {
+    const project = base();
+    const story = structuredClone(project.story);
+    const beat = putOldHarada(story);
+    beat.backgroundHold = true;
+    beat.cinematic = { colorGrade: "user-grade", depthMap: "/user-depth.png" };
+    const scene = story.scenes.find(s => s.id === "nw_s82")!;
+    const index = scene.dialogueBeats!.findIndex(b => b.id === "nw_b1383");
+    scene.dialogueBeats!.splice(index + 1, 0, { id: "user-gap", gap: true });
+    const next = scene.dialogueBeats!.find(b => b.id === "nw_b1384")!;
+    delete next.background;
+    delete next.cinematic;
+    const before = buildKeyframes(story);
+    expect(before.find(f => f.id === "nw_b1384")!.picture).toBe("asset:duplicate-uncut-1383");
+    const upgraded = upgradeSavedRecreatedUncut({ ...project, assets: [oldHarada], story, directorsCutId: "uncut", recreatedUncutCoverageVersion: 12 });
+    const after = buildKeyframes(upgraded.story);
+    expect(after.find(f => f.id === "nw_b1383")!.picture).toBe("asset:duplicate-uncut-1383-wide");
+    expect(after.find(f => f.id === "nw_b1383")!.beat.backgroundHold).toBe(true);
+    const changed = before.filter(f => f.id !== "nw_b1383").flatMap(f => {
+      const updated = after.find(a => a.id === f.id)!;
+      return JSON.stringify([f.picture, f.cinematic]) === JSON.stringify([updated.picture, updated.cinematic])
+        ? [] : [{ id: f.id, before: [f.picture, f.cinematic], after: [updated.picture, updated.cinematic] }];
+    });
+    expect(changed).toEqual([]);
+  });
+  it("backs out if restoring a carried image would alter a later cinematic look", () => {
+    const project = base();
+    const story = structuredClone(project.story);
+    const beat = putOldHarada(story);
+    beat.backgroundHold = true;
+    beat.cinematic = { colorGrade: "user-grade", depthMap: "/user-depth.png" };
+    const next = buildKeyframes(story).find(f => f.id === "nw_b1384")!.beat;
+    delete next.background;
+    expect(next.cinematic).toBeTruthy();
+    const before = buildKeyframes(story).map(f => [f.id, f.picture, f.cinematic]);
+    const assets = addRecreatedUncutCoverage(story, [oldHarada], 12);
+    expect(buildKeyframes(story).map(f => [f.id, f.picture, f.cinematic])).toEqual(before);
+    expect(next.background).toBeUndefined();
+    expect(assets).toEqual([oldHarada]);
+  });
+  it("does not rewrite ambiguous inherited images across a scene or a non-held beat", () => {
+    const oldRef = "asset:duplicate-uncut-1383";
+    for (const crossScene of [false, true]) {
+      const story = crossScene ? {
+        id: "nobodys-witness-film", startSceneId: "nw_s82", scenes: [
+          { id: "nw_s82", autoAdvanceTargetSceneId: "next", dialogueBeats: [{ id: "nw_b1383", background: oldRef, backgroundHold: true }] },
+          { id: "next", dialogueBeats: [{ id: "next-beat" }] },
+        ],
+      } : {
+        id: "nobodys-witness-film", startSceneId: "nw_s82", scenes: [
+          { id: "nw_s82", dialogueBeats: [{ id: "nw_b1383", background: oldRef, backgroundHold: true }, { id: "next-beat", backgroundHold: false }] },
+        ],
+      };
+      expect(buildKeyframes(story).find(f => f.id === "next-beat")!.picture).toBe(oldRef);
+      const assets = addRecreatedUncutCoverage(story, [oldHarada], 12);
+      expect(buildKeyframes(story).find(f => f.id === "nw_b1383")!.picture).toBe(oldRef);
+      expect(buildKeyframes(story).find(f => f.id === "next-beat")!.picture).toBe(oldRef);
+      expect(assets).toEqual([oldHarada]);
+    }
   });
   it("does not replace a saved custom image in a new gap", () => {
     const project = base();
