@@ -141,6 +141,12 @@ Five were voted and saved in `reviews/uncut-no-vote-20261030-batch7/`: `nw_b634`
 
 Original files are unchanged: source pictures were only read as references and each selected JPEG was written straight from the provider with no crop, resize or re-encode. `cutModified: false` — pictures, timing, audio, captions and saved custom edits are untouched.
 
+## Three-shot directory batch 8
+
+Three final targets were chosen at random (seed `20261102`) from multi-beat holds over nine seconds outside batches 1-7: `nw_b932` (s54, "It's still there?" at the tobacconist kiosk), `nw_b470` (s17, "She's twenty-four now. And someone wants to kill her." at Kaneko's counter) and `nw_b414` (s14a, Vera looks at Jack for the first time in the parked car). Each was offered as a two-candidate vote and **all three were skipped**, so no file was saved. The exact prompts, hold splits, reference previews and gallery are in `reviews/uncut-no-vote-20261030-batch8/` for a later retry.
+
+Originals are unchanged and `cutModified: false`.
+
 ### Prompt to continue duplicate-image work
 
 > Continue Original Uncut coverage by running `scripts/audit-uncut-duplicates.ts` and `scripts/audit-uncut-holds.ts`. Find adjacent stills with the same effective picture, including short and cross-scene runs; check for other visually identical files manually. Choose ordinary targets at random, inspect the text and both neighbouring picture references, and offer a separate vote for each plausible replacement. Keep any selected original image files, treat skips as quality rejections and retry them with better prompts, and replace only the selected visual coverage, not timeline time, audio or captions. Respect direct and inherited custom pictures in active and stashed saves, and do not change other cuts. Also address longer-than-seven-second and single-beat holds without silently splitting audio or changing total timing. Update this document with votes, exact prompts and audit counts, run the tests, and commit approved work.

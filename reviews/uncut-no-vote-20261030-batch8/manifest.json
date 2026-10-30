@@ -1,0 +1,123 @@
+{
+  "date": "2026-10-30",
+  "project": "Original Uncut",
+  "outputDirectory": "reviews/uncut-no-vote-20261030-batch8",
+  "selection": "Three final distinct-scene Original Uncut hold targets at random (seed 20261102), excluding batches 1-7 and every installed or skipped beat; multi-beat holds over nine seconds only.",
+  "request": "Follow-up request (\"last 3 then merge\"): three more randomly chosen shots, each voted, then merge the branch.",
+  "generation": {
+    "provider": "vote (offer_options, 2 candidates per image)",
+    "attempts": 3,
+    "saved": 0,
+    "skipped": 3
+  },
+  "originalsPolicy": "Original source pictures are untouched; no image files were written for this batch.",
+  "cutModified": false,
+  "frameRate": 24,
+  "shots": [
+    {
+      "number": 1,
+      "title": "It's still there?",
+      "scene": "nw_s54",
+      "sceneTitle": "54 — Everything is still there",
+      "targetBeat": "nw_b932",
+      "precedingBeat": "nw_b931",
+      "nextBeat": "nw_b934",
+      "targetText": "It's still there?",
+      "holdSplit": "16.33s -> 8.75s + 7.58s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch8/images/01-nw-b932-its-still-there.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "voteResult": "skipped — both candidates rejected, nothing saved",
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s54/220-everything-is-still-there.jpg",
+          "workspacePath": "public/film/img/s54/220-everything-is-still-there.jpg",
+          "sha256": "6f9fbb04377cdd05b8fd6a32bd41a2c105e075a92ae288f1cbecf27e6324fb9e",
+          "reviewPreview": "context/01-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s55/472-he-glances-up.jpg",
+          "workspacePath": "public/film/img/s55/472-he-glances-up.jpg",
+          "sha256": "740b5921ec6365224902552c045f821210896d3cb8491c337b9ca8cccc439e0c",
+          "reviewPreview": "context/01-after.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness, bridging the two supplied adjacent reference frames at a shuttered tobacconist's kiosk under the railway in grey daylight. Keep the same place and people: the small old kiosk crammed with cigarette cartons, faded posters, a little counter and a bare bulb, the elderly tobacconist in his flat cap and cardigan behind the grimy glass, and blonde Vera in her dark overcoat and cream turtleneck outside. Compose a closer medium shot from the shop side of the window: Vera leans in toward the grimy glass, holding up a small old photograph of a young woman, and asks her question with careful hope; the tobacconist has turned from his rack and looks at her steadily through the glass, his hand still on the counter. Cold daylight outside, warm bulb inside, dust and reflection on the glass between them, restrained realistic noir cinematography, natural hands and facial anatomy, full 16:9 landscape frame with headroom. No other people, no captions, subtitles, readable invented text or watermarks."
+    },
+    {
+      "number": 2,
+      "title": "Someone wants to kill her",
+      "scene": "nw_s17",
+      "sceneTitle": "17 — You got old",
+      "targetBeat": "nw_b470",
+      "precedingBeat": "nw_b469",
+      "nextBeat": "nw_b472",
+      "targetText": "She's twenty-four now. And someone wants to kill her.",
+      "holdSplit": "21.71s -> 13.58s + 8.12s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch8/images/02-nw-b470-someone-wants-to-kill-her.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "voteResult": "skipped — both candidates rejected, nothing saved",
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s17/358-the-empty-third-stool.jpg",
+          "workspacePath": "public/film/img/s17/358-the-empty-third-stool.jpg",
+          "sha256": "dba6aabb6bd7831172f487cdaea4dad9b60b95076531aac55052ef4b1d99b314",
+          "reviewPreview": "context/02-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s17/359-eat-then-go.jpg",
+          "workspacePath": "public/film/img/s17/359-eat-then-go.jpg",
+          "sha256": "0ae7c047cd62656a405fb49d1097176bd5283b07ed8e57270db13a9b8aeb7889",
+          "reviewPreview": "context/02-after.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness, bridging the two supplied adjacent reference frames inside a tiny old noodle bar. Keep the same bar and people: worn dark wooden counter, stools, steaming pot, noren curtain at the back, wooden sign under a warm bulb, elderly Kaneko in her brown cardigan and dark blue apron behind the counter, dark-haired greying Jack in his dark coat standing at the counter, and the two older customers seated at the far end. Compose a medium shot across the counter: Jack has leaned in and is speaking low and hard, his eyes on Kaneko; Kaneko keeps working, her chopsticks moving in the steam without pausing, her face giving nothing away; at the far end of the counter the two old customers are just turning their heads. Warm tungsten light and steam, deep shadow in the corners, restrained realistic noir cinematography, natural hands and proportions, full 16:9 landscape frame with headroom. No other people, no captions, subtitles, readable invented text or watermarks."
+    },
+    {
+      "number": 3,
+      "title": "She looks at him for the first time",
+      "scene": "nw_s14a",
+      "sceneTitle": "14 — Forty metres",
+      "targetBeat": "nw_b414",
+      "precedingBeat": "nw_b413",
+      "nextBeat": "nw_b415",
+      "targetText": "She looks at him for the first time since she sat down. He is looking at the lane. He doesn't look back.",
+      "holdSplit": "22.62s -> 18.50s + 4.12s",
+      "intendedOutput": "reviews/uncut-no-vote-20261030-batch8/images/03-nw-b414-she-looks-at-him.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "voteResult": "skipped — both candidates rejected, nothing saved",
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s14a/339-not-running-from-you.jpg",
+          "workspacePath": "public/film/img/s14a/339-not-running-from-you.jpg",
+          "sha256": "b24e40a23d388922837d2712548167da5fb8ebd3cc1e92819aa05bf4350ea02a",
+          "reviewPreview": "context/03-before.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s14a/430-a-figure-at-the-road-end.jpg",
+          "workspacePath": "public/film/img/s14a/430-a-figure-at-the-road-end.jpg",
+          "sha256": "0451b99b60494882d8a3b6504317e519484c81e29ab670e39f822ead7488b436",
+          "reviewPreview": "context/03-after.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness, bridging the two supplied adjacent reference frames inside a parked car at night in the rain. Keep the same car and people: dark leather seats, rain-beaded windshield, wet Tokyo alley lights and paper lanterns beyond the glass, the small red bird clip hanging from the rear-view mirror, blonde Vera on the left and dark-haired greying Jack on the right. Compose a natural two-shot from Vera's side of the cabin: Vera has turned her head and is looking directly at Jack's profile for the first time, her expression unreadable; Jack keeps his eyes forward on the lane through the wet windscreen and does not look back at her. Only their faces, shoulders and hands, no duplicated figures. Cold reflected streetlight and warm lantern glow on the glass, restrained nocturnal noir cinematography, full 16:9 landscape frame with headroom. No other people inside the car, no captions, subtitles, overlaid text or watermarks."
+    }
+  ]
+}

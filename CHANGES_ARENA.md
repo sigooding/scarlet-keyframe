@@ -33,6 +33,7 @@ The workspace was reset to the base checkout during this session. The previously
 
 - Directory-only batch 6 (`reviews/uncut-no-vote-20261030-batch6/`) saves six more randomly chosen hold targets — `nw_b1335`, `nw_b93`, `nw_b1102`, `nw_b614`, `nw_b1299` and `nw_b51` — each voted between two candidates. All six are saved exactly as generated (no crop, resize or re-encode) and the original source pictures are untouched; nothing was installed, so no cut changed (`cutModified: false`).
 - Directory-only batch 7 (`reviews/uncut-no-vote-20261030-batch7/`) votes six more randomly chosen hold targets — `nw_b634`, `nw_b363`, `nw_b703`, `nw_b1123`, `nw_b1452` and `nw_b1639`. Five were selected and saved exactly as generated; `nw_b363` was skipped twice and left unsaved with both prompts recorded. Originals are untouched (no crop, resize or re-encode) and no cut changed (`cutModified: false`).
+- Directory-only batch 8 (`reviews/uncut-no-vote-20261030-batch8/`) votes three final randomly chosen hold targets — `nw_b932`, `nw_b470` and `nw_b414`. All three candidate pairs were rejected, so nothing was saved; the prompts, reference previews and gallery are kept for a later retry. Originals untouched and no cut changed (`cutModified: false`).
 ## Select and grade image frames
 
 - Use Ctrl+A (Cmd+A on Mac), or **Select all images** in the timeline, to select all still-image frames. Text fields keep their normal Select All shortcut; videos, gaps, gradients and other non-image frames are excluded.
