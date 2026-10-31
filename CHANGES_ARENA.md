@@ -14,10 +14,14 @@ the same room in every scene that uses it.
   `ray-flat`, `ray-stoop`, `bug-room`, `morgue`, `jack-office`, `coffee-shop`, `back-office`, `property-office`,
   `church-kitchen`, `church-basement`, `church-yard`, `auction-office`, `navy-gate`, `pool-hall`, `pike-car`,
   `diner`, `vera-car`, `payphone`, `warehouse`, `clinic`.
-- Still to come: the prop sheets — `ledger`, `stamp`, `glassine-note`, `tape-loop`, `transfer-slip`,
-  `laundry-receipt`, `cash-envelope`, `coin-box`, `pinball-machine`, `hearse`, `revolver`, `pike-photo`,
-  `pike-badge`, `nicky-cart`, `seed-twist` — and then the scene stills, generated against the room sheet for
-  their location plus the voted cast portrait for anyone in frame.
+- **Ten prop sheets are in** (`public/sweet-jesus/props/`, 16:9, shot alone on a neutral seamless ground):
+  `ledger`, `stamp`, `glassine-note`, `tape-loop`, `transfer-slip`, `laundry-receipt`, `cash-envelope`,
+  `coin-box`, `pinball-machine`, `hearse`. Still to come: `revolver`, `pike-photo`, `pike-badge`, `nicky-cart`
+  and `seed-twist`, then the scene stills, each generated against the room sheet for its location plus the
+  voted cast portrait for anyone in frame and the prop sheet for anything handled.
+- `src/data/sweet-jesus-props.json` records where each item comes from, what it must look like and the scenes
+  it travels through; `src/core/sweetJesusProps.ts` exposes `PROPS_BY_SCENE`, so a still for any scene can be
+  prompted with the room, the people and the objects in it.
 - `src/data/sweet-jesus-locations.json` holds each sheet's kicker, alt text, design/staging direction and a
   continuity lock naming the props that live there; `src/core/sweetJesusLocations.ts` bundles the previews and
   maps every sheet to the scenes that use it (`LOCATION_BY_SCENE`).

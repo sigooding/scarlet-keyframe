@@ -1,0 +1,122 @@
+[
+  {
+    "id": "ledger",
+    "title": "Corn's ledger",
+    "kicker": "THE BOOK — S06 / S11 / S18 / S23 / S24 / S26 / S28",
+    "subtitle": "What everybody is actually looking for",
+    "alt": "A slim dark green cloth-bound accounts ledger with worn corners, a cracked spine and ruled columns of handwritten figures.",
+    "summary": "A mottled green cloth-bound book, thin enough to hide and heavy enough to end a career. Six years of Vera's handwriting are in it.",
+    "design": "Slim, pocket-sized, older than it looks: cracked spine, ribbon marker, slips of paper flagging pages. Numbers in blue-black ink, dates in the margin.",
+    "continuity": "Corn turns a single page face down in the coffee shop; the page reads FULTON LAUNDRY and a delivery to Warehouse 3. It rides on Nicky's cart, goes into a grocery bag at the clinic, is copied by hand on Sunday, and is handed to the lawyer in the church basement.",
+    "scenes": ["sj_s06", "sj_s11", "sj_s18", "sj_s23", "sj_s24", "sj_s26", "sj_s28"],
+    "original": "ledger.png"
+  },
+  {
+    "id": "stamp",
+    "title": "The oversized stamp",
+    "kicker": "LOT THIRTEEN — S09 / S23 / S25 / S28",
+    "subtitle": "A wood-handled stamp the size of a coffee can",
+    "alt": "A heavy cast-iron and turned-wood stamping press with a thick rubber die, resting beside a hinged wooden stamp pad.",
+    "summary": "Kellerman's joke and his weapon. The city sells thirty kilos of seized heroin as 'industrial cleaning compound' with this one stamp and two signatures.",
+    "design": "Oversized on purpose — it should look ridiculous and official at the same time. Blackened iron, turned wooden knob, dried ink on the die.",
+    "continuity": "Friday: it thuds onto transfer slips in the property office and sits on the folding table in Warehouse 3. Saturday: it is in a clear evidence bag on Kellerman's desk. Sunday: Etta lays a transfer slip beside Peanut's torn corner and the stamp impressions match.",
+    "scenes": ["sj_s09", "sj_s23", "sj_s25", "sj_s28"],
+    "original": "stamp.png"
+  },
+  {
+    "id": "glassine-note",
+    "title": "The bag and the note",
+    "kicker": "A REMINDER — S05 / S27",
+    "subtitle": "WE KNOW WHAT YOU WERE",
+    "alt": "A small empty translucent glassine bag beside a torn piece of lined notepaper with a short message printed in blue ballpoint capitals.",
+    "summary": "The brand the Ray boy was carrying, and the sentence somebody chose to leave on Jack's desk. Pike calls it a reminder, not evidence.",
+    "design": "Small, cheap and unimpressive: the bag is empty, the note is a torn corner of lined paper, the capitals are hurried rather than theatrical.",
+    "continuity": "Pike takes it out of the property room to leave it on Jack's desk with the note. Jack never touches it; he wraps both together and locks them in a drawer. On Monday he empties the bag into the laundromat utility sink and the note follows into the wastebasket.",
+    "scenes": ["sj_s05", "sj_s27"],
+    "original": "glassine-note.png"
+  },
+  {
+    "id": "tape-loop",
+    "title": "The loop",
+    "kicker": "DRYER BEAT — S22 / S23 / S30",
+    "subtitle": "A period tape splice, not a sampler",
+    "alt": "An open shoebox cassette recorder with a hand-spliced loop of magnetic tape joined by white splicing tape, threaded through a wooden pencil, with a grease pencil beside it.",
+    "summary": "Bug's invention: a short length of copied tape with the ends joined, so his brother's laugh and the man's offer repeat for as long as the batteries last.",
+    "design": "A razor cut, a strip of white splicing tape, a loop fed through the body of a pencil and back into the shell. Marked in grease pencil. Nothing digital, nothing clever.",
+    "continuity": "Made in Bug's bedroom on Friday evening, played in Warehouse 3 to stop fourteen guns, rewound and restarted on Sunday, and cut into the final track of the film on Monday.",
+    "scenes": ["sj_s22", "sj_s23", "sj_s30"],
+    "original": "tape-loop.png"
+  },
+  {
+    "id": "transfer-slip",
+    "title": "The transfer slip",
+    "kicker": "LOT 13 / THIRTY KILOS — S11 / S14 / S18 / S23 / S26 / S28",
+    "subtitle": "Carbon copy, city seal, one torn corner",
+    "alt": "A thin manila carbon-copy transfer form with a dark blue embossed municipal seal and a stamped signature block, beside a small torn triangle of the same paper.",
+    "summary": "The paper trail in triplicate. One corner of it came out of a washing machine coin box with three quarters; the rest of it is what Etta reads aloud to a room full of witnesses.",
+    "design": "Manila, ruled fields, a typed description line, a perforated edge. The seal is embossed, not printed. The torn corner must visibly belong to the same sheet.",
+    "continuity": "Vera keeps a duplicate with the city seal in her desk drawer. Peanut's torn corner carries part of the same seal, and the torn edges match the duplicate exactly.",
+    "scenes": ["sj_s11", "sj_s14", "sj_s18", "sj_s23", "sj_s26", "sj_s28"],
+    "original": "transfer-slip.png"
+  },
+  {
+    "id": "laundry-receipt",
+    "title": "The laundry receipt",
+    "kicker": "THIRTEEN — S04 / S08 / S12 / S15",
+    "subtitle": "A navy-yard address and a pencilled number",
+    "alt": "A narrow pink carbon laundry receipt with a printed delivery address and a large pencilled thirteen circled in the margin, beside an opened brown paper seed wrapper with an address pencilled on its back.",
+    "summary": "The only thing Peanut brought home from the job that killed him, and the address Jack copies onto the back of his seed wrapper.",
+    "design": "Pink carbon paper, folded once. The thirteen is pencilled large and circled by somebody in a hurry, not printed.",
+    "continuity": "It comes home with Peanut's personal effects from the morgue. Jack slides it through the auction office window, and Nicky recognises the handwriting before he can hide it.",
+    "scenes": ["sj_s04", "sj_s08", "sj_s12", "sj_s15"],
+    "original": "laundry-receipt.png"
+  },
+  {
+    "id": "cash-envelope",
+    "title": "The advance",
+    "kicker": "FIVE HUNDRED — S06 / S07",
+    "subtitle": "Corn's envelope, Etta's decision",
+    "alt": "A cheap manila pay envelope with its flap open and a fan of worn small-denomination banknotes half out of it.",
+    "summary": "Five hundred dollars of Corn's money, which Jack gives away the same day and Etta accepts without selling her son's name.",
+    "design": "Small bills, soft and creased, nothing new. A rubber band, not a clip. The envelope is cheap and unmarked.",
+    "continuity": "Corn pushes it across the coffee-shop table and stops Jack leaving with one finger on it. Half of it goes into Etta's biscuit tin and half beside the funeral-home bill.",
+    "scenes": ["sj_s06", "sj_s07"],
+    "original": "cash-envelope.png"
+  },
+  {
+    "id": "coin-box",
+    "title": "The coin box",
+    "kicker": "COPY FIRST — S08 / S14",
+    "subtitle": "What Bug and Jack fish out of the washer",
+    "alt": "The grey metal coin box of a coin-operated washing machine, its lid levered open with a bent wire coat hanger, holding three quarters and a folded corner of carbon paper.",
+    "summary": "Peanut's hiding place. Inside: three quarters and the folded corner of a carbon transfer slip, which is the first hard evidence in the film.",
+    "design": "Grey painted metal, greasy dust and lint, a bent coat hanger rather than a tool. The folded paper corner must be legibly paper, not a smudge.",
+    "continuity": "Jack writes COPY FIRST on the envelope, gives it to Bug with two quarters, and tells him to make two copies and keep one somewhere that isn't here.",
+    "scenes": ["sj_s08", "sj_s14"],
+    "original": "coin-box.png"
+  },
+  {
+    "id": "pinball-machine",
+    "title": "The Spirit of '76",
+    "kicker": "CLUTCH'S MACHINE — S12 / S13 / S23",
+    "subtitle": "Bally, electromechanical, one scuffed leg",
+    "alt": "A 1970s electromechanical pinball machine with a red, white and blue patriotic playfield, a light-up backbox with score reels and chrome legs.",
+    "summary": "The funniest object in a film about heroin: a man argues about its legs at the gate, wheels it through the middle of a gun standoff, and dies hugging its leg.",
+    "design": "Upright cabinet, glass playfield with flippers and bumpers, score reels in the backbox rather than a digital display. One leg must read as scuffed.",
+    "continuity": "Clutch buys it at the auction, cannot get it into his van until Monday, wheels it through the circle of guns, and it tilts and lights up PLAYER ONE / HIGH SCORE as he dies.",
+    "scenes": ["sj_s12", "sj_s13", "sj_s23"],
+    "original": "pinball-machine.png"
+  },
+  {
+    "id": "hearse",
+    "title": "The hearse",
+    "kicker": "LOT THIRTEEN — S19 / S23 / S29",
+    "subtitle": "A battered 1966 Cadillac funeral coach",
+    "alt": "A long black 1960s Cadillac hearse with a tall glass side window, faded vinyl roof, dull chrome and whitewall tyres, seen from the front three-quarter.",
+    "summary": "The Panthers' vehicle: a funeral car used to take thirty kilos of heroin off the street, and later to carry a wounded man out of a firefight.",
+    "design": "Black, long, battered but not wrecked: faded vinyl roof, dull chrome, a small dent in the rear quarter, a rear loading door. No funeral-home lettering.",
+    "continuity": "Loaded with blankets and an empty hand truck in the church yard. It backs through the warehouse bay doors at eight, leaves with Dove and the sealed cart, and thirty kilos are in the Hudson by dark.",
+    "scenes": ["sj_s19", "sj_s23", "sj_s29"],
+    "original": "hearse.png"
+  }
+]

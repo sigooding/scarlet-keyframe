@@ -22,12 +22,13 @@ for source in public/sweet-jesus/locations/*.png; do
   count=$((count + 1))
 done
 
-# Prop sheets are kept with transparency, like the selected recorder reference,
-# so they can be read against any background in the gallery.
+# Prop sheets stay on their neutral seamless ground, so, unlike the transparent
+# recorder cutout, they are previewed as compact letterboxed JPEGs.
 pcount=0
 for source in public/sweet-jesus/props/*.png; do
   [ -e "$source" ] || continue
-  convert "$source" -resize '1000x1000>' -strip "$props/$(basename "$source")"
+  convert "$source" -resize '960x540' -background '#14120f' -gravity center \
+    -extent 960x540 -strip -quality 84 "$props/$(basename "${source%.png}").jpg"
   pcount=$((pcount + 1))
 done
 
