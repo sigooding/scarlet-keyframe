@@ -33,6 +33,12 @@ export interface TopbarProps {
   cutOptions?: CutOptions;
   onChangeCutOptions?: (patch: Partial<CutOptions>, label: string) => void;
   onResetActiveCut?: () => void;
+  projectChoices?: ReadonlyArray<{ id: string; title: string }>;
+  onSelectProject?: (id: string) => void;
+  switchingProject?: boolean;
+  onDownloadScreenplay?: () => void;
+  onShowCharacterReferences?: () => void;
+  onShowLaunderetteReferences?: () => void;
 }
 
 function formatTotalRuntime(seconds: number): string {
@@ -66,6 +72,12 @@ export function Topbar({
   cutOptions,
   onChangeCutOptions,
   onResetActiveCut,
+  projectChoices,
+  onSelectProject,
+  switchingProject = false,
+  onDownloadScreenplay,
+  onShowCharacterReferences,
+  onShowLaunderetteReferences,
 }: TopbarProps) {
   const [cutMenuOpen, setCutMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -120,7 +132,21 @@ export function Topbar({
         </div>
         <div className="topbar-divider" aria-hidden />
         <div className="topbar-project">
-          <strong className="topbar-title">{project.title}</strong>
+          {onSelectProject && projectChoices?.length ? (
+            <select
+              className="topbar-title topbar-film-select"
+              aria-label="Switch film"
+              data-testid="film-selector"
+              value={project.id}
+              disabled={switchingProject}
+              onChange={(event) => onSelectProject(event.target.value)}
+              title="Switch films; each project is saved separately in this browser"
+            >
+              {projectChoices.map((choice) => (
+                <option key={choice.id} value={choice.id}>{choice.title}</option>
+              ))}
+            </select>
+          ) : <strong className="topbar-title">{project.title}</strong>}
           <span className="topbar-subtitle">
             <span>{formatTotalRuntime(totalDuration)} EST</span>
             <i>·</i>
@@ -156,13 +182,13 @@ export function Topbar({
         <button
           className={`topbar-missing-pill ${missingCount > 0 ? "has-missing" : "all-linked"}`}
           onClick={onMissing}
-          title={missingCount > 0 ? "Inspect unlinked media paths" : "All referenced media is available"}
+          title={missingCount > 0 ? "Inspect unlinked media paths" : String(project.story.productionStatus || "All referenced media is available")}
         >
           <i />
           <span>
             {missingCount > 0
               ? `${missingCount.toLocaleString()} unlinked`
-              : "Media linked"}
+              : project.story.productionStatus ? "Storyboard draft" : "Media linked"}
           </span>
         </button>
       </div>
@@ -397,7 +423,38 @@ export function Topbar({
             onClick={onConvertAllToKeyframes}
             title="Convert all preset and depth moves in this project into editable keyframes (one undo step)"
           >
-            Convert all to keyframes
+            <span className="topbar-convert-wide">Convert all to keyframes</span>
+            <span className="topbar-convert-compact">Keyframes</span>
+          </button>
+        )}
+        {onDownloadScreenplay && (
+          <button
+            className="button button-quiet"
+            onClick={onDownloadScreenplay}
+            data-testid="download-screenplay"
+            title="Download the original Fountain screenplay draft"
+          >
+            Screenplay ↓
+          </button>
+        )}
+        {onShowCharacterReferences && (
+          <button
+            className="button button-quiet"
+            onClick={onShowCharacterReferences}
+            data-testid="character-references-button"
+            title="Browse the voted character reference sheets"
+          >
+            Characters
+          </button>
+        )}
+        {onShowLaunderetteReferences && (
+          <button
+            className="button button-quiet"
+            onClick={onShowLaunderetteReferences}
+            data-testid="launderette-references-button"
+            title="Browse Sunny's Wash-n-Dry style sheets and opening boards"
+          >
+            Launderette
           </button>
         )}
         <button className="button button-quiet" onClick={onImport}>

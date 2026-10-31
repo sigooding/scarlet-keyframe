@@ -269,6 +269,20 @@ function chooseMajorTickFrames(pxPerFrame: number): number {
   return 7200;
 }
 
+export function findTimelineShots(clips: readonly TimelineClip[], query: string): TimelineClip[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const results: TimelineClip[] = [];
+  for (const clip of clips) {
+    const kf = clip.keyframe;
+    if (`${kf.mark} ${kf.speaker} ${kf.text} ${kf.picture || ""} ${kf.scene.title || ""} ${kf.beat.shotDescription || ""}`.toLowerCase().includes(q)) {
+      results.push(clip);
+      if (results.length >= 40) break;
+    }
+  }
+  return results;
+}
+
 export function Timeline({
   clips,
   totalFrames,
@@ -859,19 +873,7 @@ export function Timeline({
     return [...seen.values()];
   }, [clips]);
 
-  const searchMatches = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return [];
-    const results: TimelineClip[] = [];
-    for (const clip of clips) {
-      const kf = clip.keyframe;
-      if (`${kf.mark} ${kf.speaker} ${kf.text} ${kf.picture || ""}`.toLowerCase().includes(q)) {
-        results.push(clip);
-        if (results.length >= 40) break;
-      }
-    }
-    return results;
-  }, [clips, search]);
+  const searchMatches = useMemo(() => findTimelineShots(clips, search), [clips, search]);
 
   const jumpToClip = (clip: TimelineClip) => {
     onSetSelection([clip.keyframe.id], clip.keyframe.id, clip.startFrame);
@@ -1322,7 +1324,7 @@ export function Timeline({
                     setSearchOpen(false);
                   }
                 }}
-                placeholder="Go to line or speaker…"
+                placeholder="Go to dialogue, action or speaker…"
               />
             </label>
             {searchOpen && search.trim() && (
@@ -1342,7 +1344,7 @@ export function Timeline({
                       <span className="hit-tc">{formatTimecode(clip.startFrame)}</span>
                       <span className="hit-copy">
                         <strong>{clip.keyframe.speaker}:</strong>{" "}
-                        {firstLine(clip.keyframe.text, 54) || "No caption"}
+                        {firstLine(clip.keyframe.text || clip.keyframe.beat.shotDescription || "", 54) || "No caption"}
                       </span>
                     </button>
                   ))

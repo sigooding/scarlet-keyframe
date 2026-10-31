@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "sceneId": "sj_s01",
+  "shots": [
+    {
+      "id": "brothers-washer",
+      "label": "The brothers at the washer",
+      "preview": "brothers-washer.jpg",
+      "original": "brothers-washer-voted.png",
+      "note": "The selected two-shot is composited with the selected recorder reference; the original remains unchanged.",
+      "beats": ["sj_s01_b001", "sj_s01_b002", "sj_s01_b003", "sj_s01_b004", "sj_s01_b005", "sj_s01_b006", "sj_s01_b007", "sj_s01_b008"]
+    },
+    {
+      "id": "brothers-newspaper",
+      "label": "The newspaper",
+      "preview": "brothers-newspaper.jpg",
+      "original": "brothers-newspaper-169.png",
+      "note": "The selected image is wider than 16:9; it is letterboxed without stretching or cropping the recorder and towels.",
+      "beats": ["sj_s01_b009", "sj_s01_b010", "sj_s01_b011", "sj_s01_b012"]
+    },
+    {
+      "id": "brothers-quarters",
+      "label": "Buy your rhythm",
+      "preview": "brothers-quarters.jpg",
+      "original": "brothers-quarters.png",
+      "note": "The selected reference shows quarters on the table; in the screenplay Peanut puts them on the machine.",
+      "beats": ["sj_s01_b013", "sj_s01_b014"]
+    },
+    {
+      "id": "peanut-exits",
+      "label": "Peanut leaves",
+      "preview": "peanut-exits.jpg",
+      "original": "peanut-exits-169.png",
+      "note": "The brothers remain together in the preceding coverage; Peanut leaves through the propped door here.",
+      "beats": ["sj_s01_b015"]
+    },
+    {
+      "id": "bug-recording",
+      "label": "The recorder runs",
+      "preview": "bug-recording.jpg",
+      "original": "bug-recording-169.png",
+      "note": "Bug is alone inside while Peanut and the unidentified man speak offscreen.",
+      "beats": ["sj_s01_b016", "sj_s01_b017", "sj_s01_b018", "sj_s01_b019", "sj_s01_b020"]
+    },
+    {
+      "id": "pinky-ring",
+      "label": "The laugh and the ring",
+      "preview": "pinky-ring.jpg",
+      "original": "pinky-ring-169.png",
+      "note": "The cigarette and ring are an anonymous glimpse; do not reveal the man's face.",
+      "beats": ["sj_s01_b021"]
+    },
+    {
+      "id": "bug-labels-tape",
+      "label": "DRYER BEAT",
+      "preview": "bug-labels-tape.jpg",
+      "original": "bug-labels-tape-169.png",
+      "note": "Bug rewinds, ejects and labels the cassette in ballpoint.",
+      "beats": ["sj_s01_b022"]
+    }
+  ]
+}

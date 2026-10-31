@@ -1871,10 +1871,21 @@ function ShotLayer({
           }}
         >
           <div className="cin-storyboard-card">
-            <span className="missing-cross">+</span>
-            <strong>{shotName}</strong>
-            <span>PICTURE NOT LINKED</span>
-            <small>{picture || "No picture on this keyframe"}</small>
+            {!picture && frame.beat.shotDescription ? (
+              <>
+                <span className="cin-storyboard-kicker">SCENE {frame.mark} · STORYBOARD</span>
+                <strong>{frame.scene.title || frame.mark}</strong>
+                <p data-testid="viewer-shot-description">{frame.beat.shotDescription}</p>
+                <small>Blank picture · add a still in the clip inspector</small>
+              </>
+            ) : (
+              <>
+                <span className="missing-cross">+</span>
+                <strong>{shotName}</strong>
+                <span>PICTURE NOT LINKED</span>
+                <small>{picture || "No picture on this keyframe"}</small>
+              </>
+            )}
           </div>
         </div>
       )}

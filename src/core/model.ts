@@ -113,6 +113,8 @@ export interface BeatLike extends AnyRecord {
   id?: string;
   characterId?: string;
   text?: string;
+  /** Editable visual/action direction for an unillustrated storyboard slot. */
+  shotDescription?: string;
   captions?: BeatCaption[];
   gap?: boolean;
   background?: string;
@@ -165,6 +167,8 @@ export interface ProjectState {
   snapshots: ProjectSnapshot[];
   directorsCutVersion?: number;
   recreatedUncutCoverageVersion?: number;
+  /** One-time migration marker for the optional Sweet Jesus opening stills. */
+  sweetJesusOpeningVersion?: number;
   directorsCutId?: "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "uncut";
   cutOptions?: CutOptions;
   savedCutStates?: Partial<
@@ -404,7 +408,7 @@ export function buildKeyframes(story: StoryLike): Keyframe[] {
         cinematic: effectiveCinematic,
         picture,
         pictureSource,
-        carried: isGap ? false : pictureSource !== "beat",
+        carried: !isGap && Boolean(picture) && pictureSource !== "beat",
         speaker: speakerLabel(story, beat.characterId),
         text: String(beat.text || ""),
       });

@@ -1,14 +1,74 @@
 # Scarlet Keyframe
 
-The animatic and keyframe editor for Nobody's Witness: the whole film as one timeline of keyframes, one picture per
-beat. For each keyframe, choose or upload its picture, edit its camera and effects, and play the film as an animatic.
+The animatic and keyframe editor for **Nobody's Witness** and **Sweet Jesus**: each film is a timeline of keyframes,
+with editable pictures, camera, effects, audio and captions. Use the film selector beside FRAME/24 to switch projects.
+Each film (including imported projects) is saved separately in this browser; the current project is saved before
+switching. Existing single-project autosaves are preserved.
 
     npm ci
     npm run dev          # the editor, at the address it prints
     npm run build        # one self-contained page, dist/index.html, that opens from disk
     npm test
 
-## The film
+## Sweet Jesus
+
+Select **Sweet Jesus** in the film selector to open its separate 30-scene storyboard. It includes the supplied
+opening, warehouse confrontation and ending, plus newly written connecting scenes, including Corn hiring Jack and
+Jack's confrontation with Vera in the car. The timeline contains 429 storyboard frames with editable shot directions
+and timed dialogue and non-dialogue closed captions. The 22 opening beats use seven illustrative stills; later picture
+slots are blank. The captions are an editorial timing draft; they can be retimed in the CC lane and exported as SRT or
+VTT. Use the timeline's scene menu or search for dialogue, a speaker, or a shot description to navigate the draft.
+
+Dialogue recordings, music and sound effects are **not yet produced**. Sound captions describe the planned soundtrack
+rather than existing recordings. Choose or upload media for each shot in the inspector; blank shots stay independent
+unless their picture-hold setting is enabled. The **Screenplay** button downloads the original Fountain draft (it does
+not incorporate later timeline edits).
+
+### Character references
+
+Choose **Characters** in the Sweet Jesus toolbar to browse the 14 voted cast portraits, wardrobe notes and story
+continuity notes (which contain spoilers). **Download sheets** saves a printable 14-page PDF; each character also has an
+original PNG download. These are casting references, not automatically inserted storyboard pictures. The original,
+user-selected PNGs are in `public/sweet-jesus/characters/`; the PDF and optimized gallery images are embedded in the
+single-file editor. Original PNG downloads require the accompanying assets folder, which the normal build copies to `dist/`.
+
+The notes are editable in `src/data/sweet-jesus-characters.json`. After changing notes or gallery portraits, rebuild
+the printable set with `npm run build:character-sheets` (requires a working Chromium, like MP4 export).
+
+### Launderette and opening
+
+Choose **Launderette** to browse the selected interior, exterior, table and transparent recorder-with-microphone
+references, plus continuity notes. **Style sheets** downloads four landscape 16:9 design sheets; **Opening boards**
+downloads a six-page guide to all 22 beats of the original draft (not later timeline edits). The gallery and both PDFs
+are embedded in the single-file editor; the
+full-size originals are under `public/sweet-jesus/launderette/` and `public/sweet-jesus/opening/` and are copied to
+`dist/` by the normal build. Earlier selected, superseded images are preserved without pixel loss in
+`public/sweet-jesus/archive/`; see its README and manifest before using them for continuity.
+
+The seven stills are repeated across beats as editable references, not filmed or animated footage. The opening washer
+two-shot composites the selected recorder into the selected image; the original is preserved. The ultrawide newspaper
+image is letterboxed, not stretched or cropped. The quarters reference shows coins on the table, but the screenplay
+places them on the washer. For existing browser saves, an untouched opening receives the references automatically;
+if the opening has user edits, it is left alone. **Fill empty opening shots** is a separate undoable action that skips
+existing pictures, intentional gaps and holds, and never changes dialogue, captions or timing.
+
+To rebuild the optimized previews (requires ImageMagick), then the two printable PDFs (requires Chromium):
+
+    npm run build:launderette-previews
+    npm run build:launderette-sheets
+    npm run build:opening-storyboard
+
+The editable source is `src/data/sweet-jesus.fountain`; `[[CC: ...]]` notes describe sound captions and
+`[[HOLD: seconds]]` notes set deliberate visual holds. After editing the source, regenerate and check the bundled
+storyboard with:
+
+    npm run build:sweet-jesus
+    npm run build:sweet-jesus -- --check
+
+Rebuilding does not overwrite an existing browser autosave. Back up and import `src/data/sweet-jesus-film.json` to
+start from the newly compiled version.
+
+## Nobody's Witness
 
 Nobody's Witness is built into the app (`src/data/nobodys-witness-film.json`), so it opens with no server. It comes
 from Scarlet Reel, `sigooding/scarlett-witness`. When the film changes there, import it again and rebuild:
@@ -20,9 +80,9 @@ The import reads that repository's `src/data/nobodysWitnessFilm.ts` and `src/fil
 beat-sync comes from it). A project already open in your browser is kept (autosave). To see a newly imported film
 there, use Import with `src/data/nobodys-witness-film.json`.
 
-## Pictures and sound
+## Nobody's Witness pictures and sound
 
-The film's pictures, voices and sounds stay in Scarlet Reel; this repository doesn't copy them. Click **Link folder**
+That film's pictures, voices and sounds stay in Scarlet Reel; this repository doesn't copy them. Click **Link folder**
 and pick scarlett-witness's `public` folder; then every picture in it is in the picture browser. The link is forgotten
 when the page reloads.
 

@@ -1,0 +1,149 @@
+{
+  "description": "Selected earlier launderette and opening images, saved without pixel loss. See README for continuity cautions.",
+  "images": [
+    {
+      "originalFilename": "cassette-with-mic-voted-original.png",
+      "originalSha256": "6bd9fe0411c34a74575ba53728855f5adbc736a15efcbbb16b96dacb223773b5",
+      "savedPath": "sweet-jesus/archive/generated/cassette-with-mic-voted-original.webp",
+      "savedSha256": "b4254922a0f4b188348592269342b6007e3b8e1a9d870f62f773b476c9dd465d",
+      "width": 1280,
+      "height": 1280,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "opening-both-newspaper.png",
+      "originalSha256": "eabd3b69c2ad1ec17b6653827fa9590ff4c3f3acd3f5a13819a76eded05a8045",
+      "savedPath": "sweet-jesus/archive/generated/opening-both-newspaper.webp",
+      "savedSha256": "c359020fd19d6281b210b712019962ecaa609ade34d3bfce354b16b5a6c15a7e",
+      "width": 864,
+      "height": 1184,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "opening-both-quarters.png",
+      "originalSha256": "17512c2383b4b6b227e149fffccb638e8b86609fb76044a5367a0e937e3e826c",
+      "savedPath": "sweet-jesus/archive/generated/opening-both-quarters.webp",
+      "savedSha256": "a56f5f192347ad9c22059e7aa30fec2d39206868d73dcbf950a1ec1136bf040e",
+      "width": 1280,
+      "height": 720,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "opening-brothers.png",
+      "originalSha256": "211e8440bbcecaaea71c3ecbb00b2dafd55e13c11f41968e7151f31446e5435a",
+      "savedPath": "sweet-jesus/archive/generated/opening-brothers.webp",
+      "savedSha256": "e6d2c97872ca27e9e32e73d10e9bec511d6ab9088b6b5bfcff604871db249873",
+      "width": 1280,
+      "height": 1280,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "opening-bug-records.png",
+      "originalSha256": "b9a86da421ed4ccacfa058e417d5bedf63c029396fc8b00c894ce93dfacf493a",
+      "savedPath": "sweet-jesus/archive/generated/opening-bug-records.webp",
+      "savedSha256": "2bbfc67ee2b5889328a1008a645a585c5c829016216f9d95f35535c5f7305d68",
+      "width": 2752,
+      "height": 1536,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "opening-peanut-folds.png",
+      "originalSha256": "40c8269d6630b13474e3fd66b727bd2d40ea6b2b89a08b4e59f4c8da23f9f7f5",
+      "savedPath": "sweet-jesus/archive/generated/opening-peanut-folds.webp",
+      "savedSha256": "88583a12c2b3dff3e80f5c03d6513da2c66533ec0f03ef5d79022b476c8ffe86",
+      "width": 1376,
+      "height": 768,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "sweet-jesus-launderette-machine.png",
+      "originalSha256": "d5066c4b8fee8634ee1d69f015fc36af924bd2de0ab7ce425b4f47079d6290ea",
+      "savedPath": "sweet-jesus/archive/generated/sweet-jesus-launderette-machine.webp",
+      "savedSha256": "75d6e096d056686eca5ed39c57d5654935a4c9c82ef5c8af5b94e8e868286226",
+      "width": 1365,
+      "height": 768,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "sweet-jesus-recorder-reference.png",
+      "originalSha256": "a6e53456d80b7ac676472715eb553cb59258b6a1f2e4c444fa3032b0cbf98b37",
+      "savedPath": "sweet-jesus/archive/generated/sweet-jesus-recorder-reference.webp",
+      "savedSha256": "9e7e6c0dd61aba0f0ecd668c83330ad6ab17e8c3180356ecd748d6a4e44720df",
+      "width": 2784,
+      "height": 1504,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "brothers-newspaper.png",
+      "originalSha256": "90fac79787ba761a2aea9cfcb1b4a8593da104ba86ac89accc1d1beb44049f15",
+      "savedPath": "sweet-jesus/archive/superseded-opening/brothers-newspaper.webp",
+      "savedSha256": "7fe5bf95f811aa227da835344a3c9f787241cbe92cd47501e26d6c34f68387d9",
+      "width": 1920,
+      "height": 1280,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "brothers-washer-169.png",
+      "originalSha256": "00c779d21849da175171e713b559ce75d8481b437076a9e1a7fddffbd49e8f47",
+      "savedPath": "sweet-jesus/archive/superseded-opening/brothers-washer-169.webp",
+      "savedSha256": "f230b9433e182431a281ef3ba7d737b85d7284dbce93339658149f94cbb2241d",
+      "width": 1632,
+      "height": 640,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "brothers-washer.png",
+      "originalSha256": "598d7fb1b398da1dfb16e7238be4a2faa6f99b3af195b983633366cdc8daf795",
+      "savedPath": "sweet-jesus/archive/superseded-opening/brothers-washer.webp",
+      "savedSha256": "9cf0f17fbbb69d3c95ba00dfbf8f0c3d50e2a93d878b2029d430922ff9c9e887",
+      "width": 1765,
+      "height": 2375,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "peanut-exits.png",
+      "originalSha256": "16ed5abbf06d0d7804763a3a7b0caad89782f4936361541b160a04f1ac49ed13",
+      "savedPath": "sweet-jesus/archive/superseded-opening/peanut-exits.webp",
+      "savedSha256": "4d407b53e2c05900806b6ff1b3ebb3289faec7b5f98ae3961cc302e474a8a5ee",
+      "width": 864,
+      "height": 1184,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "sweet-jesus-launderette-master-gritty.png",
+      "originalSha256": "84f1ea738d1400c13f0ddb18b1466caab2944ce56288b0807495a035aa9b4fc2",
+      "savedPath": "sweet-jesus/launderette/interior.webp",
+      "savedSha256": "19635e490c89b8ad8674b94bd0fa52d036c9f47e6b873e63ad97abec7c4717a9",
+      "width": 1280,
+      "height": 720,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "sweet-jesus-launderette-threshold.png",
+      "originalSha256": "a361cd40dbe1f1796b18b46251e414b3fea0a7717d41e9f87c37e3bc9672cb4f",
+      "savedPath": "sweet-jesus/launderette/exterior.webp",
+      "savedSha256": "8b24aa051cb66f4d93756117bcb0b7d983d8c2e03a8a0e1791b0c5e1078d69e6",
+      "width": 1672,
+      "height": 941,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "sweet-jesus-table-reference.png",
+      "originalSha256": "9570615f3c304dd9f950d7ff526598cbad33bc8b53697a02f686d2489d84f67d",
+      "savedPath": "sweet-jesus/launderette/folding-table.webp",
+      "savedSha256": "41ad39739c66762453b4cc63412694b49aec312eaf37c7084d5cc09faca75165",
+      "width": 2848,
+      "height": 1600,
+      "pixelDifference": 0
+    },
+    {
+      "originalFilename": "opening-both-washer.png",
+      "originalSha256": "e55d232edc2fcd5716acb5de50f8d640c98ba13e65f86f2bfe0e86063a0c1c4c",
+      "savedPath": "sweet-jesus/opening/brothers-washer-voted.png",
+      "savedSha256": "e55d232edc2fcd5716acb5de50f8d640c98ba13e65f86f2bfe0e86063a0c1c4c",
+      "width": 1672,
+      "height": 941,
+      "pixelDifference": 0
+    }
+  ]
+}
