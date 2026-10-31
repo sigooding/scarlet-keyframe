@@ -8206,7 +8206,7 @@ kbd {
   .is-sweet-jesus .topbar-convert-wide { display: none; }
   .is-sweet-jesus .topbar-convert-compact { display: inline; }
 }
-@media (max-width: 1450px) and (min-width: 1121px) {
+@media (max-width: 1700px) and (min-width: 1121px) {
   .frame24-shell.is-sweet-jesus { grid-template-rows: 86px minmax(0, 1fr) 26px; }
   .is-sweet-jesus .topbar {
     display: grid;

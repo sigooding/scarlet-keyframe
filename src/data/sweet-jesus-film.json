@@ -169,6 +169,9 @@
     "showSpeaker": true,
     "italicNarration": false
   },
+  "cutOptions": {
+    "aspectFraming": "16:9"
+  },
   "productionStatus": "Storyboard draft: blank pictures and planned audio/captions",
   "independentStoryboardPictures": true,
   "scenes": [

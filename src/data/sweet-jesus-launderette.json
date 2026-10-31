@@ -1,0 +1,46 @@
+[
+  {
+    "id": "interior",
+    "title": "The wash-n-dry",
+    "kicker": "01 / INTERIOR MASTER",
+    "subtitle": "Fulton Street · Thursday afternoon",
+    "alt": "A narrow, grimy 1970s laundromat with washers on the left, a folding table and stacked dryers on the right, and a green street door at the far end.",
+    "summary": "A working neighbourhood laundromat, not a polished period set. Chipped enamel, stained linoleum and tired green paint make the place feel used every day.",
+    "design": "Flat fluorescent light inside; pale, dirty daylight through the windows. Keep the composition horizontal and grounded at human height.",
+    "continuity": "The screenplay specifies six washers; the sixth clanks. This selected master is a mood and layout reference, not an exact machine count.",
+    "original": "interior.webp"
+  },
+  {
+    "id": "exterior",
+    "title": "The threshold",
+    "kicker": "02 / STREET AND DOOR",
+    "subtitle": "Sunny's Wash-n-Dry · Brooklyn, 1975",
+    "alt": "The weathered green storefront of Sunny's Wash-n-Dry, with its street door open and washers visible through a dirty window.",
+    "summary": "A battered green storefront on a lived-in Brooklyn block. Sunlight at the open door contrasts with the sickly fluorescent interior.",
+    "design": "The doorway connects the room to the unseen street. Keep the offscreen exchange outside; the man is not identified in this scene.",
+    "continuity": "Peanut pushes through the propped door. On his laugh, glimpse only a cigarette cherry and a gold pinky ring, not a face.",
+    "original": "exterior.webp"
+  },
+  {
+    "id": "folding-table",
+    "title": "Table continuity",
+    "kicker": "03 / FIXED DRESSING",
+    "subtitle": "Towels, newspaper and two quarters",
+    "alt": "A laundromat folding table at right with one stack of folded pale towels at the back and a single newspaper toward the front.",
+    "summary": "Keep one neat stack of off-white towels at the back-right of the folding table and one newspaper toward the front until Peanut picks it up.",
+    "design": "The battered table stays in place across the brothers' coverage. Preserve the stained surfaces and the washer-left / table-right geography.",
+    "continuity": "Peanut reads the Daily News, then slaps two quarters on the machine. The voted quarters still places them on the table; use the screenplay's blocking for the final shot.",
+    "original": "folding-table.webp"
+  },
+  {
+    "id": "cassette-with-mic",
+    "title": "Bug's recorder",
+    "kicker": "04 / HAND PROP",
+    "subtitle": "One recorder · one wired microphone",
+    "alt": "An isolated beige-grey shoebox cassette recorder with its complete wired handheld microphone and coiled cable, on a transparent background.",
+    "summary": "A compact beige-grey shoebox cassette recorder with visible tape transport and meter. The complete handheld microphone remains connected by its cable.",
+    "design": "Place the recorder beside Bug on a washer. One recorder, one microphone: no added radio or boombox. The reference PNG has genuine transparency.",
+    "continuity": "Bug records the washer, returns and labels the cassette DRYER BEAT. Later he makes the beat by physically splicing tape, not with a sampler.",
+    "original": "cassette-with-mic.png"
+  }
+]

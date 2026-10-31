@@ -27,7 +27,7 @@ describe("Sweet Jesus storyboard", () => {
     expect(screenplay).toContain("SMASH TO BLACK.");
   });
 
-  it("has a complete, unique, straight-through sequence with descriptions and blank picture slots", () => {
+  it("has a complete, unique sequence with opening stills and independent later picture slots", () => {
     expect(project.story.scenes).toHaveLength(30);
     expect(runningSceneIds(project.story)).toHaveLength(30);
     expect(runningOrderDiagnostics(project.story)).toEqual([]);
@@ -35,9 +35,10 @@ describe("Sweet Jesus storyboard", () => {
     expect(new Set(frames.map((frame) => frame.id)).size).toBe(frames.length);
     expect(frames.every((frame) => String(frame.scene.prose).startsWith("INT.") || String(frame.scene.prose).startsWith("EXT."))).toBe(true);
     expect(frames.every((frame) => String(frame.beat.shotDescription).trim().length > 0)).toBe(true);
-    expect(frames.every((frame) => !frame.picture)).toBe(true);
+    expect(frames.slice(0, 22).every((frame) => frame.picture?.startsWith("asset:sj-opening-v1-"))).toBe(true);
+    expect(frames.slice(22).every((frame) => !frame.picture)).toBe(true);
     expect(frames[frames.length - 1].beat.gap).toBe(true);
-    expect(project.assets).toEqual([]);
+    expect(project.assets).toHaveLength(7);
     expect(project.audioClips).toEqual([]);
     expect(project.sourceEdits).toBeUndefined();
     const warehouse = project.story.scenes.find((scene) => scene.title?.includes("WAREHOUSE 3"))!;
@@ -90,24 +91,24 @@ describe("Sweet Jesus storyboard", () => {
   });
 
   it("keeps pictures independent when a blank shot is filled, while allowing intentional holds", () => {
-    const first = frames[0];
-    const edited = setPicture(project, first.id, "asset:my-picture");
+    const firstBlank = frames[22];
+    const edited = setPicture(project, firstBlank.id, "asset:my-picture");
     const nextFrames = buildKeyframes(edited.story);
-    expect(nextFrames[0].picture).toBe("asset:my-picture");
-    expect(nextFrames[1].picture).toBeUndefined();
-    expect(nextFrames[2].picture).toBeUndefined();
-    expect(frames[0].picture).toBeUndefined();
-    const held = setPicture(setBeatField(project, first.id, "backgroundHold", true), first.id, "asset:held");
-    expect(buildKeyframes(held.story)[1].picture).toBe("asset:held");
+    expect(nextFrames[22].picture).toBe("asset:my-picture");
+    expect(nextFrames[23].picture).toBeUndefined();
+    expect(nextFrames[24].picture).toBeUndefined();
+    expect(frames[22].picture).toBeUndefined();
+    const held = setPicture(setBeatField(project, firstBlank.id, "backgroundHold", true), firstBlank.id, "asset:held");
+    expect(buildKeyframes(held.story)[23].picture).toBe("asset:held");
   });
 
   it("exposes an editable-description slate, the film selector, and a screenplay download", () => {
     const preview = renderToStaticMarkup(
-      <CinematicPreview frame={frames[0]} localFrame={0} resolveMedia={() => undefined}
+      <CinematicPreview frame={frames[22]} localFrame={0} resolveMedia={() => undefined}
         playing={false} soundOn={false} showCaption={true} showMark={true} />,
     );
     expect(preview).toContain("STORYBOARD");
-    expect(preview).toContain("Fluorescent hum. Six washers. Five behaving.");
+    expect(preview).toContain("No music. ETTA RAY");
     expect(preview).toContain("Blank picture");
     const { totalFrames } = buildTimelineClips(frames);
     const topbar = renderToStaticMarkup(

@@ -14,15 +14,15 @@ switching. Existing single-project autosaves are preserved.
 
 Select **Sweet Jesus** in the film selector to open its separate 30-scene storyboard. It includes the supplied
 opening, warehouse confrontation and ending, plus newly written connecting scenes, including Corn hiring Jack and
-Jack's confrontation with Vera in the car. The timeline contains 429 storyboard frames with editable shot directions,
-blank picture slots, and timed dialogue and non-dialogue closed captions. The captions are an editorial timing draft; they can be retimed
-in the CC lane and exported as SRT or VTT. Use the timeline's scene menu or search for dialogue, a speaker, or a
-shot description to navigate the draft.
+Jack's confrontation with Vera in the car. The timeline contains 429 storyboard frames with editable shot directions
+and timed dialogue and non-dialogue closed captions. The 22 opening beats use seven illustrative stills; later picture
+slots are blank. The captions are an editorial timing draft; they can be retimed in the CC lane and exported as SRT or
+VTT. Use the timeline's scene menu or search for dialogue, a speaker, or a shot description to navigate the draft.
 
-The storyboard pictures, dialogue recordings, music and sound effects are **not yet produced**. The sound captions describe the
-planned soundtrack rather than existing recordings. Choose or upload media for each shot in the inspector; blank shots
-stay independent unless their picture-hold setting is enabled. The **Screenplay** button downloads the original
-Fountain draft (it does not incorporate later timeline edits).
+Dialogue recordings, music and sound effects are **not yet produced**. Sound captions describe the planned soundtrack
+rather than existing recordings. Choose or upload media for each shot in the inspector; blank shots stay independent
+unless their picture-hold setting is enabled. The **Screenplay** button downloads the original Fountain draft (it does
+not incorporate later timeline edits).
 
 ### Character references
 
@@ -34,6 +34,29 @@ single-file editor. Original PNG downloads require the accompanying assets folde
 
 The notes are editable in `src/data/sweet-jesus-characters.json`. After changing notes or gallery portraits, rebuild
 the printable set with `npm run build:character-sheets` (requires a working Chromium, like MP4 export).
+
+### Launderette and opening
+
+Choose **Launderette** to browse the selected interior, exterior, table and transparent recorder-with-microphone
+references, plus continuity notes. **Style sheets** downloads four landscape 16:9 design sheets; **Opening boards**
+downloads a six-page guide to all 22 beats of the original draft (not later timeline edits). The gallery and both PDFs
+are embedded in the single-file editor; the
+full-size originals are under `public/sweet-jesus/launderette/` and `public/sweet-jesus/opening/` and are copied to
+`dist/` by the normal build. Earlier selected, superseded images are preserved without pixel loss in
+`public/sweet-jesus/archive/`; see its README and manifest before using them for continuity.
+
+The seven stills are repeated across beats as editable references, not filmed or animated footage. The opening washer
+two-shot composites the selected recorder into the selected image; the original is preserved. The ultrawide newspaper
+image is letterboxed, not stretched or cropped. The quarters reference shows coins on the table, but the screenplay
+places them on the washer. For existing browser saves, an untouched opening receives the references automatically;
+if the opening has user edits, it is left alone. **Fill empty opening shots** is a separate undoable action that skips
+existing pictures, intentional gaps and holds, and never changes dialogue, captions or timing.
+
+To rebuild the optimized previews (requires ImageMagick), then the two printable PDFs (requires Chromium):
+
+    npm run build:launderette-previews
+    npm run build:launderette-sheets
+    npm run build:opening-storyboard
 
 The editable source is `src/data/sweet-jesus.fountain`; `[[CC: ...]]` notes describe sound captions and
 `[[HOLD: seconds]]` notes set deliberate visual holds. After editing the source, regenerate and check the bundled

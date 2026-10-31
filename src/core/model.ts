@@ -167,6 +167,8 @@ export interface ProjectState {
   snapshots: ProjectSnapshot[];
   directorsCutVersion?: number;
   recreatedUncutCoverageVersion?: number;
+  /** One-time migration marker for the optional Sweet Jesus opening stills. */
+  sweetJesusOpeningVersion?: number;
   directorsCutId?: "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "uncut";
   cutOptions?: CutOptions;
   savedCutStates?: Partial<

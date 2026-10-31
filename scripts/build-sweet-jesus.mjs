@@ -135,6 +135,7 @@ export function compileScreenplay(text) {
     startSceneId: scenes[0].id,
     characters: [{ id: "sj_stage", name: "Action", role: "Visual and sound directions", avatarUrl: "" }, ...characters.values()],
     captionStyle: { position: "bottom", size: "M", backgroundBox: true, showSpeaker: true, italicNarration: false },
+    cutOptions: { aspectFraming: "16:9" },
     productionStatus: "Storyboard draft: blank pictures and planned audio/captions",
     independentStoryboardPictures: true,
     scenes,

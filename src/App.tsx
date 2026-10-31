@@ -6,6 +6,7 @@ import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
 import type { SelectedCaptionState } from "./components/CaptionLane";
 import { CinematicPreview } from "./components/CinematicPreview";
 import { CharacterReferences } from "./components/CharacterReferences";
+import { LaunderetteReferences } from "./components/LaunderetteReferences";
 import { CurveEditor } from "./components/CurveEditor";
 import { CropModal, type CropState } from "./components/CropModal";
 import { ExportModal, type ExportTab, type Mp4ExportQuality } from "./components/ExportModal";
@@ -148,6 +149,8 @@ import {
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
 import { BUILT_IN_FILMS, createBundledFilm } from "./core/bundledFilms";
+import { countEmptySweetJesusOpeningShots, fillEmptySweetJesusOpeningShots, upgradeSweetJesusOpening } from "./core/sweetJesusOpening";
+import { effectiveFilmCutOptions } from "./core/filmFraming";
 import { clipFrames, FPS, formatTimecode } from "./core/timing";
 import {
   applyStudioPatchToStory,
@@ -658,6 +661,7 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false);
   const [missingOpen, setMissingOpen] = useState(false);
   const [charactersOpen, setCharactersOpen] = useState(false);
+  const [launderetteOpen, setLaunderetteOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportTab, setExportTab] = useState<ExportTab>("bundle");
   const [exportProgress, setExportProgress] = useState(0);
@@ -928,6 +932,9 @@ export default function App() {
           };
         }
         initialProject = upgradeSavedRecreatedUncut(initialProject);
+        // CLI renders must reproduce their snapshot exactly; only interactive
+        // built-in drafts receive the conservative opening-reference migration.
+        if (!isRenderMode) initialProject = upgradeSweetJesusOpening(initialProject);
         initialProject.missing = evaluateMissingMedia(initialProject, new Map(), paths);
 
         projectRef.current = initialProject;
@@ -1252,8 +1259,8 @@ export default function App() {
   }, [soundOn]);
 
   const activeCutOptions = useMemo(
-    () => normalizeCutOptions(project?.cutOptions ?? project?.story.cutOptions),
-    [project?.cutOptions, project?.story.cutOptions],
+    () => effectiveFilmCutOptions(project),
+    [project?.cutOptions, project?.story.cutOptions, project?.story.id],
   );
 
   useEffect(() => {
@@ -2200,6 +2207,7 @@ export default function App() {
     });
     setBrowser(null);
     setCharactersOpen(false);
+    setLaunderetteOpen(false);
     setExportOpen(false);
     setEditLabel(`Imported ${file.name}`);
     setSaveStatus("IMPORT COMPLETE");
@@ -2406,6 +2414,7 @@ export default function App() {
         next = { ...next, audioClips: buildAudioClipsFromFilm(next.story, voiceDurations, musicDurations) };
       }
       next = upgradeSavedRecreatedUncut(next);
+      next = upgradeSweetJesusOpening(next);
       next.missing = evaluateMissingMedia(next, folderFiles, publicPaths);
       const ordered = buildKeyframes(next.story);
       const built = buildTimelineClips(ordered, voiceDurations);
@@ -2434,6 +2443,7 @@ export default function App() {
       setUploadIntent(null);
       setCropState(null);
       setCharactersOpen(false);
+      setLaunderetteOpen(false);
       setExportOpen(false);
       setComparePinned(false);
       setCompareKeyHeld(false);
@@ -4816,6 +4826,9 @@ export default function App() {
         onShowCharacterReferences={
           project.story.id === "sweet-jesus-film" ? () => setCharactersOpen(true) : undefined
         }
+        onShowLaunderetteReferences={
+          project.story.id === "sweet-jesus-film" ? () => setLaunderetteOpen(true) : undefined
+        }
         saveStatus={saveStatus}
         historyVersion={historyVersion}
         canUndo={history.canUndo}
@@ -5995,6 +6008,13 @@ export default function App() {
       )}
       {charactersOpen && project.story.id === "sweet-jesus-film" && (
         <CharacterReferences onClose={() => setCharactersOpen(false)} />
+      )}
+      {launderetteOpen && project.story.id === "sweet-jesus-film" && (
+        <LaunderetteReferences
+          onClose={() => setLaunderetteOpen(false)}
+          emptyOpeningCount={countEmptySweetJesusOpeningShots(project)}
+          onFillOpening={() => editProject(fillEmptySweetJesusOpeningShots, "Opening references added")}
+        />
       )}
       {missingOpen && (
         <MissingMediaModal

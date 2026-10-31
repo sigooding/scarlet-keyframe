@@ -38,6 +38,7 @@ export interface TopbarProps {
   switchingProject?: boolean;
   onDownloadScreenplay?: () => void;
   onShowCharacterReferences?: () => void;
+  onShowLaunderetteReferences?: () => void;
 }
 
 function formatTotalRuntime(seconds: number): string {
@@ -76,6 +77,7 @@ export function Topbar({
   switchingProject = false,
   onDownloadScreenplay,
   onShowCharacterReferences,
+  onShowLaunderetteReferences,
 }: TopbarProps) {
   const [cutMenuOpen, setCutMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -443,6 +445,16 @@ export function Topbar({
             title="Browse the voted character reference sheets"
           >
             Characters
+          </button>
+        )}
+        {onShowLaunderetteReferences && (
+          <button
+            className="button button-quiet"
+            onClick={onShowLaunderetteReferences}
+            data-testid="launderette-references-button"
+            title="Browse Sunny's Wash-n-Dry style sheets and opening boards"
+          >
+            Launderette
           </button>
         )}
         <button className="button button-quiet" onClick={onImport}>

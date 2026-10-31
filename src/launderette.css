@@ -1,0 +1,85 @@
+/* Sweet Jesus — selected location / prop bible */
+.location-backdrop { z-index: 250; }
+.location-modal {
+  width: min(1220px, 100%);
+  height: min(89vh, 820px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #191a18;
+  border: 1px solid #544c40;
+  border-radius: 8px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .78);
+}
+.location-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  padding: 15px 18px;
+  background: #211f1b;
+  border-bottom: 1px solid #4a4038;
+}
+.location-title { min-width: 0; }
+.location-title h2 { margin: 4px 0 1px; color: #f3e8d8; font-size: 18px; }
+.location-title p { margin: 0; color: #a99c8c; font-size: 11px; }
+.location-header-actions { display: flex; align-items: center; gap: 8px; }
+.location-header-actions a { white-space: nowrap; text-decoration: none; }
+.location-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 190px minmax(0, 1fr); }
+.location-nav { min-height: 0; display: flex; flex-direction: column; border-right: 1px solid #413d33; background: #171815; }
+.location-nav-label { display: flex; justify-content: space-between; padding: 15px 13px 10px; color: #9e9081; font: 700 9px var(--mono); letter-spacing: .14em; }
+.location-nav-label b { color: #d2946d; }
+.location-nav-list { overflow-y: auto; padding: 0 8px 10px; }
+.location-nav-item {
+  width: 100%; min-height: 59px; display: flex; align-items: center; gap: 9px; padding: 5px;
+  color: #d4cabd; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 5px; cursor: pointer;
+}
+.location-nav-item:hover { background: #292720; }
+.location-nav-item.is-selected { background: #342a22; border-color: #a9694a; color: #fff5e8; }
+.location-nav-item:focus-visible { outline: 2px solid #e6a172; outline-offset: -2px; }
+.location-nav-item img { width: 58px; height: 36px; object-fit: contain; flex-shrink: 0; background: #282b24; }
+.location-nav-item span { min-width: 0; }
+.location-nav-item strong, .location-nav-item small { display: block; }
+.location-nav-item small { color: #d2946d; font: 700 9px var(--mono); }
+.location-nav-item strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.location-detail {
+  min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(300px, 1.55fr) minmax(220px, 1fr);
+  align-items: start; gap: 22px; padding: 20px; overflow-y: auto; background: #24231f;
+}
+.location-visual-column { min-width: 0; }
+.location-picture { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #131510; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.location-picture.is-prop { background: #d6d3c7; }
+.location-picture img { width: 100%; height: 100%; object-fit: contain; }
+.location-picture.is-prop img { width: 92%; height: 80%; }
+.location-picture > span { position: absolute; left: 8px; bottom: 8px; padding: 5px 6px; color: #eee2d1; background: rgba(22, 20, 18, .8); font: 700 8px var(--mono); letter-spacing: .08em; }
+.location-opening-note { border-top: 1px solid #514b3f; margin-top: 18px; padding-top: 15px; }
+.location-opening-note > strong { color: #d2946d; font: 700 9px var(--mono); letter-spacing: .12em; }
+.location-opening-note p { color: #c9bdaf; font-size: 12px; line-height: 1.5; margin: 9px 0 12px; }
+.location-opening-note small { display: block; margin-top: 8px; color: #a79a8b; font-size: 10px; line-height: 1.4; }
+.location-opening-note .button[aria-disabled="true"] { opacity: .55; cursor: default; }
+.location-copy { min-width: 0; padding-top: 2px; }
+.location-copy h3 { color: #f1e6d6; font: 400 clamp(25px, 2.4vw, 34px)/1.1 Georgia, serif; margin: 10px 0 5px; }
+.location-subtitle { color: #c2b4a4; font-size: 12px; font-weight: 600; margin: 0; }
+.location-summary { color: #e1d5c6; font-size: 13px; line-height: 1.55; margin: 20px 0; }
+@media (max-width: 920px) {
+  .location-body { grid-template-columns: 160px minmax(0, 1fr); }
+  .location-detail { grid-template-columns: minmax(240px, 1.2fr) minmax(190px, 1fr); gap: 14px; padding: 14px; }
+  .location-nav-item img { width: 45px; height: 31px; }
+}
+@media (max-width: 680px) {
+  .location-backdrop { padding: 8px; }
+  .location-modal { height: min(96vh, 900px); }
+  .location-header { padding: 10px 12px; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+  .location-title h2 { font-size: 16px; }
+  .location-title p { display: none; }
+  .location-header-actions { gap: 5px; flex-wrap: wrap; }
+  .location-header-actions a { font-size: 10px; padding: 0 6px; }
+  .location-body { display: flex; flex-direction: column; }
+  .location-nav { flex-shrink: 0; border-right: 0; border-bottom: 1px solid #413d33; }
+  .location-nav-label { padding: 7px 12px 2px; }
+  .location-nav-list { display: flex; overflow-x: auto; overflow-y: hidden; padding: 0 6px 6px; }
+  .location-nav-item { width: 146px; min-width: 146px; min-height: 46px; }
+  .location-detail { display: block; padding: 12px; }
+  .location-copy { padding: 20px 0 8px; }
+}

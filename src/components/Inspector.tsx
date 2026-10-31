@@ -1009,7 +1009,7 @@ export function Inspector(props: InspectorProps) {
                     onChange={(event) => props.onSetBeat("shotDescription", event.target.value)}
                     rows={4}
                   />
-                  <small className="inspector-note">Visual direction for this blank storyboard frame.</small>
+                  <small className="inspector-note">Visual direction for this {frame.picture ? "storyboard frame" : "blank storyboard frame"}.</small>
                 </div>
               )}
             </section>
