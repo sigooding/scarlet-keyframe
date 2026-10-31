@@ -9,7 +9,8 @@ import { CharacterReferences } from "./components/CharacterReferences";
 import { LaunderetteReferences } from "./components/LaunderetteReferences";
 import { CurveEditor } from "./components/CurveEditor";
 import { CropModal, type CropState } from "./components/CropModal";
-import { ExportModal, type ExportTab, type Mp4ExportQuality } from "./components/ExportModal";
+import { ExportModal, type ExportTab, type Mp4ExportCapture, type Mp4ExportQuality } from "./components/ExportModal";
+import { suggestExportWorkers } from "../scripts/export-workers.mjs";
 import { StereoPeakMeter } from "./components/StereoPeakMeter";
 import {
   Inspector,
@@ -677,7 +678,12 @@ export default function App() {
   const [srtExport, setSrtExport] = useState(true);
   const [marksExport, setMarksExport] = useState(false);
   const [exportQuality, setExportQuality] = useState<Mp4ExportQuality>("master");
-  const [exportWorkers, setExportWorkers] = useState(1);
+  const [exportCapture, setExportCapture] = useState<Mp4ExportCapture>("auto");
+  // Start at the number of parallel render workers this machine can feed; an
+  // export is CPU-bound per worker, so a single worker wastes most of a laptop.
+  const [exportWorkers, setExportWorkers] = useState(() =>
+    suggestExportWorkers(typeof navigator !== "undefined" ? navigator.hardwareConcurrency : 4),
+  );
   const [exportGpu, setExportGpu] = useState(true);
   const [exportNormalize, setExportNormalize] = useState(false);
   const [exportLoudnessTarget, setExportLoudnessTarget] = useState<LoudnessTargetMode>("off");
@@ -4313,6 +4319,7 @@ export default function App() {
           srt: srtExport,
           marks: marksExport,
           quality: exportQuality,
+          capture: exportCapture,
           workers: exportWorkers,
           gpu: exportGpu,
           normalize: exportLoudnessTarget !== "off" || exportNormalize,
@@ -6058,6 +6065,8 @@ export default function App() {
           srt={srtExport}
           marks={marksExport}
           quality={exportQuality}
+          capture={exportCapture}
+          setCapture={setExportCapture}
           workers={exportWorkers}
           gpu={exportGpu}
           normalizeAudio={exportNormalize}
