@@ -1,0 +1,128 @@
+[
+  {
+    "id": "jack-monroe",
+    "name": "Jack Monroe",
+    "role": "Private investigator",
+    "age": "43",
+    "summary": "A former detective with a frayed conscience, a stubborn instinct for the truth, and a history with the Ray family.",
+    "look": "Salt-and-pepper dark hair, worn brown tweed jacket, open charcoal shirt, dark trousers and scuffed shoes.",
+    "continuity": "Carries sunflower seeds, never a lollipop. After Tick shoots his thigh, the wound persists and Jack does not walk again in the film."
+  },
+  {
+    "id": "vera-voss",
+    "name": "Vera Voss",
+    "role": "Bookkeeper",
+    "age": "Late 30s",
+    "summary": "Corn's sharp-eyed bookkeeper knows where the numbers are buried, and what she has done to protect herself.",
+    "look": "Dark bob, fitted chocolate-brown suit, cream blouse, leather heels and a ledger kept close.",
+    "continuity": "Her handwriting gives away the tip to Harriett. She admits the rigged clock and leaves her own pages in the ledger."
+  },
+  {
+    "id": "etta-ray",
+    "name": "Etta Ray",
+    "role": "Mother and witness",
+    "age": "52",
+    "summary": "Bug and Peanut's mother; dignified, warm and fiercely unwilling to let her son's death be dismissed.",
+    "look": "Short natural hair touched with gray, gold hoops, burgundy wrap dress, dark cardigan and practical heels.",
+    "continuity": "Etta keeps the ledger and copies, and publicly names Tick, Pike and Kellerman. Her composure never erases her grief."
+  },
+  {
+    "id": "bug-ray",
+    "name": "Bug Ray",
+    "role": "Young recordist",
+    "age": "15",
+    "summary": "Etta's observant younger son, always listening for a rhythm and carrying his shoebox recorder.",
+    "look": "Short natural hair, denim jacket and jeans, plain T-shirt, canvas sneakers and a portable cassette recorder.",
+    "continuity": "A kid, not an adult. His final dryer rhythm is made with physical tape splicing and a dubbed loop, not a sampler; Peanut's laugh comes first."
+  },
+  {
+    "id": "peanut-ray",
+    "name": "Peanut Ray",
+    "role": "Laundry worker",
+    "age": "19",
+    "summary": "Etta's older son is funny, kind and handsome; his laugh and a small piece of paperwork outlive him.",
+    "look": "Short rounded Afro, brown leather jacket, earth-toned collared knit, dark jeans and worn shoes.",
+    "continuity": "He folds laundry in the cold open. Bug's tape preserves his laugh and the voice of the man with the gold pinky ring."
+  },
+  {
+    "id": "harriett",
+    "name": "Harriett",
+    "role": "Community organizer",
+    "age": "30s",
+    "summary": "A Panther organizer who feeds neighborhood children and weighs the cost before she sends people into danger.",
+    "look": "Full natural Afro, dark leather coat, burgundy turtleneck, high-waisted dark trousers and sturdy boots.",
+    "continuity": "Vera sends her into a rigged clock. Harriett counts her people, confronts Vera, and takes the sealed dope to the Hudson."
+  },
+  {
+    "id": "dove",
+    "name": "Dove",
+    "role": "Panther volunteer",
+    "age": "20s",
+    "summary": "Harriett's protective, skeptical colleague, just as comfortable making sandwiches as questioning a dangerous tip.",
+    "look": "Rounded natural Afro, brown suede jacket, rust knit shirt, dark jeans and black boots.",
+    "continuity": "He is shot in the shoulder during the warehouse fight and wears a sling afterward."
+  },
+  {
+    "id": "corn-brandt",
+    "name": "Cornelius “Corn” Brandt",
+    "role": "Fixer and bookkeeper",
+    "age": "60s",
+    "summary": "Sal's careful fixer hires Jack, keeps the dangerous ledger close and trusts figures more than people.",
+    "look": "Slicked-back silver hair, dark checked three-piece suit, patterned tie, polished shoes and a slim ledger.",
+    "continuity": "Jack gives Corn's payment to Etta. Corn dies looking for the shoe he lost, without a poetic last line."
+  },
+  {
+    "id": "frank-pike",
+    "name": "Lt. Frank Pike",
+    "role": "Police lieutenant",
+    "age": "50s",
+    "summary": "A patient, corrupt officer who uses his authority to keep the paper trail and its witnesses under control.",
+    "look": "Close-cut gray hair, open dark overcoat, rumpled detective's suit and a loosened wide tie.",
+    "continuity": "He shoots Tick to silence him, panics in the gunfight, then faces an investigation and gives up his badge."
+  },
+  {
+    "id": "tick-lane",
+    "name": "Tick Lane",
+    "role": "Dealer and enforcer",
+    "age": "40s",
+    "summary": "A guarded dealer whose visible gold pinky ring connects him to the voice on Peanut's recording.",
+    "look": "Dark wavy hair, long dark coat, black shirt, leather gloves and a distinctive gold pinky ring.",
+    "continuity": "He shoots Jack, is gut-shot by Pike and dies slowly reaching for the recorder. Keep the ring consistent with the opening glimpse."
+  },
+  {
+    "id": "nicky",
+    "name": "Nicky",
+    "role": "City auction clerk",
+    "age": "Adult",
+    "summary": "A precise, conscientious clerk who keeps his records straight even when the room is coming apart.",
+    "look": "Soft dark hair, brown cardigan, collared shirt and tie, pencil, clipboard and neatly pressed trousers.",
+    "continuity": "He is procedural, not a stutterer. He keeps logging the gunfight until a stray round kills him."
+  },
+  {
+    "id": "whitney-kellerman",
+    "name": "Whitney Kellerman",
+    "role": "Deputy commissioner",
+    "age": "50s",
+    "summary": "The city property official whose impressive seal makes a criminal transfer look like ordinary paperwork.",
+    "look": "Neat graying hair, dark three-piece suit, patterned tie, ink-marked cuff and oversized wood-handled stamp.",
+    "continuity": "He hides under the table, cuts his hand and later faces questioning; the stamp becomes evidence."
+  },
+  {
+    "id": "clutch",
+    "name": "Clutch",
+    "role": "Queens biker",
+    "age": "Adult",
+    "summary": "A big man with a soft face who came to the auction for a pinball machine and got caught between everyone else.",
+    "look": "Broad build, dark beard, weathered leather vest, work shirt, dark jeans, boots and a plain cap.",
+    "continuity": "The Spirit of '76 flyer and pinball machine identify him. He is the innocent bystander killed in the warehouse."
+  },
+  {
+    "id": "sal-vetrano",
+    "name": "Sal Vetrano",
+    "role": "Crime boss",
+    "age": "Older adult",
+    "summary": "Corn's employer, a watchful presence at the coffee shop whose people are waiting at the warehouse.",
+    "look": "Salt-and-pepper hair, dark blazer, cream waistcoat, open-collared shirt and an espresso cup.",
+    "continuity": "Sal's crew is part of the warehouse deal; Corn handles his books and is the one who hires Jack."
+  }
+]

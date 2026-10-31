@@ -948,7 +948,7 @@ export function Inspector(props: InspectorProps) {
               <SectionTitle
                 number="01"
                 title="Picture"
-                status={beat.gap ? "BLACK GAP" : frame.carried ? "CARRIED" : "OWN FRAME"}
+                status={beat.gap ? "BLACK GAP" : !frame.picture ? "EMPTY SLOT" : frame.carried ? "CARRIED" : "OWN FRAME"}
               />
               <div className="picture-current">
                 {beat.gap ? (
@@ -998,6 +998,20 @@ export function Inspector(props: InspectorProps) {
                   Remove picture
                 </button>
               </div>
+              {beat.shotDescription !== undefined && (
+                <div className="storyboard-description-field">
+                  <label className="control-label" htmlFor="shot-description">Shot description</label>
+                  <textarea
+                    id="shot-description"
+                    className="inspector-textarea"
+                    data-testid="shot-description"
+                    value={String(beat.shotDescription || "")}
+                    onChange={(event) => props.onSetBeat("shotDescription", event.target.value)}
+                    rows={4}
+                  />
+                  <small className="inspector-note">Visual direction for this blank storyboard frame.</small>
+                </div>
+              )}
             </section>
 
             <section className="inspector-section action-section">

@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
 import type { SelectedCaptionState } from "./components/CaptionLane";
 import { CinematicPreview } from "./components/CinematicPreview";
+import { CharacterReferences } from "./components/CharacterReferences";
 import { CurveEditor } from "./components/CurveEditor";
 import { CropModal, type CropState } from "./components/CropModal";
 import { ExportModal, type ExportTab, type Mp4ExportQuality } from "./components/ExportModal";
@@ -145,7 +146,8 @@ import {
   SCARLETT_WITNESS_RAW_BASE,
 } from "./core/media";
 import { UndoHistory } from "./core/history";
-import { loadActiveProject, saveActiveProject } from "./core/storage";
+import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
+import { BUILT_IN_FILMS, createBundledFilm } from "./core/bundledFilms";
 import { clipFrames, FPS, formatTimecode } from "./core/timing";
 import {
   applyStudioPatchToStory,
@@ -191,6 +193,7 @@ import bundledMediaIndex from "./data/media-index.json";
 import { renderTimelineAudioOfflineWav, uint8ArrayToBase64 } from "./core/offlineAudioMix";
 import bundledFilm from "./data/nobodys-witness-film.json";
 import bundledEdits from "./data/studio-edits.json";
+import sweetJesusScreenplay from "./data/sweet-jesus.fountain?raw";
 
 type BrowseTarget = BrowseMediaTarget;
 type BrowserState = { kind: "image" | "audio"; target: BrowseTarget; frameId?: string };
@@ -458,12 +461,24 @@ function writeStoredPlayhead(frame: number): void {
   }
 }
 
+function mergeProjectSummaries(existing: SavedProjectSummary[], incoming: SavedProjectSummary[]): SavedProjectSummary[] {
+  const byId = new Map(existing.map((item) => [item.id, item]));
+  incoming.forEach((item) => {
+    const old = byId.get(item.id);
+    if (!old || item.updatedAt >= old.updatedAt) byId.set(item.id, item);
+  });
+  return [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
 export default function App() {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const [project, setProject] = useState<ProjectState | null>(null);
   const projectRef = useRef<ProjectState | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [savedProjects, setSavedProjects] = useState<SavedProjectSummary[]>([]);
+  const [switchingProject, setSwitchingProject] = useState(false);
+  const switchingProjectRef = useRef(false);
   const [publicPaths, setPublicPaths] = useState<Set<string>>(
     () => new Set((bundledMediaIndex as string[]).map(normalizeMediaPath)),
   );
@@ -642,6 +657,7 @@ export default function App() {
   const [soundOn, setSoundOn] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [missingOpen, setMissingOpen] = useState(false);
+  const [charactersOpen, setCharactersOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportTab, setExportTab] = useState<ExportTab>("bundle");
   const [exportProgress, setExportProgress] = useState(0);
@@ -878,11 +894,12 @@ export default function App() {
             void saveActiveProject(initialProject).catch(() => {});
             statusLabel = getDirectorsCutLabel(initialProject.directorsCutId).toUpperCase();
           } else {
-            initialProject = {
-              ...normalizedSaved,
-              directorsCutId: normalizedSaved.directorsCutId ?? "neo-noir",
-            };
-            statusLabel = getDirectorsCutLabel(initialProject.directorsCutId).toUpperCase();
+            initialProject = normalizedSaved.story.id === "nobodys-witness-film"
+              ? { ...normalizedSaved, directorsCutId: normalizedSaved.directorsCutId ?? "neo-noir" }
+              : normalizedSaved;
+            statusLabel = normalizedSaved.story.id === "nobodys-witness-film"
+              ? getDirectorsCutLabel(initialProject.directorsCutId).toUpperCase()
+              : "SAVED TO THIS BROWSER";
           }
         } else {
           const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json", {
@@ -943,6 +960,11 @@ export default function App() {
           keyframes: [],
         });
         setSaveStatus(statusLabel);
+        if (!isRenderMode) {
+          void listSavedProjects().then((items) => {
+            if (alive) setSavedProjects((old) => mergeProjectSummaries(old, items));
+          });
+        }
       } catch (error) {
         if (alive) setLoadError(error instanceof Error ? error.message : "Unable to open this project.");
       } finally {
@@ -1323,10 +1345,15 @@ export default function App() {
   useEffect(() => {
     if (!project || isRenderMode) return;
     const timer = window.setTimeout(() => {
+      if (switchingProjectRef.current || projectRef.current !== project) return;
       setSaveStatus("SAVING…");
       void saveActiveProject(project)
-        .then(() => setSaveStatus("SAVED TO THIS BROWSER"))
-        .catch(() => setSaveStatus("AUTOSAVE FAILED"));
+        .then(() => {
+          if (!switchingProjectRef.current && projectRef.current === project) setSaveStatus("SAVED TO THIS BROWSER");
+        })
+        .catch(() => {
+          if (!switchingProjectRef.current && projectRef.current === project) setSaveStatus("AUTOSAVE FAILED");
+        });
     }, 150);
     return () => window.clearTimeout(timer);
   }, [project, isRenderMode]);
@@ -2027,7 +2054,12 @@ export default function App() {
     if (intent.kind === "image" && !file.type.startsWith("image/")) return;
     if (intent.kind === "audio" && !file.type.startsWith("audio/")) return;
     const asset = await createUploadAsset(file);
-    let next: ProjectState = { ...current, assets: [...current.assets, asset], updatedAt: Date.now() };
+    const latest = projectRef.current;
+    if (switchingProjectRef.current || !latest || latest.id !== current.id) {
+      setLoadError("The film changed during the upload. Please upload the file again.");
+      return;
+    }
+    let next: ProjectState = { ...latest, assets: [...latest.assets, asset], updatedAt: Date.now() };
     const assetRef = `asset:${asset.id}`;
     let historyLabel = `${intent.kind === "image" ? "Picture" : "Sound"} uploaded`;
     if (intent.target === "picture") {
@@ -2101,9 +2133,15 @@ export default function App() {
   };
 
   async function handleImportFile(file: File): Promise<void> {
+    const startingProjectId = projectRef.current?.id;
     const raw = await file.text();
+    if (switchingProjectRef.current || projectRef.current?.id !== startingProjectId) {
+      throw new Error("The film changed during import. Please import the file again.");
+    }
     const imported = parseImportPayload(raw, file.name, { voiceDurations });
-    const sourceEdits = projectRef.current?.sourceEdits;
+    const sourceEdits = imported.story.id === "nobodys-witness-film"
+      ? projectRef.current?.sourceEdits ?? (bundledEdits as AnyRecord)
+      : undefined;
     const story =
       imported.story.id === "nobodys-witness-film" && sourceEdits
         ? applyStudioMusicSync(imported.story, sourceEdits)
@@ -2136,6 +2174,14 @@ export default function App() {
       };
     }
     next.missing = evaluateMissingMedia(next, folderFiles, publicPaths);
+    const previous = projectRef.current;
+    if (previous) {
+      await saveActiveProject(previous);
+      if (switchingProjectRef.current || projectRef.current !== previous) {
+        throw new Error("The current film changed while saving. Please import again.");
+      }
+      setSavedProjects((old) => mergeProjectSummaries(old, [{ id: previous.id, title: previous.title, updatedAt: Date.now() }]));
+    }
     history.clear();
     setHistoryVersion((value) => value + 1);
     projectRef.current = next;
@@ -2153,9 +2199,11 @@ export default function App() {
       keyframes: [],
     });
     setBrowser(null);
+    setCharactersOpen(false);
     setExportOpen(false);
     setEditLabel(`Imported ${file.name}`);
     setSaveStatus("IMPORT COMPLETE");
+    void listSavedProjects().then((items) => setSavedProjects((old) => mergeProjectSummaries(old, items)));
   }
 
   async function handleImportInput(event: ChangeEvent<HTMLInputElement>): Promise<void> {
@@ -2331,6 +2379,85 @@ export default function App() {
     webAudioEngine.stop();
     audioController.stopAll();
   }, []);
+
+  async function switchFilm(id: string): Promise<void> {
+    const previous = projectRef.current;
+    if (!previous || previous.id === id || switchingProjectRef.current) return;
+    switchingProjectRef.current = true;
+    setSwitchingProject(true);
+    setSaveStatus("SAVING…");
+    setLoadError("");
+    stopPlaybackAndAudio();
+    previewPlayerRef.current?.pause();
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    let changedActiveRecord = false;
+    try {
+      // Preserve even very recent edits before leaving, including imported projects.
+      await saveActiveProject(previous);
+      let next = await loadSavedProject(id) ?? createBundledFilm(id, voiceDurations, musicDurations);
+      if (!next) throw new Error("That film could not be found in browser storage.");
+      next = {
+        ...next,
+        assets: next.assets || [],
+        snapshots: next.snapshots || [],
+        importedMissing: next.importedMissing || [],
+      };
+      if (!Array.isArray(next.audioClips)) {
+        next = { ...next, audioClips: buildAudioClipsFromFilm(next.story, voiceDurations, musicDurations) };
+      }
+      next = upgradeSavedRecreatedUncut(next);
+      next.missing = evaluateMissingMedia(next, folderFiles, publicPaths);
+      const ordered = buildKeyframes(next.story);
+      const built = buildTimelineClips(ordered, voiceDurations);
+      if (!built.clips.length) throw new Error("This film has no playable storyboard frames.");
+      if (projectRef.current !== previous) throw new Error("The current film changed while saving. Please try switching again.");
+      await saveActiveProject(next);
+      changedActiveRecord = true;
+      if (projectRef.current !== previous) throw new Error("The current film changed while saving. Please try switching again.");
+
+      history.clear();
+      setHistoryVersion((value) => value + 1);
+      setSavedProjects((old) => mergeProjectSummaries(old, [{ id: previous.id, title: previous.title, updatedAt: Date.now() }]));
+      projectRef.current = next;
+      setProject(next);
+      const first = next.story.id === "nobodys-witness-film"
+        ? built.clips.find((clip) => clip.keyframe.sceneId === "nw_s1") ?? built.clips[0]
+        : built.clips[0];
+      playheadRef.current = first.startFrame;
+      setPlayheadFrame(first.startFrame);
+      setSelectedFrameId(first.keyframe.id);
+      setSelectedFrameIds([first.keyframe.id]);
+      setMultiSelection({ pictureIds: [first.keyframe.id], captions: [], audioClipIds: [], keyframes: [] });
+      setSelectedCaption(null);
+      setCurveEditor(null);
+      setBrowser(null);
+      setUploadIntent(null);
+      setCropState(null);
+      setCharactersOpen(false);
+      setExportOpen(false);
+      setComparePinned(false);
+      setCompareKeyHeld(false);
+      clearInOutMarks();
+      setRangeStart(0);
+      setRangeEnd(null);
+      setExportWholeFilm(true);
+      setExportFromFrame(0);
+      setExportToFrame(Math.max(0, built.totalFrames - 1));
+      setEditLabel(next.story.id === "sweet-jesus-film" ? "Storyboard draft" : "Film opened");
+      setSaveStatus("SAVED TO THIS BROWSER");
+      void listSavedProjects().then((items) => setSavedProjects((old) => mergeProjectSummaries(old, items)));
+    } catch (error) {
+      // If a late edit raced the switch, restore the active pointer to that edit.
+      if ((changedActiveRecord || projectRef.current !== previous) && projectRef.current) {
+        try { await saveActiveProject(projectRef.current); } catch { /* Surface the original error below. */ }
+      }
+      setLoadError(error instanceof Error ? error.message : "Could not switch films.");
+      setSaveStatus("AUTOSAVE FAILED");
+    } finally {
+      switchingProjectRef.current = false;
+      setSwitchingProject(false);
+    }
+  }
 
   const startPlaybackFromCurrent = useCallback(
     (forceLoop = false) => {
@@ -3663,6 +3790,11 @@ export default function App() {
     };
 
     const onKey = (event: KeyboardEvent) => {
+      if (switchingProjectRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const target = event.target as HTMLElement | null;
       const typingText = isTextTypingTarget(target, false);
       const typingSpaceText = isTextTypingTarget(target, true);
@@ -3938,8 +4070,12 @@ export default function App() {
     if (!current) return;
     setSaveStatus("SAVING…");
     void saveActiveProject(current)
-      .then(() => setSaveStatus("SAVED TO THIS BROWSER"))
-      .catch(() => setSaveStatus("AUTOSAVE FAILED"));
+      .then(() => {
+        if (!switchingProjectRef.current && projectRef.current === current) setSaveStatus("SAVED TO THIS BROWSER");
+      })
+      .catch(() => {
+        if (!switchingProjectRef.current && projectRef.current === current) setSaveStatus("AUTOSAVE FAILED");
+      });
   }
 
   function createSnapshot(): void {
@@ -4612,6 +4748,13 @@ export default function App() {
     );
   }
 
+  const filmChoices = new Map<string, { id: string; title: string }>();
+  BUILT_IN_FILMS.forEach((film) => filmChoices.set(film.id, { ...film }));
+  savedProjects.forEach((film) => {
+    if (!filmChoices.has(film.id)) filmChoices.set(film.id, { id: film.id, title: film.title });
+  });
+  filmChoices.set(project.id, { id: project.id, title: project.title });
+
   const effectiveTimelineDockHeight = curveEditor
     ? Math.max(paneSizes.timelineHeight + 140, 440)
     : paneSizes.timelineHeight;
@@ -4624,7 +4767,7 @@ export default function App() {
       ref={shellRef}
       tabIndex={-1}
       style={{ outline: "none" }}
-      className={`frame24-shell ${dragOver ? "is-drag-over" : ""} ${isFullscreen ? "is-fullscreen-cinema" : ""}`}
+      className={`frame24-shell ${project.story.id === "sweet-jesus-film" ? "is-sweet-jesus" : ""} ${dragOver ? "is-drag-over" : ""} ${isFullscreen ? "is-fullscreen-cinema" : ""}`}
       data-fullscreen={isFullscreen ? "true" : "false"}
       onDragOver={(event) => {
         if ([...event.dataTransfer.types].includes("Files")) {
@@ -4662,6 +4805,17 @@ export default function App() {
 
       <Topbar
         project={project}
+        projectChoices={[...filmChoices.values()]}
+        onSelectProject={(id) => void switchFilm(id)}
+        switchingProject={switchingProject}
+        onDownloadScreenplay={
+          project.story.id === "sweet-jesus-film"
+            ? () => downloadText(sweetJesusScreenplay, "sweet-jesus-screenplay.fountain")
+            : undefined
+        }
+        onShowCharacterReferences={
+          project.story.id === "sweet-jesus-film" ? () => setCharactersOpen(true) : undefined
+        }
         saveStatus={saveStatus}
         historyVersion={historyVersion}
         canUndo={history.canUndo}
@@ -4840,7 +4994,7 @@ export default function App() {
                 <p>
                   {viewerFrame.speaker}
                   <span>·</span>
-                  {viewerFrame.text || "No caption on this beat"}
+                  {viewerFrame.text || viewerFrame.beat.captions?.[0]?.text || "No caption on this beat"}
                 </p>
               </div>
               <div className="stage-heading-actions">
@@ -5131,8 +5285,8 @@ export default function App() {
                   compareActive={Boolean(comparePreviewState)}
                   compareLabel={comparePreviewState?.compareLabel}
                   compareTargetId={effectiveCompareTargetId}
-                  onToggleCompare={() => setComparePinned((v) => !v)}
-                  onChangeCompareTarget={(id: string) => setCompareTargetId(id as DirectorsCutId)}
+                  onToggleCompare={compareTargetChoices.length ? () => setComparePinned((v) => !v) : undefined}
+                  onChangeCompareTarget={compareTargetChoices.length ? (id: string) => setCompareTargetId(id as DirectorsCutId) : undefined}
                   kenBurnsSuppressed={kenBurnsSuppressed}
                   kenBurnsDrawStep={kenBurnsDrawStep}
                   kenBurnsDraftStart={kenBurnsDraftStart}
@@ -5839,6 +5993,9 @@ export default function App() {
           onClose={() => setBrowser(null)}
         />
       )}
+      {charactersOpen && project.story.id === "sweet-jesus-film" && (
+        <CharacterReferences onClose={() => setCharactersOpen(false)} />
+      )}
       {missingOpen && (
         <MissingMediaModal
           items={project.missing}
@@ -5919,6 +6076,11 @@ export default function App() {
         />
       )}
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      {switchingProject && (
+        <div className="project-switch-overlay" role="status" aria-live="polite">
+          <span>Saving and opening film…</span>
+        </div>
+      )}
       {cropState && (
         <CropModal
           crop={cropState}

@@ -90,7 +90,11 @@ export function setPicture(project: ProjectState, frameId: string, picture?: str
     delete location.beat.gap;
     location.beat.background = picture;
     location.beat.backgroundRevert = false;
-    location.beat.backgroundHold = true;
+    // Storyboard drafts can opt into independent blank slots. Respect their
+    // authored hold setting so filling one slot doesn't fill the whole film.
+    if (!(story.independentStoryboardPictures && location.beat.backgroundHold === false)) {
+      location.beat.backgroundHold = true;
+    }
   } else {
     delete location.beat.background;
     delete location.beat.backgroundRevert;
