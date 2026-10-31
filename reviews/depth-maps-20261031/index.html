@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Nobody’s Witness — voted depth maps</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e7e3de;background:#101115;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}a{color:#e8c8b3;text-decoration:none}a:hover{text-decoration:underline}
+header,main,footer{width:min(1120px,calc(100% - 40px));margin:auto}
+header{padding:64px 0 30px}
+.overline{text-transform:uppercase;letter-spacing:.16em;font-weight:700;font-size:.71rem;color:#d08772;margin:0 0 13px}
+h1{font-size:clamp(2.2rem,5vw,3.9rem);line-height:1.02;letter-spacing:-.04em;margin:0 0 18px;max-width:840px}
+header p.lead{color:#b2b0b2;line-height:1.65;max-width:780px;font-size:1.02rem}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
+nav a{background:#202126;border:1px solid #36343a;border-radius:8px;padding:9px 12px;font-size:.8rem;font-weight:600;color:#d8d4cf}
+.card{border:1px solid #353238;border-radius:15px;background:#1a1a1f;overflow:hidden;margin:0 0 24px}
+.card-heading{padding:24px 27px 18px;display:flex;gap:20px;justify-content:space-between;align-items:flex-start}
+.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-weight:700;font-size:.14rem;font-size:.7rem;color:#d08772;margin:0 0 8px}
+.eyebrow span{color:#6c6263}
+h2{font-size:1.3rem;letter-spacing:-.02em;margin:0 0 8px}
+.dialogue{color:#aaa5a3;font-size:.9rem;line-height:1.5;margin:0;max-width:720px}
+.badge{font-size:.72rem;font-weight:700;white-space:nowrap;border-radius:30px;padding:7px 11px;border:1px solid #4d6b57;background:#22302a;color:#b6d9c2}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:0 27px 20px}
+figure{margin:0}
+figure img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#0f1012;border-radius:9px}
+figcaption{font-size:.75rem;color:#a9a2a0;margin-top:7px;line-height:1.45}
+h3{font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:#aaa4a1;margin:0 0 10px}
+details{border-top:1px solid #343139;padding:15px 27px 19px;color:#bdb6b2;font-size:.84rem;line-height:1.65}
+summary{cursor:pointer;color:#e6d2c7;font-weight:600}
+details p{max-width:900px;white-space:pre-line}
+code{overflow-wrap:anywhere;color:#ddd0c9}
+dl.facts{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:16px 0 0;font-size:.8rem;color:#b0aaa6}
+dl.facts dt{color:#8d8784}
+footer{padding:12px 0 70px;color:#8f8c8c;font-size:.8rem;line-height:1.7}
+@media(max-width:680px){header,main,footer{width:min(100% - 24px,1120px)}.card-heading{padding:20px;flex-direction:column}.pair{grid-template-columns:1fr;padding:0 20px 18px}details{padding:15px 20px 18px}}
+.badge.muted{color:#b8aca1;border-color:#6b5a4c;background:#392e27}
+.skipped{height:100%;min-height:230px;aspect-ratio:16/9;background:#222126;border:1px dashed #625951;border-radius:9px;display:flex;flex-direction:column;gap:8px;justify-content:center;align-items:center;color:#b7ada6;text-align:center;padding:18px}
+.skipped strong{color:#e8ded6}.skipped span{font-size:.82rem;max-width:32ch}
+.note{margin:0 27px 18px;padding:12px 14px;border:1px solid #3d3a3f;border-radius:9px;background:#202027;color:#bdb6b2;font-size:.83rem;line-height:1.6}
+.note strong{color:#e6d2c7}
+</style></head><body>
+<header>
+<p class="overline">Nobody’s Witness · Original Uncut · Depth Maps</p>
+<h1>Eleven real depth maps, voted and installed.</h1>
+<p class="lead">Recreated Original Uncut stills that had no 2.5D camera now each have a hand-directed greyscale depth map drawn from their own plate. Every map was voted between two candidates; the accepted one is shown left, its plate right. Nothing was blurred or faked: near-white is close to camera, near-black is far, and every silhouette edge is traced from the frame. Two further targets — Ishida’s answer and Jack over Ishida — were rejected and are recorded below with their prompts.</p>
+<nav aria-label="Jump to shot"><a href="#shot-1">01</a><a href="#shot-2">02</a><a href="#shot-3">03</a><a href="#shot-4">04</a><a href="#shot-5">05</a><a href="#shot-6">06</a><a href="#shot-7">07</a><a href="#shot-8">08</a><a href="#shot-9">09</a><a href="#shot-10">10</a><a href="#shot-11">11</a><a href="#shot-12">12</a><a href="#shot-13">13</a></nav>
+</header>
+<main>
+<article class="card" id="shot-1">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 01 <span>·</span> nw_s94 · 94 — Only tea <span>·</span> nw_b1562</p><h2>Its rear door stands open: warm amber light, leather.</h2></div><span class="badge">Option 2 accepted</span></div>
+  <div class="pair"><figure><img src="images/01-nw_b1562-sedan-door-depth.png" alt="Depth map for nw_b1562" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/01-plate-1562-sedan-door.jpg" alt="Plate for nw_b1562" loading="lazy"><figcaption>Plate it was traced from · <code>duplicate-uncut-1562</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/1562-sedan-door-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.28 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-1562</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace exactly what is where: keep the identical framing, crop and 16:9 aspect, and align every silhouette edge precisely to the reference with clean, crisp, unfeathered boundaries. Luminance encodes distance only: no texture, no colour, no lighting, no highlights, no rain streaks, no grain, no vignette, no border, no text, no signature.
+
+Nearest surfaces, near-white (about 0.92-0.98): the wet black car bodywork and its open rear door frame across the right and lower right of frame, the front door pillar and window glass at the far right edge, and the wet curb/asphalt strip in the bottom-left foreground.
+
+Second nearest, light grey (about 0.72-0.85): the open car door&#x27;s inner trim and window sill, the wheel arch and rear wheel in the lower left, the door step plate and carpeted sill.
+
+Mid-ground, mid grey (about 0.45-0.62): the pale beige leather rear seat cushions and backrest, the centre armrest, and the seated silver-haired older man in a dark suit — his head, shoulders, torso and legs each a smooth slightly-lighter-on-near-face gradient, still one continuous mid-grey mass clearly readable as the seated figure.
+
+Farther, dark grey (about 0.22-0.38): the far side of the interior, the window frames and headliner of the car, the door light on the headliner, and the parked white blinds of the opposite windows.
+
+Background, near-black (about 0.04-0.14): the rain-soaked night street beyond the car — the wet road with reflected light pools as small soft mid-dark patches, the dark building facades and tree line, and the distant out-of-focus bokeh lights as small soft mid-grey dots. Sky at the very top darkest.
+
+Every surface must be a smooth continuous gradient across the object, each object marginally lighter toward its near edge, with hard clean separation where one object occludes another. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-2">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 02 <span>·</span> nw_s17 · 17 — You got old <span>·</span> nw_b465</p><h2>Everything is going. We are just slower.</h2></div><span class="badge">Option 1 accepted</span></div>
+  <div class="pair"><figure><img src="images/02-nw_b465-kaneko-counter-depth.png" alt="Depth map for nw_b465" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/02-plate-465-kaneko-counter.jpg" alt="Plate for nw_b465" loading="lazy"><figcaption>Plate it was traced from · <code>duplicate-uncut-465</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/465-kaneko-counter-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.26 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-465</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned to the reference, no feathering. Luminance encodes distance only: no wood grain, no texture, no colour, no lamp glow, no steam shading, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the worn wooden counter edge running along the bottom-left to centre foreground, the chopstick holder and small condiment bottles standing on it at the left, and the bottom of the near wooden stool at the lower right.
+
+Light grey, second nearest (about 0.70-0.85): the counter top surface receding toward the right, the near stool seat, the tall chopstick cylinders and bowls further along the counter, and the right-hand wooden wall and coat hooks at frame right.
+
+Mid-ground, mid grey (about 0.45-0.62): the elderly woman in the brown cardigan and dark apron behind the counter at the left — head, shoulders, arms and hands each a smooth gradient, one readable mid-grey mass; the two older customers seated at the far end of the counter as clearly darker mid-grey silhouettes; and the dark-haired greying man in the dark coat standing at the right of the counter, his head, shoulder, arm and hand a single continuous mid-grey figure with a slightly lighter near edge.
+
+Farther, dark grey (about 0.22-0.36): the metal shelving and steam hood behind the counter, the hanging pendant lamp shade and its stem as a mid-dark shape, the dark blue noren curtains in the doorway and the back kitchen doorway.
+
+Background, near-black (about 0.04-0.14): the rear kitchen interior, the far wall with posters and the framed sign, and the recesses behind the shelves. Ceiling and deep corners darkest.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, with clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-3">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 03 <span>·</span> nw_s79 · 79 — Grey light <span>·</span> nw_b1316</p><h2>Careful, laborious English handwriting. &quot;Miss Voss. Your father did not kill himself. I can prove it.&quot;</h2></div><span class="badge">Option 1 accepted</span></div>
+  <div class="pair"><figure><img src="images/03-nw_b1316-vera-reads-letter-depth.png" alt="Depth map for nw_b1316" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/03-plate-1316-vera-reads-letter.jpg" alt="Plate for nw_b1316" loading="lazy"><figcaption>Plate it was traced from · <code>duplicate-uncut-1316</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/1316-vera-reads-letter-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.26 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-1316</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, crisp silhouette edges aligned exactly to the reference, no feathering. Luminance encodes distance only: no texture, no handwriting, no colour, no lighting, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the low wooden table top filling the bottom centre and right foreground, the two pale cups standing on it, and the open notebook lying on it slightly farther, plus the very bottom edge of the woman&#x27;s dark skirt at the lower left.
+
+Light grey, second nearest (about 0.70-0.85): the sheet of paper held in the woman&#x27;s hands, her hands and forearms, her bare shoulders, and the left-hand wooden sideboard with its drawers and the small framed photo on it.
+
+Mid-ground, mid grey (about 0.45-0.62): the blonde woman&#x27;s head, face and torso — one continuous readable figure mass with a smooth gradient that is marginally lighter toward her near side — and the tall lamp shade on the left, the dark CRT television on its stand at the right and the armchair back at the extreme lower right.
+
+Farther, dark grey (about 0.22-0.36): the curtains at both window edges and along the base, and the balcony rail and outer window frame.
+
+Background, near-black (about 0.04-0.16): the rain-streaked window glass and the blurred apartment block beyond it, plus the pale sky visible outside as a slightly lighter dark patch. The deepest interior shadows stay darkest.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-4">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 04 <span>·</span> nw_s1 · 1 — The barbershop lane <span>·</span> nw_b17</p><h2>Mara hidden: the empty rain-soaked lane before the sedan arrives.</h2></div><span class="badge">Option 2 accepted</span></div>
+  <div class="pair"><figure><img src="images/04-nw_b017-hidden-depth.png" alt="Depth map for nw_b17" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/04-plate-017-hidden.jpg" alt="Plate for nw_b17" loading="lazy"><figcaption>Plate it was traced from · <code>recreated-uncut-017</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/017-hidden-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.3 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-017</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned exactly to the reference, no feathering or glow. Luminance encodes distance only: no texture, no wet reflections, no rain streaks, no colour, no lamp light, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the utility pole rising vertically just left of centre, the corrugated roller shutters and doorway of the building at the far left edge, the corner of the shuttered shop and the black awning overhead at the right edge, and the wet road surface in the bottom 15% of frame.
+
+Light grey, second nearest (about 0.72-0.86): the white drinks vending machine standing under the left building with its wire basket and the kerb beside it, the yellow stacked beer crates and the parked scooter against the right building, and the low white guard rail across the far side of the crossing.
+
+Mid-ground, mid grey (about 0.45-0.62): the crossing road surface with its white zebra stripes as flat slightly darker shapes, the shorter second pole and the traffic signal on it just left of centre, and the low buildings and wall behind them.
+
+Farther, dark grey (about 0.24-0.38): the tall street lamp and its hood near the top left, the further street lamp and its pole in the centre background, and the dark block of buildings and fence behind the crossing.
+
+Background, near-black (about 0.03-0.13): the empty sky at the top and the far street receding between the buildings, with the distant small light sources as tiny soft mid-grey dots only.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, hard clean separation at every occlusion boundary and at the rooflines. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-5">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 05 <span>·</span> nw_s1 · 1 — The barbershop lane <span>·</span> nw_b27</p><h2>The headlights come up the lane; two men walk in.</h2></div><span class="badge">Option 1 accepted</span></div>
+  <div class="pair"><figure><img src="images/05-nw_b027-headlights-depth.png" alt="Depth map for nw_b27" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/05-plate-027-headlights.jpg" alt="Plate for nw_b27" loading="lazy"><figcaption>Plate it was traced from · <code>recreated-uncut-027</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/027-headlights-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.32 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-027</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and readable against the bright background, no feathering and no bloom around the light. Luminance encodes distance only: no texture, no wet reflections, no rain, no colour, no headlamp glare, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the wet road filling the bottom third of frame, with the paint marking at the lower left, and the utility pole standing just left of centre.
+
+Light grey, second nearest (about 0.72-0.86): the corrugated shutters and shopfront of the left building, the white vending machine beside it with its wire basket, the kerb line, and the right-hand shop front with its black awning, door and the yellow stacked beer crates plus scooter at the lower right.
+
+Mid-ground, mid grey (about 0.42-0.60): the three standing figures, each one continuous readable mass — the older man in the pale long coat on the left, seen from behind and slightly nearer, then the two masked men in dark coats walking toward camera in the centre, the left one marginally darker than the right. Keep their silhouettes exact, including the umbrella the left masked man carries.
+
+Farther, dark grey (about 0.22-0.36): the dark car parked at the right of the lane behind the two masked men, its roof and window line, and the taller building blocks above the shop fronts on both sides.
+
+Background, near-black (about 0.03-0.13): the bright headlight area between the figures as the deepest, most distant plane, the street lamp and signal beyond, the far building silhouettes and the black sky at the top.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, hard clean separation at every occlusion boundary including around the figures against the light. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-6">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 06 <span>·</span> nw_s1 · 1 — The barbershop lane <span>·</span> nw_b38</p><h2>The sedan departs.</h2></div><span class="badge">Option 1 accepted</span></div>
+  <div class="pair"><figure><img src="images/09-nw_b038-sedan-departs-depth.png" alt="Depth map for nw_b38" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/06-plate-038-sedan-departs.jpg" alt="Plate for nw_b38" loading="lazy"><figcaption>Plate it was traced from · <code>gap-uncut-038</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/038-sedan-departs-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.3 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-038</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned exactly to the reference, no feathering. Luminance encodes distance only: no brick or shutter texture, no wet reflections, no rain, no colour, no lamp light, no car tail-light glow, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the rain-soaked road and white lane paint filling the bottom third of frame, brightest at the very bottom edge, and the thick utility pole standing just left of centre.
+
+Light grey, second nearest (about 0.74-0.88): the elderly man in the pale coat lying on the road at the lower centre, clearly readable as a figure, and the shuttered shop fronts, vending machine with wire basket on the left, and the black awning, scooter and yellow beer crates on the right.
+
+Mid-ground, mid grey (about 0.45-0.64): the black sedan crossing the lane in the centre at a distance, readable as a car with its roof, windows and wheels; the zebra crossing on the road; and the small signal-light pole near it.
+
+Farther, dark grey (about 0.24-0.38): the low buildings and fence behind the crossing, the barber&#x27;s pole on the right frontage, and the walls above the shop fronts on both sides.
+
+Background, near-black (about 0.03-0.13): the tall street lamps and their poles overhead, the far building silhouettes, and the black rainy sky at the top with its thin cable lines only faintly lighter.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, hard clean separation at every occlusion boundary and roofline. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-7">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 07 <span>·</span> nw_s28 · 28 — The sea wall <span>·</span> nw_b716</p><h2>The sea-wall road.</h2></div><span class="badge">Option 1 accepted</span></div>
+  <div class="pair"><figure><img src="images/10-nw_b716-sea-wall-road-depth.png" alt="Depth map for nw_b716" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/07-plate-716-sea-wall-road.jpg" alt="Plate for nw_b716" loading="lazy"><figcaption>Plate it was traced from · <code>recreated-uncut-716</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/716-sea-wall-road-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.34 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-716</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: keep the identical framing and 16:9 crop, aligning every silhouette edge to the reference, no feathering. Luminance encodes distance only: no roof-tile or paint texture, no colour, no daylight, no cloud shading, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the pale asphalt road sweeping from the bottom of frame up the centre, the grass and kerb strip along its left, and the low concrete sea wall running along the right side.
+
+Light grey, second nearest (about 0.72-0.88): the two rows of single-storey Japanese houses — the row along the left receding into the distance, each house a separate block that steps progressively darker, and the single house at the far right beyond the sea wall.
+
+Mid-ground, mid grey (about 0.45-0.64): the rocky shoreline and low fence beyond the sea wall, and the nearest section of road, kerb and wall further up the lane.
+
+Farther, dark grey (about 0.22-0.36): the sea surface filling the right background, smooth with gentle tonal variation and darker toward the horizon, and the distant headland and far houses where the road curves.
+
+Background, near-black (about 0.03-0.14): the whole cloudy sky across the top two-fifths of the frame, darkest at the top edge, and the far end of the road at the horizon.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every roofline, kerb and wall edge. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-8">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 08 <span>·</span> nw_s63a · 63 — They give up <span>·</span> nw_b1054</p><h2>Jack watches the sedan from the alley door.</h2></div><span class="badge">Option 2 accepted</span></div>
+  <div class="pair"><figure><img src="images/08-nw_b1054-the-sedan-depth.png" alt="Depth map for nw_b1054" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/08-plate-1054-the-sedan.jpg" alt="Plate for nw_b1054" loading="lazy"><figcaption>Plate it was traced from · <code>recreated-uncut-1054</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/1054-the-sedan-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.34 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-1054</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned exactly to the reference, no feathering. Luminance encodes distance only: no brick texture, no wet reflections, no rain, no colour, no lamp light, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the dark door frame and door edge at the far right of frame, and the rain-wet alley paving filling the bottom third, brightest at the very bottom edge.
+
+Light grey, second nearest (about 0.72-0.88): the man in the dark coat standing in the doorway at the right — head, shoulders and arm one continuous readable mass, marginally lighter toward his near shoulder — and the low ground-mounted air-conditioning units at the lower left corner.
+
+Mid-ground, mid grey (about 0.45-0.64): the two brick alley walls, running left and right toward the street, each with its wall-mounted air-conditioning boxes as slightly lighter blocks that step progressively darker with distance, and the horizontal pipe crossing the alley overhead.
+
+Farther, dark grey (about 0.24-0.38): the parked black sedan across the far end of the alley, clearly readable as a car with its kerb and wheels, the shuttered garage beside it, and the taller building faces and windows beyond the alley mouth.
+
+Background, near-black (about 0.03-0.14): the sky above the street lamps, the deepest recesses of both alley walls, and the far dark street surface beyond the car.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-9">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 09 <span>·</span> nw_s65 · 65 — The wine-red dress <span>·</span> nw_b1073</p><h2>Vera takes the wine-red dress out of its box.</h2></div><span class="badge">Option 1 accepted</span></div>
+  <div class="pair"><figure><img src="images/11-nw_b1073-wine-red-dress-depth.png" alt="Depth map for nw_b1073" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/09-plate-1073-wine-red-dress.jpg" alt="Plate for nw_b1073" loading="lazy"><figcaption>Plate it was traced from · <code>gap-uncut-1073</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/1073-wine-red-dress-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.28 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-1073</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, crisp silhouette edges aligned to the reference, no feathering. Luminance encodes distance only: no knit or silk texture, no colour, no window light, no bedside lamp glow, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the dark door frame and door edge along the far left of frame, and the near edge of the bed and deep-blue bedding across the bottom of frame.
+
+Light grey, second nearest (about 0.74-0.88): the open cardboard box with its tissue paper, lying on the bed at the lower left, and the wine-red dress held up in the woman&#x27;s hands — a single continuous readable shape where the fabric hangs in soft folds.
+
+Mid-ground, mid grey (about 0.45-0.66): the blonde woman standing in the centre — head, hair, shoulders, cream turtleneck, both arms and hands one continuous, clearly readable figure mass, marginally lighter along her near shoulder; plus the wooden headboard behind her to the left.
+
+Farther, dark grey (about 0.24-0.38): the curtains at the left and right of the window, the curtain rail, and the narrow warm lamp and small bedside table at the right.
+
+Background, near-black (about 0.03-0.16): the rain-beaded window panes and the blurred dark city beyond them, darkest in the upper panes, with the distant window lights only the faintest soft grey dots.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary around her silhouette. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-10">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 10 <span>·</span> nw_s80 · 80 — Was that you <span>·</span> nw_b1351</p><h2>Was that you?</h2></div><span class="badge">Option 1 accepted</span></div>
+  <div class="pair"><figure><img src="images/12-nw_b1351-was-that-you-depth.png" alt="Depth map for nw_b1351" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/10-plate-1351-was-that-you.jpg" alt="Plate for nw_b1351" loading="lazy"><figcaption>Plate it was traced from · <code>recreated-uncut-1351</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/1351-was-that-you-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.26 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-1351</code> (bundled inline)</dd></dl><p class="note"><strong>Post-processing.</strong> The accepted vote copied the room&#x27;s bright fluorescent ceiling tubes into the map as white bars. Because the ceiling is the farthest surface in the room, those bars were flattened by compositing a vertically graded mask over the top of the frame (darkened and flattened above the tube line, untouched below); the figures, desks, floor and back wall are unchanged. The raw vote is kept at rejected/12-nw_b1351-was-that-you-depth-raw-ceiling-strips.png.</p>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Trace only where things are: identical framing and 16:9 crop, crisp silhouette edges, no feathering. Luminance encodes distance only.
+
+CRITICAL — this frame contains bright fluorescent tubes on the ceiling and a bright window. Do NOT copy their brightness into the depth map. The ceiling is the farthest surface in the room, so render it near-black (about 0.02-0.08) with NO bright strips, bars, halos or glow. The windows at the right are far away: dark grey (about 0.12-0.22), never white. No lamp glare, reflection, texture, colour, grain, vignette, border or text anywhere.
+
+Nearest surfaces, near-white (about 0.92-0.98): the out-of-focus standing man&#x27;s dark suit edge along the left side of frame, cropping the picture from top to bottom, soft-edged but clearly the nearest plane, and the desk surface and stacked papers running along the bottom edge.
+
+Light grey, second nearest (about 0.74-0.88): the seated older Japanese detective with grey-streaked hair, seen from mid-chest up — his head, face, shoulders, jacket, collar, tie-less shirt, pen in hand and watch, one continuous clearly readable figure mass, marginally lighter across his nearer shoulder — plus the stacked trays and file piles on his desk at the lower left and right.
+
+Mid-ground, mid grey (about 0.45-0.64): the nearer rows of grey office desks with their paperwork and folders, and the blurred seated colleagues behind him at the left.
+
+Farther, dark grey (about 0.24-0.38): the back office wall with the wall clock, the doorway and the noticeboard, and the filing cabinets and shelving along the right.
+
+Background, near-black (about 0.02-0.16): the entire ceiling, and the tall windows on the right showing a washed-out sky as flat dark grey without any bright panes.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere, no bright ceiling.</p></details>
+</article>
+<article class="card" id="shot-11">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 11 <span>·</span> nw_s84 · 84 — Both wrong <span>·</span> nw_b1464</p><h2>Vera in the storeroom.</h2></div><span class="badge">Option 1 accepted</span></div>
+  <div class="pair"><figure><img src="images/14-nw_b1464-vera-storeroom-depth.png" alt="Depth map for nw_b1464" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure><figure><img src="context/11-plate-1464-vera-storeroom.jpg" alt="Plate for nw_b1464" loading="lazy"><figcaption>Plate it was traced from · <code>duplicate-uncut-1464</code></figcaption></figure></div>
+  <dl class="facts"><dt>Installed</dt><dd><code>public/film/depth/recreated-uncut/1464-vera-storeroom-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.28 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-1464</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned exactly to the reference, no feathering. Luminance encodes distance only: no shelf or wood texture, no colour, no bulb glow or window light, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the bare floorboards and the near edge of the door frame or shelving at the very bottom and outer edges of the picture.
+
+Light grey, second nearest (about 0.72-0.88): the tall storage shelves, stacked boxes and crates standing along the left and right of the room, each a separate block that steps darker with distance, and any near foreground furniture.
+
+Mid-ground, mid grey (about 0.45-0.66): the blonde woman standing in the room — head, hair, shoulders, coat and arms one continuous clearly readable figure mass, marginally lighter along her near shoulder — holding or facing the object she has come to find, kept as one solid shape.
+
+Farther, dark grey (about 0.24-0.38): the back wall of the storeroom, its door, hanging coats and higher shelves, and the far corner of the room.
+
+Background, near-black (about 0.03-0.15): the ceiling, the deepest recesses and any doorway leading to a darker room beyond, all flat and without light patches.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-12">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 12 <span>·</span> nw_s80 · 80 — Was that you <span>·</span> nw_b1349</p><h2>You told me yourself, Jack. You always tell the wrong person.</h2></div><span class="badge muted">Skipped</span></div>
+  <div class="pair"><figure><div class="skipped"><strong>Not installed</strong><span>Rejected at the vote; the beat keeps its camera and picture unchanged.</span></div><figcaption>No depth map for this beat</figcaption></figure><figure><img src="context/12-plate-1349-ishidas-answer.jpg" alt="Plate for nw_b1349" loading="lazy"><figcaption>Plate it was traced from · <code>duplicate-uncut-1349</code></figcaption></figure></div>
+  <dl class="facts"><dt>Status</dt><dd>Skipped — nothing written, nothing wired</dd></dl>
+  <details><summary>Prompt</summary><p></p></details>
+</article>
+<article class="card" id="shot-13">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 13 <span>·</span> nw_s80 · 80 — Was that you <span>·</span> nw_b1358</p><h2>Jack stands over Ishida after the fight.</h2></div><span class="badge muted">Skipped</span></div>
+  <div class="pair"><figure><div class="skipped"><strong>Not installed</strong><span>Rejected at the vote; the beat keeps its camera and picture unchanged.</span></div><figcaption>No depth map for this beat</figcaption></figure><figure><img src="context/13-plate-1358-jack-stands.jpg" alt="Plate for nw_b1358" loading="lazy"><figcaption>Plate it was traced from · <code>gap-uncut-1358</code></figcaption></figure></div>
+  <dl class="facts"><dt>Status</dt><dd>Skipped — nothing written, nothing wired</dd></dl><p class="note">Two votes rejected, plus a third rejected after a rewritten prompt that spelled out that the ceiling is the farthest surface: every candidate copied the fluorescent ceiling tubes into the map as a bright band. Left without a depth map until a candidate stops doing that.</p>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Trace only where things are: identical framing and 16:9 crop, crisp silhouette edges, no feathering. Luminance encodes distance only.
+
+CRITICAL — depth is not brightness. This frame has bright light sources in it. Do NOT render them as bright shapes:
+- The fluorescent ceiling tubes are ON THE CEILING, the farthest surface in the room, so the ceiling must be near-black (about 0.02-0.08) with NO bright strips, bars, glow or halos anywhere in it. No bright band across the top of the frame at all.
+- The window at the right is far away: render it as dark grey (about 0.12-0.20), never white, with no blown-out pane.
+- No lamp, reflection, gleam, grain, colour, vignette, border or text anywhere.
+
+Nearest surfaces, near-white (about 0.90-0.98): the carpeted office floor along the bottom of the frame and the shoe of the standing man at the lower left; the floor should fade smoothly from near-white at the bottom edge to dark grey where it meets the back wall.
+
+Light grey, second nearest (about 0.72-0.86): the head and shoulders of the Japanese detective lying on his back at the lower right, his upturned face clearly readable, and the near desk edge and chair backs at the lower left and lower right corners.
+
+Mid-ground, mid grey (about 0.45-0.64): the standing Western man leaning over him — head, shoulders, torso, both arms and legs one continuous, clearly readable figure mass, marginally lighter along his nearer shoulder and coat edge — plus the two grey steel desks with their papers left and right of him.
+
+Farther, darker mid grey (about 0.26-0.40): the two young detectives in dark suits standing side by side in the centre background, each a separate darker figure, and the filing cabinets, shelves and partition behind them.
+
+Background, near-black (about 0.02-0.15): the far wall with the wall clock as a faint slightly-darker disc, the window at the right, and the whole ceiling.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere, and absolutely no bright ceiling.</p></details>
+</article>
+</main>
+<footer>
+Full prompts, SHA-256 digests and per-shot references are in <a href="README.md">README.md</a> and <a href="manifest.json">manifest.json</a>.
+Wired through <code>RECREATED_DEPTH_MAP_BY_BEAT</code> and upgrade version 18 in <code>src/core/recreatedUncut.ts</code>. Pictures, dialogue, captions, audio, timing and other cuts are unchanged.
+</footer>
+</body></html>

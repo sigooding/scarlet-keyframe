@@ -86,6 +86,31 @@ That film's pictures, voices and sounds stay in Scarlet Reel; this repository do
 and pick scarlett-witness's `public` folder; then every picture in it is in the picture browser. The link is forgotten
 when the page reloads.
 
+## Making MP4 export faster
+
+Export is **CPU-bound, not GPU-bound**, which is why a fast GPU sits at a few per cent while it works. Each frame is
+painted on the GPU, then read back and encoded to PNG/JPEG **by the CPU**, piped to FFmpeg, decoded there **by the
+CPU**, and only then handed to the hardware H.264 encoder. Filling GPU memory cannot help; the levers are parallelism
+and per-frame capture cost.
+
+1. **Use several workers.** `--workers 3`–`4` (or **Workers** in the export dialog, which now starts at a value based on
+   your CPU count) runs that whole pipeline in parallel, one headless Chromium plus FFmpeg per worker. It is the single
+   biggest win — near-linear until the CPU saturates — and costs about 300–600 MB of RAM per worker.
+2. **Capture JPEG when PNG is overkill for the pass.** `--capture jpeg` (UI: **Capture: JPEG fast**) encodes each frame
+   as JPEG q97 instead of lossless PNG. Capture and FFmpeg's decode both get much cheaper and the pipe carries roughly a
+   fifth of the bytes; use `--capture-quality` to taste. Leave it on `auto` (PNG for Master) when you are making the
+   archive master and do not want any capture-side generation loss.
+3. **Render a slice while you iterate.** `--from`/`--to` (or From/To scene in the dialog) plus `--draft` (720p JPEG) is
+   the fast review loop; only the final pass needs Master.
+4. **Check the summary line.** Every export now prints per-frame timings — `setFrame`, `capture`, `pipe/write` — and a
+   suggestion if it ran with one worker. If `capture` dominates, switch to JPEG capture; if `setFrame` dominates, add
+   workers.
+
+Example: a 1080p master with four workers and JPEG capture is typically several times faster than a single worker with
+PNG capture:
+
+    npm run export -- --from 0 --to 2879 --workers 4 --capture jpeg --capture-quality 97
+
 ## MP4 export
 
 Use the MP4 export button while the editor is running with `npm run dev`, or run a short CLI export:

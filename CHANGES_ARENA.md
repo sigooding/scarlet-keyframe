@@ -25,6 +25,35 @@ The workspace was reset to the base checkout during this session. The previously
 - At the user's request Harada's initial tight crop was replaced with a separately voted wide newsroom shot. The earlier selected image remains saved; the v13 migration changes the previous bundled shot only where other pictures and effective looks remain intact.
 - `scripts/audit-uncut-duplicates.ts` reports adjacent stills sharing the same effective image reference, including short holds and cross-scene pairs. The factory cut went from 914 to 894 pairs; this is incomplete and does not detect differently named files with identical pixels. See `IMAGE_RECOVERY.md` for exact prompts, votes and continuation instructions.
 
+## Faster MP4 export
+
+- The export dialog now starts at a worker count derived from the machine's CPU count (up to 6) instead of always 1. Export is CPU-bound per worker, so a single worker wasted most of a laptop; each worker adds one Chromium (about 300-600 MB RAM).
+- New `--capture <auto|png|jpeg>` and `--capture-quality <1..100>` (UI: **Capture: Auto / JPEG fast**, default q97). `auto` keeps the old pairing (PNG for Master, JPEG q92 for Draft); `jpeg` captures Master frames as high-quality JPEG, which is far cheaper to encode and pipe and halves FFmpeg's decode work. The FFmpeg decoder now always matches the capture format, so a JPEG master is not fed to the PNG decoder.
+- Frame capture goes straight to CDP `Page.captureScreenshot` with `optimizeForSpeed: true` instead of Playwright's `page.screenshot()`, removing per-frame emulation/layout round trips and trading a slightly larger PNG for a much faster encoder; it falls back to Playwright if the browser rejects the call.
+- Each export prints per-frame stage timings (`setFrame`, `capture`, `pipe/write`) and suggests more workers when it ran with one. See README "Making MP4 export faster" for the whole picture, including why GPU memory does not help.
+
+## Real depth maps for eleven recreated Uncut stills
+
+- Eleven recreated Original Uncut stills that had no 2.5D camera now have their own greyscale depth maps, each voted between two candidates: `nw_b1562` (2), `nw_b465` (1), `nw_b1316` (1), `nw_b17` (2), `nw_b27` (1), `nw_b38` (1), `nw_b716` (1), `nw_b1054` (2), `nw_b1073` (1), `nw_b1351` (1) and `nw_b1464` (1). Prompts, digests, full-size voted PNGs and a numbered review gallery are in `reviews/depth-maps-20261031/`.
+- Each map was generated from its own plate only, converted to true greyscale, resized to 960x540 and saved as JPEG quality 88 like the film's existing depth maps. Nothing was inverted or relit; `nw_b1351`'s copied ceiling tubes were flattened with a graded mask, and the raw vote is kept.
+- `nw_b1349` and `nw_b1358` were rejected and deliberately left without a depth map: every candidate copied the office's bright fluorescent ceiling into the map as a near-plane band. Their prompts are kept for a retry.
+- `RECREATED_DEPTH_MAP_BY_BEAT` and upgrade version 18 add the maps to an already-saved active or stashed Original Uncut only where the recreated plate is still showing and the shot has no depth rig of its own. Each shot plays as a static 8-second depth push (amounts 0.26-0.34); a `dolly` preset is re-based to `static` since a dolly cannot be combined with a depth camera, keeping its focal point, grade and timing. Pictures, dialogue, captions, audio, total duration and other cuts are unchanged.
+- The maps are bundled inline, so the single-file build needs no server; full-size copies are in `public/film/depth/recreated-uncut/` and listed in both media indexes.
+
+## Faster MP4 export
+
+- The export dialog now starts at a worker count derived from the machine's CPU count (up to 6) instead of always 1. Export is CPU-bound per worker, so a single worker wasted most of a laptop; each worker adds one Chromium (about 300-600 MB RAM).
+- New `--capture <auto|png|jpeg>` and `--capture-quality <1..100>` (UI: **Capture: Auto / JPEG fast**, default q97). `auto` keeps the old pairing (PNG for Master, JPEG q92 for Draft); `jpeg` captures Master frames as high-quality JPEG, which is far cheaper to encode and pipe and halves FFmpeg's decode work. The FFmpeg decoder now always matches the capture format, so a JPEG master is not fed to the PNG decoder.
+- Frame capture goes straight to CDP `Page.captureScreenshot` with `optimizeForSpeed: true` instead of Playwright's `page.screenshot()`, removing per-frame emulation/layout round trips and trading a slightly larger PNG for a much faster encoder; it falls back to Playwright if the browser rejects the call.
+- Each export prints per-frame stage timings (`setFrame`, `capture`, `pipe/write`) and suggests more workers when it ran with one. See README "Making MP4 export faster" for the whole picture, including why GPU memory does not help.
+
+## Real depth maps for three recreated Uncut stills
+
+- Three recreated Original Uncut stills that had no 2.5D camera now have their own greyscale depth maps, each voted between two candidates and all three accepted: `nw_b1562` (option 2), `nw_b465` (option 1) and `nw_b1316` (option 1). Prompts, digests, full-size voted PNGs and a numbered review gallery are in `reviews/depth-maps-20261031/`.
+- Each map was generated from its own plate only, trimmed, converted to true greyscale, resized to 960x540 and saved as JPEG quality 88 like the film's existing depth maps. Nothing was blurred, inverted or relit.
+- `RECREATED_DEPTH_MAP_BY_BEAT` and upgrade version 17 add the maps to an already-saved active or stashed Original Uncut only where the recreated plate is still showing and the shot has no depth rig of its own. Each shot plays as a static 8-second depth push (amounts 0.28 / 0.26 / 0.26); a `dolly` preset is re-based to `static` since a dolly cannot be combined with a depth camera, keeping its focal point, grade and timing. Pictures, dialogue, captions, audio, total duration and other cuts are unchanged.
+- The maps are bundled inline, so the single-file build needs no server; full-size copies are in `public/film/depth/recreated-uncut/` and listed in both media indexes.
+
 ## Ten-shot voting fallback
 
 - The no-vote image provider returned HTTP 403 on retry, so the user requested voting instead. Nine selected images were installed; `nw_b87` was skipped and remains unchanged. The selected originals, numbered review gallery, reference previews and exact prompts are in `reviews/uncut-no-vote-20261030/`.

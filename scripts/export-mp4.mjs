@@ -16,6 +16,7 @@ import {
   normalizeRequestedEncoder,
   resolveFfmpegBinary,
   selectVideoEncoder,
+  suggestExportWorkers,
 } from "./video-encoder.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -41,6 +42,8 @@ Options:
   --name <slug>           Base output filename when --out is a directory (default: project slug)
   --quality <master|draft> master = 1920x1080 PNG CRF 18 (default); draft = 1280x720 JPEG fast
   --draft                 Shorthand for --quality draft (1280x720 fast review render)
+  --capture <auto|png|jpeg> Frame capture format (default: auto = png for master, jpeg for draft)
+  --capture-quality <1..100> JPEG capture quality when --capture jpeg (default: 97)
   --workers <1..6>        Parallel headless Chromium + ffmpeg segment workers (default: 1)
   --gpu                   Enable GPU WebGL/compositor rendering + hardware H.264 encoding (default: on)
   --no-gpu                Force CPU SwiftShader rendering and libx264 software encoding
@@ -78,6 +81,8 @@ export function parseCliArgs(argv) {
     out: "exports/",
     name: "",
     quality: "master",
+    capture: "auto",
+    captureQuality: 97,
     workers: 1,
     gpu: true,
     encoder: "auto",
@@ -150,6 +155,30 @@ export function parseCliArgs(argv) {
         throw new Error(`Invalid --quality "${q}" (expected "master" or "draft")`);
       }
       opts.quality = q;
+    } else if (arg === "--capture") {
+      const v = next().toLowerCase();
+      if (v !== "auto" && v !== "png" && v !== "jpeg" && v !== "jpg") {
+        throw new Error(`Invalid --capture \"${v}\" (expected \"auto\", \"png\", or \"jpeg\")`);
+      }
+      opts.capture = v === "jpg" ? "jpeg" : v;
+    } else if (arg.startsWith("--capture=")) {
+      const v = arg.slice(10).toLowerCase();
+      if (v !== "auto" && v !== "png" && v !== "jpeg" && v !== "jpg") {
+        throw new Error(`Invalid --capture \"${v}\" (expected \"auto\", \"png\", or \"jpeg\")`);
+      }
+      opts.capture = v === "jpg" ? "jpeg" : v;
+    } else if (arg === "--capture-quality") {
+      const q = Number(next());
+      if (!Number.isFinite(q) || q < 1 || q > 100) {
+        throw new Error(`Invalid --capture-quality \"${argv[i]}\" (expected 1..100)`);
+      }
+      opts.captureQuality = Math.round(q);
+    } else if (arg.startsWith("--capture-quality=")) {
+      const q = Number(arg.slice(18));
+      if (!Number.isFinite(q) || q < 1 || q > 100) {
+        throw new Error(`Invalid --capture-quality \"${arg}\" (expected 1..100)`);
+      }
+      opts.captureQuality = Math.round(q);
     } else if (arg === "--workers") {
       const w = Number(next());
       if (!Number.isFinite(w) || w < 1) throw new Error(`Invalid --workers count: ${argv[i]}`);
@@ -394,6 +423,41 @@ function runFfmpeg(ffmpegBin, args, onChild) {
   });
 }
 
+/**
+ * Fast frame capture for export.
+ *
+ * `page.screenshot()` re-issues layout/metrics round trips on every call and
+ * always asks Chromium for a size-optimised PNG. Talking to CDP directly lets us
+ * ask for `optimizeForSpeed` (trade a larger file for a much faster encode) and
+ * halve the number of protocol round trips per frame. Falls back to Playwright's
+ * own screenshot if the browser refuses the CDP call.
+ */
+function makeFrameGrabber(page, format, quality) {
+  let session = null;
+  let cdpFailed = false;
+  return async () => {
+    if (!cdpFailed) {
+      try {
+        if (!session) session = await page.context().newCDPSession(page);
+        const shot = await session.send("Page.captureScreenshot", {
+          format,
+          ...(format === "jpeg" ? { quality } : {}),
+          optimizeForSpeed: true,
+          fromSurface: true,
+          captureBeyondViewport: false,
+        });
+        return Buffer.from(shot.data, "base64");
+      } catch {
+        cdpFailed = true;
+        session = null;
+      }
+    }
+    return format === "jpeg"
+      ? page.screenshot({ type: "jpeg", quality, animations: "disabled" })
+      : page.screenshot({ type: "png", animations: "disabled" });
+  };
+}
+
 function createSemaphore(limit) {
   let active = 0;
   const queue = [];
@@ -424,6 +488,21 @@ async function main() {
   const isDraft = opts.quality === "draft";
   const renderWidth = isDraft ? 1280 : 1920;
   const renderHeight = isDraft ? 720 : 1080;
+  const captureFormat = opts.capture === "auto" ? (isDraft ? "jpeg" : "png") : opts.capture;
+  const captureQuality = Math.min(100, Math.max(1, Math.round(opts.captureQuality)));
+  const captureLabel =
+    captureFormat === "jpeg" ? `JPEG q${captureQuality} capture` : "PNG lossless capture";
+  const stageMs = { setFrame: 0, capture: 0, pipe: 0 };
+  const captureStart = Date.now();
+  const grabberByPage = new WeakMap();
+  const grabberFor = (page) => {
+    let grab = grabberByPage.get(page);
+    if (!grab) {
+      grab = makeFrameGrabber(page, captureFormat, captureQuality);
+      grabberByPage.set(page, grab);
+    }
+    return grab;
+  };
 
   const emitProgress = (payload) => {
     if (opts.progressJson) {
@@ -718,9 +797,11 @@ async function main() {
       const accelBadge = formatAccelBadge(plan);
 
       const encodeSegmentStreaming = async (seg, page) => {
+        const grab = grabberFor(page);
         const segArgs = buildSegmentEncodeArgs({
           plan,
           quality: opts.quality,
+          capture: captureFormat,
           fps: FPS,
           frameCount: seg.count,
           outPath: seg.outPath,
@@ -748,14 +829,18 @@ async function main() {
         try {
           for (let f = seg.from; f <= seg.to; f += 1) {
             if (cancelled) throw new Error("Export cancelled");
+            let stageStart = performance.now();
             await page.evaluate((frameIndex) => window.__render.setFrame(frameIndex), f);
-            const imgBuf = isDraft
-              ? await page.screenshot({ type: "jpeg", quality: 92, animations: "disabled" })
-              : await page.screenshot({ type: "png", animations: "disabled" });
+            stageMs.setFrame += performance.now() - stageStart;
+            stageStart = performance.now();
+            const imgBuf = await grab();
+            stageMs.capture += performance.now() - stageStart;
+            stageStart = performance.now();
             const canContinue = encoder.stdin.write(imgBuf);
             if (!canContinue) {
               await once(encoder.stdin, "drain");
             }
+            stageMs.pipe += performance.now() - stageStart;
             completedFramesTotal += 1;
             const pct = Math.min(82, 5 + (completedFramesTotal / expectedFrames) * 77);
             emitProgress({
@@ -781,22 +866,27 @@ async function main() {
       };
 
       const encodeSegmentStaged = async (seg, page) => {
-        const ext = isDraft ? "jpg" : "png";
+        const grab = grabberFor(page);
+        const ext = captureFormat === "jpeg" ? "jpg" : "png";
         const segFramesDir = path.join(tmpDir, `frames-${String(seg.index).padStart(3, "0")}`);
         await fsp.mkdir(segFramesDir, { recursive: true });
         try {
           let localIdx = 0;
           for (let f = seg.from; f <= seg.to; f += 1) {
             if (cancelled) throw new Error("Export cancelled");
+            let stageStart = performance.now();
             await page.evaluate((frameIndex) => window.__render.setFrame(frameIndex), f);
-            const imgBuf = isDraft
-              ? await page.screenshot({ type: "jpeg", quality: 92, animations: "disabled" })
-              : await page.screenshot({ type: "png", animations: "disabled" });
+            stageMs.setFrame += performance.now() - stageStart;
+            stageStart = performance.now();
+            const imgBuf = await grab();
+            stageMs.capture += performance.now() - stageStart;
+            stageStart = performance.now();
             const frameFile = path.join(
               segFramesDir,
               `frame-${String(localIdx).padStart(6, "0")}.${ext}`,
             );
             await fsp.writeFile(frameFile, imgBuf);
+            stageMs.pipe += performance.now() - stageStart;
             localIdx += 1;
             completedFramesTotal += 1;
             const pct = Math.min(80, 5 + (completedFramesTotal / expectedFrames) * 75);
@@ -815,6 +905,7 @@ async function main() {
             const segArgs = buildSegmentEncodeArgs({
               plan,
               quality: opts.quality,
+              capture: captureFormat,
               fps: FPS,
               frameCount: seg.count,
               outPath: seg.outPath,
@@ -1045,8 +1136,24 @@ async function main() {
     if (!opts.progressJson) {
       process.stderr.write("\r\x1b[K");
       console.log(
-        `Exported ${expectedFrames} exact frame${expectedFrames === 1 ? "" : "s"} (${fromFrame}..${toFrame} @ ${FPS} fps, ${renderWidth}x${renderHeight}, ${workerCount}w, ${browserGpuActive ? "GPU WebGL" : "CPU WebGL"}, ${activeEncoderPlan.id}) -> ${finalMp4Path}${opts.srt ? ` (+ ${finalSrtPath})` : ""}`,
+        `Exported ${expectedFrames} exact frame${expectedFrames === 1 ? "" : "s"} (${fromFrame}..${toFrame} @ ${FPS} fps, ${renderWidth}x${renderHeight}, ${workerCount}w, ${browserGpuActive ? "GPU WebGL" : "CPU WebGL"}, ${activeEncoderPlan.id}, ${captureLabel}) -> ${finalMp4Path}${opts.srt ? ` (+ ${finalSrtPath})` : ""}`,
       );
+      const wallSec = (Date.now() - captureStart) / 1000;
+      const per = Math.max(1, expectedFrames);
+      const ms = (v) => (v / per).toFixed(1);
+      console.log(
+        `Picture pass: ${wallSec.toFixed(1)}s wall (${(expectedFrames / Math.max(0.001, wallSec)).toFixed(2)} fps) — per frame: setFrame ${ms(stageMs.setFrame)}ms, capture ${ms(stageMs.capture)}ms, pipe/write ${ms(stageMs.pipe)}ms`,
+      );
+      const suggested = suggestExportWorkers();
+      if (workerCount === 1 && suggested > 1) {
+        console.log(
+          `Tip: this machine has ${os.cpus().length} CPUs and is using one render worker. --workers ${suggested} usually cuts wall time by 2-4x; each worker adds one Chromium (about 300-600 MB RAM).`,
+        );
+      } else if (workerCount > 1 && stageMs.capture < stageMs.setFrame) {
+        console.log(
+          "Tip: frame setup is now the slowest stage, so more workers (rather than a different capture format) is the next lever.",
+        );
+      }
     } else {
       process.stdout.write(
         `${JSON.stringify({

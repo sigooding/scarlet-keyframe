@@ -261,6 +261,8 @@ function mp4ExportDevPlugin(): Plugin {
             const srt = body.srt !== false;
             const marks = Boolean(body.marks);
             const quality = body.quality === "draft" ? "draft" : "master";
+            const capture =
+              body.capture === "jpeg" || body.capture === "png" ? body.capture : "auto";
             const workers = Math.max(1, Math.min(6, Math.round(Number(body.workers) || 1)));
             const gpu = body.gpu !== false;
             const encoder =
@@ -322,6 +324,7 @@ function mp4ExportDevPlugin(): Plugin {
               baseName,
               "--quality",
               quality,
+              ...(capture === "auto" ? [] : ["--capture", capture]),
               "--workers",
               String(workers),
               gpu ? "--gpu" : "--no-gpu",

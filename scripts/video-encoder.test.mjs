@@ -10,6 +10,7 @@ import {
   parseAvailableEncoders,
   resolveFfmpegBinary,
   selectVideoEncoder,
+  suggestExportWorkers,
 } from "./video-encoder.mjs";
 
 const SAMPLE_ENCODERS_OUT = `
@@ -313,5 +314,67 @@ describe("MP4 export GPU video encoder selection & up to 6 workers", () => {
         "/tmp/seg-001.mp4",
       ]),
     );
+  });
+});
+
+describe("frame capture format", () => {
+  const plan = makeSoftwareEncoderPlan("master", 1);
+
+  it("defaults the decoder to the quality's capture pairing", () => {
+    const master = buildSegmentEncodeArgs({ plan, quality: "master", frameCount: 24, outPath: "/tmp/a.mp4" });
+    expect(master.join(" ")).toContain("-f image2pipe -vcodec png");
+    const draft = buildSegmentEncodeArgs({ plan, quality: "draft", frameCount: 24, outPath: "/tmp/a.mp4" });
+    expect(draft.join(" ")).toContain("-f image2pipe -vcodec mjpeg");
+  });
+
+  it("decodes JPEG frames captured for a master export", () => {
+    const args = buildSegmentEncodeArgs({
+      plan,
+      quality: "master",
+      capture: "jpeg",
+      frameCount: 24,
+      outPath: "/tmp/a.mp4",
+    });
+    expect(args.join(" ")).toContain("-f image2pipe -vcodec mjpeg");
+    expect(args.join(" ")).not.toContain("-vcodec png");
+  });
+
+  it("keeps PNG decoding when a master export explicitly captures PNG", () => {
+    const args = buildSegmentEncodeArgs({
+      plan,
+      quality: "master",
+      capture: "png",
+      frameCount: 24,
+      outPath: "/tmp/a.mp4",
+    });
+    expect(args.join(" ")).toContain("-vcodec png");
+  });
+});
+
+describe("capture CLI options and worker sizing", () => {
+  it("parses --capture and --capture-quality, defaulting to auto q97", () => {
+    expect(parseCliArgs([]).capture).toBe("auto");
+    expect(parseCliArgs([]).captureQuality).toBe(97);
+    expect(parseCliArgs(["--capture", "jpeg"]).capture).toBe("jpeg");
+    expect(parseCliArgs(["--capture=jpg"]).capture).toBe("jpeg");
+    expect(parseCliArgs(["--capture", "png"]).capture).toBe("png");
+    expect(parseCliArgs(["--capture-quality", "94"]).captureQuality).toBe(94);
+    expect(parseCliArgs(["--capture-quality=100"]).captureQuality).toBe(100);
+    expect(() => parseCliArgs(["--capture", "webp"])).toThrow(/Invalid --capture/);
+    expect(() => parseCliArgs(["--capture-quality", "0"])).toThrow(/Invalid --capture-quality/);
+    expect(() => parseCliArgs(["--capture-quality", "101"])).toThrow(/Invalid --capture-quality/);
+  });
+
+  it("suggests parallel workers from the CPU count without exceeding the cap", () => {
+    expect(suggestExportWorkers(1)).toBe(1);
+    expect(suggestExportWorkers(2)).toBe(1);
+    expect(suggestExportWorkers(3)).toBe(1);
+    expect(suggestExportWorkers(6)).toBe(3);
+    expect(suggestExportWorkers(8)).toBe(4);
+    expect(suggestExportWorkers(16)).toBe(6);
+    expect(suggestExportWorkers(64)).toBe(MAX_EXPORT_WORKERS);
+    expect(suggestExportWorkers(undefined)).toBeGreaterThanOrEqual(1);
+    expect(suggestExportWorkers(Number.NaN)).toBeGreaterThanOrEqual(1);
+    expect(suggestExportWorkers(8)).toBeLessThanOrEqual(MAX_EXPORT_WORKERS);
   });
 });

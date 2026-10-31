@@ -2,17 +2,13 @@ import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-export const MAX_EXPORT_WORKERS = 6;
+import { MAX_EXPORT_WORKERS, clampExportWorkers } from "./export-workers.mjs";
+
+export { MAX_EXPORT_WORKERS, clampExportWorkers, suggestExportWorkers } from "./export-workers.mjs";
 
 const PROBE_WIDTH = 320;
 const PROBE_HEIGHT = 180;
 const PROBE_FRAME_RGB = Buffer.alloc(PROBE_WIDTH * PROBE_HEIGHT * 3);
-
-export function clampExportWorkers(raw) {
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 1) return 1;
-  return Math.max(1, Math.min(MAX_EXPORT_WORKERS, Math.round(n)));
-}
 
 export function normalizeRequestedEncoder(raw) {
   if (raw === undefined || raw === null || String(raw).trim() === "") return "auto";
@@ -423,18 +419,27 @@ export async function selectVideoEncoder({
   return makeSoftwareEncoderPlan(quality, clampedWorkers);
 }
 
+/** The ffmpeg decoder that matches a captured frame format. */
+export function inputCodecForCapture(capture) {
+  return capture === "jpeg" ? "mjpeg" : "png";
+}
+
 export function buildSegmentEncodeArgs({
   plan,
   quality = "master",
+  capture = "",
   fps = 24,
   frameCount,
   outPath,
   sequencePattern = "",
 }) {
   const isDraft = quality === "draft";
+  // `capture` is the format the frames were actually captured in; it must match
+  // the decoder or ffmpeg reads garbage. Defaults to the quality's old pairing.
+  const codec = inputCodecForCapture(capture || (isDraft ? "jpeg" : "png"));
   const inputSection = sequencePattern
     ? ["-framerate", String(fps), "-i", sequencePattern]
-    : ["-f", "image2pipe", "-vcodec", isDraft ? "mjpeg" : "png", "-framerate", String(fps), "-i", "-"];
+    : ["-f", "image2pipe", "-vcodec", codec, "-framerate", String(fps), "-i", "-"];
 
   return [
     "-y",

@@ -117,4 +117,61 @@ describe("ExportModal GPU acceleration & up to 6 workers", () => {
     expect(html).toContain("--workers 5");
     expect(html).toContain("--no-gpu");
   });
+
+  it("offers a fast JPEG capture mode and previews it in the CLI command", () => {
+    const render = (capture: "auto" | "jpeg") =>
+      renderToStaticMarkup(
+        <ExportModal
+          project={project}
+          frames={frames}
+          totalFrames={240}
+          tab="mp4"
+          setTab={noop}
+          progress={0}
+          message=""
+          patchReport={null}
+          mp4Message=""
+          rangeStart={0}
+          rangeEnd={null}
+          setRangeStart={noop}
+          setRangeEnd={noop}
+          wholeFilm={true}
+          setWholeFilm={noop}
+          fromFrame={0}
+          toFrame={239}
+          setFromFrame={noop}
+          setToFrame={noop}
+          captions={true}
+          srt={true}
+          marks={false}
+          quality="master"
+          capture={capture}
+          workers={4}
+          setCaptions={noop}
+          setSrt={noop}
+          setMarks={noop}
+          setQuality={noop}
+          setCapture={noop}
+          setWorkers={noop}
+          setGpu={noop}
+          onBundle={noop}
+          onPatch={noop}
+          onSrt={noop}
+          onMp4={noop}
+          onClose={noop}
+          onRestoreSnapshot={noop}
+        />,
+      );
+
+    const auto = render("auto");
+    expect(auto).toContain('data-testid="export-capture-auto"');
+    expect(auto).toContain('data-testid="export-capture-jpeg"');
+    expect(auto).toContain("Capture: Auto");
+    expect(auto).toContain("Capture: JPEG fast");
+    expect(auto).not.toContain("--capture jpeg");
+
+    const fast = render("jpeg");
+    expect(fast).toContain("--capture jpeg --capture-quality 97");
+    expect(fast).toContain("--workers 4");
+  });
 });
