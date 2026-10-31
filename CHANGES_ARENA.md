@@ -14,11 +14,17 @@ the same room in every scene that uses it.
   `ray-flat`, `ray-stoop`, `bug-room`, `morgue`, `jack-office`, `coffee-shop`, `back-office`, `property-office`,
   `church-kitchen`, `church-basement`, `church-yard`, `auction-office`, `navy-gate`, `pool-hall`, `pike-car`,
   `diner`, `vera-car`, `payphone`, `warehouse`, `clinic`.
-- **Ten prop sheets are in** (`public/sweet-jesus/props/`, 16:9, shot alone on a neutral seamless ground):
+- **All twenty prop sheets are in** (`public/sweet-jesus/props/`, 16:9, shot alone on a neutral seamless ground):
   `ledger`, `stamp`, `glassine-note`, `tape-loop`, `transfer-slip`, `laundry-receipt`, `cash-envelope`,
-  `coin-box`, `pinball-machine`, `hearse`. Still to come: `revolver`, `pike-photo`, `pike-badge`, `nicky-cart`
-  and `seed-twist`, then the scene stills, each generated against the room sheet for its location plus the
-  voted cast portrait for anyone in frame and the prop sheet for anything handled.
+  `coin-box`, `pinball-machine`, `hearse`, `revolver`, `pike-photo`, `pike-badge`, `nicky-cart`, `seed-twist`,
+  `wheelchair`, `hand-truck`, `two-recorders`, `evidence-bag`, `ledger-copies`.
+- `npm run build:still-plan` writes `reviews/sweet-jesus-sheets-20261031/scene-stills-plan.json`: the shooting
+  order for **89 stills across the 29 scenes after the opening** (2 a scene up to eight beats, 3 above, 12 for
+  the 76-beat warehouse climax). Each entry lists the room sheet, the prop sheets, the cast portraits in frame and
+  every beat it must cover, so a still is prompted from its own room, people and objects.
+- Voices that are heard but never seen — Peanut on tape, the man on the step, the O.S. neighbours — are listed as
+  `heardNotSeen` and kept out of `cast`, so no still puts a dead boy in frame. `src/core/still-plan.test.ts`
+  enforces that, and that the plan's beat list still matches the compiled storyboard.
 - `src/data/sweet-jesus-props.json` records where each item comes from, what it must look like and the scenes
   it travels through; `src/core/sweetJesusProps.ts` exposes `PROPS_BY_SCENE`, so a still for any scene can be
   prompted with the room, the people and the objects in it.
