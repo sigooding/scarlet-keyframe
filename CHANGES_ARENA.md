@@ -9,12 +9,15 @@ the same room in every scene that uses it.
 
 - **Rule adopted this session:** create the reference sheets for the rooms, and for any locations and items used,
   before generating the scene stills that take place in them.
-- Ten location plates are in so far (`public/sweet-jesus/locations/`, 16:9, ~1376×768 originals):
+- **All twenty location plates are in** (`public/sweet-jesus/locations/`, 16:9, ~1376×768 originals), covering
+  every place in the screenplay except the launderette, which already has its own voted references:
   `ray-flat`, `ray-stoop`, `bug-room`, `morgue`, `jack-office`, `coffee-shop`, `back-office`, `property-office`,
-  `church-kitchen`, `church-basement`. Still to come: `church-yard`, `auction-office`, `navy-gate`, `pool-hall`,
-  `pike-car`, `diner`, `vera-car`, `payphone`, `warehouse`, `clinic`, plus the prop sheets (ledger, stamp,
-  glassine bag and note, tape loop, transfer slip, laundry receipt, cash envelope, coin box, pinball machine,
-  hearse, revolver, Pike's photograph, badge, Nicky's cart, seed twist).
+  `church-kitchen`, `church-basement`, `church-yard`, `auction-office`, `navy-gate`, `pool-hall`, `pike-car`,
+  `diner`, `vera-car`, `payphone`, `warehouse`, `clinic`.
+- Still to come: the prop sheets — `ledger`, `stamp`, `glassine-note`, `tape-loop`, `transfer-slip`,
+  `laundry-receipt`, `cash-envelope`, `coin-box`, `pinball-machine`, `hearse`, `revolver`, `pike-photo`,
+  `pike-badge`, `nicky-cart`, `seed-twist` — and then the scene stills, generated against the room sheet for
+  their location plus the voted cast portrait for anyone in frame.
 - `src/data/sweet-jesus-locations.json` holds each sheet's kicker, alt text, design/staging direction and a
   continuity lock naming the props that live there; `src/core/sweetJesusLocations.ts` bundles the previews and
   maps every sheet to the scenes that use it (`LOCATION_BY_SCENE`).
