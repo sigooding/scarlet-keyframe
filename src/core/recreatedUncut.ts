@@ -44,6 +44,14 @@ import wasThatYou from "../assets/recreated-uncut/1351-was-that-you.jpg?url&inli
 import emptyChair from "../assets/recreated-uncut/1573-empty-chair.jpg?url&inline";
 import twentyYears from "../assets/recreated-uncut/031-after-twenty-years.jpg?url&inline";
 import veraStill from "../assets/recreated-uncut/1637-vera-still.jpg?url&inline";
+import hiddenDepth from "../assets/recreated-uncut/depth/017-hidden-depth.jpg?url&inline";
+import headlightsDepth from "../assets/recreated-uncut/depth/027-headlights-depth.jpg?url&inline";
+import sedanDepartsDepth from "../assets/recreated-uncut/depth/038-sedan-departs-depth.jpg?url&inline";
+import seaWallDepth from "../assets/recreated-uncut/depth/716-sea-wall-road-depth.jpg?url&inline";
+import sedanWatchDepth from "../assets/recreated-uncut/depth/1054-the-sedan-depth.jpg?url&inline";
+import wineRedDressDepth from "../assets/recreated-uncut/depth/1073-wine-red-dress-depth.jpg?url&inline";
+import wasThatYouDepth from "../assets/recreated-uncut/depth/1351-was-that-you-depth.jpg?url&inline";
+import storeroomDepth from "../assets/recreated-uncut/depth/1464-vera-storeroom-depth.jpg?url&inline";
 import sedanDoorDepth from "../assets/recreated-uncut/depth/1562-sedan-door-depth.jpg?url&inline";
 import vereLetterDepth from "../assets/recreated-uncut/depth/1316-vera-reads-letter-depth.jpg?url&inline";
 import kanekoCounterDepth from "../assets/recreated-uncut/depth/465-kaneko-counter-depth.jpg?url&inline";
@@ -103,7 +111,7 @@ const plates = [
 ] as const;
 const COVERAGE_VERSION = 16;
 /** Depth maps are added separately so earlier saved Uncut projects pick them up. */
-const DEPTH_VERSION = 17;
+const DEPTH_VERSION = 18;
 const UPGRADE_VERSION = Math.max(COVERAGE_VERSION, DEPTH_VERSION);
 
 /**
@@ -129,6 +137,30 @@ export const RECREATED_DEPTH_MAP_BY_BEAT: Readonly<Record<string, {
     data: sedanDoorDepth,
     depthAmount: 0.28,
   },
+  nw_b17: {
+    plateAssetId: "recreated-uncut-017",
+    depthAssetId: "depth-uncut-017",
+    depthAssetName: "Mara hidden (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/017-hidden-depth.jpg",
+    data: hiddenDepth,
+    depthAmount: 0.3,
+  },
+  nw_b27: {
+    plateAssetId: "recreated-uncut-027",
+    depthAssetId: "depth-uncut-027",
+    depthAssetName: "Headlights (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/027-headlights-depth.jpg",
+    data: headlightsDepth,
+    depthAmount: 0.32,
+  },
+  nw_b38: {
+    plateAssetId: "gap-uncut-038",
+    depthAssetId: "depth-uncut-038",
+    depthAssetName: "Sedan departs (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/038-sedan-departs-depth.jpg",
+    data: sedanDepartsDepth,
+    depthAmount: 0.3,
+  },
   nw_b465: {
     plateAssetId: "duplicate-uncut-465",
     depthAssetId: "depth-uncut-465",
@@ -136,6 +168,46 @@ export const RECREATED_DEPTH_MAP_BY_BEAT: Readonly<Record<string, {
     sourcePath: "/film/depth/recreated-uncut/465-kaneko-counter-depth.jpg",
     data: kanekoCounterDepth,
     depthAmount: 0.26,
+  },
+  nw_b716: {
+    plateAssetId: "recreated-uncut-716",
+    depthAssetId: "depth-uncut-716",
+    depthAssetName: "Sea wall road (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/716-sea-wall-road-depth.jpg",
+    data: seaWallDepth,
+    depthAmount: 0.34,
+  },
+  nw_b1054: {
+    plateAssetId: "recreated-uncut-1054",
+    depthAssetId: "depth-uncut-1054",
+    depthAssetName: "The sedan (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/1054-the-sedan-depth.jpg",
+    data: sedanWatchDepth,
+    depthAmount: 0.34,
+  },
+  nw_b1073: {
+    plateAssetId: "gap-uncut-1073",
+    depthAssetId: "depth-uncut-1073",
+    depthAssetName: "Wine red dress (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/1073-wine-red-dress-depth.jpg",
+    data: wineRedDressDepth,
+    depthAmount: 0.28,
+  },
+  nw_b1351: {
+    plateAssetId: "recreated-uncut-1351",
+    depthAssetId: "depth-uncut-1351",
+    depthAssetName: "Was that you (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/1351-was-that-you-depth.jpg",
+    data: wasThatYouDepth,
+    depthAmount: 0.26,
+  },
+  nw_b1464: {
+    plateAssetId: "duplicate-uncut-1464",
+    depthAssetId: "depth-uncut-1464",
+    depthAssetName: "Vera in the storeroom (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/1464-vera-storeroom-depth.jpg",
+    data: storeroomDepth,
+    depthAmount: 0.28,
   },
   nw_b1316: {
     plateAssetId: "duplicate-uncut-1316",

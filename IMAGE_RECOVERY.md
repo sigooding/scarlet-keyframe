@@ -29,17 +29,29 @@ Quality-rejected options (do not install, retry with improved prompts): nw_b1157
 
 ## Voted depth maps for recreated stills (2026-10-31)
 
-The user asked for real depth-map images, generated with the vote option. Three recreated Original Uncut stills that had a picture but no 2.5D camera now have one, in three different scenes and lighting setups. Each was voted between two candidates, all three accepted, and generated from its own plate alone (no neighbouring frames), then trimmed, converted to true 8-bit greyscale, resized to 960x540 and saved as JPEG quality 88 like the film's other depth maps. Nothing was blurred or inverted.
+The user asked for real depth-map images, generated with the vote option, then to carry on with more. **Eleven** recreated Original Uncut stills that had a picture but no 2.5D camera now have one, across eleven scenes and lighting setups. Each was voted between two candidates and generated from its own plate alone (no neighbouring frames), then converted to true 8-bit greyscale, resized to 960x540 and saved as JPEG quality 88 like the film's other depth maps. Nothing was inverted or relit.
 
 | Beat | Scene | Plate | Depth map | Vote | Amount |
 |---|---|---|---|---|---|
-| `nw_b1562` | `nw_s94` | `/film/img/s94/139-only-tea.jpg` | `/film/depth/recreated-uncut/1562-sedan-door-depth.jpg` | option 2 | 0.28 |
-| `nw_b465` | `nw_s17` | `/film/img/s17/434-i-was-already-old.jpg` | `/film/depth/recreated-uncut/465-kaneko-counter-depth.jpg` | option 1 | 0.26 |
-| `nw_b1316` | `nw_s79` | `/film/img/s79/91-grey-light.jpg` | `/film/depth/recreated-uncut/1316-vera-reads-letter-depth.jpg` | option 1 | 0.26 |
+| `nw_b1562` | `nw_s94` | `/film/img/s94/139-only-tea.jpg` | `1562-sedan-door-depth.jpg` | 2 | 0.28 |
+| `nw_b465` | `nw_s17` | `/film/img/s17/434-i-was-already-old.jpg` | `465-kaneko-counter-depth.jpg` | 1 | 0.26 |
+| `nw_b1316` | `nw_s79` | `/film/img/s79/91-grey-light.jpg` | `1316-vera-reads-letter-depth.jpg` | 1 | 0.26 |
+| `nw_b17` | `nw_s1` | `/film/img/s1/06-barbershop-doorway.jpg` | `017-hidden-depth.jpg` | 2 | 0.30 |
+| `nw_b27` | `nw_s1` | `/film/img/s1/332-the-sedan-blocks-the-lane.jpg` | `027-headlights-depth.jpg` | 1 | 0.32 |
+| `nw_b38` | `nw_s1` | `/film/img/s1/13-taillights-gone.jpg` | `038-sedan-departs-depth.jpg` | 1 | 0.30 |
+| `nw_b716` | `nw_s28` | `/film/img/s28/203-the-sea-wall-steps.jpg` | `716-sea-wall-road-depth.jpg` | 1 | 0.34 |
+| `nw_b1054` | `nw_s63a` | `/film/img/s63a/295-they-give-up.jpg` | `1054-the-sedan-depth.jpg` | 2 | 0.34 |
+| `nw_b1073` | `nw_s65` | `/film/img/s65/488-wine-red-silk.jpg` | `1073-wine-red-dress-depth.jpg` | 1 | 0.28 |
+| `nw_b1351` | `nw_s80` | `/film/img/s80/96-hands-close.jpg` | `1351-was-that-you-depth.jpg` | 1 | 0.26 |
+| `nw_b1464` | `nw_s84` | `/film/img/s84/117-both-wrong.jpg` | `1464-vera-storeroom-depth.jpg` | 1 | 0.28 |
 
-`RECREATED_DEPTH_MAP_BY_BEAT` (`src/core/recreatedUncut.ts`) maps each beat to its bundled depth asset and plate, and upgrade version 17 applies them to an already-saved active or stashed Original Uncut only where the recreated plate is still showing and the shot has no depth rig of its own. Each shot gets `mode: "static"`, `depthMotion: "push"` and eight seconds; a `dolly` preset is re-based to `static` because a dolly cannot be combined with a depth camera, while its focal point, grade and timing are untouched. Pictures, dialogue, captions, audio, total duration and every other cut are unchanged. The full-size voted PNGs, prompts, digests and a numbered [review gallery](reviews/depth-maps-20261031/index.html) are in `reviews/depth-maps-20261031/`; `python3 reviews/depth-maps-20261031/build-manifest.py` rebuilds its manifest.
+All maps are under `/film/depth/recreated-uncut/`. `nw_b1351`'s accepted vote copied the room's fluorescent ceiling tubes into the map; the top of that map was flattened with a graded mask (the ceiling is the farthest surface, so bright bars there would parallax as a near plane) and the raw vote is kept in `reviews/depth-maps-20261031/rejected/`.
 
-Still without a depth camera among recreated plates: `nw_b038`, `nw_b716`, `nw_b1073`, `nw_b1358` and the rest. Prompt each from its own plate, vote, then add it to the registry and bump `DEPTH_VERSION`.
+**Skipped:** `nw_b1349` (both candidates rejected) and `nw_b1358` (three rejections; every candidate copied the fluorescent ceiling tubes into the map as a bright band, including after a rewritten prompt that said the ceiling must be near-black). Both keep their existing camera; prompts are stored for a retry.
+
+`RECREATED_DEPTH_MAP_BY_BEAT` (`src/core/recreatedUncut.ts`) maps each beat to its bundled depth asset and plate, and upgrade version 18 applies them to an already-saved active or stashed Original Uncut only where the recreated plate is still showing and the shot has no depth rig of its own. Each shot gets `mode: "static"`, `depthMotion: "push"` and eight seconds; a `dolly` preset is re-based to `static` because a dolly cannot be combined with a depth camera, while its focal point, grade and timing are untouched. Pictures, dialogue, captions, audio, total duration and every other cut are unchanged. The full-size voted PNGs, prompts, digests and a numbered [review gallery](reviews/depth-maps-20261031/index.html) are in `reviews/depth-maps-20261031/`; `python3 reviews/depth-maps-20261031/build-manifest.py` rebuilds its manifest.
+
+Still without a depth camera among recreated plates: `nw_b028`, `nw_b148`, `nw_b773`, `nw_b1020`, `nw_b1302`, `nw_b1573`, `nw_b1671`, `nw_b1686` and the rest. Prefer plates without bright practicals in frame; prompt each from its own plate, vote, then add it to the registry and bump `DEPTH_VERSION`.
 
 ## Ten-shot voting fallback
 
