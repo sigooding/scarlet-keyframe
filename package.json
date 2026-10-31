@@ -13,6 +13,7 @@
     "build:sweet-jesus": "node scripts/build-sweet-jesus.mjs",
     "build:character-sheets": "node scripts/build-character-sheets.mjs",
     "build:launderette-previews": "bash scripts/build-sweet-jesus-previews.sh",
+    "build:location-previews": "bash scripts/build-sweet-jesus-locations.sh",
     "build:launderette-sheets": "node scripts/build-launderette-sheets.mjs",
     "build:opening-storyboard": "node scripts/build-opening-storyboard.mjs"
   },

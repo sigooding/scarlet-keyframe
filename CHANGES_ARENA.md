@@ -1,5 +1,31 @@
 # Changes in this branch
 
+## Sweet Jesus — location and prop reference sheets (in progress)
+
+The remaining Sweet Jesus pictures are being built **sheets first**: every room, exterior and vehicle in the
+screenplay gets a 16:9 production-design plate with no people in it, and every item the story turns on gets its own
+prop sheet. Scene stills are then generated against those sheets plus the voted cast portraits, so a room looks like
+the same room in every scene that uses it.
+
+- **Rule adopted this session:** create the reference sheets for the rooms, and for any locations and items used,
+  before generating the scene stills that take place in them.
+- Ten location plates are in so far (`public/sweet-jesus/locations/`, 16:9, ~1376×768 originals):
+  `ray-flat`, `ray-stoop`, `bug-room`, `morgue`, `jack-office`, `coffee-shop`, `back-office`, `property-office`,
+  `church-kitchen`, `church-basement`. Still to come: `church-yard`, `auction-office`, `navy-gate`, `pool-hall`,
+  `pike-car`, `diner`, `vera-car`, `payphone`, `warehouse`, `clinic`, plus the prop sheets (ledger, stamp,
+  glassine bag and note, tape loop, transfer slip, laundry receipt, cash envelope, coin box, pinball machine,
+  hearse, revolver, Pike's photograph, badge, Nicky's cart, seed twist).
+- `src/data/sweet-jesus-locations.json` holds each sheet's kicker, alt text, design/staging direction and a
+  continuity lock naming the props that live there; `src/core/sweetJesusLocations.ts` bundles the previews and
+  maps every sheet to the scenes that use it (`LOCATION_BY_SCENE`).
+- `npm run build:location-previews` (ImageMagick) rebuilds the 1280×720 letterboxed previews from the preserved
+  originals in `public/`; nothing is cropped or stretched.
+- Prompts, plate labels and a numbered gallery are in `reviews/sweet-jesus-sheets-20261031/`
+  (`python3 build-gallery.py` rebuilds `index.html` from `prompts.json`; the gallery links to the single
+  full-size copy of each plate rather than duplicating it).
+- Four scene stills were drafted before this rule (`public/sweet-jesus/scenes/s02-*`, `s03-01-stoop`); they will be
+  regenerated against the new room sheets.
+
 - A selected caption can be split at the playhead with S or Split CC without splitting its picture or audio clip. The cue text is divided at an estimated word boundary and can be edited afterwards; single-word cues cannot be divided this way. With no caption selected, Split continues to split the picture clip.
 - The marker name editor is positioned above the timeline toolbar controls so its buttons remain accessible.
 - Original imported source images remain unchanged.

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "ray-flat",
+    "title": "The Ray flat",
+    "kicker": "S02 / S07 / S17 / S26 — INTERIOR MASTER",
+    "subtitle": "Bed-Stuy · front room and kitchen table",
+    "alt": "A modest 1970s Brooklyn railroad-flat front room with a formica kitchen table, a sideboard with a framed photograph and a hallway door.",
+    "summary": "Etta's front room is the film's moral centre: a small table she signs papers at, a sideboard with the family photographs, and the hallway the stretcher went down.",
+    "design": "Camera at seated human height, deep focus, window with fire escape camera-right and the bedroom doorway camera-left. Overcast daylight plus one warm practical lamp.",
+    "continuity": "The same table serves the death signature (S02), the envelope Corn paid for (S07), the tape playback (S17) and the copying session (S26). The biscuit tin and the funeral-home bill stay on the sideboard.",
+    "scenes": ["sj_s02", "sj_s07", "sj_s17", "sj_s26"],
+    "original": "ray-flat.png"
+  },
+  {
+    "id": "ray-stoop",
+    "title": "The stoop",
+    "kicker": "S03 — STREET AND DOOR",
+    "subtitle": "Bed-Stuy · brownstone steps, Halloween morning",
+    "alt": "A worn brownstone stoop with an iron railing and a green front door, seen from across a narrow Brooklyn street on an overcast morning.",
+    "summary": "The threshold Etta keeps crossing: Jack waits on it, the coroner's van pulls away from it, and the neighbourhood watches from behind its windows.",
+    "design": "Wide establishing shot from across the street at human height. Keep the street, the kerb and the gutter in frame; the fire escape reads above the door.",
+    "continuity": "A Halloween mask hangs from the fire escape. Jack spits shells into the gutter, then scrapes one off his shoe on the step. The coroner's van pulls away to frame left.",
+    "scenes": ["sj_s03"],
+    "original": "ray-stoop.png"
+  },
+  {
+    "id": "bug-room",
+    "title": "Bug's bedroom",
+    "kicker": "S22 / S30 — INTERIOR MASTER",
+    "subtitle": "The tape is made here, twice",
+    "alt": "A cramped teenage bedroom with a single bed, a chest of drawers covered in cassettes and loose tape, a gooseneck lamp and taped-up magazine clippings.",
+    "summary": "The smallest room in the film and the one that wins it: every copy, splice and loop of Peanut's laugh is made on the floor of this bedroom.",
+    "design": "Cramped, slightly low camera, deep focus. Razor blade, grease pencil, splicing tape and loose reels of tape must read on the chest of drawers.",
+    "continuity": "Two shoebox recorders face each other on the floor joined by a cable. The final loop is fed through a pencil and back into a recorder, never a sampler.",
+    "scenes": ["sj_s22", "sj_s30"],
+    "original": "bug-room.png"
+  },
+  {
+    "id": "morgue",
+    "title": "The morgue counter",
+    "kicker": "S04 — INTERIOR MASTER",
+    "subtitle": "City morgue · personal effects",
+    "alt": "A green-tiled city morgue corridor with a high wooden service counter, a sliding glass partition and harsh overhead fluorescent light.",
+    "summary": "Institutional, fluorescent and cold: the corridor where Peanut's effects are reduced to a list, and where the laundry receipt first surfaces.",
+    "design": "Camera down the corridor at human height. Keep the swinging door, the counter, the chained pen and the rubber-stamped form in frame.",
+    "continuity": "The effects list holds keys, a laundry receipt and one empty glassine bag. Jack stays behind the line Etta gave him, two steps back, for the whole scene.",
+    "scenes": ["sj_s04"],
+    "original": "morgue.png"
+  },
+  {
+    "id": "jack-office",
+    "title": "Jack's office",
+    "kicker": "S05 — INTERIOR MASTER",
+    "subtitle": "One room over a closed travel agency",
+    "alt": "A shabby one-room private investigator's office with a battered desk, a green filing cabinet, a sticking sash window and a faded travel poster outside.",
+    "summary": "A room above a business that failed: the window Peanut repaired still sticks, and Pike lets himself in to leave a reminder on the desk.",
+    "design": "Camera in the doorway at human height, late-morning light through the window. Keep the desk, the filing cabinet and the half-open window in the same frame.",
+    "continuity": "The glassine bag and the note WE KNOW WHAT YOU WERE sit on the desk. Jack wraps them together and locks them in a drawer; Pike closes the window on his way out.",
+    "scenes": ["sj_s05"],
+    "original": "jack-office.png"
+  },
+  {
+    "id": "coffee-shop",
+    "title": "Vetrano's coffee shop",
+    "kicker": "S06 — INTERIOR MASTER",
+    "subtitle": "Espresso, framed handshakes, one envelope",
+    "alt": "A small Italian-American coffee shop with a chrome espresso machine, framed photographs of men shaking hands and small marble-topped tables.",
+    "summary": "Sal's shop is Corn's front room: the framed handshakes on the wall are the biography of every man who has ever been paid to look the other way.",
+    "design": "Camera at human height, wide and deep. Keep the counter camera-left, the framed photographs on the back wall and the booth where Corn sits facing the door.",
+    "continuity": "Corn sits alone with a ledger page turned face down and pushes an envelope across without a greeting. Jack leaves sunflower shells on the clean saucer.",
+    "scenes": ["sj_s06"],
+    "original": "coffee-shop.png"
+  },
+  {
+    "id": "back-office",
+    "title": "The back office",
+    "kicker": "S11 — INTERIOR MASTER",
+    "subtitle": "Where Corn's books are really kept",
+    "alt": "A cramped back office with a scarred desk, a columnar accounts book, a fountain pen, a filing cabinet and a frosted-glass door to the shop.",
+    "summary": "Vera's room. Six years of Corn's accounts were balanced at this desk, and the duplicate transfer slip was taken out of this drawer.",
+    "design": "Camera in the doorway at human height. Keep the desk lamp, the ledger she is writing in and the drawer within the same frame.",
+    "continuity": "Corn closes her pen in the ledger and bends the nib. When he leaves, Vera opens the drawer: a city seal on a duplicate transfer slip, which she keeps.",
+    "scenes": ["sj_s11"],
+    "original": "back-office.png"
+  },
+  {
+    "id": "property-office",
+    "title": "City property office",
+    "kicker": "S09 / S25 — INTERIOR MASTER",
+    "subtitle": "Kellerman's floor · Friday and Saturday",
+    "alt": "A drab municipal office with a heavy desk, a receipt book, an ink pad, grey filing cabinets and a frosted-glass partition onto a clerks' room.",
+    "summary": "Paperwork as a weapon. Lot Thirteen is laundered here with a stamp, a seal and a signature, and undone here the next morning by an evidence bag.",
+    "design": "Camera at human height, deep focus through the frosted partition so Nicky's sorting tables and rolling cart are visible behind Kellerman's desk.",
+    "continuity": "The oversized wood-handled stamp and the ink-stained cuff belong to this desk. Saturday: the same stamp in a clear evidence bag, and a badge set down on the desk.",
+    "scenes": ["sj_s09", "sj_s25"],
+    "original": "property-office.png"
+  },
+  {
+    "id": "church-kitchen",
+    "title": "The church kitchen",
+    "kicker": "S10 / S21 — INTERIOR MASTER",
+    "subtitle": "Sandwiches, a wall telephone, a pencilled note",
+    "alt": "A church basement kitchen with a stainless-steel work table, loaves of bread, a coffee urn, a wall telephone and a cork noticeboard of schedules.",
+    "summary": "The only place in the film that is unambiguously trying to feed people, and the switchboard the anonymous tip comes through.",
+    "design": "Camera at human height, deep focus. Keep the wall telephone with its long cord, the bread knife and the sandwich line in the same frame.",
+    "continuity": "The pencilled note reads LOT 13, WAREHOUSE 3, EIGHT O'CLOCK. Harriett finishes the sandwiches before she does anything else about it.",
+    "scenes": ["sj_s10", "sj_s21"],
+    "original": "church-kitchen.png"
+  },
+  {
+    "id": "church-basement",
+    "title": "The church basement",
+    "kicker": "S28 — INTERIOR MASTER",
+    "subtitle": "Folding chairs, no organ, no verdict promised",
+    "alt": "A plain church basement with rows of folding chairs facing a trestle table, a wooden cross on the wall, a coffee urn and a cassette recorder.",
+    "summary": "The trial the film actually gets: no organ, no verdict, just a mother with paper, a tape and a room full of witnesses who have to hear the names said aloud.",
+    "design": "Camera from the back of the room at human height. Keep the trestle table, the cassette recorder and the back row where Pike sits in civilian clothes.",
+    "continuity": "Etta lays a transfer slip beside Peanut's torn corner; the stamp impressions match. She gives the original ledger to the lawyer and keeps no set for herself alone.",
+    "scenes": ["sj_s28"],
+    "original": "church-basement.png"
+  }
+]
