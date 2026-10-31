@@ -27,6 +27,20 @@ The earlier generated images were lost in a workspace reset. These are **new gen
 
 Quality-rejected options (do not install, retry with improved prompts): nw_b1157, nw_b997, nw_b1322, nw_b16, nw_b19, nw_b727, nw_b745. Other earlier selected images still to recreate: nw_b918, nw_b900, nw_b1678, nw_b1679. The last two must be separate sequential TV frames: Kurose first, Ishida's police portrait second; Kaneko and Jack are present in the shop, Vera arrives afterwards.
 
+## Voted depth maps for recreated stills (2026-10-31)
+
+The user asked for real depth-map images, generated with the vote option. Three recreated Original Uncut stills that had a picture but no 2.5D camera now have one, in three different scenes and lighting setups. Each was voted between two candidates, all three accepted, and generated from its own plate alone (no neighbouring frames), then trimmed, converted to true 8-bit greyscale, resized to 960x540 and saved as JPEG quality 88 like the film's other depth maps. Nothing was blurred or inverted.
+
+| Beat | Scene | Plate | Depth map | Vote | Amount |
+|---|---|---|---|---|---|
+| `nw_b1562` | `nw_s94` | `/film/img/s94/139-only-tea.jpg` | `/film/depth/recreated-uncut/1562-sedan-door-depth.jpg` | option 2 | 0.28 |
+| `nw_b465` | `nw_s17` | `/film/img/s17/434-i-was-already-old.jpg` | `/film/depth/recreated-uncut/465-kaneko-counter-depth.jpg` | option 1 | 0.26 |
+| `nw_b1316` | `nw_s79` | `/film/img/s79/91-grey-light.jpg` | `/film/depth/recreated-uncut/1316-vera-reads-letter-depth.jpg` | option 1 | 0.26 |
+
+`RECREATED_DEPTH_MAP_BY_BEAT` (`src/core/recreatedUncut.ts`) maps each beat to its bundled depth asset and plate, and upgrade version 17 applies them to an already-saved active or stashed Original Uncut only where the recreated plate is still showing and the shot has no depth rig of its own. Each shot gets `mode: "static"`, `depthMotion: "push"` and eight seconds; a `dolly` preset is re-based to `static` because a dolly cannot be combined with a depth camera, while its focal point, grade and timing are untouched. Pictures, dialogue, captions, audio, total duration and every other cut are unchanged. The full-size voted PNGs, prompts, digests and a numbered [review gallery](reviews/depth-maps-20261031/index.html) are in `reviews/depth-maps-20261031/`; `python3 reviews/depth-maps-20261031/build-manifest.py` rebuilds its manifest.
+
+Still without a depth camera among recreated plates: `nw_b038`, `nw_b716`, `nw_b1073`, `nw_b1358` and the rest. Prompt each from its own plate, vote, then add it to the registry and bump `DEPTH_VERSION`.
+
 ## Ten-shot voting fallback
 
 The user initially requested ten candidates without voting. The no-vote provider returned HTTP 403 on both the first batch and a retry, and the user explicitly requested voting as the fallback. Nine images were selected and installed: `nw_b1562` option 2, `nw_b199` option 2, `nw_b1439` option 1, `nw_b1332` option 1, `nw_b465` option 1, `nw_b1464` option 2, `nw_b1007` option 2, `nw_b288` option 2 and `nw_b1302` option 2. **`nw_b87` was skipped** and remains unchanged; retry it later with an improved prompt. The numbered [review gallery](reviews/uncut-no-vote-20261030/index.html), [exact prompts and results](reviews/uncut-no-vote-20261030/README.md), original selected JPEGs and reference paths are saved. The compact bundled images preserve the complete landscape frame.

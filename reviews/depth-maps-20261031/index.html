@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Nobody’s Witness — voted depth maps</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e7e3de;background:#101115;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}a{color:#e8c8b3;text-decoration:none}a:hover{text-decoration:underline}
+header,main,footer{width:min(1120px,calc(100% - 40px));margin:auto}
+header{padding:64px 0 30px}
+.overline{text-transform:uppercase;letter-spacing:.16em;font-weight:700;font-size:.71rem;color:#d08772;margin:0 0 13px}
+h1{font-size:clamp(2.2rem,5vw,3.9rem);line-height:1.02;letter-spacing:-.04em;margin:0 0 18px;max-width:840px}
+header p.lead{color:#b2b0b2;line-height:1.65;max-width:780px;font-size:1.02rem}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
+nav a{background:#202126;border:1px solid #36343a;border-radius:8px;padding:9px 12px;font-size:.8rem;font-weight:600;color:#d8d4cf}
+.card{border:1px solid #353238;border-radius:15px;background:#1a1a1f;overflow:hidden;margin:0 0 24px}
+.card-heading{padding:24px 27px 18px;display:flex;gap:20px;justify-content:space-between;align-items:flex-start}
+.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-weight:700;font-size:.14rem;font-size:.7rem;color:#d08772;margin:0 0 8px}
+.eyebrow span{color:#6c6263}
+h2{font-size:1.3rem;letter-spacing:-.02em;margin:0 0 8px}
+.dialogue{color:#aaa5a3;font-size:.9rem;line-height:1.5;margin:0;max-width:720px}
+.badge{font-size:.72rem;font-weight:700;white-space:nowrap;border-radius:30px;padding:7px 11px;border:1px solid #4d6b57;background:#22302a;color:#b6d9c2}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:0 27px 20px}
+figure{margin:0}
+figure img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#0f1012;border-radius:9px}
+figcaption{font-size:.75rem;color:#a9a2a0;margin-top:7px;line-height:1.45}
+h3{font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:#aaa4a1;margin:0 0 10px}
+details{border-top:1px solid #343139;padding:15px 27px 19px;color:#bdb6b2;font-size:.84rem;line-height:1.65}
+summary{cursor:pointer;color:#e6d2c7;font-weight:600}
+details p{max-width:900px;white-space:pre-line}
+code{overflow-wrap:anywhere;color:#ddd0c9}
+dl.facts{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:16px 0 0;font-size:.8rem;color:#b0aaa6}
+dl.facts dt{color:#8d8784}
+footer{padding:12px 0 70px;color:#8f8c8c;font-size:.8rem;line-height:1.7}
+@media(max-width:680px){header,main,footer{width:min(100% - 24px,1120px)}.card-heading{padding:20px;flex-direction:column}.pair{grid-template-columns:1fr;padding:0 20px 18px}details{padding:15px 20px 18px}}
+</style></head><body>
+<header>
+<p class="overline">Nobody’s Witness · Original Uncut · Depth Maps</p>
+<h1>Three real depth maps, voted and installed.</h1>
+<p class="lead">Recreated Original Uncut stills that had no 2.5D camera now each have a hand-directed greyscale depth map drawn from their own plate. Every map was voted between two candidates; the accepted one is shown left, its plate right. Nothing was blurred or faked: near-white is close to camera, near-black is far, and every silhouette edge is traced from the frame.</p>
+<nav aria-label="Jump to shot"><a href="#shot-1">01</a><a href="#shot-2">02</a><a href="#shot-3">03</a></nav>
+</header>
+<main>
+<article class="card" id="shot-1">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 01 <span>·</span> nw_s94 · 94 — Only tea <span>·</span> nw_b1562</p><h2>Its rear door stands open</h2><p class="dialogue">“Its rear door stands open: warm amber light, leather.”</p></div><span class="badge">Option 2 accepted</span></div>
+  <div class="pair">
+    <figure><img src="images/01-nw_b1562-sedan-door-depth.png" alt="Depth map: open sedan door, night street" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure>
+    <figure><img src="context/01-plate-1562-sedan-door.jpg" alt="Plate: the open sedan door" loading="lazy"><figcaption>Plate it was traced from</figcaption></figure>
+  </div>
+  <dl class="facts"><dt>Installed</dt><dd><code>/film/depth/recreated-uncut/1562-sedan-door-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.28 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-1562</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace exactly what is where: keep the identical framing, crop and 16:9 aspect, and align every silhouette edge precisely to the reference with clean, crisp, unfeathered boundaries. Luminance encodes distance only: no texture, no colour, no lighting, no highlights, no rain streaks, no grain, no vignette, no border, no text, no signature.
+
+Nearest surfaces, near-white (about 0.92-0.98): the wet black car bodywork and its open rear door frame across the right and lower right of frame, the front door pillar and window glass at the far right edge, and the wet curb/asphalt strip in the bottom-left foreground.
+
+Second nearest, light grey (about 0.72-0.85): the open car door's inner trim and window sill, the wheel arch and rear wheel in the lower left, the door step plate and carpeted sill.
+
+Mid-ground, mid grey (about 0.45-0.62): the pale beige leather rear seat cushions and backrest, the centre armrest, and the seated silver-haired older man in a dark suit — his head, shoulders, torso and legs each a smooth slightly-lighter-on-near-face gradient, still one continuous mid-grey mass clearly readable as the seated figure.
+
+Farther, dark grey (about 0.22-0.38): the far side of the interior, the window frames and headliner of the car, the door light on the headliner, and the parked white blinds of the opposite windows.
+
+Background, near-black (about 0.04-0.14): the rain-soaked night street beyond the car — the wet road with reflected light pools as small soft mid-dark patches, the dark building facades and tree line, and the distant out-of-focus bokeh lights as small soft mid-grey dots. Sky at the very top darkest.
+
+Every surface must be a smooth continuous gradient across the object, each object marginally lighter toward its near edge, with hard clean separation where one object occludes another. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-2">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 02 <span>·</span> nw_s17 · 17 — You got old <span>·</span> nw_b465</p><h2>Everything is going. We are just slower.</h2><p class="dialogue">“Everything is going. We are just slower.”</p></div><span class="badge">Option 1 accepted</span></div>
+  <div class="pair">
+    <figure><img src="images/02-nw_b465-kaneko-counter-depth.png" alt="Depth map: noodle counter with Kaneko and Jack" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure>
+    <figure><img src="context/02-plate-465-kaneko-counter.jpg" alt="Plate: Kaneko at the counter" loading="lazy"><figcaption>Plate it was traced from</figcaption></figure>
+  </div>
+  <dl class="facts"><dt>Installed</dt><dd><code>/film/depth/recreated-uncut/465-kaneko-counter-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.26 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-465</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned to the reference, no feathering. Luminance encodes distance only: no wood grain, no texture, no colour, no lamp glow, no steam shading, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the worn wooden counter edge running along the bottom-left to centre foreground, the chopstick holder and small condiment bottles standing on it at the left, and the bottom of the near wooden stool at the lower right.
+
+Light grey, second nearest (about 0.70-0.85): the counter top surface receding toward the right, the near stool seat, the tall chopstick cylinders and bowls further along the counter, and the right-hand wooden wall and coat hooks at frame right.
+
+Mid-ground, mid grey (about 0.45-0.62): the elderly woman in the brown cardigan and dark apron behind the counter at the left — head, shoulders, arms and hands each a smooth gradient, one readable mid-grey mass; the two older customers seated at the far end of the counter as clearly darker mid-grey silhouettes; and the dark-haired greying man in the dark coat standing at the right of the counter, his head, shoulder, arm and hand a single continuous mid-grey figure with a slightly lighter near edge.
+
+Farther, dark grey (about 0.22-0.36): the metal shelving and steam hood behind the counter, the hanging pendant lamp shade and its stem as a mid-dark shape, the dark blue noren curtains in the doorway and the back kitchen doorway.
+
+Background, near-black (about 0.04-0.14): the rear kitchen interior, the far wall with posters and the framed sign, and the recesses behind the shelves. Ceiling and deep corners darkest.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, with clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+<article class="card" id="shot-3">
+  <div class="card-heading"><div><p class="eyebrow">SHOT 03 <span>·</span> nw_s79 · 79 — Grey light <span>·</span> nw_b1316</p><h2>Vera reads the letter</h2><p class="dialogue">“Careful, laborious English handwriting. ‘Miss Voss. Your father did not kill himself. I can prove it.’”</p></div><span class="badge">Option 1 accepted</span></div>
+  <div class="pair">
+    <figure><img src="images/03-nw_b1316-vera-reads-letter-depth.png" alt="Depth map: Vera reading at the low table" loading="lazy"><figcaption>Accepted depth map · 960×540 greyscale in the film</figcaption></figure>
+    <figure><img src="context/03-plate-1316-vera-reads-letter.jpg" alt="Plate: Vera reads the letter" loading="lazy"><figcaption>Plate it was traced from</figcaption></figure>
+  </div>
+  <dl class="facts"><dt>Installed</dt><dd><code>/film/depth/recreated-uncut/1316-vera-reads-letter-depth.jpg</code></dd><dt>Camera</dt><dd>static · push · amount 0.26 · 8 s</dd><dt>Depth asset</dt><dd><code>depth-uncut-1316</code> (bundled inline)</dd></dl>
+  <details><summary>Prompt</summary><p>Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, crisp silhouette edges aligned exactly to the reference, no feathering. Luminance encodes distance only: no texture, no handwriting, no colour, no lighting, no grain, no vignette, no border, no text.
+
+Nearest surfaces, near-white (about 0.92-0.98): the low wooden table top filling the bottom centre and right foreground, the two pale cups standing on it, and the open notebook lying on it slightly farther, plus the very bottom edge of the woman's dark skirt at the lower left.
+
+Light grey, second nearest (about 0.70-0.85): the sheet of paper held in the woman's hands, her hands and forearms, her bare shoulders, and the left-hand wooden sideboard with its drawers and the small framed photo on it.
+
+Mid-ground, mid grey (about 0.45-0.62): the blonde woman's head, face and torso — one continuous readable figure mass with a smooth gradient that is marginally lighter toward her near side — and the tall lamp shade on the left, the dark CRT television on its stand at the right and the armchair back at the extreme lower right.
+
+Farther, dark grey (about 0.22-0.36): the curtains at both window edges and along the base, and the balcony rail and outer window frame.
+
+Background, near-black (about 0.04-0.16): the rain-streaked window glass and the blurred apartment block beyond it, plus the pale sky visible outside as a slightly lighter dark patch. The deepest interior shadows stay darkest.
+
+Every surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.</p></details>
+</article>
+</main>
+<footer>
+Full prompts, SHA-256 digests and reference hashes are in <a href="README.md">README.md</a> and <a href="manifest.json">manifest.json</a>.
+Wired through <code>RECREATED_DEPTH_MAP_BY_BEAT</code> and upgrade version 17 in <code>src/core/recreatedUncut.ts</code>. Pictures, dialogue, captions, audio and timing are unchanged; other cuts are untouched.
+</footer>
+</body></html>
