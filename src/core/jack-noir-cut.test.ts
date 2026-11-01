@@ -105,20 +105,49 @@ describe("Jack's Noir cut", () => {
     expect(Math.min(...clips.filter((c) => !c.keyframe.beat.gap).map((c) => c.durationFrames))).toBeGreaterThan(0);
   });
 
-  it("L-cuts only shorten a spoken beat that is followed by a silent beat in the same scene", () => {
+  const tailsOf = (p: typeof uncut) => {
+    const { clips, totalFrames } = buildTimelineClips(buildKeyframes(p.story), voiceMap);
+    const mid: number[] = [];
+    const last: number[] = [];
+    clips.forEach((c, i) => {
+      if (!c.keyframe.beat.audioUrl || c.voiceFrames <= 0) return;
+      const tail = (c.durationFrames - (c.voiceInFrame + c.voiceFrames)) / 24;
+      const isLast = i + 1 >= clips.length || clips[i + 1].keyframe.sceneId !== c.keyframe.sceneId;
+      (isLast ? last : mid).push(tail);
+    });
+    const median = (a: number[]) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
+    return { mid: median(mid), last: median(last), minutes: totalFrames / 24 / 60 };
+  };
+
+  it("cuts the silence after spoken lines: 0.54 s to 0.25 s, and a scene's last line to about a second", () => {
+    const before = tailsOf(uncut);
+    const after = tailsOf(jack);
+    expect(before.mid).toBeGreaterThan(0.5);
+    expect(after.mid).toBeLessThan(0.3);
+    expect(before.last).toBeGreaterThan(1.5);
+    expect(after.last).toBeLessThan(1.4);
+    expect(before.minutes - after.minutes).toBeGreaterThan(3);
+  });
+
+  it("only lets a voice run past its picture as an L-cut into a silent beat of the same scene", () => {
     const a = buildKeyframes(uncut.story);
     const b = buildKeyframes(jack.story);
-    let changed = 0;
-    b.forEach((f, i) => {
-      if (f.beat.durationFrames && !a[i].beat.durationFrames) {
-        changed += 1;
-        expect(f.beat.audioUrl).toBeTruthy();
-        expect(b[i + 1].sceneId).toBe(f.sceneId);
+    const { clips } = buildTimelineClips(b, voiceMap);
+    let lcuts = 0;
+    clips.forEach((c, i) => {
+      if (!c.keyframe.beat.audioUrl || c.voiceFrames <= 0) return;
+      expect(c.durationFrames).toBeGreaterThanOrEqual(12);
+      const voiceEnd = c.voiceInFrame + c.voiceFrames;
+      if (c.durationFrames < voiceEnd) {
+        lcuts += 1;
+        expect(b[i + 1].sceneId).toBe(b[i].sceneId);
         expect(b[i + 1].beat.audioUrl).toBeFalsy();
-        expect(f.beat.durationFrames).toBeGreaterThanOrEqual(24);
+      } else {
+        expect(c.durationFrames - voiceEnd).toBeGreaterThanOrEqual(5); // the last words are never clipped
       }
+      void a;
     });
-    expect(changed).toBeGreaterThan(5);
+    expect(lcuts).toBeGreaterThan(5);
   });
 
   it("never lets two spoken lines overlap, and echoes only belong to voice-over and footsteps", () => {
