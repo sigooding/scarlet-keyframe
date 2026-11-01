@@ -9,6 +9,7 @@ import type {
   Keyframe,
 } from "../core/model";
 import { clipFrames, FPS, formatTimecode, MIN_CLIP_FRAMES, sceneProseFrames } from "../core/timing";
+import { setCaptionWindow } from "../core/captions";
 import {
   computePictureRunsForFrames,
   type PictureRunInfo,
@@ -1465,6 +1466,13 @@ export function buildTimelineClips(
       voiceOutFrame,
     };
     cursor += duration;
+    // tell the captions where the words are, so derived cues start with the voice (a short hold after the last word)
+    setCaptionWindow(
+      keyframe.beat,
+      audioRef && voiceFrames > 0
+        ? { startFrame: voiceInFrame, endFrame: Math.min(duration, voiceOutFrame + Math.round(FPS / 3)) }
+        : undefined,
+    );
     return clip;
   });
 
