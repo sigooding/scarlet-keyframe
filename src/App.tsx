@@ -20,6 +20,7 @@ import {
   type UploadMediaTarget,
 } from "./components/Inspector";
 import { MediaBin } from "./components/MediaBin";
+import type { SceneFrameLite } from "./core/sceneImages";
 import { MissingMediaModal } from "./components/MissingMediaModal";
 import { SnapshotModal } from "./components/SnapshotModal";
 import { ShortcutsOverlay } from "./components/ShortcutsOverlay";
@@ -2290,6 +2291,19 @@ export default function App() {
     }
     return [...output.values()].sort((a, b) => a.folder.localeCompare(b.folder) || a.name.localeCompare(b.name));
   }, [project, resolveMedia, folderFiles, publicPaths]);
+
+  const binSceneFrames = useMemo<SceneFrameLite[]>(
+    () =>
+      frames.map((frame) => ({
+        id: frame.id,
+        sceneId: frame.sceneId,
+        mark: frame.mark,
+        title: String(frame.scene.title || ""),
+        number: frame.number,
+        picture: frame.picture,
+      })),
+    [frames],
+  );
 
   const audioBrowserItems = useMemo<BrowserAsset[]>(() => {
     if (!project) return [];
@@ -4965,6 +4979,12 @@ export default function App() {
             onClose={() => setMediaBinOpen(false)}
             imageAssets={imageBrowserItems}
             audioAssets={audioBrowserItems}
+            frames={binSceneFrames}
+            selectedSceneId={selectedFrame?.sceneId}
+            onSelectFrame={(frameId) => {
+              const hit = clips.find((clip) => clip.keyframe.id === frameId);
+              if (hit) setSelection([frameId], frameId, hit.startFrame);
+            }}
             onApplyImageToSelection={(ref) => setFramePicture(ref)}
             onInsertAudioAtPlayhead={(ref) =>
               handleAddAudioClipOnLane("sfx", ref, frameToMs(playheadRef.current))
