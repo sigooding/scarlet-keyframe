@@ -6,10 +6,12 @@ import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
 import type { SelectedCaptionState } from "./components/CaptionLane";
 import { CinematicPreview } from "./components/CinematicPreview";
 import { CharacterReferences } from "./components/CharacterReferences";
+import { MiamiViceCast } from "./components/MiamiViceCast";
 import { LaunderetteReferences } from "./components/LaunderetteReferences";
 import { CurveEditor } from "./components/CurveEditor";
 import { CropModal, type CropState } from "./components/CropModal";
-import { ExportModal, type ExportTab, type Mp4ExportQuality } from "./components/ExportModal";
+import { ExportModal, type ExportTab, type Mp4ExportCapture, type Mp4ExportQuality } from "./components/ExportModal";
+import { suggestExportWorkers } from "../scripts/export-workers.mjs";
 import { StereoPeakMeter } from "./components/StereoPeakMeter";
 import {
   Inspector,
@@ -198,6 +200,7 @@ import { renderTimelineAudioOfflineWav, uint8ArrayToBase64 } from "./core/offlin
 import bundledFilm from "./data/nobodys-witness-film.json";
 import bundledEdits from "./data/studio-edits.json";
 import sweetJesusScreenplay from "./data/sweet-jesus.fountain?raw";
+import miamiViceScreenplay from "./data/miami-vice.fountain?raw";
 
 type BrowseTarget = BrowseMediaTarget;
 type BrowserState = { kind: "image" | "audio"; target: BrowseTarget; frameId?: string };
@@ -663,6 +666,7 @@ export default function App() {
   const [missingOpen, setMissingOpen] = useState(false);
   const [charactersOpen, setCharactersOpen] = useState(false);
   const [launderetteOpen, setLaunderetteOpen] = useState(false);
+  const [miamiCastOpen, setMiamiCastOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportTab, setExportTab] = useState<ExportTab>("bundle");
   const [exportProgress, setExportProgress] = useState(0);
@@ -678,7 +682,12 @@ export default function App() {
   const [srtExport, setSrtExport] = useState(true);
   const [marksExport, setMarksExport] = useState(false);
   const [exportQuality, setExportQuality] = useState<Mp4ExportQuality>("master");
-  const [exportWorkers, setExportWorkers] = useState(1);
+  const [exportCapture, setExportCapture] = useState<Mp4ExportCapture>("auto");
+  // Start at the number of parallel render workers this machine can feed; an
+  // export is CPU-bound per worker, so a single worker wastes most of a laptop.
+  const [exportWorkers, setExportWorkers] = useState(() =>
+    suggestExportWorkers(typeof navigator !== "undefined" ? navigator.hardwareConcurrency : 4),
+  );
   const [exportGpu, setExportGpu] = useState(true);
   const [exportNormalize, setExportNormalize] = useState(false);
   const [exportLoudnessTarget, setExportLoudnessTarget] = useState<LoudnessTargetMode>("off");
@@ -4327,6 +4336,7 @@ export default function App() {
           srt: srtExport,
           marks: marksExport,
           quality: exportQuality,
+          capture: exportCapture,
           workers: exportWorkers,
           gpu: exportGpu,
           normalize: exportLoudnessTarget !== "off" || exportNormalize,
@@ -4835,10 +4845,16 @@ export default function App() {
         onDownloadScreenplay={
           project.story.id === "sweet-jesus-film"
             ? () => downloadText(sweetJesusScreenplay, "sweet-jesus-screenplay.fountain")
-            : undefined
+            : project.story.id === "miami-vice-film"
+              ? () => downloadText(miamiViceScreenplay, "miami-vice-screenplay.fountain")
+              : undefined
         }
         onShowCharacterReferences={
-          project.story.id === "sweet-jesus-film" ? () => setCharactersOpen(true) : undefined
+          project.story.id === "sweet-jesus-film"
+            ? () => setCharactersOpen(true)
+            : project.story.id === "miami-vice-film"
+              ? () => setMiamiCastOpen(true)
+              : undefined
         }
         onShowLaunderetteReferences={
           project.story.id === "sweet-jesus-film" ? () => setLaunderetteOpen(true) : undefined
@@ -6029,6 +6045,9 @@ export default function App() {
       {charactersOpen && project.story.id === "sweet-jesus-film" && (
         <CharacterReferences onClose={() => setCharactersOpen(false)} />
       )}
+      {miamiCastOpen && project.story.id === "miami-vice-film" && (
+        <MiamiViceCast onClose={() => setMiamiCastOpen(false)} />
+      )}
       {launderetteOpen && project.story.id === "sweet-jesus-film" && (
         <LaunderetteReferences
           onClose={() => setLaunderetteOpen(false)}
@@ -6078,6 +6097,8 @@ export default function App() {
           srt={srtExport}
           marks={marksExport}
           quality={exportQuality}
+          capture={exportCapture}
+          setCapture={setExportCapture}
           workers={exportWorkers}
           gpu={exportGpu}
           normalizeAudio={exportNormalize}

@@ -1,0 +1,92 @@
+[
+  {
+    "id": "james-crockett",
+    "name": "James 'Sonny' Crockett",
+    "role": "Metro-Dade Vice, OCB",
+    "age": "Mid 30s",
+    "summary": "A vice detective who has spent six weeks living as Jimmy Burnett, a Fort Lauderdale boat dealer with money and no fixed address. The cover has started to fit better than the badge.",
+    "look": "Sandy hair, three days of stubble, pale stone linen jacket over a white T-shirt, no socks, loafers, one gold chain.",
+    "continuity": "From scene 32 onward Crockett is seen through Burnett's wardrobe: linen, loafers, a cigarette case. The badge only exists off-frame. In the warehouse (scene 68) he stops being Burnett; after that he wears his own clothes, and by the marina (scene 86) the passport goes in the water."
+  },
+  {
+    "id": "ricardo-tubbs",
+    "name": "Ricardo Tubbs",
+    "role": "Metro-Dade Vice, OCB",
+    "age": "Mid 30s",
+    "summary": "A former NYPD detective who came south for a revenge that never paid out. He is the one who counts the cost of a case on the people standing next to it.",
+    "look": "Black, close-cropped, charcoal suit with the collar open, thin gold chain, a stillness he uses like a weapon.",
+    "continuity": "Carries Eddie Marin's watch from scene 22 to scene 85, when he gives it to Lupe. At the causeway (scene 73) he has the shot on a man who has a child in the car and does not take it."
+  },
+  {
+    "id": "martin-castillo",
+    "name": "Lt. Martin Castillo",
+    "role": "OCB commanding officer",
+    "age": "40s",
+    "summary": "The lieutenant who says the least and sees the most. He sends people into rooms he cannot watch and then waits up for them.",
+    "look": "Mexican-American, dark hair swept straight back, dark suit, black tie, black shirt, a face that does nothing until it has decided.",
+    "continuity": "Never raises his voice. Stands at windows with the blinds open. In scene 88 he is alone on a roof with the ledgers; that is the only time we see him off the clock."
+  },
+  {
+    "id": "gina-calabrese",
+    "name": "Gina Calabrese",
+    "role": "Metro-Dade Vice, OCB",
+    "age": "20s",
+    "summary": "Undercover officer who goes into the Hands of the Gulf thrift chain as a volunteer and finds out what moves at three in the morning.",
+    "look": "Dark shoulder-length hair, a small scar at the jaw, black leather jacket over a pale silk top, gold hoops.",
+    "continuity": "Wears a volunteer's smock in scenes 15, 16 and 39. In scene 56 she is at the Miramar in a borrowed dress; the dress is torn by scene 60 and she is on a sling and a telephone by scene 87."
+  },
+  {
+    "id": "trudy-joplin",
+    "name": "Trudy Joplin",
+    "role": "Metro-Dade Vice, OCB",
+    "age": "20s",
+    "summary": "The squad's nerve centre: she reads the donations database, the manifests and the wire traffic, and she is usually the first to notice the thing everybody else walked past.",
+    "look": "Close-cropped hair, gold hoops, pale coral suit with the jacket pushed back, reading glasses she hates.",
+    "continuity": "At the boards from scene 3 onward. In scene 43 she finds Eddie Marin's eleven-dollar donation envelope; in scene 87 she types the seventy-one page report."
+  },
+  {
+    "id": "stan-switek",
+    "name": "Stan Switek",
+    "role": "Metro-Dade Vice, surveillance",
+    "age": "40s",
+    "summary": "A surveillance man with a gambling habit and eight months of small betrayals behind him. He is not a bad policeman; he is a man who kept borrowing from tomorrow.",
+    "look": "Heavy, moustache, thinning hair, turquoise and cream printed shirt, sweating through it by noon.",
+    "continuity": "Sweats through every scene from 11 on. Takes half the buy money back in scene 30. Wears a wire in scene 54 when he is already compromised, and loses the badge in scene 79."
+  },
+  {
+    "id": "larry-zito",
+    "name": "Larry Zito",
+    "role": "Metro-Dade Vice, surveillance",
+    "age": "30s",
+    "summary": "Switek's partner and the quiet half of the van. He covers for Switek longer than he should and then does the one thing that saves him.",
+    "look": "Lean, dark hair, grey-brown suit with the tie loosened, a face built for sitting in a parked car.",
+    "continuity": "Bandaged shoulder from scene 55; he is in the warehouse anyway in scene 66. He is the one who finds the bet slips in scene 46 and says nothing until scene 53."
+  },
+  {
+    "id": "izzy-moreno",
+    "name": "Izzy Moreno",
+    "role": "Informant, entrepreneur, liar",
+    "age": "40s",
+    "summary": "A man who knows every warehouse, truck and bank in Miami and will trade any of them for a favour. He is funny on purpose, which is how he survives.",
+    "look": "Loud rayon shirt worn open, heavy gold chain, trimmed moustache, an unlit cigar he is always about to smoke.",
+    "continuity": "Only ever meets Crockett in Little Havana or at his lot, never at OCB. The cigar is never lit. In scene 80 he drives the donation truck into the warehouse."
+  },
+  {
+    "id": "marta-escobar",
+    "name": "Marta Escobar",
+    "role": "Director, Hands of the Gulf relief charity",
+    "age": "40s",
+    "summary": "Runs sixteen thrift stores, a warehouse and a relief pipeline to three countries, and has photographs with governors and a bishop. She built a laundering route that pays for itself in donated bandages.",
+    "look": "Cream linen suit, pearls, careful hair, the warm authority of a woman who has never been refused a table.",
+    "continuity": "Touches people exactly once, in scene 20, and it matters. Arrested at her own desk in scene 81; she asks for a lawyer and mentions the bishop."
+  },
+  {
+    "id": "ray-coburn",
+    "name": "Ray Coburn",
+    "role": "Federal agent, twenty-two months under",
+    "age": "50s",
+    "summary": "A burnt-out federal agent running a witness inside a drug pipeline by letting half the drugs through. He is right about the arithmetic and wrong about everything else.",
+    "look": "Grey stubble, a suit he has slept in, coffee he has reheated, the eyes of a man who stopped going home.",
+    "continuity": "Never stands when visitors come in. Takes the ledger in scene 67, puts a twelve-year-old in his car in scene 71, and signs a deal in scene 82."
+  }
+]

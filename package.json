@@ -13,8 +13,13 @@
     "build:sweet-jesus": "node scripts/build-sweet-jesus.mjs",
     "build:character-sheets": "node scripts/build-character-sheets.mjs",
     "build:launderette-previews": "bash scripts/build-sweet-jesus-previews.sh",
+    "build:location-previews": "bash scripts/build-sweet-jesus-locations.sh",
+    "build:still-plan": "node scripts/build-sweet-jesus-still-plan.mjs",
     "build:launderette-sheets": "node scripts/build-launderette-sheets.mjs",
-    "build:opening-storyboard": "node scripts/build-opening-storyboard.mjs"
+    "build:opening-storyboard": "node scripts/build-opening-storyboard.mjs",
+    "build:miami-vice": "node scripts/build-miami-vice.mjs",
+    "build:miami-vice-previews": "bash scripts/build-miami-vice-previews.sh",
+    "build:miami-vice-locations": "bash scripts/build-miami-vice-locations.sh"
   },
   "dependencies": {
     "clsx": "2.1.1",

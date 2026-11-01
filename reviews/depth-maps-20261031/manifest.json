@@ -1,0 +1,686 @@
+{
+  "date": "2026-10-31",
+  "project": "Original Uncut",
+  "selection": "Eleven recreated Original Uncut stills with no depth camera, across eleven scenes and lighting setups, each voted between two candidates. Two further targets (nw_b1349, nw_b1358) were rejected and left without a depth map.",
+  "request": "The user asked for real depth-map images for Nobody's Witness, generated with the vote option, and then to carry on with depth maps.",
+  "generation": {
+    "voting": {
+      "attempts": 13,
+      "selected": 11,
+      "skipped": 2
+    },
+    "method": "generate_image with offer_options: true, prompting a pure greyscale Z-pass depth map traced from the plate alone",
+    "postProcessing": "trimmed the generator's 1-3 px margin where present, converted to genuine 8-bit greyscale, resized to 960x540, JPEG quality 88 to match the existing /film/depth/ maps; no blur, no inversion, no relighting. nw_b1351 additionally had the copied ceiling tubes flattened (see its postProcessing note)."
+  },
+  "installation": "Original Uncut only, via RECREATED_DEPTH_MAP_BY_BEAT and upgrade version 18. The maps are bundled inline so the single-file build needs no server.",
+  "cutModified": true,
+  "frameRate": 24,
+  "reviewPage": "index.html",
+  "readme": "README.md",
+  "shots": [
+    {
+      "number": 1,
+      "scene": "nw_s94",
+      "sceneTitle": "94 — Only tea",
+      "targetBeat": "nw_b1562",
+      "beatIdInFilm": "nw_b1562",
+      "shot": "Its rear door stands open: warm amber light, leather.",
+      "status": "selected",
+      "voteOption": 2,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s94/139-only-tea.jpg",
+          "bundledAsset": "duplicate-uncut-1562",
+          "generationInputPath": "src/assets/recreated-uncut/1562-sedan-door.jpg",
+          "sha256": "7d03262425f9843d2dc73521eaa092192459859df607a989dc8a8e6ad7d89bd1",
+          "reviewPreview": "context/01-plate-1562-sedan-door.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace exactly what is where: keep the identical framing, crop and 16:9 aspect, and align every silhouette edge precisely to the reference with clean, crisp, unfeathered boundaries. Luminance encodes distance only: no texture, no colour, no lighting, no highlights, no rain streaks, no grain, no vignette, no border, no text, no signature.\n\nNearest surfaces, near-white (about 0.92-0.98): the wet black car bodywork and its open rear door frame across the right and lower right of frame, the front door pillar and window glass at the far right edge, and the wet curb/asphalt strip in the bottom-left foreground.\n\nSecond nearest, light grey (about 0.72-0.85): the open car door's inner trim and window sill, the wheel arch and rear wheel in the lower left, the door step plate and carpeted sill.\n\nMid-ground, mid grey (about 0.45-0.62): the pale beige leather rear seat cushions and backrest, the centre armrest, and the seated silver-haired older man in a dark suit — his head, shoulders, torso and legs each a smooth slightly-lighter-on-near-face gradient, still one continuous mid-grey mass clearly readable as the seated figure.\n\nFarther, dark grey (about 0.22-0.38): the far side of the interior, the window frames and headliner of the car, the door light on the headliner, and the parked white blinds of the opposite windows.\n\nBackground, near-black (about 0.04-0.14): the rain-soaked night street beyond the car — the wet road with reflected light pools as small soft mid-dark patches, the dark building facades and tree line, and the distant out-of-focus bokeh lights as small soft mid-grey dots. Sky at the very top darkest.\n\nEvery surface must be a smooth continuous gradient across the object, each object marginally lighter toward its near edge, with hard clean separation where one object occludes another. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+      "reviewedImage": {
+        "file": "images/01-nw_b1562-sedan-door-depth.png",
+        "sha256": "83663f6b23a4172eadb87a54dcae9dcf03b030256a5665fda6d81773d1007562",
+        "width": 2752,
+        "height": 1536,
+        "colorspace": "sRGB",
+        "type": "TrueColor"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/1562-sedan-door-depth.jpg",
+        "sha256": "40f8dd3cb638790443809bf9a2b4838f4e262929dc889a42948d4583344262e7",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/1562-sedan-door-depth.jpg",
+        "sha256": "40f8dd3cb638790443809bf9a2b4838f4e262929dc889a42948d4583344262e7",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-1562",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.28,
+          "depthSeconds": 8
+        }
+      }
+    },
+    {
+      "number": 2,
+      "scene": "nw_s17",
+      "sceneTitle": "17 — You got old",
+      "targetBeat": "nw_b465",
+      "beatIdInFilm": "nw_b465",
+      "shot": "Everything is going. We are just slower.",
+      "status": "selected",
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s17/434-i-was-already-old.jpg",
+          "bundledAsset": "duplicate-uncut-465",
+          "generationInputPath": "src/assets/recreated-uncut/465-kaneko-at-counter.jpg",
+          "sha256": "dc44a41e9a8264c5871dfef79dc184b970919baff7ce9bd4d89bf4d3a5c21628",
+          "reviewPreview": "context/02-plate-465-kaneko-counter.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned to the reference, no feathering. Luminance encodes distance only: no wood grain, no texture, no colour, no lamp glow, no steam shading, no grain, no vignette, no border, no text.\n\nNearest surfaces, near-white (about 0.92-0.98): the worn wooden counter edge running along the bottom-left to centre foreground, the chopstick holder and small condiment bottles standing on it at the left, and the bottom of the near wooden stool at the lower right.\n\nLight grey, second nearest (about 0.70-0.85): the counter top surface receding toward the right, the near stool seat, the tall chopstick cylinders and bowls further along the counter, and the right-hand wooden wall and coat hooks at frame right.\n\nMid-ground, mid grey (about 0.45-0.62): the elderly woman in the brown cardigan and dark apron behind the counter at the left — head, shoulders, arms and hands each a smooth gradient, one readable mid-grey mass; the two older customers seated at the far end of the counter as clearly darker mid-grey silhouettes; and the dark-haired greying man in the dark coat standing at the right of the counter, his head, shoulder, arm and hand a single continuous mid-grey figure with a slightly lighter near edge.\n\nFarther, dark grey (about 0.22-0.36): the metal shelving and steam hood behind the counter, the hanging pendant lamp shade and its stem as a mid-dark shape, the dark blue noren curtains in the doorway and the back kitchen doorway.\n\nBackground, near-black (about 0.04-0.14): the rear kitchen interior, the far wall with posters and the framed sign, and the recesses behind the shelves. Ceiling and deep corners darkest.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, with clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+      "reviewedImage": {
+        "file": "images/02-nw_b465-kaneko-counter-depth.png",
+        "sha256": "6a04315a28fc110873b1879874a1b6cb429c716dcad055ea7c1474016436c29e",
+        "width": 1672,
+        "height": 941,
+        "colorspace": "sRGB",
+        "type": "TrueColor"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/465-kaneko-counter-depth.jpg",
+        "sha256": "75fe7816e82668bc611253e1831cbe22576f3224bece184ff0433965efaf4e2f",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/465-kaneko-counter-depth.jpg",
+        "sha256": "75fe7816e82668bc611253e1831cbe22576f3224bece184ff0433965efaf4e2f",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-465",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.26,
+          "depthSeconds": 8
+        }
+      }
+    },
+    {
+      "number": 3,
+      "scene": "nw_s79",
+      "sceneTitle": "79 — Grey light",
+      "targetBeat": "nw_b1316",
+      "beatIdInFilm": "nw_b1316",
+      "shot": "Careful, laborious English handwriting. \"Miss Voss. Your father did not kill himself. I can prove it.\"",
+      "status": "selected",
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s79/91-grey-light.jpg",
+          "bundledAsset": "duplicate-uncut-1316",
+          "generationInputPath": "src/assets/recreated-uncut/1316-vera-reads-letter.jpg",
+          "sha256": "e37353c16a524ab15d13c4ed87ca2e8d7a13e3f3a80b46cd586068c05693da2a",
+          "reviewPreview": "context/03-plate-1316-vera-reads-letter.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, crisp silhouette edges aligned exactly to the reference, no feathering. Luminance encodes distance only: no texture, no handwriting, no colour, no lighting, no grain, no vignette, no border, no text.\n\nNearest surfaces, near-white (about 0.92-0.98): the low wooden table top filling the bottom centre and right foreground, the two pale cups standing on it, and the open notebook lying on it slightly farther, plus the very bottom edge of the woman's dark skirt at the lower left.\n\nLight grey, second nearest (about 0.70-0.85): the sheet of paper held in the woman's hands, her hands and forearms, her bare shoulders, and the left-hand wooden sideboard with its drawers and the small framed photo on it.\n\nMid-ground, mid grey (about 0.45-0.62): the blonde woman's head, face and torso — one continuous readable figure mass with a smooth gradient that is marginally lighter toward her near side — and the tall lamp shade on the left, the dark CRT television on its stand at the right and the armchair back at the extreme lower right.\n\nFarther, dark grey (about 0.22-0.36): the curtains at both window edges and along the base, and the balcony rail and outer window frame.\n\nBackground, near-black (about 0.04-0.16): the rain-streaked window glass and the blurred apartment block beyond it, plus the pale sky visible outside as a slightly lighter dark patch. The deepest interior shadows stay darkest.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+      "reviewedImage": {
+        "file": "images/03-nw_b1316-vera-reads-letter-depth.png",
+        "sha256": "affb709a55508b178bd27e5adeb5a81053001d43956d1659e123226cec96e79f",
+        "width": 1365,
+        "height": 768,
+        "colorspace": "sRGB",
+        "type": "TrueColor"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/1316-vera-reads-letter-depth.jpg",
+        "sha256": "a9688be914ee42e226cadb3ceb61835094a0bf67a25410cf30314dd7c44752ef",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/1316-vera-reads-letter-depth.jpg",
+        "sha256": "a9688be914ee42e226cadb3ceb61835094a0bf67a25410cf30314dd7c44752ef",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-1316",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.26,
+          "depthSeconds": 8
+        }
+      }
+    },
+    {
+      "number": 4,
+      "scene": "nw_s1",
+      "sceneTitle": "1 — The barbershop lane",
+      "targetBeat": "nw_b17",
+      "beatIdInFilm": "nw_b17",
+      "shot": "Mara hidden: the empty rain-soaked lane before the sedan arrives.",
+      "status": "selected",
+      "voteOption": 2,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s1/06-barbershop-doorway.jpg",
+          "bundledAsset": "recreated-uncut-017",
+          "generationInputPath": "src/assets/recreated-uncut/017-hidden.jpg",
+          "sha256": "b119b66bedc4d4257410ab0b9274611110a2f0e0b9631576acfa055223570f4c",
+          "reviewPreview": "context/04-plate-017-hidden.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned exactly to the reference, no feathering or glow. Luminance encodes distance only: no texture, no wet reflections, no rain streaks, no colour, no lamp light, no grain, no vignette, no border, no text.\n\nNearest surfaces, near-white (about 0.92-0.98): the utility pole rising vertically just left of centre, the corrugated roller shutters and doorway of the building at the far left edge, the corner of the shuttered shop and the black awning overhead at the right edge, and the wet road surface in the bottom 15% of frame.\n\nLight grey, second nearest (about 0.72-0.86): the white drinks vending machine standing under the left building with its wire basket and the kerb beside it, the yellow stacked beer crates and the parked scooter against the right building, and the low white guard rail across the far side of the crossing.\n\nMid-ground, mid grey (about 0.45-0.62): the crossing road surface with its white zebra stripes as flat slightly darker shapes, the shorter second pole and the traffic signal on it just left of centre, and the low buildings and wall behind them.\n\nFarther, dark grey (about 0.24-0.38): the tall street lamp and its hood near the top left, the further street lamp and its pole in the centre background, and the dark block of buildings and fence behind the crossing.\n\nBackground, near-black (about 0.03-0.13): the empty sky at the top and the far street receding between the buildings, with the distant small light sources as tiny soft mid-grey dots only.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, hard clean separation at every occlusion boundary and at the rooflines. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+      "reviewedImage": {
+        "file": "images/04-nw_b017-hidden-depth.png",
+        "sha256": "7fdc99f840a7ecd1240fb3174195ba3b25a6aceadf2ec77d8b9f619d53984838",
+        "width": 2730,
+        "height": 1536,
+        "colorspace": "sRGB",
+        "type": "TrueColorAlpha"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/017-hidden-depth.jpg",
+        "sha256": "afe7d5bdb1c1a51e81d609d980d5924287ba092a84f46ca2446016658840b7d2",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/017-hidden-depth.jpg",
+        "sha256": "afe7d5bdb1c1a51e81d609d980d5924287ba092a84f46ca2446016658840b7d2",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-017",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.3,
+          "depthSeconds": 8
+        }
+      }
+    },
+    {
+      "number": 5,
+      "scene": "nw_s1",
+      "sceneTitle": "1 — The barbershop lane",
+      "targetBeat": "nw_b27",
+      "beatIdInFilm": "nw_b27",
+      "shot": "The headlights come up the lane; two men walk in.",
+      "status": "selected",
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s1/332-the-sedan-blocks-the-lane.jpg",
+          "bundledAsset": "recreated-uncut-027",
+          "generationInputPath": "src/assets/recreated-uncut/027-headlights.jpg",
+          "sha256": "29d90e14c386b83f445f6e2f2c7f210a01b2a36d28256b76c0b1a6c85df85cd2",
+          "reviewPreview": "context/05-plate-027-headlights.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and readable against the bright background, no feathering and no bloom around the light. Luminance encodes distance only: no texture, no wet reflections, no rain, no colour, no headlamp glare, no grain, no vignette, no border, no text.\n\nNearest surfaces, near-white (about 0.92-0.98): the wet road filling the bottom third of frame, with the paint marking at the lower left, and the utility pole standing just left of centre.\n\nLight grey, second nearest (about 0.72-0.86): the corrugated shutters and shopfront of the left building, the white vending machine beside it with its wire basket, the kerb line, and the right-hand shop front with its black awning, door and the yellow stacked beer crates plus scooter at the lower right.\n\nMid-ground, mid grey (about 0.42-0.60): the three standing figures, each one continuous readable mass — the older man in the pale long coat on the left, seen from behind and slightly nearer, then the two masked men in dark coats walking toward camera in the centre, the left one marginally darker than the right. Keep their silhouettes exact, including the umbrella the left masked man carries.\n\nFarther, dark grey (about 0.22-0.36): the dark car parked at the right of the lane behind the two masked men, its roof and window line, and the taller building blocks above the shop fronts on both sides.\n\nBackground, near-black (about 0.03-0.13): the bright headlight area between the figures as the deepest, most distant plane, the street lamp and signal beyond, the far building silhouettes and the black sky at the top.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, hard clean separation at every occlusion boundary including around the figures against the light. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+      "reviewedImage": {
+        "file": "images/05-nw_b027-headlights-depth.png",
+        "sha256": "3436e9493a7b2e6c9a16c3c1fa4dc6be3aba64040d2d9b5598be794e180e32ec",
+        "width": 1355,
+        "height": 774,
+        "colorspace": "sRGB",
+        "type": "TrueColor"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/027-headlights-depth.jpg",
+        "sha256": "3a2fa18e8645929647c1c913b11e7ffb0a1156bda771f0f6ac682d42cfc996e1",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/027-headlights-depth.jpg",
+        "sha256": "3a2fa18e8645929647c1c913b11e7ffb0a1156bda771f0f6ac682d42cfc996e1",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-027",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.32,
+          "depthSeconds": 8
+        }
+      }
+    },
+    {
+      "number": 6,
+      "scene": "nw_s1",
+      "sceneTitle": "1 — The barbershop lane",
+      "targetBeat": "nw_b38",
+      "beatIdInFilm": "nw_b38",
+      "shot": "The sedan departs.",
+      "status": "selected",
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s1/13-taillights-gone.jpg",
+          "bundledAsset": "gap-uncut-038",
+          "generationInputPath": "src/assets/recreated-uncut/038-sedan-departs.jpg",
+          "sha256": "0916f8fb527f87df611ea592e4422ccf284718db6a8c6c0c14113ad9cfb096dc",
+          "reviewPreview": "context/06-plate-038-sedan-departs.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned exactly to the reference, no feathering. Luminance encodes distance only: no brick or shutter texture, no wet reflections, no rain, no colour, no lamp light, no car tail-light glow, no grain, no vignette, no border, no text.\n\nNearest surfaces, near-white (about 0.92-0.98): the rain-soaked road and white lane paint filling the bottom third of frame, brightest at the very bottom edge, and the thick utility pole standing just left of centre.\n\nLight grey, second nearest (about 0.74-0.88): the elderly man in the pale coat lying on the road at the lower centre, clearly readable as a figure, and the shuttered shop fronts, vending machine with wire basket on the left, and the black awning, scooter and yellow beer crates on the right.\n\nMid-ground, mid grey (about 0.45-0.64): the black sedan crossing the lane in the centre at a distance, readable as a car with its roof, windows and wheels; the zebra crossing on the road; and the small signal-light pole near it.\n\nFarther, dark grey (about 0.24-0.38): the low buildings and fence behind the crossing, the barber's pole on the right frontage, and the walls above the shop fronts on both sides.\n\nBackground, near-black (about 0.03-0.13): the tall street lamps and their poles overhead, the far building silhouettes, and the black rainy sky at the top with its thin cable lines only faintly lighter.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, hard clean separation at every occlusion boundary and roofline. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+      "reviewedImage": {
+        "file": "images/09-nw_b038-sedan-departs-depth.png",
+        "sha256": "d263dab36fcecd259ce50445d8a85ea71be2e5067933ddb414b021936fbdd690",
+        "width": 1376,
+        "height": 768,
+        "colorspace": "sRGB",
+        "type": "TrueColor"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/038-sedan-departs-depth.jpg",
+        "sha256": "5de6b9dc73effcde87db8f9d4cb528c16c815ef6fab43a05afe74fccded2cc54",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/038-sedan-departs-depth.jpg",
+        "sha256": "5de6b9dc73effcde87db8f9d4cb528c16c815ef6fab43a05afe74fccded2cc54",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-038",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.3,
+          "depthSeconds": 8
+        }
+      }
+    },
+    {
+      "number": 7,
+      "scene": "nw_s28",
+      "sceneTitle": "28 — The sea wall",
+      "targetBeat": "nw_b716",
+      "beatIdInFilm": "nw_b716",
+      "shot": "The sea-wall road.",
+      "status": "selected",
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s28/203-the-sea-wall-steps.jpg",
+          "bundledAsset": "recreated-uncut-716",
+          "generationInputPath": "src/assets/recreated-uncut/716-sea-wall-road.jpg",
+          "sha256": "91c955d7652e968f73fac7c14c73c1e258f507a51b8f5f4a9d310efd8c85c21e",
+          "reviewPreview": "context/07-plate-716-sea-wall-road.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: keep the identical framing and 16:9 crop, aligning every silhouette edge to the reference, no feathering. Luminance encodes distance only: no roof-tile or paint texture, no colour, no daylight, no cloud shading, no grain, no vignette, no border, no text.\n\nNearest surfaces, near-white (about 0.92-0.98): the pale asphalt road sweeping from the bottom of frame up the centre, the grass and kerb strip along its left, and the low concrete sea wall running along the right side.\n\nLight grey, second nearest (about 0.72-0.88): the two rows of single-storey Japanese houses — the row along the left receding into the distance, each house a separate block that steps progressively darker, and the single house at the far right beyond the sea wall.\n\nMid-ground, mid grey (about 0.45-0.64): the rocky shoreline and low fence beyond the sea wall, and the nearest section of road, kerb and wall further up the lane.\n\nFarther, dark grey (about 0.22-0.36): the sea surface filling the right background, smooth with gentle tonal variation and darker toward the horizon, and the distant headland and far houses where the road curves.\n\nBackground, near-black (about 0.03-0.14): the whole cloudy sky across the top two-fifths of the frame, darkest at the top edge, and the far end of the road at the horizon.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every roofline, kerb and wall edge. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+      "reviewedImage": {
+        "file": "images/10-nw_b716-sea-wall-road-depth.png",
+        "sha256": "7b173ba5992c5574ba1c058fe89334036a8ea9a30db667df1be0fe075bea108c",
+        "width": 1376,
+        "height": 768,
+        "colorspace": "sRGB",
+        "type": "TrueColor"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/716-sea-wall-road-depth.jpg",
+        "sha256": "8359546d03ddf4cd625e33bfcea866c9a10167507746df916a7b10732476d313",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/716-sea-wall-road-depth.jpg",
+        "sha256": "8359546d03ddf4cd625e33bfcea866c9a10167507746df916a7b10732476d313",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-716",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.34,
+          "depthSeconds": 8
+        }
+      }
+    },
+    {
+      "number": 8,
+      "scene": "nw_s63a",
+      "sceneTitle": "63 — They give up",
+      "targetBeat": "nw_b1054",
+      "beatIdInFilm": "nw_b1054",
+      "shot": "Jack watches the sedan from the alley door.",
+      "status": "selected",
+      "voteOption": 2,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s63a/295-they-give-up.jpg",
+          "bundledAsset": "recreated-uncut-1054",
+          "generationInputPath": "src/assets/recreated-uncut/1054-the-sedan.jpg",
+          "sha256": "00722ae53e2ab44e0accac072100d1d92975387d1400709209a2dbe0ffe318e8",
+          "reviewPreview": "context/08-plate-1054-the-sedan.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned exactly to the reference, no feathering. Luminance encodes distance only: no brick texture, no wet reflections, no rain, no colour, no lamp light, no grain, no vignette, no border, no text.\n\nNearest surfaces, near-white (about 0.92-0.98): the dark door frame and door edge at the far right of frame, and the rain-wet alley paving filling the bottom third, brightest at the very bottom edge.\n\nLight grey, second nearest (about 0.72-0.88): the man in the dark coat standing in the doorway at the right — head, shoulders and arm one continuous readable mass, marginally lighter toward his near shoulder — and the low ground-mounted air-conditioning units at the lower left corner.\n\nMid-ground, mid grey (about 0.45-0.64): the two brick alley walls, running left and right toward the street, each with its wall-mounted air-conditioning boxes as slightly lighter blocks that step progressively darker with distance, and the horizontal pipe crossing the alley overhead.\n\nFarther, dark grey (about 0.24-0.38): the parked black sedan across the far end of the alley, clearly readable as a car with its kerb and wheels, the shuttered garage beside it, and the taller building faces and windows beyond the alley mouth.\n\nBackground, near-black (about 0.03-0.14): the sky above the street lamps, the deepest recesses of both alley walls, and the far dark street surface beyond the car.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+      "reviewedImage": {
+        "file": "images/08-nw_b1054-the-sedan-depth.png",
+        "sha256": "468e73f0ef5120dbe3325d77295706b307f93e5b3937553455d5a02817b83a51",
+        "width": 1672,
+        "height": 941,
+        "colorspace": "sRGB",
+        "type": "TrueColor"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/1054-the-sedan-depth.jpg",
+        "sha256": "87f8fb93ef4010d2f47df99da4aa605a841b4b462c8917e1ab854fb49a64b6f0",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/1054-the-sedan-depth.jpg",
+        "sha256": "87f8fb93ef4010d2f47df99da4aa605a841b4b462c8917e1ab854fb49a64b6f0",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-1054",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.34,
+          "depthSeconds": 8
+        }
+      }
+    },
+    {
+      "number": 9,
+      "scene": "nw_s65",
+      "sceneTitle": "65 — The wine-red dress",
+      "targetBeat": "nw_b1073",
+      "beatIdInFilm": "nw_b1073",
+      "shot": "Vera takes the wine-red dress out of its box.",
+      "status": "selected",
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s65/488-wine-red-silk.jpg",
+          "bundledAsset": "gap-uncut-1073",
+          "generationInputPath": "src/assets/recreated-uncut/1073-wine-red-dress.jpg",
+          "sha256": "cb71611bab3c6f78c6fc9778fa8b38aec95f512b38270e6255ee5aeaab75d971",
+          "reviewPreview": "context/09-plate-1073-wine-red-dress.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, crisp silhouette edges aligned to the reference, no feathering. Luminance encodes distance only: no knit or silk texture, no colour, no window light, no bedside lamp glow, no grain, no vignette, no border, no text.\n\nNearest surfaces, near-white (about 0.92-0.98): the dark door frame and door edge along the far left of frame, and the near edge of the bed and deep-blue bedding across the bottom of frame.\n\nLight grey, second nearest (about 0.74-0.88): the open cardboard box with its tissue paper, lying on the bed at the lower left, and the wine-red dress held up in the woman's hands — a single continuous readable shape where the fabric hangs in soft folds.\n\nMid-ground, mid grey (about 0.45-0.66): the blonde woman standing in the centre — head, hair, shoulders, cream turtleneck, both arms and hands one continuous, clearly readable figure mass, marginally lighter along her near shoulder; plus the wooden headboard behind her to the left.\n\nFarther, dark grey (about 0.24-0.38): the curtains at the left and right of the window, the curtain rail, and the narrow warm lamp and small bedside table at the right.\n\nBackground, near-black (about 0.03-0.16): the rain-beaded window panes and the blurred dark city beyond them, darkest in the upper panes, with the distant window lights only the faintest soft grey dots.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary around her silhouette. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+      "reviewedImage": {
+        "file": "images/11-nw_b1073-wine-red-dress-depth.png",
+        "sha256": "365832b0ae9ec6ed8e8e7ace2b44922fb07d61d15053c4f2c24169a21b9fa6b8",
+        "width": 2672,
+        "height": 1504,
+        "colorspace": "sRGB",
+        "type": "TrueColor"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/1073-wine-red-dress-depth.jpg",
+        "sha256": "6b65f4fea9f70fe3eb3b2192e1677c11e240dccf946d1848c9b7dbfb41078ec1",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/1073-wine-red-dress-depth.jpg",
+        "sha256": "6b65f4fea9f70fe3eb3b2192e1677c11e240dccf946d1848c9b7dbfb41078ec1",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-1073",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.28,
+          "depthSeconds": 8
+        }
+      }
+    },
+    {
+      "number": 10,
+      "scene": "nw_s80",
+      "sceneTitle": "80 — Was that you",
+      "targetBeat": "nw_b1351",
+      "beatIdInFilm": "nw_b1351",
+      "shot": "Was that you?",
+      "status": "selected",
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s80/96-hands-close.jpg",
+          "bundledAsset": "recreated-uncut-1351",
+          "generationInputPath": "src/assets/recreated-uncut/1351-was-that-you.jpg",
+          "sha256": "c9b8e1a50bfb0e747795579cf328b91ec49d2123f3b57fba11428ed3a9fdd7da",
+          "reviewPreview": "context/10-plate-1351-was-that-you.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Trace only where things are: identical framing and 16:9 crop, crisp silhouette edges, no feathering. Luminance encodes distance only.\n\nCRITICAL — this frame contains bright fluorescent tubes on the ceiling and a bright window. Do NOT copy their brightness into the depth map. The ceiling is the farthest surface in the room, so render it near-black (about 0.02-0.08) with NO bright strips, bars, halos or glow. The windows at the right are far away: dark grey (about 0.12-0.22), never white. No lamp glare, reflection, texture, colour, grain, vignette, border or text anywhere.\n\nNearest surfaces, near-white (about 0.92-0.98): the out-of-focus standing man's dark suit edge along the left side of frame, cropping the picture from top to bottom, soft-edged but clearly the nearest plane, and the desk surface and stacked papers running along the bottom edge.\n\nLight grey, second nearest (about 0.74-0.88): the seated older Japanese detective with grey-streaked hair, seen from mid-chest up — his head, face, shoulders, jacket, collar, tie-less shirt, pen in hand and watch, one continuous clearly readable figure mass, marginally lighter across his nearer shoulder — plus the stacked trays and file piles on his desk at the lower left and right.\n\nMid-ground, mid grey (about 0.45-0.64): the nearer rows of grey office desks with their paperwork and folders, and the blurred seated colleagues behind him at the left.\n\nFarther, dark grey (about 0.24-0.38): the back office wall with the wall clock, the doorway and the noticeboard, and the filing cabinets and shelving along the right.\n\nBackground, near-black (about 0.02-0.16): the entire ceiling, and the tall windows on the right showing a washed-out sky as flat dark grey without any bright panes.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere, no bright ceiling.",
+      "reviewedImage": {
+        "file": "images/12-nw_b1351-was-that-you-depth.png",
+        "sha256": "d7a28463d4a5a33d09cc8d08cb9b36bf398b87c8733336ba1450fa7a8c07cf8b",
+        "width": 1376,
+        "height": 768,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/1351-was-that-you-depth.jpg",
+        "sha256": "6118089cb6320ddd55ae46d96bbba3bfdd631463027df8d6acebc6fb35a4dc2c",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/1351-was-that-you-depth.jpg",
+        "sha256": "6118089cb6320ddd55ae46d96bbba3bfdd631463027df8d6acebc6fb35a4dc2c",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-1351",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.26,
+          "depthSeconds": 8
+        }
+      },
+      "postProcessing": "The accepted vote copied the room's bright fluorescent ceiling tubes into the map as white bars. Because the ceiling is the farthest surface in the room, those bars were flattened by compositing a vertically graded mask over the top of the frame (darkened and flattened above the tube line, untouched below); the figures, desks, floor and back wall are unchanged. The raw vote is kept at rejected/12-nw_b1351-was-that-you-depth-raw-ceiling-strips.png."
+    },
+    {
+      "number": 11,
+      "scene": "nw_s84",
+      "sceneTitle": "84 — Both wrong",
+      "targetBeat": "nw_b1464",
+      "beatIdInFilm": "nw_b1464",
+      "shot": "Vera in the storeroom.",
+      "status": "selected",
+      "voteOption": 1,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s84/117-both-wrong.jpg",
+          "bundledAsset": "duplicate-uncut-1464",
+          "generationInputPath": "src/assets/recreated-uncut/1464-vera-storeroom.jpg",
+          "sha256": "fda8f6ef0fec2d01623563a9bd72d5886ed1322980784f09e55ed6a2579a76cf",
+          "reviewPreview": "context/11-plate-1464-vera-storeroom.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Use the reference only to trace what is where: identical framing and 16:9 crop, every silhouette edge crisp and aligned exactly to the reference, no feathering. Luminance encodes distance only: no shelf or wood texture, no colour, no bulb glow or window light, no grain, no vignette, no border, no text.\n\nNearest surfaces, near-white (about 0.92-0.98): the bare floorboards and the near edge of the door frame or shelving at the very bottom and outer edges of the picture.\n\nLight grey, second nearest (about 0.72-0.88): the tall storage shelves, stacked boxes and crates standing along the left and right of the room, each a separate block that steps darker with distance, and any near foreground furniture.\n\nMid-ground, mid grey (about 0.45-0.66): the blonde woman standing in the room — head, hair, shoulders, coat and arms one continuous clearly readable figure mass, marginally lighter along her near shoulder — holding or facing the object she has come to find, kept as one solid shape.\n\nFarther, dark grey (about 0.24-0.38): the back wall of the storeroom, its door, hanging coats and higher shelves, and the far corner of the room.\n\nBackground, near-black (about 0.03-0.15): the ceiling, the deepest recesses and any doorway leading to a darker room beyond, all flat and without light patches.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+      "reviewedImage": {
+        "file": "images/14-nw_b1464-vera-storeroom-depth.png",
+        "sha256": "fbd1db03b19fead0bb0043c9fa89ff42d8906141c3df49c94dcae9b5d7d65823",
+        "width": 2720,
+        "height": 1536,
+        "colorspace": "sRGB",
+        "type": "TrueColor"
+      },
+      "installedDepthMap": {
+        "file": "public/film/depth/recreated-uncut/1464-vera-storeroom-depth.jpg",
+        "sha256": "b16589be2a2becfe83b324d8778c129b4b5ff8b279e63c0c3c898d9daeea37e7",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "bundledDepthMap": {
+        "file": "src/assets/recreated-uncut/depth/1464-vera-storeroom-depth.jpg",
+        "sha256": "b16589be2a2becfe83b324d8778c129b4b5ff8b279e63c0c3c898d9daeea37e7",
+        "width": 960,
+        "height": 540,
+        "colorspace": "Gray",
+        "type": "Grayscale"
+      },
+      "wiring": {
+        "registry": "RECREATED_DEPTH_MAP_BY_BEAT (src/core/recreatedUncut.ts)",
+        "depthAssetId": "depth-uncut-1464",
+        "cinematic": {
+          "mode": "static",
+          "depthMotion": "push",
+          "depthAmount": 0.28,
+          "depthSeconds": 8
+        }
+      }
+    },
+    {
+      "number": 12,
+      "scene": "nw_s80",
+      "sceneTitle": "80 — Was that you",
+      "targetBeat": "nw_b1349",
+      "beatIdInFilm": "nw_b1349",
+      "shot": "You told me yourself, Jack. You always tell the wrong person.",
+      "status": "skipped",
+      "voteOption": null,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s80/95-ishida-doesnt-look-up.jpg",
+          "bundledAsset": "duplicate-uncut-1349",
+          "generationInputPath": "src/assets/recreated-uncut/1349-ishidas-answer.jpg",
+          "sha256": "d367382a4ed0c11e93bb9e624e4d3152802a6929307c377b3c26ccfeb82245f3",
+          "reviewPreview": "context/12-plate-1349-ishidas-answer.jpg"
+        }
+      ],
+      "prompt": null,
+      "installedDepthMap": null
+    },
+    {
+      "number": 13,
+      "scene": "nw_s80",
+      "sceneTitle": "80 — Was that you",
+      "targetBeat": "nw_b1358",
+      "beatIdInFilm": "nw_b1358",
+      "shot": "Jack stands over Ishida after the fight.",
+      "status": "skipped",
+      "voteOption": null,
+      "references": [
+        {
+          "order": 1,
+          "role": "Plate this depth map was drawn from (the only image supplied to the generator)",
+          "sourceFilmPath": "/film/img/s80/not-to-jack.jpg",
+          "bundledAsset": "gap-uncut-1358",
+          "generationInputPath": "src/assets/recreated-uncut/1358-jack-stands.jpg",
+          "sha256": "debb045efe392b64323272bd30cd3c0868301e5309fe911ed83666daddecb395",
+          "reviewPreview": "context/13-plate-1358-jack-stands.jpg"
+        }
+      ],
+      "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still — not a photograph, not a shaded render. Trace only where things are: identical framing and 16:9 crop, crisp silhouette edges, no feathering. Luminance encodes distance only.\n\nCRITICAL — depth is not brightness. This frame has bright light sources in it. Do NOT render them as bright shapes:\n- The fluorescent ceiling tubes are ON THE CEILING, the farthest surface in the room, so the ceiling must be near-black (about 0.02-0.08) with NO bright strips, bars, glow or halos anywhere in it. No bright band across the top of the frame at all.\n- The window at the right is far away: render it as dark grey (about 0.12-0.20), never white, with no blown-out pane.\n- No lamp, reflection, gleam, grain, colour, vignette, border or text anywhere.\n\nNearest surfaces, near-white (about 0.90-0.98): the carpeted office floor along the bottom of the frame and the shoe of the standing man at the lower left; the floor should fade smoothly from near-white at the bottom edge to dark grey where it meets the back wall.\n\nLight grey, second nearest (about 0.72-0.86): the head and shoulders of the Japanese detective lying on his back at the lower right, his upturned face clearly readable, and the near desk edge and chair backs at the lower left and lower right corners.\n\nMid-ground, mid grey (about 0.45-0.64): the standing Western man leaning over him — head, shoulders, torso, both arms and legs one continuous, clearly readable figure mass, marginally lighter along his nearer shoulder and coat edge — plus the two grey steel desks with their papers left and right of him.\n\nFarther, darker mid grey (about 0.26-0.40): the two young detectives in dark suits standing side by side in the centre background, each a separate darker figure, and the filing cabinets, shelves and partition behind them.\n\nBackground, near-black (about 0.02-0.15): the far wall with the wall clock as a faint slightly-darker disc, the window at the right, and the whole ceiling.\n\nEvery surface a smooth continuous gradient, each object marginally lighter at its near edge, clean hard separation at every occlusion boundary. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere, and absolutely no bright ceiling.",
+      "note": "Two votes rejected, plus a third rejected after a rewritten prompt that spelled out that the ceiling is the farthest surface: every candidate copied the fluorescent ceiling tubes into the map as a bright band. Left without a depth map until a candidate stops doing that.",
+      "installedDepthMap": null
+    }
+  ]
+}

@@ -1,9 +1,12 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import film from "../data/nobodys-witness-film.json";
 import audioDurations from "../data/audio-durations.json";
+import mediaIndex from "../data/media-index.json";
 import { buildKeyframes, createProjectState, parseImportPayload } from "./model";
 import { buildDirectorsCutById } from "./directorsCut";
-import { addRecreatedUncutCoverage, upgradeSavedRecreatedUncut } from "./recreatedUncut";
+import { RECREATED_DEPTH_MAP_BY_BEAT, addRecreatedUncutCoverage, upgradeSavedRecreatedUncut } from "./recreatedUncut";
 import { buildTimelineClips } from "../sequence/animate";
 
 vi.mock("../assets/recreated-uncut/1562-sedan-door.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,djE1YQ==" }));
@@ -39,10 +42,36 @@ vi.mock("../assets/recreated-uncut/038-sedan-departs.jpg?url&inline", () => ({ d
 vi.mock("../assets/recreated-uncut/893-jack-what.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,dA==" }));
 
 vi.mock("../assets/recreated-uncut/1073-wine-red-dress.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,dQ==" }));
+vi.mock("../assets/recreated-uncut/depth/1562-sedan-door-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
+vi.mock("../assets/recreated-uncut/depth/465-kaneko-counter-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
+vi.mock("../assets/recreated-uncut/depth/1316-vera-reads-letter-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
+vi.mock("../assets/recreated-uncut/depth/017-hidden-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
+vi.mock("../assets/recreated-uncut/depth/027-headlights-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
+vi.mock("../assets/recreated-uncut/depth/038-sedan-departs-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
+vi.mock("../assets/recreated-uncut/depth/716-sea-wall-road-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
+vi.mock("../assets/recreated-uncut/depth/1054-the-sedan-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
+vi.mock("../assets/recreated-uncut/depth/1073-wine-red-dress-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
+vi.mock("../assets/recreated-uncut/depth/1351-was-that-you-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
+vi.mock("../assets/recreated-uncut/depth/1464-vera-storeroom-depth.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,ZA==" }));
 vi.mock("../assets/recreated-uncut/128-missing-person-form.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,dg==" }));
 vi.mock("../assets/recreated-uncut/1686-beyond-the-curtain.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,dw==" }));
 vi.mock("../assets/recreated-uncut/284-daniel-voss-portrait.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,eA==" }));
 vi.mock("../assets/recreated-uncut/1360-where-is-it.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,eQ==" }));
+
+
+function readJpegDimensions(filePath: string): { width: number; height: number } {
+  const buf = fs.readFileSync(filePath);
+  let i = 2;
+  while (i < buf.length) {
+    if (buf[i] !== 0xff) { i += 1; continue; }
+    const marker = buf[i + 1];
+    if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) {
+      return { width: buf.readUInt16BE(i + 7), height: buf.readUInt16BE(i + 5) };
+    }
+    i += 2 + buf.readUInt16BE(i + 2);
+  }
+  throw new Error(`No JPEG SOF marker in ${filePath}`);
+}
 
 const base = () => createProjectState(parseImportPayload(film, "film.json"), []);
 const v15Plates = [
@@ -229,7 +258,7 @@ describe("recreated Original Uncut plates", () => {
     expect(upgraded.assets.find(asset => asset.id === collision.id)).toEqual(collision);
     expect(upgraded.assets.some(asset => asset.id === "duplicate-uncut-967")).toBe(false);
     expect(upgraded.assets.some(asset => asset.id === "duplicate-uncut-1413")).toBe(false);
-    expect(upgraded.recreatedUncutCoverageVersion).toBe(16);
+    expect(upgraded.recreatedUncutCoverageVersion).toBe(18);
     expect(upgraded.audioClips).toBe(saved.audioClips);
     expect(upgradeSavedRecreatedUncut(upgraded)).toBe(upgraded);
   });
@@ -293,7 +322,7 @@ describe("recreated Original Uncut plates", () => {
     expect(stashed.find(f => f.id === "nw_b1007")!.picture).toBe("/film/img/s61/481-the-side-of-his-face.jpg");
     expect(upgraded.assets.find(asset => asset.id === collision.id)).toEqual(collision);
     expect(upgraded.assets.some(asset => asset.id === "duplicate-uncut-87")).toBe(false);
-    expect(upgraded.recreatedUncutCoverageVersion).toBe(16);
+    expect(upgraded.recreatedUncutCoverageVersion).toBe(18);
     expect(upgraded.audioClips).toBe(saved.audioClips);
     expect(upgradeSavedRecreatedUncut(upgraded)).toBe(upgraded);
     expect(buildKeyframes(saved.story).find(f => f.id === "nw_b1332")!.picture).toBe("/film/img/s79/92-underlined-twice.jpg");
@@ -333,7 +362,8 @@ describe("recreated Original Uncut plates", () => {
     const after = buildKeyframes(story);
     expect(after.find(f => f.id === "nw_b1562")!.picture).toBe("asset:duplicate-uncut-1562");
     expect(after.find(f => f.id === "later")!.picture).toBe(before.find(f => f.id === "later")!.picture);
-    expect(assets.map(asset => asset.id)).toEqual(["duplicate-uncut-1562"]);
+    // The plate and the voted depth map for that plate are bundled together.
+    expect(assets.map(asset => asset.id).sort()).toEqual(["depth-uncut-1562", "duplicate-uncut-1562"]);
   });
   it("upgrades a stashed v14 Uncut without changing another active cut", () => {
     const project = base();
@@ -374,7 +404,7 @@ describe("recreated Original Uncut plates", () => {
     expect(stashed.find(f => f.id === "nw_b773")!.picture).toBe("/custom-inn.jpg");
     expect(stashed.find(f => f.id === "nw_b1316")!.picture).toBe("asset:duplicate-uncut-1316");
     expect(stashed.find(f => f.id === "nw_b1076")!.picture).toBe("/custom-dress.jpg");
-    expect(upgraded.recreatedUncutCoverageVersion).toBe(16);
+    expect(upgraded.recreatedUncutCoverageVersion).toBe(18);
     expect(upgraded.audioClips).toBe(saved.audioClips);
     expect(buildKeyframes(saved.story).find(f => f.id === "nw_b1076")!.picture).toBe("/film/img/s65/232-the-wine-red-dress.jpg");
     expect(upgradeSavedRecreatedUncut(upgraded)).toBe(upgraded);
@@ -404,7 +434,7 @@ describe("recreated Original Uncut plates", () => {
     expect(stashed.find(f => f.id === "nw_b1383")!.picture).toBe("/custom-cassette.jpg");
     expect(stashed.find(f => f.id === "nw_b300")!.picture).toBe("asset:duplicate-uncut-300");
     expect(stashed.find(f => f.id === "nw_b980")!.picture).toBe("asset:duplicate-uncut-980");
-    expect(upgraded.recreatedUncutCoverageVersion).toBe(16);
+    expect(upgraded.recreatedUncutCoverageVersion).toBe(18);
     expect(upgraded.audioClips).toBe(saved.audioClips);
     expect(buildKeyframes(saved.story).find(f => f.id === "nw_b1383")!.picture).toBe("/film/img/s82/509-twenty-years-younger.jpg");
     expect(buildKeyframes(saved.savedCutStates.uncut.story).find(f => f.id === "nw_b300")!.picture).toBe("/film/img/s11/419-twenty-years.jpg");
@@ -433,7 +463,7 @@ describe("recreated Original Uncut plates", () => {
     expect(buildKeyframes(upgraded.savedCutStates!.uncut!.story).find(f => f.id === "nw_b1383")!.picture).toBe("asset:duplicate-uncut-1383-wide");
     expect(upgraded.assets.find(asset => asset.id === oldHarada.id)).toEqual(oldHarada);
     expect(upgraded.assets.find(asset => asset.id === "duplicate-uncut-1383-wide")?.dataUrl).toBe("data:image/jpeg;base64,d2lkZQ==");
-    expect(upgraded.recreatedUncutCoverageVersion).toBe(16);
+    expect(upgraded.recreatedUncutCoverageVersion).toBe(18);
     expect(upgraded.audioClips).toBe(saved.audioClips);
     expect(upgradeSavedRecreatedUncut(upgraded)).toBe(upgraded);
     expect(buildKeyframes(saved.story).find(f => f.id === "nw_b1383")!.picture).toBe("asset:duplicate-uncut-1383");
@@ -617,5 +647,95 @@ describe("recreated Original Uncut plates", () => {
     expect(buildKeyframes(result.story).find(f => f.id === "nw_b1637")!.picture).toBe("asset:recreated-uncut-1637");
     expect(buildKeyframes(result.savedCutStates!.uncut!.story).find(f => f.id === "nw_b1573")!.picture).toBe("/custom-carried.jpg");
     expect(upgradeSavedRecreatedUncut(result)).toBe(result);
+  });
+});
+
+describe("voted depth maps for recreated Original Uncut stills", () => {
+  const depthBeats = Object.keys(RECREATED_DEPTH_MAP_BY_BEAT).sort();
+  it("gives each voted recreated still its own real depth-map camera", () => {
+    const result = buildDirectorsCutById(base(), "uncut", new Map());
+    const frames = buildKeyframes(result.story);
+    // Sorted by string: the ids carry no zero padding on the earliest beats.
+    expect(depthBeats).toEqual([
+      "nw_b1054", "nw_b1073", "nw_b1316", "nw_b1351", "nw_b1464",
+      "nw_b1562", "nw_b17", "nw_b27", "nw_b38", "nw_b465", "nw_b716",
+    ]);
+    for (const id of depthBeats) {
+      const entry = RECREATED_DEPTH_MAP_BY_BEAT[id];
+      const frame = frames.find(f => f.id === id)!;
+      expect(frame.picture).toBe(`asset:${entry.plateAssetId}`);
+      expect(result.assets.find(a => a.id === entry.depthAssetId)?.dataUrl).toMatch(/^data:image\/jpeg;base64,/);
+      expect(frame.beat.cinematic).toMatchObject({
+        depthMap: `asset:${entry.depthAssetId}`,
+        depthMotion: "push",
+        depthAmount: entry.depthAmount,
+        mode: "static",
+      });
+    }
+    // Only these three beats use a recreated depth map.
+    const usesRecreatedMap = frames
+      .filter(f => /^asset:depth-uncut-/.test(String(f.beat.cinematic?.depthMap ?? "")))
+      .map(f => f.id).sort();
+    expect(usesRecreatedMap).toEqual(depthBeats);
+  });
+  it("stores the voted depth maps on disk at 960x540 and lists them in the media index", () => {
+    const repoRoot = path.resolve(__dirname, "../..");
+    const listed = new Set((mediaIndex as string[]).map(p => p.replace(/^\/+/, "")));
+    for (const id of depthBeats) {
+      const rel = RECREATED_DEPTH_MAP_BY_BEAT[id].sourcePath.replace(/^\/+/, "");
+      const file = path.join(repoRoot, "public", rel);
+      expect(fs.existsSync(file)).toBe(true);
+      expect(fs.statSync(file).size).toBeGreaterThan(5_000);
+      expect(readJpegDimensions(file)).toEqual({ width: 960, height: 540 });
+      expect(listed.has(rel)).toBe(true);
+      const examples = JSON.parse(fs.readFileSync(path.join(repoRoot, "public/examples/media-index.json"), "utf8")) as string[];
+      expect(examples).toContain(`/${rel}`);
+    }
+  });
+  it("adds the depth cameras to already-saved v16 Uncut without touching pictures, timing or looks", () => {
+    const project = base();
+    const saved = structuredClone(project.story);
+    addRecreatedUncutCoverage(saved, [], 0);
+    for (const id of depthBeats) {
+      const beat = buildKeyframes(saved).find(f => f.id === id)!.beat;
+      delete beat.cinematic;
+      beat.cinematic = { colorGrade: "tokyo-noir", grain: true };
+    }
+    const durations = new Map(Object.entries(audioDurations));
+    const before = buildTimelineClips(buildKeyframes(saved), durations).clips;
+    const upgraded = upgradeSavedRecreatedUncut({ ...project, story: saved, directorsCutId: "uncut", recreatedUncutCoverageVersion: 16 });
+    expect(upgraded.recreatedUncutCoverageVersion).toBe(18);
+    const frames = buildKeyframes(upgraded.story);
+    for (const id of depthBeats) {
+      expect(frames.find(f => f.id === id)!.beat.cinematic).toEqual({
+        colorGrade: "tokyo-noir", grain: true,
+        ...RECREATED_DEPTH_MAP_BY_BEAT[id] && {
+          mode: "static",
+          depthMap: `asset:${RECREATED_DEPTH_MAP_BY_BEAT[id].depthAssetId}`,
+          depthMotion: "push",
+          depthAmount: RECREATED_DEPTH_MAP_BY_BEAT[id].depthAmount,
+          depthSeconds: 8,
+        },
+      });
+    }
+    const after = buildTimelineClips(frames, durations).clips;
+    expect(after.map(c => [c.keyframe.id, c.startFrame, c.durationFrames, c.keyframe.picture]))
+      .toEqual(before.map(c => [c.keyframe.id, c.startFrame, c.durationFrames, c.keyframe.picture]));
+    expect(upgradeSavedRecreatedUncut(upgraded)).toBe(upgraded);
+  });
+  it("never overrides a shot that already has its own depth rig or a different picture", () => {
+    const project = base();
+    const saved = structuredClone(project.story);
+    addRecreatedUncutCoverage(saved, [], 0);
+    const frames = buildKeyframes(saved);
+    for (const id of depthBeats) delete frames.find(f => f.id === id)!.beat.cinematic;
+    frames.find(f => f.id === "nw_b465")!.beat.cinematic = { depthMap: "/custom-depth.png", depthMotion: "truck" };
+    frames.find(f => f.id === "nw_b1316")!.beat.background = "/custom-letter.jpg";
+    const upgraded = upgradeSavedRecreatedUncut({ ...project, story: saved, directorsCutId: "uncut", recreatedUncutCoverageVersion: 16 });
+    const after = buildKeyframes(upgraded.story);
+    expect(after.find(f => f.id === "nw_b465")!.beat.cinematic).toEqual({ depthMap: "/custom-depth.png", depthMotion: "truck" });
+    expect(after.find(f => f.id === "nw_b1316")!.picture).toBe("/custom-letter.jpg");
+    expect(after.find(f => f.id === "nw_b1316")!.beat.cinematic).toBeUndefined();
+    expect(after.find(f => f.id === "nw_b1562")!.beat.cinematic).toMatchObject({ depthMap: "asset:depth-uncut-1562" });
   });
 });

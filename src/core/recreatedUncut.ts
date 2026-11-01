@@ -44,6 +44,17 @@ import wasThatYou from "../assets/recreated-uncut/1351-was-that-you.jpg?url&inli
 import emptyChair from "../assets/recreated-uncut/1573-empty-chair.jpg?url&inline";
 import twentyYears from "../assets/recreated-uncut/031-after-twenty-years.jpg?url&inline";
 import veraStill from "../assets/recreated-uncut/1637-vera-still.jpg?url&inline";
+import hiddenDepth from "../assets/recreated-uncut/depth/017-hidden-depth.jpg?url&inline";
+import headlightsDepth from "../assets/recreated-uncut/depth/027-headlights-depth.jpg?url&inline";
+import sedanDepartsDepth from "../assets/recreated-uncut/depth/038-sedan-departs-depth.jpg?url&inline";
+import seaWallDepth from "../assets/recreated-uncut/depth/716-sea-wall-road-depth.jpg?url&inline";
+import sedanWatchDepth from "../assets/recreated-uncut/depth/1054-the-sedan-depth.jpg?url&inline";
+import wineRedDressDepth from "../assets/recreated-uncut/depth/1073-wine-red-dress-depth.jpg?url&inline";
+import wasThatYouDepth from "../assets/recreated-uncut/depth/1351-was-that-you-depth.jpg?url&inline";
+import storeroomDepth from "../assets/recreated-uncut/depth/1464-vera-storeroom-depth.jpg?url&inline";
+import sedanDoorDepth from "../assets/recreated-uncut/depth/1562-sedan-door-depth.jpg?url&inline";
+import vereLetterDepth from "../assets/recreated-uncut/depth/1316-vera-reads-letter-depth.jpg?url&inline";
+import kanekoCounterDepth from "../assets/recreated-uncut/depth/465-kaneko-counter-depth.jpg?url&inline";
 import { buildKeyframes, type Keyframe, type ProjectAsset, type ProjectState, type StoryLike } from "./model";
 
 const OLD_HARADA_ID = "duplicate-uncut-1383";
@@ -99,6 +110,148 @@ const plates = [
   { id: "duplicate-uncut-1176", beat: "nw_b1176", scene: "nw_s72", source: "/film/img/s72/69-the-wait.jpg", name: "Something slow.jpg", data: somethingSlow, version: 16 },
 ] as const;
 const COVERAGE_VERSION = 16;
+/** Depth maps are added separately so earlier saved Uncut projects pick them up. */
+const DEPTH_VERSION = 18;
+const UPGRADE_VERSION = Math.max(COVERAGE_VERSION, DEPTH_VERSION);
+
+/**
+ * Voted greyscale depth maps for recreated Uncut stills. Each map was drawn from
+ * its own plate, so it may only drive the picture it was made for. Keyed by beat
+ * so a plate that is not installed can never pick up another shot's map. The map
+ * is bundled as an inline asset so the single-file build needs no server, and a
+ * full-size copy is kept at `public/` `sourcePath` for inspection.
+ */
+export const RECREATED_DEPTH_MAP_BY_BEAT: Readonly<Record<string, {
+  plateAssetId: string;
+  depthAssetId: string;
+  depthAssetName: string;
+  sourcePath: string;
+  data: string;
+  depthAmount: number;
+}>> = {
+  nw_b1562: {
+    plateAssetId: "duplicate-uncut-1562",
+    depthAssetId: "depth-uncut-1562",
+    depthAssetName: "The open sedan door (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/1562-sedan-door-depth.jpg",
+    data: sedanDoorDepth,
+    depthAmount: 0.28,
+  },
+  nw_b17: {
+    plateAssetId: "recreated-uncut-017",
+    depthAssetId: "depth-uncut-017",
+    depthAssetName: "Mara hidden (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/017-hidden-depth.jpg",
+    data: hiddenDepth,
+    depthAmount: 0.3,
+  },
+  nw_b27: {
+    plateAssetId: "recreated-uncut-027",
+    depthAssetId: "depth-uncut-027",
+    depthAssetName: "Headlights (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/027-headlights-depth.jpg",
+    data: headlightsDepth,
+    depthAmount: 0.32,
+  },
+  nw_b38: {
+    plateAssetId: "gap-uncut-038",
+    depthAssetId: "depth-uncut-038",
+    depthAssetName: "Sedan departs (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/038-sedan-departs-depth.jpg",
+    data: sedanDepartsDepth,
+    depthAmount: 0.3,
+  },
+  nw_b465: {
+    plateAssetId: "duplicate-uncut-465",
+    depthAssetId: "depth-uncut-465",
+    depthAssetName: "Kaneko at the counter (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/465-kaneko-counter-depth.jpg",
+    data: kanekoCounterDepth,
+    depthAmount: 0.26,
+  },
+  nw_b716: {
+    plateAssetId: "recreated-uncut-716",
+    depthAssetId: "depth-uncut-716",
+    depthAssetName: "Sea wall road (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/716-sea-wall-road-depth.jpg",
+    data: seaWallDepth,
+    depthAmount: 0.34,
+  },
+  nw_b1054: {
+    plateAssetId: "recreated-uncut-1054",
+    depthAssetId: "depth-uncut-1054",
+    depthAssetName: "The sedan (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/1054-the-sedan-depth.jpg",
+    data: sedanWatchDepth,
+    depthAmount: 0.34,
+  },
+  nw_b1073: {
+    plateAssetId: "gap-uncut-1073",
+    depthAssetId: "depth-uncut-1073",
+    depthAssetName: "Wine red dress (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/1073-wine-red-dress-depth.jpg",
+    data: wineRedDressDepth,
+    depthAmount: 0.28,
+  },
+  nw_b1351: {
+    plateAssetId: "recreated-uncut-1351",
+    depthAssetId: "depth-uncut-1351",
+    depthAssetName: "Was that you (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/1351-was-that-you-depth.jpg",
+    data: wasThatYouDepth,
+    depthAmount: 0.26,
+  },
+  nw_b1464: {
+    plateAssetId: "duplicate-uncut-1464",
+    depthAssetId: "depth-uncut-1464",
+    depthAssetName: "Vera in the storeroom (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/1464-vera-storeroom-depth.jpg",
+    data: storeroomDepth,
+    depthAmount: 0.28,
+  },
+  nw_b1316: {
+    plateAssetId: "duplicate-uncut-1316",
+    depthAssetId: "depth-uncut-1316",
+    depthAssetName: "Vera reads the letter (depth).jpg",
+    sourcePath: "/film/depth/recreated-uncut/1316-vera-reads-letter-depth.jpg",
+    data: vereLetterDepth,
+    depthAmount: 0.26,
+  },
+};
+
+/**
+ * Gives a recreated still its own 2.5D camera. Only touches a beat that still
+ * shows the bundled plate and has no depth rig of its own, so camera, grade and
+ * user-added depth work are never discarded.
+ */
+function addRecreatedDepthMaps(story: StoryLike, assets: ProjectAsset[], afterVersion: number): void {
+  if (afterVersion >= DEPTH_VERSION) return;
+  const has = (object: object, key: string) => Object.prototype.hasOwnProperty.call(object, key);
+  for (const frame of buildKeyframes(story)) {
+    const entry = RECREATED_DEPTH_MAP_BY_BEAT[frame.id];
+    if (!entry) continue;
+    const plate = `asset:${entry.plateAssetId}`;
+    if (frame.picture !== plate && frame.beat.background !== plate) continue;
+    const cinematic = frame.cinematic;
+    if (cinematic && (has(cinematic, "depthMap") || has(cinematic, "depthPlate") || has(cinematic, "depthCutouts"))) continue;
+    const existing = assets.find(asset => asset.id === entry.depthAssetId);
+    if (existing && (existing.source !== "bundle" || existing.dataUrl !== entry.data)) continue;
+    // The map must be the same file the plate was drawn against; never reuse a
+    // user asset that happens to share the bundled id.
+    addBundledJpeg(assets, { id: entry.depthAssetId, name: entry.depthAssetName, data: entry.data });
+    // A dolly preset travels across an oversized plate, so it cannot be combined
+    // with a depth camera; the shot keeps its focal point and duration but is
+    // re-based on the static 2.5D push the depth map was drawn for.
+    frame.beat.cinematic = {
+      ...(frame.beat.cinematic ?? {}),
+      mode: "static",
+      depthMap: `asset:${entry.depthAssetId}`,
+      depthMotion: "push",
+      depthAmount: entry.depthAmount,
+      depthSeconds: 8,
+    };
+  }
+}
 
 function addBundledJpeg(assets: ProjectAsset[], plate: { id: string; name: string; data: string }): void {
   if (assets.some(asset => asset.id === plate.id)) return;
@@ -240,13 +393,14 @@ export function addRecreatedUncutCoverage(story: StoryLike, existing: ProjectAss
     }
     addBundledJpeg(assets, plate);
   }
+  addRecreatedDepthMaps(story, assets, afterVersion);
   return assets;
 }
 
 /** Apply new coverage once to saved Original Uncut, including its stashed state. */
 export function upgradeSavedRecreatedUncut(project: ProjectState): ProjectState {
   const previous = project.recreatedUncutCoverageVersion ?? 0;
-  if (project.originalStory.id !== "nobodys-witness-film" || previous >= COVERAGE_VERSION) return project;
+  if (project.originalStory.id !== "nobodys-witness-film" || previous >= UPGRADE_VERSION) return project;
   let story = project.story;
   let assets = project.assets;
   let savedCutStates = project.savedCutStates;
@@ -260,5 +414,5 @@ export function upgradeSavedRecreatedUncut(project: ProjectState): ProjectState 
     assets = addRecreatedUncutCoverage(savedStory, assets, previous);
     savedCutStates = { ...savedCutStates, uncut: { ...stashed, story: savedStory } };
   }
-  return { ...project, story, assets, savedCutStates, recreatedUncutCoverageVersion: COVERAGE_VERSION };
+  return { ...project, story, assets, savedCutStates, recreatedUncutCoverageVersion: UPGRADE_VERSION };
 }

@@ -9,6 +9,8 @@ import type { TimelineClip } from "../sequence/animate";
 
 export type ExportTab = "bundle" | "patch" | "mp4";
 export type Mp4ExportQuality = "master" | "draft";
+/** Frame capture encoding: `auto` = PNG for master, JPEG for draft. */
+export type Mp4ExportCapture = "auto" | "png" | "jpeg";
 
 export interface ExportModalProps {
   project: ProjectState;
@@ -39,6 +41,7 @@ export interface ExportModalProps {
   srt?: boolean;
   marks: boolean;
   quality?: Mp4ExportQuality;
+  capture?: Mp4ExportCapture;
   workers?: number;
   gpu?: boolean;
   normalizeAudio?: boolean;
@@ -49,6 +52,7 @@ export interface ExportModalProps {
   setSrt?: (value: boolean) => void;
   setMarks: (value: boolean) => void;
   setQuality?: (quality: Mp4ExportQuality) => void;
+  setCapture?: (capture: Mp4ExportCapture) => void;
   setWorkers?: (workers: number) => void;
   setGpu?: (value: boolean) => void;
   setNormalizeAudio?: (value: boolean) => void;
@@ -95,6 +99,7 @@ export function ExportModal({
   srt = true,
   marks,
   quality = "master",
+  capture = "auto",
   workers = 1,
   gpu = true,
   normalizeAudio = false,
@@ -105,6 +110,7 @@ export function ExportModal({
   setSrt,
   setMarks,
   setQuality,
+  setCapture,
   setWorkers,
   setGpu,
   setNormalizeAudio,
@@ -220,6 +226,8 @@ export function ExportModal({
       "--out exports/",
     ];
     if (quality === "draft") args.push("--draft");
+    if (capture === "jpeg") args.push("--capture jpeg --capture-quality 97");
+    else if (capture === "png") args.push("--capture png");
     if (workers > 1) args.push(`--workers ${Math.min(6, workers)}`);
     args.push(gpu ? "--gpu" : "--no-gpu");
     if (effectiveLoudness === "-16") args.push("--loudnorm -16");
@@ -235,6 +243,7 @@ export function ExportModal({
     effectiveFromFrame,
     effectiveToFrame,
     quality,
+    capture,
     workers,
     gpu,
     effectiveLoudness,
@@ -690,8 +699,36 @@ export function ExportModal({
                     </button>
                   </div>
 
+                  {setCapture && (
+                    <div className="cc-segmented" role="group" aria-label="Frame capture format">
+                      <button
+                        type="button"
+                        data-testid="export-capture-auto"
+                        className={`cc-seg-btn ${capture === "auto" ? "is-active" : ""}`}
+                        disabled={isRunningMp4}
+                        onClick={() => setCapture("auto")}
+                        title="PNG for Master, JPEG for Draft — the original behaviour"
+                      >
+                        Capture: Auto
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="export-capture-jpeg"
+                        className={`cc-seg-btn ${capture === "jpeg" ? "is-active" : ""}`}
+                        disabled={isRunningMp4}
+                        onClick={() => setCapture("jpeg")}
+                        title="Capture frames as high-quality JPEG (q97) even for Master. Much faster to encode and pipe; 8-bit capture with a fixed, invisible generation loss."
+                      >
+                        Capture: JPEG fast
+                      </button>
+                    </div>
+                  )}
+
                   {setWorkers && (
-                    <label className="export-inline-select">
+                    <label
+                      className="export-inline-select"
+                      title={`This machine reports ${typeof navigator !== "undefined" && navigator.hardwareConcurrency ? navigator.hardwareConcurrency : "?"} logical CPUs. More workers render and capture frames in parallel; each adds one Chromium (about 300–600 MB RAM).`}
+                    >
                       <span>Workers</span>
                       <select
                         data-testid="export-workers-select"

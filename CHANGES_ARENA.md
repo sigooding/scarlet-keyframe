@@ -1,5 +1,65 @@
 # Changes in this branch
 
+## Sweet Jesus — location and prop reference sheets (in progress)
+
+The remaining Sweet Jesus pictures are being built **sheets first**: every room, exterior and vehicle in the
+screenplay gets a 16:9 production-design plate with no people in it, and every item the story turns on gets its own
+prop sheet. Scene stills are then generated against those sheets plus the voted cast portraits, so a room looks like
+the same room in every scene that uses it.
+
+- **Rule adopted this session:** create the reference sheets for the rooms, and for any locations and items used,
+  before generating the scene stills that take place in them.
+- **All twenty location plates are in** (`public/sweet-jesus/locations/`, 16:9, ~1376×768 originals), covering
+  every place in the screenplay except the launderette, which already has its own voted references:
+  `ray-flat`, `ray-stoop`, `bug-room`, `morgue`, `jack-office`, `coffee-shop`, `back-office`, `property-office`,
+  `church-kitchen`, `church-basement`, `church-yard`, `auction-office`, `navy-gate`, `pool-hall`, `pike-car`,
+  `diner`, `vera-car`, `payphone`, `warehouse`, `clinic`.
+- **All twenty prop sheets are in** (`public/sweet-jesus/props/`, 16:9, shot alone on a neutral seamless ground):
+  `ledger`, `stamp`, `glassine-note`, `tape-loop`, `transfer-slip`, `laundry-receipt`, `cash-envelope`,
+  `coin-box`, `pinball-machine`, `hearse`, `revolver`, `pike-photo`, `pike-badge`, `nicky-cart`, `seed-twist`,
+  `wheelchair`, `hand-truck`, `two-recorders`, `evidence-bag`, `ledger-copies`.
+- `npm run build:still-plan` writes `reviews/sweet-jesus-sheets-20261031/scene-stills-plan.json`: the shooting
+  order for **89 stills across the 29 scenes after the opening** (2 a scene up to eight beats, 3 above, 12 for
+  the 76-beat warehouse climax). Each entry lists the room sheet, the prop sheets, the cast portraits in frame and
+  every beat it must cover, so a still is prompted from its own room, people and objects.
+- Voices that are heard but never seen — Peanut on tape, the man on the step, the O.S. neighbours — are listed as
+  `heardNotSeen` and kept out of `cast`, so no still puts a dead boy in frame. `src/core/still-plan.test.ts`
+  enforces that, and that the plan's beat list still matches the compiled storyboard.
+- `src/data/sweet-jesus-props.json` records where each item comes from, what it must look like and the scenes
+  it travels through; `src/core/sweetJesusProps.ts` exposes `PROPS_BY_SCENE`, so a still for any scene can be
+  prompted with the room, the people and the objects in it.
+- `src/data/sweet-jesus-locations.json` holds each sheet's kicker, alt text, design/staging direction and a
+  continuity lock naming the props that live there; `src/core/sweetJesusLocations.ts` bundles the previews and
+  maps every sheet to the scenes that use it (`LOCATION_BY_SCENE`).
+- `npm run build:location-previews` (ImageMagick) rebuilds the 1280×720 letterboxed previews from the preserved
+  originals in `public/`; nothing is cropped or stretched.
+- Prompts, plate labels and a numbered gallery are in `reviews/sweet-jesus-sheets-20261031/`
+  (`python3 build-gallery.py` rebuilds `index.html` from `prompts.json`; the gallery links to the single
+  full-size copy of each plate rather than duplicating it).
+- Four scene stills were drafted before this rule (`public/sweet-jesus/scenes/s02-*`, `s03-01-stoop`); they will be
+  regenerated against the new room sheets.
+
+## Sweet Jesus — scene keyframes (in progress)
+
+Every still from here on is a **keyframe of the film**, not a reference plate: the characters are acting the
+beat, in the room from the location sheets, holding the props from the prop sheets, lit and composed as a shot.
+
+- **Thirty keyframes installed, covering 128 beats across S02–S12.** The first ten (S02–S05) are listed below;
+  the second ten add `s05-03-drawer`, `s06-01-hired`, `s06-02-ledger-page`, `s06-03-the-advance`,
+  `s07-01-the-suit`, `s07-02-counting`, `s07-03-biscuit-tin`, `s08-01-under-the-table`,
+  `s08-02-pencilled-thirteen` and `s08-03-the-cassette`; the third ten add `s09-01-stamp`,
+  `s09-02-lot-thirteen`, `s09-03-telephone`, `s10-01-sandwich-line`, `s10-02-dorothy`, `s10-03-the-note`,
+  `s11-01-the-books`, `s11-02-bent-nib`, `s11-03-the-drawer` and `s12-01-auction-window`. Each is prompted from
+  its room plate plus the voted cast portrait and prop sheet for whatever is in frame:
+  `s02-01-coffee`, `s02-02-officers`, `s02-03-bug-doorway`, `s03-01-stoop`, `s03-02-coroner-van`,
+  `s04-01-counter`, `s04-02-receipt`, `s04-03-seed-wrapper`, `s05-01-bag-note`, `s05-02-pike`.
+- `src/data/sweet-jesus-shots.json` is the shot list: label, alt text, a note on what the frame has to carry, the
+  scene, the exact beats it covers, and the location, cast and props it was generated from.
+  `src/core/sweetJesusShots.ts` bundles the previews (1024×576, a third of a 1280×720 plate — 89 of them are
+  inline assets) and fills only blank beats, so dialogue, captions, timing, deliberate gaps and any custom
+  picture a user has set are untouched.
+- `createBundledFilm` now applies the shot upgrade after the opening one. Beat pictures are `asset:sj-shot-v1-*`.
+
 - A selected caption can be split at the playhead with S or Split CC without splitting its picture or audio clip. The cue text is divided at an estimated word boundary and can be edited afterwards; single-word cues cannot be divided this way. With no caption selected, Split continues to split the picture clip.
 - The marker name editor is positioned above the timeline toolbar controls so its buttons remain accessible.
 - Original imported source images remain unchanged.
@@ -25,6 +85,35 @@ The workspace was reset to the base checkout during this session. The previously
 - At the user's request Harada's initial tight crop was replaced with a separately voted wide newsroom shot. The earlier selected image remains saved; the v13 migration changes the previous bundled shot only where other pictures and effective looks remain intact.
 - `scripts/audit-uncut-duplicates.ts` reports adjacent stills sharing the same effective image reference, including short holds and cross-scene pairs. The factory cut went from 914 to 894 pairs; this is incomplete and does not detect differently named files with identical pixels. See `IMAGE_RECOVERY.md` for exact prompts, votes and continuation instructions.
 
+## Faster MP4 export
+
+- The export dialog now starts at a worker count derived from the machine's CPU count (up to 6) instead of always 1. Export is CPU-bound per worker, so a single worker wasted most of a laptop; each worker adds one Chromium (about 300-600 MB RAM).
+- New `--capture <auto|png|jpeg>` and `--capture-quality <1..100>` (UI: **Capture: Auto / JPEG fast**, default q97). `auto` keeps the old pairing (PNG for Master, JPEG q92 for Draft); `jpeg` captures Master frames as high-quality JPEG, which is far cheaper to encode and pipe and halves FFmpeg's decode work. The FFmpeg decoder now always matches the capture format, so a JPEG master is not fed to the PNG decoder.
+- Frame capture goes straight to CDP `Page.captureScreenshot` with `optimizeForSpeed: true` instead of Playwright's `page.screenshot()`, removing per-frame emulation/layout round trips and trading a slightly larger PNG for a much faster encoder; it falls back to Playwright if the browser rejects the call.
+- Each export prints per-frame stage timings (`setFrame`, `capture`, `pipe/write`) and suggests more workers when it ran with one. See README "Making MP4 export faster" for the whole picture, including why GPU memory does not help.
+
+## Real depth maps for eleven recreated Uncut stills
+
+- Eleven recreated Original Uncut stills that had no 2.5D camera now have their own greyscale depth maps, each voted between two candidates: `nw_b1562` (2), `nw_b465` (1), `nw_b1316` (1), `nw_b17` (2), `nw_b27` (1), `nw_b38` (1), `nw_b716` (1), `nw_b1054` (2), `nw_b1073` (1), `nw_b1351` (1) and `nw_b1464` (1). Prompts, digests, full-size voted PNGs and a numbered review gallery are in `reviews/depth-maps-20261031/`.
+- Each map was generated from its own plate only, converted to true greyscale, resized to 960x540 and saved as JPEG quality 88 like the film's existing depth maps. Nothing was inverted or relit; `nw_b1351`'s copied ceiling tubes were flattened with a graded mask, and the raw vote is kept.
+- `nw_b1349` and `nw_b1358` were rejected and deliberately left without a depth map: every candidate copied the office's bright fluorescent ceiling into the map as a near-plane band. Their prompts are kept for a retry.
+- `RECREATED_DEPTH_MAP_BY_BEAT` and upgrade version 18 add the maps to an already-saved active or stashed Original Uncut only where the recreated plate is still showing and the shot has no depth rig of its own. Each shot plays as a static 8-second depth push (amounts 0.26-0.34); a `dolly` preset is re-based to `static` since a dolly cannot be combined with a depth camera, keeping its focal point, grade and timing. Pictures, dialogue, captions, audio, total duration and other cuts are unchanged.
+- The maps are bundled inline, so the single-file build needs no server; full-size copies are in `public/film/depth/recreated-uncut/` and listed in both media indexes.
+
+## Faster MP4 export
+
+- The export dialog now starts at a worker count derived from the machine's CPU count (up to 6) instead of always 1. Export is CPU-bound per worker, so a single worker wasted most of a laptop; each worker adds one Chromium (about 300-600 MB RAM).
+- New `--capture <auto|png|jpeg>` and `--capture-quality <1..100>` (UI: **Capture: Auto / JPEG fast**, default q97). `auto` keeps the old pairing (PNG for Master, JPEG q92 for Draft); `jpeg` captures Master frames as high-quality JPEG, which is far cheaper to encode and pipe and halves FFmpeg's decode work. The FFmpeg decoder now always matches the capture format, so a JPEG master is not fed to the PNG decoder.
+- Frame capture goes straight to CDP `Page.captureScreenshot` with `optimizeForSpeed: true` instead of Playwright's `page.screenshot()`, removing per-frame emulation/layout round trips and trading a slightly larger PNG for a much faster encoder; it falls back to Playwright if the browser rejects the call.
+- Each export prints per-frame stage timings (`setFrame`, `capture`, `pipe/write`) and suggests more workers when it ran with one. See README "Making MP4 export faster" for the whole picture, including why GPU memory does not help.
+
+## Real depth maps for three recreated Uncut stills
+
+- Three recreated Original Uncut stills that had no 2.5D camera now have their own greyscale depth maps, each voted between two candidates and all three accepted: `nw_b1562` (option 2), `nw_b465` (option 1) and `nw_b1316` (option 1). Prompts, digests, full-size voted PNGs and a numbered review gallery are in `reviews/depth-maps-20261031/`.
+- Each map was generated from its own plate only, trimmed, converted to true greyscale, resized to 960x540 and saved as JPEG quality 88 like the film's existing depth maps. Nothing was blurred, inverted or relit.
+- `RECREATED_DEPTH_MAP_BY_BEAT` and upgrade version 17 add the maps to an already-saved active or stashed Original Uncut only where the recreated plate is still showing and the shot has no depth rig of its own. Each shot plays as a static 8-second depth push (amounts 0.28 / 0.26 / 0.26); a `dolly` preset is re-based to `static` since a dolly cannot be combined with a depth camera, keeping its focal point, grade and timing. Pictures, dialogue, captions, audio, total duration and other cuts are unchanged.
+- The maps are bundled inline, so the single-file build needs no server; full-size copies are in `public/film/depth/recreated-uncut/` and listed in both media indexes.
+
 ## Ten-shot voting fallback
 
 - The no-vote image provider returned HTTP 403 on retry, so the user requested voting instead. Nine selected images were installed; `nw_b87` was skipped and remains unchanged. The selected originals, numbered review gallery, reference previews and exact prompts are in `reviews/uncut-no-vote-20261030/`.
@@ -38,3 +127,85 @@ The workspace was reset to the base checkout during this session. The previously
 
 - Use Ctrl+A (Cmd+A on Mac), or **Select all images** in the timeline, to select all still-image frames. Text fields keep their normal Select All shortcut; videos, gaps, gradients and other non-image frames are excluded.
 - In the Clip inspector, expand **Camera & effects → Grade & texture** and change a setting. It applies to every selected image frame in one undoable edit; camera, timing, audio and other effects are preserved. Other effect groups still affect only the current frame.
+
+## Miami Vice - Salt Water (new film, first slice)
+
+An original feature in the season-four register, night-heavy Miami, built on the same
+toolchain as Sweet Jesus.
+
+- `src/data/miami-vice.fountain` - the screenplay: 95 scenes, 442 beats. A dock foreman
+  who counts the crates twice, a relief charity with a laundering route through Nassau
+  called Salt Water, a federal agent running a witness by letting half of it through, and
+  a surveillance man who has been handing their movements to a bookie for eight months.
+- `scripts/build-miami-vice.mjs` (`npm run build:miami-vice`) - compiles the Fountain
+  draft into `src/data/miami-vice-film.json` (ids `mv_*`).
+- `public/miami-vice/characters/*.png` - ten generated casting plates: Crockett, Tubbs,
+  Castillo, Gina, Trudy, Switek, Zito, Izzy, plus two originals for the new plot, Marta
+  Escobar (the charity director) and Ray Coburn (the federal agent).
+- `scripts/build-miami-vice-previews.sh` (`npm run build:miami-vice-previews`) - 1024x576
+  JPEG previews into `src/assets/miami-vice/portraits/`; the originals are never touched.
+- `src/core/miamiViceCharacters.ts` + `src/data/miami-vice-characters.json` - cast
+  references with wardrobe and continuity notes; `src/components/MiamiViceCast.tsx` is
+  the gallery, reachable from the topbar when the Miami Vice film is open.
+- `src/core/bundledFilms.ts` - `miami-vice-film` is now a selectable built-in film; the
+  screenplay downloads from the topbar button.
+
+Draft length after the Act II pass: 115 scenes / 994 beats, 86 minutes of compiled beat
+time. Compiled beat time runs roughly a third of screen time (dialogue is timed at
+fourteen characters a second and action shots cap at nine seconds), so this is a feature
+draft. Act III gets the same treatment next, then locations, props and keyframes.
+
+Act III added: Lupe running from the county home to Tubbs' car, Marta's telephone call in a
+rain-soaked booth - she is Coburn's witness and she has scheduled the truth for a Wednesday - Izzy driving the
+donation truck in, the shootout in the racking, Prieto's answer, Coburn's car with a child in it, the causeway
+standoff where Tubbs has the shot and lowers it, and the ledger traded for a twelve-year-old.
+
+Draft length after the Act III pass: 122 scenes / 1,192 beats, 102.6 minutes of compiled beat time, which is roughly
+a two-hour film once action shots play out. Locations, props and keyframes come next.
+
+Act II added: the buy money and its band numbers, a bank room with no name on the door,
+Switek taking two thousand dollars in a parking lot, the tape of the truck that leaves at
+three, the mule who walks behind it, Eddie's autopsy (a broken arm, graphite on the palm),
+Crockett recording his own badge number below decks, Coburn's locker, and the Miramar,
+where Burnett is spent to pull Gina out of a van.
+
+## Miami Vice - cast fix, first location plates, music supervision
+
+- **Tubbs recast.** The casting plate for Ricardo Tubbs was regenerated: close-cropped
+  hair, clean-shaven, charcoal suit over an open collar with a thin gold chain, and an
+  explicit "no moustache, no sunglasses, no weapon" line in the prompt. The preview was
+  rebuilt; the original in `public/miami-vice/characters/` is the new one.
+- **Nine location plates** (`public/miami-vice/locations/`, previews in
+  `src/assets/miami-vice/locations/` at 1280x720), described in
+  `src/data/miami-vice-locations.json` with camera design and continuity notes and keyed
+  to their scenes through `MIAMI_VICE_LOCATION_BY_SCENE`: the OCB bullpen, the container
+  yard, the St. Vitus, the warehouse on the river, the Carlyle bar, Marta's office, the
+  causeway, the thrift store and the Hotel Miramar pool. Roughly a dozen remain - the
+  Castillo office, the Marin kitchen, Izzy's lot, the bookie's back room, the bank room
+  with no name, the airstrip, the hospital, Ocean Drive and the rest.
+- **Music**: `docs/miami-vice-music.md` and 29 cues in `src/data/miami-vice-music.json`,
+  keyed to scene ids. Original synth score in the Jan Hammer register, five licensed
+  period songs (Glenn Frey x2, Sade, Phil Collins, Jan Hammer), and source music in every
+  location - salsa at the docks, a ball game in the bookie's back room, a house pianist
+  at the Carlyle, a cover band at the Miramar.
+- `npm run build:miami-vice-locations` added. Suite is 34 files / 244 tests green.
+
+## Miami Vice - location plates, second batch
+
+Ten more plates, for nineteen in total covering 84 of the film's 122 scenes:
+
+Castillo's office, the Marin kitchen, Izzy's lot, the bookie's back room, the bank room
+with no name on the door, the Everglades airstrip, the hospital corridor, Ocean Drive,
+county family services, and the glass office inside the warehouse.
+
+Each plate carries camera design notes and continuity notes in
+`src/data/miami-vice-locations.json`, and is keyed to its scenes through
+`MIAMI_VICE_LOCATION_BY_SCENE`.
+
+Still to plate (38 scenes, roughly fifteen more sheets): the federal building, the OCB
+evidence room and cage, the interrogation room, the locker room, the hallway, the Little
+Havana cafeteria, Switek's car and apartment, the sorting room, the river channel, the
+surveillance van, the warehouse loading dock, the dog track, the rooftops, the morgue, the
+St. Vitus cabin, the Carlyle suite and street, the school, Gina's apartment, the alley, the
+Miramar corridor, Tubbs' car, the beach at dawn and the cemetery. Then the prop sheets,
+then two to three keyframes a scene.
