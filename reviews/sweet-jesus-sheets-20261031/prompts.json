@@ -346,5 +346,120 @@
       "portraits/jack-monroe.jpg"
     ],
     "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. in the same shabby one-room office as the first reference (battered desk, rotary telephone, green filing cabinet, sash window with the faded travel poster, dust in the light). Lieutenant Frank Pike, 50s, close-cut grey hair, an open dark overcoat over a rumpled detective's suit and a loosened wide tie, stands by the green filing cabinet with his coat open, at his ease in somebody else's room. Jack Monroe, 43, salt-and-pepper hair, brown tweed jacket and charcoal shirt, stands between Pike and the desk, not touching the empty glassine bag and the torn note that lie on it, watching Pike without turning his head far. Both men are still; the hostility is polite. Late-morning window light with dust in the beam. At eye level from the doorway, medium two-shot, deep focus. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s05-03-drawer": {
+    "group": "scenes",
+    "label": "S05 \u00b7 Until he's gone",
+    "note": "S05 b012 \u00b7 jack-office. He waits until he's gone, then wraps the bag in the note and locks it in a drawer.",
+    "refs": [
+      "locations/jack-office.jpg",
+      "portraits/frank-pike.jpg",
+      "portraits/jack-monroe.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. in the same shabby one-room private investigator's office as the first reference (battered desk, rotary telephone, green filing cabinet, sash window now closed, faded travel poster outside, dust in the light). Lieutenant Frank Pike, 50s, close-cut grey hair, open dark overcoat over a rumpled suit, is leaving through the doorway with his back to camera, having closed the sticking window on his way out. Jack Monroe, 43, salt-and-pepper hair, worn brown tweed jacket and charcoal shirt, stands perfectly still beside his desk waiting until Pike is gone, his hands flat on the desktop, deliberately not moving while the other man is still in the room. On the desk, untouched, lie the empty glassine bag and the torn note. Late-morning window light through the closed sash, dust in the beam. At eye level, medium shot favouring Jack, deep focus. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s06-01-hired": {
+    "group": "scenes",
+    "label": "S06 \u00b7 I want the book, not the woman",
+    "note": "S06 b001\u2013b005 \u00b7 coffee-shop \u00b7 ledger. No greetings; the envelope stays where it is.",
+    "refs": [
+      "locations/coffee-shop.jpg",
+      "portraits/corn-brandt.jpg",
+      "portraits/jack-monroe.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. in the small Italian-American coffee shop of the first reference (chrome espresso machine, framed photographs of men shaking hands on the panelled wall, marble-topped tables, bentwood chairs, beaded curtain). Cornelius 'Corn' Brandt, 60s, slicked-back silver hair, dark checked three-piece suit and patterned tie, sits alone at a table with a slim ledger page turned face down in front of him. Jack Monroe, 43, salt-and-pepper hair, worn brown tweed jacket and open charcoal shirt, has just sat down opposite him and leaves the envelope Corn has pushed across the table exactly where it is, not touching it. Neither man has greeted the other. Warm tungsten pendants and window daylight, steam, espresso cups. At seated eye level, medium two-shot across the table, deep focus. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s06-02-ledger-page": {
+    "group": "scenes",
+    "label": "S06 \u00b7 Fulton Laundry",
+    "note": "S06 b006\u2013b010 \u00b7 coffee-shop \u00b7 ledger. The line that maps the whole film.",
+    "refs": [
+      "locations/coffee-shop.jpg",
+      "props/ledger.jpg",
+      "portraits/corn-brandt.jpg",
+      "portraits/jack-monroe.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. at the same marble-topped table in the coffee shop of the first reference. Corn, 60s, slicked-back silver hair and a dark checked three-piece suit, has turned the ledger page face up and is pushing it across with one finger so Jack can read it: a ruled accounts page with a line reading a laundry delivery and, beneath it, a date and a delivery to a warehouse. Jack Monroe, 43, salt-and-pepper hair, brown tweed jacket and charcoal shirt, looks down at the page without touching it, his face giving nothing away. Both men's hands are on the table. Warm pendant light, espresso cups, steam, framed photographs out of focus behind. Over the shoulder at a low three-quarter angle, medium shot, shallow depth of field on the page. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s06-03-the-advance": {
+    "group": "scenes",
+    "label": "S06 \u00b7 Five hundred dollars",
+    "note": "S06 b011\u2013b020 \u00b7 coffee-shop \u00b7 cash-envelope, seed-twist. Jack leaves shells on Corn's clean saucer.",
+    "refs": [
+      "locations/coffee-shop.jpg",
+      "props/cash-envelope.jpg",
+      "portraits/corn-brandt.jpg",
+      "portraits/jack-monroe.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. at the same marble-topped table in the coffee shop of the first reference. Corn, 60s, slicked-back silver hair and a dark checked three-piece suit, has opened a cheap manila envelope on the table so Jack can see the fan of worn small-denomination bills inside it, and holds it down with one finger. Jack Monroe, 43, salt-and-pepper hair, brown tweed jacket and charcoal shirt, sits back and looks at the money without reaching for it, then glances across the room at the counterman behind the espresso machine, who is looking away. Warm tungsten pendant light, cups and saucers, steam, framed handshakes behind. At seated eye level, medium two-shot with the envelope in the foreground, deep focus. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s07-01-the-suit": {
+    "group": "scenes",
+    "label": "S07 \u00b7 Letting out the hem",
+    "note": "S07 b001\u2013b005 \u00b7 ray-flat (back bedroom) \u00b7 cash-envelope. Same flat, adjoining room.",
+    "refs": [
+      "locations/ray-flat.jpg",
+      "portraits/etta-ray.jpg",
+      "props/cash-envelope.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. Interior, the adjoining bedroom of the same modest Bed-Stuy flat as the first reference: the same worn wallpaper and muted earth-tone palette, a made single bed with a plain chenille spread, a low dresser. Etta Ray, 52, Black, short natural hair touched with grey, gold hoops, burgundy wrap dress and dark cardigan, is measuring her dead son's good suit against the bed \u2014 she holds the trousers up against herself and is letting out the hem with a seam ripper, working carefully, not crying. A manila envelope lies on the dresser where a visitor has just put it. Grey Friday midday light through a window with a fire escape. At standing eye level, medium shot, deep focus. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s07-02-counting": {
+    "group": "scenes",
+    "label": "S07 \u00b7 She counts what men say is enough",
+    "note": "S07 b006\u2013b011 \u00b7 ray-flat \u00b7 cash-envelope.",
+    "refs": [
+      "locations/ray-flat.jpg",
+      "portraits/etta-ray.jpg",
+      "portraits/jack-monroe.jpg",
+      "props/cash-envelope.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. in the same modest Bed-Stuy flat as the first reference (formica table, sideboard with the framed photograph, window with a fire escape). Etta Ray, 52, Black, short natural hair touched with grey, gold hoops, burgundy wrap dress and dark cardigan, sits at the table counting a stack of worn small-denomination bills from an open manila envelope, one note at a time, her lips moving slightly. She is counting because she has learned to count what men say is enough. Jack Monroe, 43, salt-and-pepper hair, brown tweed jacket and charcoal shirt, stands a few feet away watching her do it, saying nothing, hands in his pockets. Grey Friday daylight, no music. At standing eye level, medium shot favouring Etta, deep focus. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s07-03-biscuit-tin": {
+    "group": "scenes",
+    "label": "S07 \u00b7 Her face against the suit",
+    "note": "S07 b012\u2013b014 \u00b7 ray-flat. Only after he has left.",
+    "refs": [
+      "locations/ray-flat.jpg",
+      "portraits/etta-ray.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. in the same modest Bed-Stuy flat as the first reference. Etta Ray, 52, Black, short natural hair touched with grey, gold hoops, burgundy wrap dress and dark cardigan, stands alone at the sideboard having just put half the cash into a biscuit tin and laid the rest beside a funeral-home bill. The man who brought the money has left; she is now, and only now, pressing her face against her dead son's good suit, which she is still holding, her eyes closed, the suit crushed slightly against her. Grey Friday daylight from the window, the room still. At eye level, medium shot, shallow depth of field, no sentimentality. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s08-01-under-the-table": {
+    "group": "scenes",
+    "label": "S08 \u00b7 Under the folding table",
+    "note": "S08 b001\u2013b003 \u00b7 launderette/interior. Camera at the boy's level.",
+    "refs": [
+      "launderette/interior.jpg",
+      "portraits/bug-ray.jpg",
+      "portraits/jack-monroe.jpg",
+      "launderette/cassette-with-mic.png"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. inside the narrow, grimy laundromat of the first reference (washers to the left, folding table and stacked dryers to the right, stained linoleum, tired green paint, flat fluorescent light). Bug Ray, 15, Black, short natural hair, denim jacket and jeans, sits on the floor under the folding table with a shoebox cassette recorder on his knees, one headphone cup patched with black electrical tape, headphones on. Jack Monroe, 43, salt-and-pepper hair, worn brown tweed jacket and charcoal shirt, crouches down beside the table to talk to him at his level, keeping a careful distance, one hand on the floor for balance. Nobody else in the shop. Cold fluorescent light, dust, a washer out of focus. Low at a child's-eye level, medium shot, deep focus. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s08-02-pencilled-thirteen": {
+    "group": "scenes",
+    "label": "S08 \u00b7 He brought the towels back with that",
+    "note": "S08 b004\u2013b010 \u00b7 launderette/interior \u00b7 laundry-receipt.",
+    "refs": [
+      "launderette/interior.jpg",
+      "portraits/bug-ray.jpg",
+      "portraits/jack-monroe.jpg",
+      "props/laundry-receipt.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. inside the same grimy laundromat as the first reference. Under the folding table, Bug Ray, 15, Black, in a denim jacket, points with one finger at a narrow pink carbon laundry receipt spread on the linoleum in front of him, its pencilled circled thirteen clearly visible, and looks up at Jack as he explains. Jack Monroe, 43, salt-and-pepper hair, brown tweed jacket and charcoal shirt, crouches opposite him, following the boy's finger with his eyes rather than reaching for the paper. Flat fluorescent light from above, the underside of the folding table framing the top of the shot, a stacked dryer out of focus behind. At floor level, tight medium two-shot, deep focus. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s08-03-the-cassette": {
+    "group": "scenes",
+    "label": "S08 \u00b7 You don't have to play it",
+    "note": "S08 b011\u2013b015 \u00b7 launderette/interior.",
+    "refs": [
+      "launderette/interior.jpg",
+      "portraits/bug-ray.jpg",
+      "portraits/jack-monroe.jpg",
+      "launderette/cassette-with-mic.png"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. inside the same grimy laundromat as the first reference. Bug Ray, 15, Black, short natural hair, denim jacket, sits under the folding table holding a cassette in both hands against his chest, reluctant to put it into the shoebox recorder on the floor beside him; his face is frightened of what happens when it ends. Jack Monroe, 43, salt-and-pepper hair, brown tweed jacket and charcoal shirt, crouches in front of him and deliberately does not reach for the tape, his open hands resting on his knees. Fluorescent light overhead, the table legs framing the edges, a washer glowing out of focus. Low, medium two-shot, shallow depth of field on the boy. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
   }
 }

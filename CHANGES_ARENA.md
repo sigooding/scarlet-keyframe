@@ -44,10 +44,13 @@ the same room in every scene that uses it.
 Every still from here on is a **keyframe of the film**, not a reference plate: the characters are acting the
 beat, in the room from the location sheets, holding the props from the prop sheets, lit and composed as a shot.
 
-- Ten keyframes installed, covering **38 beats across S02–S05**: `s02-01-coffee`, `s02-02-officers`,
-  `s02-03-bug-doorway`, `s03-01-stoop`, `s03-02-coroner-van`, `s04-01-counter`, `s04-02-receipt`,
-  `s04-03-seed-wrapper`, `s05-01-bag-note`, `s05-02-pike`. Each is prompted from its room plate plus the voted
-  cast portrait and prop sheet for whatever is in frame.
+- **Twenty keyframes installed, covering 88 beats across S02–S08.** The first ten (S02–S05) are listed below;
+  the second ten add `s05-03-drawer`, `s06-01-hired`, `s06-02-ledger-page`, `s06-03-the-advance`,
+  `s07-01-the-suit`, `s07-02-counting`, `s07-03-biscuit-tin`, `s08-01-under-the-table`,
+  `s08-02-pencilled-thirteen` and `s08-03-the-cassette`. Each is prompted from its room plate plus the voted
+  cast portrait and prop sheet for whatever is in frame:
+  `s02-01-coffee`, `s02-02-officers`, `s02-03-bug-doorway`, `s03-01-stoop`, `s03-02-coroner-van`,
+  `s04-01-counter`, `s04-02-receipt`, `s04-03-seed-wrapper`, `s05-01-bag-note`, `s05-02-pike`.
 - `src/data/sweet-jesus-shots.json` is the shot list: label, alt text, a note on what the frame has to carry, the
   scene, the exact beats it covers, and the location, cast and props it was generated from.
   `src/core/sweetJesusShots.ts` bundles the previews (1024×576, a third of a 1280×720 plate — 89 of them are

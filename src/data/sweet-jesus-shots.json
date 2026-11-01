@@ -206,5 +206,229 @@
     "alt": "Lieutenant Frank Pike stands at his ease by the green filing cabinet, coat open over a rumpled suit, while Jack stands between him and the desk without touching the glassine bag and the note lying on it.",
     "note": "Covers the whole confrontation. Jack never touches the bag; Pike watches the effort it costs him.",
     "original": "s05-02-pike.png"
+  },
+  {
+    "id": "s05-03-drawer",
+    "label": "Until he's gone",
+    "sceneId": "sj_s05",
+    "beats": [
+      "sj_s05_b012"
+    ],
+    "location": "jack-office",
+    "cast": [
+      "jack-monroe",
+      "frank-pike"
+    ],
+    "props": [
+      "glassine-note"
+    ],
+    "alt": "Pike leaves Jack's office through the doorway, having closed the sticking window on his way out; Jack stands perfectly still beside his desk waiting until he is gone, hands flat on the desktop, the glassine bag and the note still untouched.",
+    "note": "S05 b012 \u00b7 jack-office. Jack waits until he's gone, then wraps the bag in the note and puts it in a drawer.",
+    "original": "s05-03-drawer.png"
+  },
+  {
+    "id": "s06-01-hired",
+    "label": "I want the book, not the woman",
+    "sceneId": "sj_s06",
+    "beats": [
+      "sj_s06_b001",
+      "sj_s06_b002",
+      "sj_s06_b003",
+      "sj_s06_b004",
+      "sj_s06_b005"
+    ],
+    "location": "coffee-shop",
+    "cast": [
+      "jack-monroe",
+      "corn-brandt"
+    ],
+    "props": [
+      "ledger"
+    ],
+    "alt": "In Vetrano's coffee shop, Corn sits alone with a slim ledger page turned face down; Jack has just sat opposite him and leaves the envelope Corn pushed across the table exactly where it is. Neither man has greeted the other.",
+    "note": "S06 b001\u2013b005 \u00b7 coffee-shop \u00b7 ledger. Corn does not look up; Jack does not touch the envelope.",
+    "original": "s06-01-hired.png"
+  },
+  {
+    "id": "s06-02-ledger-page",
+    "label": "Fulton Laundry",
+    "sceneId": "sj_s06",
+    "beats": [
+      "sj_s06_b006",
+      "sj_s06_b007",
+      "sj_s06_b008",
+      "sj_s06_b009",
+      "sj_s06_b010"
+    ],
+    "location": "coffee-shop",
+    "cast": [
+      "jack-monroe",
+      "corn-brandt"
+    ],
+    "props": [
+      "ledger"
+    ],
+    "alt": "Corn has turned the ledger page face up and pushes it across the marble table with one finger; Jack looks down at the line reading a laundry delivery and a delivery to Warehouse 3 without touching the page.",
+    "note": "S06 b006\u2013b010 \u00b7 coffee-shop \u00b7 ledger. The page is the film's map: the laundry, the date, the warehouse.",
+    "original": "s06-02-ledger-page.png"
+  },
+  {
+    "id": "s06-03-the-advance",
+    "label": "Five hundred dollars",
+    "sceneId": "sj_s06",
+    "beats": [
+      "sj_s06_b011",
+      "sj_s06_b012",
+      "sj_s06_b013",
+      "sj_s06_b014",
+      "sj_s06_b015",
+      "sj_s06_b016",
+      "sj_s06_b017",
+      "sj_s06_b018",
+      "sj_s06_b019",
+      "sj_s06_b020"
+    ],
+    "location": "coffee-shop",
+    "cast": [
+      "jack-monroe",
+      "corn-brandt"
+    ],
+    "props": [
+      "cash-envelope",
+      "seed-twist"
+    ],
+    "alt": "Corn opens the manila envelope on the marble table so Jack can see the worn bills inside and holds it down with one finger; Jack sits back, does not reach for it, and glances across at the counterman behind the espresso machine, who looks away.",
+    "note": "S06 b011\u2013b020 \u00b7 coffee-shop \u00b7 cash-envelope, seed-twist. Jack leaves sunflower shells on Corn's clean saucer on the way out.",
+    "original": "s06-03-the-advance.png"
+  },
+  {
+    "id": "s07-01-the-suit",
+    "label": "Letting out the hem",
+    "sceneId": "sj_s07",
+    "beats": [
+      "sj_s07_b001",
+      "sj_s07_b002",
+      "sj_s07_b003",
+      "sj_s07_b004",
+      "sj_s07_b005"
+    ],
+    "location": "ray-flat",
+    "cast": [
+      "etta-ray",
+      "jack-monroe"
+    ],
+    "props": [
+      "cash-envelope"
+    ],
+    "alt": "In the adjoining bedroom of the Ray flat, Etta measures her dead son's good suit against the bed and lets out the hem with a seam ripper, working carefully and dry-eyed; the manila envelope lies on the dresser where Jack has just put it.",
+    "note": "S07 b001\u2013b005 \u00b7 ray-flat (bedroom) \u00b7 cash-envelope. Staged in the flat's back bedroom, in the same wallpaper and palette as the plate.",
+    "original": "s07-01-the-suit.png"
+  },
+  {
+    "id": "s07-02-counting",
+    "label": "She counts what men say is enough",
+    "sceneId": "sj_s07",
+    "beats": [
+      "sj_s07_b006",
+      "sj_s07_b007",
+      "sj_s07_b008",
+      "sj_s07_b009",
+      "sj_s07_b010",
+      "sj_s07_b011"
+    ],
+    "location": "ray-flat",
+    "cast": [
+      "etta-ray",
+      "jack-monroe"
+    ],
+    "props": [
+      "cash-envelope"
+    ],
+    "alt": "Etta sits at the formica table counting the bills from the open envelope one at a time, her lips moving slightly; Jack stands a few feet away watching her do it, hands in his pockets, saying nothing.",
+    "note": "S07 b006\u2013b011 \u00b7 ray-flat \u00b7 cash-envelope. She counts because she has learned to count what men say is enough.",
+    "original": "s07-02-counting.png"
+  },
+  {
+    "id": "s07-03-biscuit-tin",
+    "label": "Her face against the suit",
+    "sceneId": "sj_s07",
+    "beats": [
+      "sj_s07_b012",
+      "sj_s07_b013",
+      "sj_s07_b014"
+    ],
+    "location": "ray-flat",
+    "cast": [
+      "etta-ray"
+    ],
+    "props": [],
+    "alt": "Alone at the sideboard, having put half the cash in a biscuit tin and the rest beside a funeral-home bill, Etta presses her face against her dead son's good suit with her eyes closed, now that the man who brought the money has gone.",
+    "note": "S07 b012\u2013b014 \u00b7 ray-flat. Only after he has left. No sentimentality in the lighting.",
+    "original": "s07-03-biscuit-tin.png"
+  },
+  {
+    "id": "s08-01-under-the-table",
+    "label": "Under the folding table",
+    "sceneId": "sj_s08",
+    "beats": [
+      "sj_s08_b001",
+      "sj_s08_b002",
+      "sj_s08_b003"
+    ],
+    "location": "launderette/interior",
+    "cast": [
+      "bug-ray",
+      "jack-monroe"
+    ],
+    "props": [],
+    "alt": "Bug sits on the floor under the folding table with the shoebox recorder on his knees, one headphone cup patched with black electrical tape; Jack crouches down to talk to him at his level, keeping a careful distance.",
+    "note": "S08 b001\u2013b003 \u00b7 launderette \u00b7 bug-ray, jack-monroe. Camera at the boy's eye level.",
+    "original": "s08-01-under-the-table.png"
+  },
+  {
+    "id": "s08-02-pencilled-thirteen",
+    "label": "He brought the towels back with that",
+    "sceneId": "sj_s08",
+    "beats": [
+      "sj_s08_b004",
+      "sj_s08_b005",
+      "sj_s08_b006",
+      "sj_s08_b007",
+      "sj_s08_b008",
+      "sj_s08_b009",
+      "sj_s08_b010"
+    ],
+    "location": "launderette/interior",
+    "cast": [
+      "bug-ray",
+      "jack-monroe"
+    ],
+    "props": [
+      "laundry-receipt"
+    ],
+    "alt": "Under the folding table, Bug points at the pink laundry receipt spread on the linoleum with its pencilled circled thirteen and looks up at Jack as he explains; Jack follows the boy's finger with his eyes rather than reaching for the paper.",
+    "note": "S08 b004\u2013b010 \u00b7 launderette \u00b7 laundry-receipt. The big machine that cleans ice; the man who didn't like him seeing the cart.",
+    "original": "s08-02-pencilled-thirteen.png"
+  },
+  {
+    "id": "s08-03-the-cassette",
+    "label": "You don't have to play it",
+    "sceneId": "sj_s08",
+    "beats": [
+      "sj_s08_b011",
+      "sj_s08_b012",
+      "sj_s08_b013",
+      "sj_s08_b014",
+      "sj_s08_b015"
+    ],
+    "location": "launderette/interior",
+    "cast": [
+      "bug-ray",
+      "jack-monroe"
+    ],
+    "props": [],
+    "alt": "Bug holds the cassette in both hands against his chest, reluctant to put it into the recorder, frightened of what happens when it ends; Jack crouches in front of him with his open hands resting on his knees and deliberately does not reach for it.",
+    "note": "S08 b011\u2013b015 \u00b7 launderette. 'I just don't want him to stop being alive when it ends.'",
+    "original": "s08-03-the-cassette.png"
   }
 ]

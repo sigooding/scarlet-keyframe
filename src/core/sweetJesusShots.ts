@@ -1,16 +1,51 @@
 import shotData from "../data/sweet-jesus-shots.json";
 import s02Coffee from "../assets/sweet-jesus/scenes/s02-01-coffee.jpg?inline";
 import s02Officers from "../assets/sweet-jesus/scenes/s02-02-officers.jpg?inline";
-import s02Bug from "../assets/sweet-jesus/scenes/s02-03-bug-doorway.jpg?inline";
+import s02BugDoorway from "../assets/sweet-jesus/scenes/s02-03-bug-doorway.jpg?inline";
 import s03Stoop from "../assets/sweet-jesus/scenes/s03-01-stoop.jpg?inline";
-import s03Van from "../assets/sweet-jesus/scenes/s03-02-coroner-van.jpg?inline";
+import s03CoronerVan from "../assets/sweet-jesus/scenes/s03-02-coroner-van.jpg?inline";
 import s04Counter from "../assets/sweet-jesus/scenes/s04-01-counter.jpg?inline";
 import s04Receipt from "../assets/sweet-jesus/scenes/s04-02-receipt.jpg?inline";
-import s04Wrapper from "../assets/sweet-jesus/scenes/s04-03-seed-wrapper.jpg?inline";
-import s05Bag from "../assets/sweet-jesus/scenes/s05-01-bag-note.jpg?inline";
+import s04SeedWrapper from "../assets/sweet-jesus/scenes/s04-03-seed-wrapper.jpg?inline";
+import s05BagNote from "../assets/sweet-jesus/scenes/s05-01-bag-note.jpg?inline";
 import s05Pike from "../assets/sweet-jesus/scenes/s05-02-pike.jpg?inline";
+import s05Drawer from "../assets/sweet-jesus/scenes/s05-03-drawer.jpg?inline";
+import s06Hired from "../assets/sweet-jesus/scenes/s06-01-hired.jpg?inline";
+import s06LedgerPage from "../assets/sweet-jesus/scenes/s06-02-ledger-page.jpg?inline";
+import s06TheAdvance from "../assets/sweet-jesus/scenes/s06-03-the-advance.jpg?inline";
+import s07TheSuit from "../assets/sweet-jesus/scenes/s07-01-the-suit.jpg?inline";
+import s07Counting from "../assets/sweet-jesus/scenes/s07-02-counting.jpg?inline";
+import s07BiscuitTin from "../assets/sweet-jesus/scenes/s07-03-biscuit-tin.jpg?inline";
+import s08UnderTheTable from "../assets/sweet-jesus/scenes/s08-01-under-the-table.jpg?inline";
+import s08PencilledThirteen from "../assets/sweet-jesus/scenes/s08-02-pencilled-thirteen.jpg?inline";
+import s08TheCassette from "../assets/sweet-jesus/scenes/s08-03-the-cassette.jpg?inline";
 import type { ProjectAsset, ProjectState } from "./model";
 import { buildKeyframes } from "./model";
+
+export const SWEET_JESUS_SHOT_VERSION = 1;
+
+const images: Record<string, string> = {
+  "s02-01-coffee": s02Coffee,
+  "s02-02-officers": s02Officers,
+  "s02-03-bug-doorway": s02BugDoorway,
+  "s03-01-stoop": s03Stoop,
+  "s03-02-coroner-van": s03CoronerVan,
+  "s04-01-counter": s04Counter,
+  "s04-02-receipt": s04Receipt,
+  "s04-03-seed-wrapper": s04SeedWrapper,
+  "s05-01-bag-note": s05BagNote,
+  "s05-02-pike": s05Pike,
+  "s05-03-drawer": s05Drawer,
+  "s06-01-hired": s06Hired,
+  "s06-02-ledger-page": s06LedgerPage,
+  "s06-03-the-advance": s06TheAdvance,
+  "s07-01-the-suit": s07TheSuit,
+  "s07-02-counting": s07Counting,
+  "s07-03-biscuit-tin": s07BiscuitTin,
+  "s08-01-under-the-table": s08UnderTheTable,
+  "s08-02-pencilled-thirteen": s08PencilledThirteen,
+  "s08-03-the-cassette": s08TheCassette,
+};
 
 /**
  * A Sweet Jesus scene still is a keyframe of the film, not a reference plate:
@@ -31,21 +66,6 @@ export interface SceneShot {
   preview: string;
   dataUrl: string;
 }
-
-export const SWEET_JESUS_SHOT_VERSION = 1;
-
-const images: Record<string, string> = {
-  "s02-01-coffee": s02Coffee,
-  "s02-02-officers": s02Officers,
-  "s02-03-bug-doorway": s02Bug,
-  "s03-01-stoop": s03Stoop,
-  "s03-02-coroner-van": s03Van,
-  "s04-01-counter": s04Counter,
-  "s04-02-receipt": s04Receipt,
-  "s04-03-seed-wrapper": s04Wrapper,
-  "s05-01-bag-note": s05Bag,
-  "s05-02-pike": s05Pike,
-};
 
 export const SWEET_JESUS_SHOTS: SceneShot[] = shotData.map((shot) => {
   const dataUrl = images[shot.id];

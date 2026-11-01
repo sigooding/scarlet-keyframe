@@ -113,7 +113,7 @@ describe("Sweet Jesus storyboard", () => {
         playing={false} soundOn={false} showCaption={true} showMark={true} />,
     );
     expect(preview).toContain("STORYBOARD");
-    expect(preview).toContain("Pike closes the window");
+    expect(preview).toContain(String(firstBlank.beat.shotDescription));
     expect(preview).toContain("Blank picture");
     const { totalFrames } = buildTimelineClips(frames);
     const topbar = renderToStaticMarkup(

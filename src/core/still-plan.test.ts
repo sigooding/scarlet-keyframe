@@ -33,7 +33,7 @@ describe("Sweet Jesus scene still plan", () => {
     let beats = 0;
     for (const scene of plan.scenes) {
       const story = film.scenes.find((item) => item.id === scene.id)!;
-      const storyBeats = (story.dialogueBeats ?? []).filter((beat) => !beat.gap).map((beat) => beat.id);
+      const storyBeats = (story.dialogueBeats ?? []).filter((beat) => !(beat as { gap?: boolean }).gap).map((beat) => beat.id);
       expect(scene.beats.map((beat) => beat.id)).toEqual(storyBeats);
       expect(scene.beats.every((beat) => beat.shot.trim().length > 0)).toBe(true);
       beats += scene.beats.length;
