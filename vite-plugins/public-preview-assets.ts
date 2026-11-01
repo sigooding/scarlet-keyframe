@@ -72,13 +72,6 @@ function isPublicFile(publicDir: string, urlPath: string): boolean {
   }
 }
 
-/**
- * sirv decodes `%20` into a space, like the dev server's media plugin does.
- * A few legacy film assets *literally* contain a percent escape in their file
- * name, so the decoded name does not exist while the still-encoded name does.
- * Re-encode such a request (sirv decodes it back to the literal name) so sirv
- * can still do the range and ETag work.
- */
 function safeDecodeSegment(segment: string): string {
   try {
     return decodeURIComponent(segment);
@@ -87,6 +80,13 @@ function safeDecodeSegment(segment: string): string {
   }
 }
 
+/**
+ * sirv decodes `%20` into a space, like the dev server's media plugin does.
+ * A few legacy film assets *literally* contain a percent escape in their file
+ * name, so the decoded name does not exist while the still-encoded name does.
+ * Re-encode such a request (sirv decodes it back to the literal name) so sirv
+ * can still do the range and ETag work.
+ */
 function requestPathMatchingDisk(publicDir: string, urlPath: string): string {
   if (!urlPath.includes("%")) return urlPath;
   const segments = urlPath.split("/").filter(Boolean);
