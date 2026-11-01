@@ -19,8 +19,38 @@ import s07BiscuitTin from "../assets/sweet-jesus/scenes/s07-03-biscuit-tin.jpg?i
 import s08UnderTheTable from "../assets/sweet-jesus/scenes/s08-01-under-the-table.jpg?inline";
 import s08PencilledThirteen from "../assets/sweet-jesus/scenes/s08-02-pencilled-thirteen.jpg?inline";
 import s08TheCassette from "../assets/sweet-jesus/scenes/s08-03-the-cassette.jpg?inline";
+import s09Stamp from "../assets/sweet-jesus/scenes/s09-01-stamp.jpg?inline";
+import s09LotThirteen from "../assets/sweet-jesus/scenes/s09-02-lot-thirteen.jpg?inline";
+import s09Telephone from "../assets/sweet-jesus/scenes/s09-03-telephone.jpg?inline";
+import s10SandwichLine from "../assets/sweet-jesus/scenes/s10-01-sandwich-line.jpg?inline";
+import s10Dorothy from "../assets/sweet-jesus/scenes/s10-02-dorothy.jpg?inline";
+import s10TheNote from "../assets/sweet-jesus/scenes/s10-03-the-note.jpg?inline";
+import s11TheBooks from "../assets/sweet-jesus/scenes/s11-01-the-books.jpg?inline";
+import s11BentNib from "../assets/sweet-jesus/scenes/s11-02-bent-nib.jpg?inline";
+import s11TheDrawer from "../assets/sweet-jesus/scenes/s11-03-the-drawer.jpg?inline";
+import s12AuctionWindow from "../assets/sweet-jesus/scenes/s12-01-auction-window.jpg?inline";
 import type { ProjectAsset, ProjectState } from "./model";
 import { buildKeyframes } from "./model";
+
+/**
+ * A Sweet Jesus scene still is a keyframe of the film, not a reference plate:
+ * the characters are acting the beat, in the room from the location sheets, with
+ * the props from the prop sheets. Each one is keyed to the beats it covers.
+ */
+export interface SceneShot {
+  id: string;
+  label: string;
+  alt: string;
+  note: string;
+  sceneId: string;
+  beats: string[];
+  location: string;
+  cast: string[];
+  props: string[];
+  original: string;
+  preview: string;
+  dataUrl: string;
+}
 
 export const SWEET_JESUS_SHOT_VERSION = 1;
 
@@ -45,27 +75,17 @@ const images: Record<string, string> = {
   "s08-01-under-the-table": s08UnderTheTable,
   "s08-02-pencilled-thirteen": s08PencilledThirteen,
   "s08-03-the-cassette": s08TheCassette,
+  "s09-01-stamp": s09Stamp,
+  "s09-02-lot-thirteen": s09LotThirteen,
+  "s09-03-telephone": s09Telephone,
+  "s10-01-sandwich-line": s10SandwichLine,
+  "s10-02-dorothy": s10Dorothy,
+  "s10-03-the-note": s10TheNote,
+  "s11-01-the-books": s11TheBooks,
+  "s11-02-bent-nib": s11BentNib,
+  "s11-03-the-drawer": s11TheDrawer,
+  "s12-01-auction-window": s12AuctionWindow,
 };
-
-/**
- * A Sweet Jesus scene still is a keyframe of the film, not a reference plate:
- * the characters are acting the beat, in the room from the location sheets, with
- * the props from the prop sheets. Each one is keyed to the beats it covers.
- */
-export interface SceneShot {
-  id: string;
-  label: string;
-  alt: string;
-  note: string;
-  sceneId: string;
-  beats: string[];
-  location: string;
-  cast: string[];
-  props: string[];
-  original: string;
-  preview: string;
-  dataUrl: string;
-}
 
 export const SWEET_JESUS_SHOTS: SceneShot[] = shotData.map((shot) => {
   const dataUrl = images[shot.id];

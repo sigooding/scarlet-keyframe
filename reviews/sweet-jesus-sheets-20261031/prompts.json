@@ -461,5 +461,119 @@
       "launderette/cassette-with-mic.png"
     ],
     "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, not a reference plate. inside the same grimy laundromat as the first reference. Bug Ray, 15, Black, short natural hair, denim jacket, sits under the folding table holding a cassette in both hands against his chest, reluctant to put it into the shoebox recorder on the floor beside him; his face is frightened of what happens when it ends. Jack Monroe, 43, salt-and-pepper hair, brown tweed jacket and charcoal shirt, crouches in front of him and deliberately does not reach for the tape, his open hands resting on his knees. Fluorescent light overhead, the table legs framing the edges, a washer glowing out of focus. Low, medium two-shot, shallow depth of field on the boy. Camera, 35mm film grain, muted earth-tone palette, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s09-01-stamp": {
+    "group": "scenes",
+    "label": "S09 \u00b7 Lot Thirteen",
+    "note": "S09 b001\u2013b004 \u00b7 property-office \u00b7 stamp, nicky-cart.",
+    "refs": [
+      "locations/property-office.jpg",
+      "portraits/whitney-kellerman.jpg",
+      "portraits/frank-pike.jpg",
+      "props/stamp.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, in the drab municipal City Property office of the first reference (heavy government desk, receipt book, ink pad, grey filing cabinets, frosted-glass partition onto a clerks' room). Whitney Kellerman, 50s, neat graying hair, dark three-piece suit and patterned tie, has just brought an oversized wood-handled rubber stamp down onto a stack of transfer slips and is checking his ink-marked cuff. Lieutenant Frank Pike, 50s, close-cut grey hair, open dark overcoat over a rumpled suit, stands over the desk watching him. Through the frosted partition behind them, softly out of focus, a clerk in a brown cardigan sorts receipts into precise piles at a rolling cart. Cold fluorescent light, linoleum, stacks of paper. At eye level, medium shot, deep focus, olive-green and grey palette. 35mm film grain, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s09-02-lot-thirteen": {
+    "group": "scenes",
+    "label": "S09 \u00b7 Industrial cleaning compound",
+    "note": "S09 b005\u2013b009 \u00b7 property-office \u00b7 transfer-slip.",
+    "refs": [
+      "locations/property-office.jpg",
+      "props/transfer-slip.jpg",
+      "portraits/whitney-kellerman.jpg",
+      "portraits/frank-pike.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, at the same desk in the City Property office of the first reference. Whitney Kellerman, 50s, neat graying hair, dark three-piece suit, is holding up and turning towards Pike a manila carbon transfer form: a printed lot number thirteen, a typed description line for an industrial cleaning compound and thirty kilos, two signatures and a dark blue embossed municipal seal. Lieutenant Frank Pike, 50s, close-cut grey hair, open dark overcoat, stands over the desk reading it without taking it, his hands in his coat pockets. Both men are entirely businesslike. Cold fluorescent light, the oversized wood-handled stamp and ink pad on the desk beside the form. From the side at eye level, medium two-shot, deep focus, olive-green and grey palette. 35mm film grain, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s09-03-telephone": {
+    "group": "scenes",
+    "label": "S09 \u00b7 The hand over the telephone",
+    "note": "S09 b010 \u00b7 property-office \u00b7 stamp. He doesn't make the call.",
+    "refs": [
+      "locations/property-office.jpg",
+      "props/stamp.jpg",
+      "portraits/whitney-kellerman.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, in the same City Property office as the first reference. Whitney Kellerman, 50s, neat graying hair and a dark three-piece suit, sits alone at his desk; his right hand, the cuff stained with black ink, is raised a few inches above the black rotary telephone, hesitating to make a call, and is about to come back down to the oversized wood-handled stamp instead of picking up the receiver. The transfer slips have been taken from the desk. His face is careful and unreadable. Cold fluorescent light, grey filing cabinets and the frosted partition behind, precise stacks of paper. At eye level across the desk, medium shot, deep focus, olive-green and grey palette. 35mm film grain, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s10-01-sandwich-line": {
+    "group": "scenes",
+    "label": "S10 \u00b7 Thirty kilos, eight o'clock",
+    "note": "S10 b001\u2013b006 \u00b7 church-kitchen.",
+    "refs": [
+      "locations/church-kitchen.jpg",
+      "portraits/harriett.jpg",
+      "portraits/dove.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, in the church basement kitchen of the first reference (long stainless-steel work table, loaves and a bread knife, paper plates, coffee urn, cork noticeboard, wall telephone with a long cord, painted cinderblock). A line of young children waits for sandwiches. Harriett, 30s, Black, full natural Afro, dark leather coat over a burgundy turtleneck, stands at the table checking a list, and has just been handed a small pencilled note by a volunteer; she is reading it a second time, her expression changing. Dove, 20s, Black, rounded natural Afro, brown suede jacket and rust knit shirt, cuts bread with a blunt knife beside her, unaware. Warm fluorescent and window light, steam, paper plates. At standing eye level, medium-wide, deep focus. 35mm film grain, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s10-02-dorothy": {
+    "group": "scenes",
+    "label": "S10 \u00b7 The heel of the bread",
+    "note": "S10 b007\u2013b011 \u00b7 church-kitchen.",
+    "refs": [
+      "locations/church-kitchen.jpg",
+      "portraits/dove.jpg",
+      "portraits/harriett.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, in the same church basement kitchen as the first reference. A small Black girl in a home-made blue gingham Dorothy costume with plastic-braided hair stands on tiptoe at the stainless-steel table asking for the heel of the loaf; Dove, 20s, Black, rounded natural Afro, brown suede jacket and rust knit shirt, is breaking off the end of the bread and handing it to her, smiling in spite of himself. Behind them at the table, out of focus but readable, Harriett, 30s, full natural Afro and dark leather coat, is still holding the pencilled note, watching the children rather than the bread. Warm fluorescent light, steam, paper plates, cinderblock wall. At standing eye level, medium shot, deep focus, no sentimentality. 35mm film grain, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s10-03-the-note": {
+    "group": "scenes",
+    "label": "S10 \u00b7 Before anything else",
+    "note": "S10 b012 \u00b7 church-kitchen.",
+    "refs": [
+      "locations/church-kitchen.jpg",
+      "portraits/harriett.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, in the same church basement kitchen as the first reference. Harriett, 30s, Black, full natural Afro, dark leather coat over a burgundy turtleneck, stands alone at the stainless-steel table: she has folded the small pencilled note and is putting it into her coat pocket, and with her other hand she is going back to finish the sandwich she was making, because she finishes the sandwiches before she does anything else. Her face is settled and grim, not alarmed. Dove, 20s, brown suede jacket, works at the far end of the table out of focus; the wall telephone with its long cord hangs behind her. Warm fluorescent light, loaves, a bread knife, paper plates. At standing eye level, medium shot, shallow depth of field. 35mm film grain, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s11-01-the-books": {
+    "group": "scenes",
+    "label": "S11 \u00b7 Six years I kept your accounts",
+    "note": "S11 b001\u2013b008 \u00b7 back-office \u00b7 ledger.",
+    "refs": [
+      "locations/back-office.jpg",
+      "props/ledger.jpg",
+      "portraits/vera-voss.jpg",
+      "portraits/corn-brandt.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, in the cramped back office of the first reference (scarred wooden desk, columnar accounts book, fountain pen, filing cabinet, frosted-glass door to the shop, dark panelled walls, desk lamp). Vera Voss, late 30s, dark bob, fitted chocolate-brown suit and cream blouse, sits at the desk writing in one accounts ledger with complete concentration. Cornelius 'Corn' Brandt, 60s, slicked-back silver hair, dark checked three-piece suit, sits opposite her with the slim ledger page he turned face down in the coffee shop, and is indicating with one finger the empty place on her desk where a book is missing. She does not look up. Warm desk-lamp light and dim daylight, dust, stacks of receipt folders. At seated eye level across the desk, medium two-shot, deep focus, amber and olive palette. 35mm film grain, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s11-02-bent-nib": {
+    "group": "scenes",
+    "label": "S11 \u00b7 The nib bends",
+    "note": "S11 b009\u2013b012 \u00b7 back-office \u00b7 ledger.",
+    "refs": [
+      "locations/back-office.jpg",
+      "props/ledger.jpg",
+      "portraits/corn-brandt.jpg",
+      "portraits/vera-voss.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, in the same cramped back office as the first reference. Cornelius 'Corn' Brandt, 60s, slicked-back silver hair, dark checked three-piece suit and patterned tie, has just closed Vera's fountain pen inside her accounts ledger with deliberate care, bending the nib; his hand is still flat on the closed book. Vera Voss, late 30s, dark bob, chocolate-brown suit and cream blouse, sits very still opposite him, watching his hand rather than his face, her own hands flat on the desk. Nothing is said. Warm desk-lamp light, dark panelling, the slim ledger page on the desk between them. At seated eye level over Corn's shoulder, medium shot, shallow depth of field on the pen and the book, amber and olive palette. 35mm film grain, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s11-03-the-drawer": {
+    "group": "scenes",
+    "label": "S11 \u00b7 A city seal in the drawer",
+    "note": "S11 b013 \u00b7 back-office \u00b7 transfer-slip.",
+    "refs": [
+      "locations/back-office.jpg",
+      "props/transfer-slip.jpg",
+      "portraits/vera-voss.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, in the same cramped back office as the first reference, now empty of the man who was in it. Vera Voss, late 30s, dark bob, chocolate-brown suit and cream blouse, is alone at her desk with the lower drawer pulled open on her knee; she holds up a thin manila carbon transfer slip and is looking at the dark blue embossed municipal seal pressed into its corner, having just found it. On the desk beside her lies the fountain pen with its bent nib. Her expression is calculating and unafraid. Warm desk-lamp light, dark panelling, the doorway behind her empty. At her eye level from the side, medium shot, shallow depth of field on the paper, amber and olive palette. 35mm film grain, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
+  },
+  "s12-01-auction-window": {
+    "group": "scenes",
+    "label": "S12 \u00b7 Seized industrial goods",
+    "note": "S12 b001\u2013b005 \u00b7 auction-office \u00b7 pinball-machine.",
+    "refs": [
+      "locations/auction-office.jpg",
+      "props/pinball-machine.jpg",
+      "portraits/nicky.jpg",
+      "portraits/jack-monroe.jpg"
+    ],
+    "prompt": "ONE horizontal 16:9 photorealistic 1975 Brooklyn crime-drama FILM STILL \u2014 a keyframe from the film Sweet Jesus, in the navy yard surplus auction office of the first reference (battered counter with a service window and metal grille, clerk's desk, clipboard, auction catalogues, rolling cart of paperwork, corkboard of sale notices, warehouse bay of seized pinball machines beyond). Nicky, an adult clerk with soft dark hair, brown cardigan, collared shirt and tie, is checking the serial number plate of a pinball machine against his list with a pencil. Jack Monroe, 43, salt-and-pepper hair, worn brown tweed jacket and open charcoal shirt, stands at the public side of the service window examining an auction catalogue, one hand in his pocket, not yet showing what he really wants. Cold overhead factory light, concrete and corrugated metal. At eye level, medium shot through the grille, deep focus, drab olive and grey palette. 35mm film grain, unglamorous realism. No captions, subtitles, overlaid text, logos or watermarks."
   }
 }

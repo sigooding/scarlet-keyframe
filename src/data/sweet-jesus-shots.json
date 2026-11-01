@@ -430,5 +430,221 @@
     "alt": "Bug holds the cassette in both hands against his chest, reluctant to put it into the recorder, frightened of what happens when it ends; Jack crouches in front of him with his open hands resting on his knees and deliberately does not reach for it.",
     "note": "S08 b011\u2013b015 \u00b7 launderette. 'I just don't want him to stop being alive when it ends.'",
     "original": "s08-03-the-cassette.png"
+  },
+  {
+    "id": "s09-01-stamp",
+    "label": "Lot Thirteen",
+    "sceneId": "sj_s09",
+    "beats": [
+      "sj_s09_b001",
+      "sj_s09_b002",
+      "sj_s09_b003",
+      "sj_s09_b004"
+    ],
+    "location": "property-office",
+    "cast": [
+      "whitney-kellerman",
+      "frank-pike"
+    ],
+    "props": [
+      "stamp",
+      "nicky-cart"
+    ],
+    "alt": "Kellerman has brought the oversized wood-handled stamp down onto a stack of transfer slips and is checking his ink-marked cuff; Pike stands over the desk, and through the frosted partition a clerk sorts receipts into precise piles.",
+    "note": "S09 b001\u2013b004 \u00b7 property-office \u00b7 stamp. Nicky is visible through the glass, squaring piles.",
+    "original": "s09-01-stamp.png"
+  },
+  {
+    "id": "s09-02-lot-thirteen",
+    "label": "Industrial cleaning compound",
+    "sceneId": "sj_s09",
+    "beats": [
+      "sj_s09_b005",
+      "sj_s09_b006",
+      "sj_s09_b007",
+      "sj_s09_b008",
+      "sj_s09_b009"
+    ],
+    "location": "property-office",
+    "cast": [
+      "whitney-kellerman",
+      "frank-pike"
+    ],
+    "props": [
+      "stamp",
+      "transfer-slip"
+    ],
+    "alt": "Kellerman holds up the manila transfer form for Pike to read: lot thirteen, an industrial cleaning compound, thirty kilos, two signatures and the city's embossed seal. Pike reads it without taking it.",
+    "note": "S09 b005\u2013b009 \u00b7 property-office \u00b7 transfer-slip. Thirty kilos sold as cleaning compound.",
+    "original": "s09-02-lot-thirteen.png"
+  },
+  {
+    "id": "s09-03-telephone",
+    "label": "The hand over the telephone",
+    "sceneId": "sj_s09",
+    "beats": [
+      "sj_s09_b010"
+    ],
+    "location": "property-office",
+    "cast": [
+      "whitney-kellerman",
+      "frank-pike"
+    ],
+    "props": [
+      "stamp"
+    ],
+    "alt": "Alone at his desk, Kellerman's ink-stained hand hesitates a few inches above the black rotary telephone, then comes back down to the stamp instead: he does not make the call.",
+    "note": "S09 b010 \u00b7 property-office \u00b7 stamp. Pike has taken the slips; the hand returns to the stamp.",
+    "original": "s09-03-telephone.png"
+  },
+  {
+    "id": "s10-01-sandwich-line",
+    "label": "Thirty kilos, eight o'clock",
+    "sceneId": "sj_s10",
+    "beats": [
+      "sj_s10_b001",
+      "sj_s10_b002",
+      "sj_s10_b003",
+      "sj_s10_b004",
+      "sj_s10_b005",
+      "sj_s10_b006"
+    ],
+    "location": "church-kitchen",
+    "cast": [
+      "harriett",
+      "dove"
+    ],
+    "props": [],
+    "alt": "In the church kitchen, a line of children waits for sandwiches; Harriett checks her list and reads a small pencilled note a second time while Dove cuts bread with a blunt knife beside her.",
+    "note": "S10 b001\u2013b006 \u00b7 church-kitchen. The note reads Lot 13, Warehouse 3, eight o'clock.",
+    "original": "s10-01-sandwich-line.png"
+  },
+  {
+    "id": "s10-02-dorothy",
+    "label": "The heel of the bread",
+    "sceneId": "sj_s10",
+    "beats": [
+      "sj_s10_b007",
+      "sj_s10_b008",
+      "sj_s10_b009",
+      "sj_s10_b010",
+      "sj_s10_b011"
+    ],
+    "location": "church-kitchen",
+    "cast": [
+      "dove",
+      "harriett"
+    ],
+    "props": [],
+    "alt": "A little girl in a home-made Dorothy costume asks for the heel of the loaf and Dove breaks it off and gives it to her, while behind them Harriett still holds the note and watches the children rather than the bread.",
+    "note": "S10 b007\u2013b011 \u00b7 church-kitchen. 'Somebody wants us somewhere at eight.'",
+    "original": "s10-02-dorothy.png"
+  },
+  {
+    "id": "s10-03-the-note",
+    "label": "Before anything else",
+    "sceneId": "sj_s10",
+    "beats": [
+      "sj_s10_b012"
+    ],
+    "location": "church-kitchen",
+    "cast": [
+      "harriett"
+    ],
+    "props": [],
+    "alt": "Harriett folds the pencilled note into her coat pocket and, before she does anything about it, goes back to finishing the sandwich she was making.",
+    "note": "S10 b012 \u00b7 church-kitchen. She finishes the sandwiches first.",
+    "original": "s10-03-the-note.png"
+  },
+  {
+    "id": "s11-01-the-books",
+    "label": "Six years I kept your accounts",
+    "sceneId": "sj_s11",
+    "beats": [
+      "sj_s11_b001",
+      "sj_s11_b002",
+      "sj_s11_b003",
+      "sj_s11_b004",
+      "sj_s11_b005",
+      "sj_s11_b006",
+      "sj_s11_b007",
+      "sj_s11_b008"
+    ],
+    "location": "back-office",
+    "cast": [
+      "vera-voss",
+      "corn-brandt"
+    ],
+    "props": [
+      "ledger",
+      "transfer-slip"
+    ],
+    "alt": "Vera writes in one accounts ledger without looking up while Corn sits opposite her and indicates with one finger the empty place on her desk where a book is missing.",
+    "note": "S11 b001\u2013b008 \u00b7 back-office \u00b7 ledger. She does not stop writing.",
+    "original": "s11-01-the-books.png"
+  },
+  {
+    "id": "s11-02-bent-nib",
+    "label": "The nib bends",
+    "sceneId": "sj_s11",
+    "beats": [
+      "sj_s11_b009",
+      "sj_s11_b010",
+      "sj_s11_b011",
+      "sj_s11_b012"
+    ],
+    "location": "back-office",
+    "cast": [
+      "corn-brandt",
+      "vera-voss"
+    ],
+    "props": [
+      "ledger"
+    ],
+    "alt": "Corn closes Vera's fountain pen inside her ledger with deliberate care, bending the nib, his hand still flat on the closed book; Vera watches his hand rather than his face.",
+    "note": "S11 b009\u2013b012 \u00b7 back-office \u00b7 ledger. 'I sent Jack Monroe. He finds things.'",
+    "original": "s11-02-bent-nib.png"
+  },
+  {
+    "id": "s11-03-the-drawer",
+    "label": "A city seal in the drawer",
+    "sceneId": "sj_s11",
+    "beats": [
+      "sj_s11_b013"
+    ],
+    "location": "back-office",
+    "cast": [
+      "vera-voss"
+    ],
+    "props": [
+      "transfer-slip"
+    ],
+    "alt": "Alone with the man gone, Vera holds up the duplicate transfer slip she has taken from her desk drawer and looks at the embossed municipal seal in its corner; the pen with the bent nib lies on the desk.",
+    "note": "S11 b013 \u00b7 back-office \u00b7 transfer-slip. She keeps it.",
+    "original": "s11-03-the-drawer.png"
+  },
+  {
+    "id": "s12-01-auction-window",
+    "label": "Seized industrial goods",
+    "sceneId": "sj_s12",
+    "beats": [
+      "sj_s12_b001",
+      "sj_s12_b002",
+      "sj_s12_b003",
+      "sj_s12_b004",
+      "sj_s12_b005"
+    ],
+    "location": "auction-office",
+    "cast": [
+      "nicky",
+      "jack-monroe"
+    ],
+    "props": [
+      "pinball-machine",
+      "nicky-cart"
+    ],
+    "alt": "Nicky checks the serial number of a pinball machine against his list with a pencil while Jack stands at the public side of the service window examining an auction catalogue, not yet showing what he really wants.",
+    "note": "S12 b001\u2013b005 \u00b7 auction-office \u00b7 pinball-machine. 'Who buys cleaning compound by the kilo?'",
+    "original": "s12-01-auction-window.png"
   }
 ]
