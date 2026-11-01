@@ -1,0 +1,344 @@
+[
+  {
+    "id": "main-title",
+    "title": "Salt Water (main titles)",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s01"
+    ],
+    "note": "Two-note synth ostinato under a slow pad, fretless bass, gated snare entering on the cut to the boat. Ends hard on the stand-down order."
+  },
+  {
+    "id": "bullpen-hum",
+    "title": "Bullpen hum",
+    "artist": "Original score",
+    "kind": "ambience",
+    "scenes": [
+      "mv_s02",
+      "mv_s08",
+      "mv_s16",
+      "mv_s24",
+      "mv_s27",
+      "mv_s34",
+      "mv_s40",
+      "mv_s47",
+      "mv_s52",
+      "mv_s57",
+      "mv_s64",
+      "mv_s68",
+      "mv_s71",
+      "mv_s78",
+      "mv_s81",
+      "mv_s88",
+      "mv_s101",
+      "mv_s105",
+      "mv_s113"
+    ],
+    "note": "No melody. Fluorescent buzz, a wall of televisions, rain against the blinds, and one held low pad. The bullpen is the only room in the film with no tune in it."
+  },
+  {
+    "id": "salsa-radio",
+    "title": "Salsa on the watchman's radio",
+    "artist": "Source cue",
+    "kind": "diegetic",
+    "scenes": [
+      "mv_s03"
+    ],
+    "note": "Tinny salsa from an empty container office, playing to nobody. It keeps running under the counting."
+  },
+  {
+    "id": "nineteen-pulse",
+    "title": "Nineteen (pulse)",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s03",
+      "mv_s06",
+      "mv_s23"
+    ],
+    "note": "A single low pulse, one hit per crate number. Stops dead when Lupe runs."
+  },
+  {
+    "id": "six-weeks",
+    "title": "Six Weeks (Crockett)",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s05",
+      "mv_s09",
+      "mv_s54",
+      "mv_s112"
+    ],
+    "note": "The Burnett cue: a clean Prophet pad with a sax-like lead that never quite resolves. Every time it plays, Crockett is alone in the frame."
+  },
+  {
+    "id": "cafecito-radio",
+    "title": "Cafecito radio",
+    "artist": "Source cue",
+    "kind": "diegetic",
+    "scenes": [
+      "mv_s11",
+      "mv_s37",
+      "mv_s58",
+      "mv_s90",
+      "mv_s106"
+    ],
+    "note": "Latin pop and a call-in show, always from a small speaker in another room. Little Havana is never scored."
+  },
+  {
+    "id": "ballgame-radio",
+    "title": "Ball game on the radio",
+    "artist": "Source cue",
+    "kind": "diegetic",
+    "scenes": [
+      "mv_s13",
+      "mv_s73"
+    ],
+    "note": "A ball game at low volume in the bookie's back room. The only thing in the room that isn't afraid."
+  },
+  {
+    "id": "nassau",
+    "title": "Nassau",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s20",
+      "mv_s42",
+      "mv_s43"
+    ],
+    "note": "Steel drum, fretless bass, a clean guitar with a lot of chorus. This is the money cue: it plays whenever the word Salt Water is said out loud."
+  },
+  {
+    "id": "piano-bar",
+    "title": "Piano bar standard",
+    "artist": "Source cue",
+    "kind": "diegetic",
+    "scenes": [
+      "mv_s21",
+      "mv_s55"
+    ],
+    "note": "A house pianist playing something with too many chords. Same tune in both Carlyle scenes."
+  },
+  {
+    "id": "nineteen-fire",
+    "title": "Nineteen (fire)",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s26",
+      "mv_s27",
+      "mv_s29"
+    ],
+    "note": "No drums anywhere in this stretch. A low drone, rain hissing on hot metal, and one high held note at the number on the crate."
+  },
+  {
+    "id": "you-belong-to-the-city",
+    "title": "You Belong to the City",
+    "artist": "Glenn Frey",
+    "kind": "song",
+    "scenes": [
+      "mv_s31",
+      "mv_s115"
+    ],
+    "note": "Licensed period song, used twice: once driving east into the light with a car telephone ringing, once on the causeway at dawn with the top down. Sax and a long tail under the dialogue."
+  },
+  {
+    "id": "ocean-drive-cruise",
+    "title": "Ocean Drive (cruise)",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s36",
+      "mv_s41",
+      "mv_s56",
+      "mv_s87"
+    ],
+    "note": "Mid-tempo synth with a brushed snare. The driving cue. Never used over a scene with a dead body in it."
+  },
+  {
+    "id": "dog-track",
+    "title": "Dog track PA and crowd",
+    "artist": "Source cue",
+    "kind": "diegetic",
+    "scenes": [
+      "mv_s44",
+      "mv_s45",
+      "mv_s46"
+    ],
+    "note": "The announcer, the crowd, the dogs. Switek's whole world in one speaker."
+  },
+  {
+    "id": "smugglers-blues",
+    "title": "Smuggler's Blues",
+    "artist": "Glenn Frey",
+    "kind": "song",
+    "scenes": [
+      "mv_s46",
+      "mv_s119"
+    ],
+    "note": "Licensed period song. First over the parking lot where Switek takes two thousand dollars; reprised instrumentally over the crates sitting in the sun at the tag."
+  },
+  {
+    "id": "rooftop-silence",
+    "title": "Rooftop (near silence)",
+    "artist": "Original score",
+    "kind": "ambience",
+    "scenes": [
+      "mv_s49",
+      "mv_s50",
+      "mv_s114"
+    ],
+    "note": "Gravel, rain, a dog two canals away, water on a seawall. Almost no score at all - the one place the film refuses to help itself."
+  },
+  {
+    "id": "badge-number",
+    "title": "Badge number",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s54",
+      "mv_s80"
+    ],
+    "note": "Solo synth and the tape hiss of a recorder running. Reprised when the tape goes in the water."
+  },
+  {
+    "id": "smooth-operator",
+    "title": "Smooth Operator",
+    "artist": "Sade",
+    "kind": "song",
+    "scenes": [
+      "mv_s55"
+    ],
+    "note": "Licensed period song, playing in the suite while Marta explains that the truth is a thing you schedule."
+  },
+  {
+    "id": "two-lane",
+    "title": "Two-lane (Everglades)",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s61"
+    ],
+    "note": "Engine, cicadas, the cooling unit cycling on and off, and a slow synth figure with no percussion. Long."
+  },
+  {
+    "id": "airstrip",
+    "title": "Airstrip",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s62",
+      "mv_s63"
+    ],
+    "note": "Prop wash, generator putt-putt, a shovel in dirt, and a low brass synth. The shovel is louder than the music."
+  },
+  {
+    "id": "issued-by-us",
+    "title": "Issued by us",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s64",
+      "mv_s65"
+    ],
+    "note": "One held chord, played once, allowed to decay into the teletype."
+  },
+  {
+    "id": "miramar-band",
+    "title": "Cover band at the Miramar",
+    "artist": "Source cue",
+    "kind": "diegetic",
+    "scenes": [
+      "mv_s75",
+      "mv_s77"
+    ],
+    "note": "A band playing something fast and wrong. Cuts dead on the loading bay and does not come back."
+  },
+  {
+    "id": "the-jacket",
+    "title": "The jacket",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s80",
+      "mv_s112"
+    ],
+    "note": "Solo piano-register synth, no percussion. Burnett's theme, resolved and then put away."
+  },
+  {
+    "id": "storm-build",
+    "title": "Storm (raid build)",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s88",
+      "mv_s91"
+    ],
+    "note": "The main-title ostinato returns, faster, with rain on the roof and radios."
+  },
+  {
+    "id": "racking",
+    "title": "Racking",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s92",
+      "mv_s95"
+    ],
+    "note": "Percussive, gated snare, steel drum. The loudest cue in the film."
+  },
+  {
+    "id": "prieto-silence",
+    "title": "Prieto",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s96"
+    ],
+    "note": "Everything drops out except water on the roof. Four seconds of nothing, then the next scene starts loud."
+  },
+  {
+    "id": "in-the-air-tonight",
+    "title": "In the Air Tonight",
+    "artist": "Phil Collins",
+    "kind": "song",
+    "scenes": [
+      "mv_s99",
+      "mv_s100"
+    ],
+    "note": "Licensed period song. The causeway standoff: the drum break lands on the moment Tubbs lowers the gun. A deliberate echo of the pilot, and the only time the film plays it."
+  },
+  {
+    "id": "crocketts-theme",
+    "title": "Crockett's Theme",
+    "artist": "Jan Hammer",
+    "kind": "song",
+    "scenes": [
+      "mv_s109",
+      "mv_s110"
+    ],
+    "note": "Licensed period cue under the two-man scene on Ocean Drive. Sax lead, no drums for the first minute."
+  },
+  {
+    "id": "cemetery",
+    "title": "Nineteen (coda)",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s120",
+      "mv_s121"
+    ],
+    "note": "The crate-number pulse returns on a solo synth, slower, under a child saying a number out loud at a grave."
+  },
+  {
+    "id": "end-titles",
+    "title": "Salt Water (end titles)",
+    "artist": "Original score",
+    "kind": "score",
+    "scenes": [
+      "mv_s122"
+    ],
+    "note": "Main-title ostinato, resolved at last, with the sax lead from the Burnett cue. Two minutes, then a radio crackling into the next case."
+  }
+]

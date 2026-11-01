@@ -18,7 +18,8 @@
     "build:launderette-sheets": "node scripts/build-launderette-sheets.mjs",
     "build:opening-storyboard": "node scripts/build-opening-storyboard.mjs",
     "build:miami-vice": "node scripts/build-miami-vice.mjs",
-    "build:miami-vice-previews": "bash scripts/build-miami-vice-previews.sh"
+    "build:miami-vice-previews": "bash scripts/build-miami-vice-previews.sh",
+    "build:miami-vice-locations": "bash scripts/build-miami-vice-locations.sh"
   },
   "dependencies": {
     "clsx": "2.1.1",

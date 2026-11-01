@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { BUILT_IN_FILMS, createBundledFilm } from "./bundledFilms";
 import { MIAMI_VICE_CAST_REFERENCES } from "./miamiViceCharacters";
+import { MIAMI_VICE_LOCATION_BY_SCENE, MIAMI_VICE_LOCATION_REFERENCES } from "./miamiViceLocations";
+import music from "../data/miami-vice-music.json";
 import { MiamiViceCast } from "../components/MiamiViceCast";
 
 const project = () => createBundledFilm("miami-vice-film", new Map(), new Map())!;
@@ -44,6 +46,34 @@ describe("Miami Vice - Salt Water", () => {
       expect(character.original).toBe(`./miami-vice/characters/${character.id}.png`);
       expect(character.continuity.length).toBeGreaterThan(40);
     }
+  });
+
+  it("keys every location plate to real storyboard scenes", () => {
+    const sceneIds = new Set(project().story.scenes.map((scene) => String(scene.id)));
+    expect(MIAMI_VICE_LOCATION_REFERENCES.length).toBeGreaterThan(0);
+    for (const ref of MIAMI_VICE_LOCATION_REFERENCES) {
+      expect(ref.preview).toContain(`${ref.id}.jpg`);
+      expect(ref.alt.length).toBeGreaterThan(60);
+      expect(ref.summary.length).toBeGreaterThan(60);
+      expect(ref.design.length).toBeGreaterThan(60);
+      expect(ref.continuity.length).toBeGreaterThan(60);
+      expect(ref.scenes.length).toBeGreaterThan(0);
+      for (const sceneId of ref.scenes) expect(sceneIds).toContain(sceneId);
+    }
+    expect(Object.keys(MIAMI_VICE_LOCATION_BY_SCENE)).toContain("mv_s01");
+  });
+
+  it("carries a music cue list keyed to real scenes", () => {
+    const sceneIds = new Set(project().story.scenes.map((scene) => String(scene.id)));
+    expect(music.length).toBeGreaterThan(20);
+    for (const cue of music) {
+      expect(cue.note.length).toBeGreaterThan(40);
+      expect(["score", "song", "diegetic", "ambience"]).toContain(cue.kind);
+      for (const sceneId of cue.scenes) expect(sceneIds).toContain(sceneId);
+    }
+    // Five licensed period songs, all of them in the season four register.
+    expect(music.filter((cue) => cue.kind === "song")).toHaveLength(5);
+    expect(music.some((cue) => cue.scenes.includes("mv_s99"))).toBe(true);
   });
 
   it("renders the cast gallery", () => {

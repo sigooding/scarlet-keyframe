@@ -168,3 +168,24 @@ Switek taking two thousand dollars in a parking lot, the tape of the truck that 
 three, the mule who walks behind it, Eddie's autopsy (a broken arm, graphite on the palm),
 Crockett recording his own badge number below decks, Coburn's locker, and the Miramar,
 where Burnett is spent to pull Gina out of a van.
+
+## Miami Vice - cast fix, first location plates, music supervision
+
+- **Tubbs recast.** The casting plate for Ricardo Tubbs was regenerated: close-cropped
+  hair, clean-shaven, charcoal suit over an open collar with a thin gold chain, and an
+  explicit "no moustache, no sunglasses, no weapon" line in the prompt. The preview was
+  rebuilt; the original in `public/miami-vice/characters/` is the new one.
+- **Nine location plates** (`public/miami-vice/locations/`, previews in
+  `src/assets/miami-vice/locations/` at 1280x720), described in
+  `src/data/miami-vice-locations.json` with camera design and continuity notes and keyed
+  to their scenes through `MIAMI_VICE_LOCATION_BY_SCENE`: the OCB bullpen, the container
+  yard, the St. Vitus, the warehouse on the river, the Carlyle bar, Marta's office, the
+  causeway, the thrift store and the Hotel Miramar pool. Roughly a dozen remain - the
+  Castillo office, the Marin kitchen, Izzy's lot, the bookie's back room, the bank room
+  with no name, the airstrip, the hospital, Ocean Drive and the rest.
+- **Music**: `docs/miami-vice-music.md` and 29 cues in `src/data/miami-vice-music.json`,
+  keyed to scene ids. Original synth score in the Jan Hammer register, five licensed
+  period songs (Glenn Frey x2, Sade, Phil Collins, Jan Hammer), and source music in every
+  location - salsa at the docks, a ball game in the bookie's back room, a house pianist
+  at the Carlyle, a cover band at the Miramar.
+- `npm run build:miami-vice-locations` added. Suite is 34 files / 244 tests green.

@@ -24,13 +24,20 @@ produced**, and the **Screenplay** button downloads the Fountain draft (it does 
 
 Choose **Characters** while the film is open to browse the ten generated casting plates, with wardrobe and continuity
 notes. Locations, props and scene keyframes are built the same way as Sweet Jesus: reference plates first, then
-keyframes that stage the beat with the cast and props in the room.
+keyframes that stage the beat with the cast and props in the room. The nine location plates built so far live in
+`src/data/miami-vice-locations.json` (OCB bullpen, container yard, the St. Vitus, the warehouse, the Carlyle bar,
+Marta's office, the causeway, the thrift store and the Miramar pool).
+
+`docs/miami-vice-music.md` is the sound supervision note: an original synth score in the Jan Hammer register, five
+licensed period songs, source music in every location, and 29 cues keyed to scene ids in
+`src/data/miami-vice-music.json`.
 
 Regenerate the compiled storyboard after editing the screenplay:
 
 ```bash
 npm run build:miami-vice            # src/data/miami-vice.fountain -> src/data/miami-vice-film.json
 npm run build:miami-vice-previews   # public/miami-vice/characters/*.png -> src/assets/miami-vice/portraits/*.jpg
+npm run build:miami-vice-locations  # public/miami-vice/locations/*.png   -> src/assets/miami-vice/locations/*.jpg
 ```
 
 ## Sweet Jesus
