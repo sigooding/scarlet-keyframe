@@ -150,7 +150,13 @@ toolchain as Sweet Jesus.
 - `src/core/bundledFilms.ts` - `miami-vice-film` is now a selectable built-in film; the
   screenplay downloads from the topbar button.
 
-Draft length after the Act I pass: 102 scenes / 710 beats, 61.6 minutes of compiled beat
+Draft length after the Act II pass: 115 scenes / 994 beats, 86 minutes of compiled beat
 time. Compiled beat time runs roughly a third of screen time (dialogue is timed at
 fourteen characters a second and action shots cap at nine seconds), so this is a feature
-draft; Acts II and III get the same treatment next, then locations, props and keyframes.
+draft. Act III gets the same treatment next, then locations, props and keyframes.
+
+Act II added: the buy money and its band numbers, a bank room with no name on the door,
+Switek taking two thousand dollars in a parking lot, the tape of the truck that leaves at
+three, the mule who walks behind it, Eddie's autopsy (a broken arm, graphite on the palm),
+Crockett recording his own badge number below decks, Coburn's locker, and the Miramar,
+where Burnett is spent to pull Gina out of a van.

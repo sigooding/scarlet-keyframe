@@ -19,7 +19,7 @@ function prettyName(speaker) {
       if (part.trim().startsWith("(")) return part.trim().toUpperCase();
       return part
         .split(/(\s+)/)
-        .map((word) => (/\s/.test(word) ? word : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()))
+        .map((word) => (/\s/.test(word) || /^[A-Z](\.[A-Z])+\.?$/.test(word) ? word : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()))
         .join("");
     })
     .join(" ")
@@ -134,7 +134,7 @@ export function compileScreenplay(text) {
       durationFrames: Math.max(visualFrames, sound.durationFrames),
       captions: sound.captions,
     };
-    if (/TITLE:\s*SWEET JESUS/i.test(action)) beat.titleCard = { title: "SWEET JESUS", align: "center" };
+    if (/TITLE:\s*MIAMI VICE/i.test(action)) beat.titleCard = { title: "MIAMI VICE - SALT WATER", align: "center" };
     if (/^SMASH TO BLACK\.?$/i.test(action)) beat.gap = true;
     scene.dialogueBeats.push(beat);
   }
