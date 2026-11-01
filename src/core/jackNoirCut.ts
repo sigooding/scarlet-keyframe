@@ -7,30 +7,28 @@
 //    reflection beats, a slow tilt for power / vulnerability. Only the beats given one of these moves get their
 //    camera replaced (the film's auto-converted preset move); every other beat keeps the move it already has.
 //  - Lighting: blinds, backlight rim, key slash, eye light and neon points from the existing overlays.
-//  - Sound: only existing files. Music drops out after gunfire (silence), distant sirens on a few wet nights,
-//    slap-back echo taps made from the same clips for footsteps and Jack's voice-over, J-cuts and L-cuts.
-//  - Voice-over: Jack's own recorded reflective lines are promoted to voice-over: they lead the picture (J-cut),
-//    run on over the next picture (L-cut), carry a faint echo and the music ducks under them.
-// A real narration track needs new recordings; this cut does not fake one.
+//  - Sound: only existing files. Distant sirens on a wet night, slap-back echo taps made from the same clip on footsteps
+//    where the place rings, J-cuts and L-cuts. Music is never ducked for sound effects (the engine already ducks it
+//    under spoken voice).
+//  - Pacing: the silence after each spoken line is cut from 0.54 s to 0.25 s (1.75 s to about 1.15 s after a scene's last line).
+// There is no narration: a real narration track needs new recordings, and this cut does not fake one.
 
 import {
   buildAudioClipsFromFilm,
   resolveAudioClips,
   roundMicros,
   type AudioClip,
-  type AudioVolumeKey,
 } from "./audioClips";
 import { isNarrationBeat } from "./captions";
 import {
   buildKeyframes,
   type AnyRecord,
   type BeatAnimation,
-  type BeatLike,
   type ProjectState,
   type SceneLike,
   type StoryLike,
 } from "./model";
-import { clipFrames, FPS } from "./timing";
+import { clipFrames, FPS, sceneProseFrames } from "./timing";
 import { buildTimelineClips, minZoomForRotation } from "../sequence/animate";
 
 export type NoirMood = "blue" | "amber" | "red" | "green" | "muted";
@@ -45,7 +43,6 @@ export interface SceneLook {
 
 const VIOLENCE_SFX =
   /suppressed-shot|smg-burst|bullets|ricochets|door-pounding-shots|shot2|windscreen-crack|glass-case-shatter|gate-smash|body-fall|punches/;
-const SHOT_SFX = /suppressed-shot|smg-burst|bullets|ricochets|shot2|windscreen-crack|glass-case-shatter|body-fall/;
 
 function hashInt(seed: string): number {
   let h = 2166136261;
@@ -105,13 +102,6 @@ const NEON_LIGHTS: AnyRecord[] = [
 const EMOTIVE = /afraid|scared|sorry|blame|guilt|\blie[ds]?\b|truth|promise|dead|died|killed|murder|forgive|alone|miss(ed|ing)?\b/i;
 const TENSION = /\b(gun|shot|shoot|shooting|blood|kill|run|hurry|behind you|they know|follow(ed|ing)?|watch(ing)?|threat|danger)\b/i;
 const REFLECTIVE = /reflect|mirror|puddle|glass|window/i;
-const REFLECTIVE_JACK = /\b(I should have|I promised|twenty years|I was a|I gave|I'm sorry|my statement|the last of it|I couldn't|I didn't|I never|I left|I lied|I wasn't)\b/i;
-
-export function isJackVoiceOver(beat: BeatLike): boolean {
-  if (beat.characterId !== "nw_jack" || !beat.audioUrl) return false;
-  const text = String(beat.text ?? "");
-  return text.length >= 90 || REFLECTIVE_JACK.test(text);
-}
 
 function key(frame: number, value: number, easing: "ease-in-out" | "linear" = "ease-in-out") {
   return { frame, value, easing };
@@ -125,13 +115,12 @@ function mergeLights(existing: unknown, add: AnyRecord[]): AnyRecord[] | undefin
 
 export interface JackNoirReport {
   scenesByMood: Record<NoirMood, number>;
-  voiceOverBeats: number;
   dutchBeats: number;
   pushBeats: number;
   reflectionBeats: number;
   lCuts: number;
+  tightTails: number;
   jCuts: number;
-  silenceWindows: number;
   echoTaps: number;
   sirens: number;
 }
@@ -139,13 +128,12 @@ export interface JackNoirReport {
 function newReport(): JackNoirReport {
   return {
     scenesByMood: { blue: 0, amber: 0, red: 0, green: 0, muted: 0 },
-    voiceOverBeats: 0,
     dutchBeats: 0,
     pushBeats: 0,
     reflectionBeats: 0,
     lCuts: 0,
+    tightTails: 0,
     jCuts: 0,
-    silenceWindows: 0,
     echoTaps: 0,
     sirens: 0,
   };
@@ -184,29 +172,51 @@ function applyLook(story: StoryLike, report: JackNoirReport): Map<string, SceneL
   return looks;
 }
 
-/** Pass 2: picture timing. Voice-over lines and a few spoken lines cut away before the voice ends (L-cut). */
-function applyLCuts(story: StoryLike, voiceDurations: ReadonlyMap<string, number>, report: JackNoirReport): void {
+/** Silence kept after a spoken line: noir cuts on the reply. The raw Uncut leaves 0.54 s (and 1.75 s after a scene's last line). */
+const TAIL_MID_FRAMES = Math.round(0.25 * FPS);
+
+/**
+ * Pass 2: picture timing. Every spoken beat is cut shortly after its voice ends (tight tail),
+ * and a few spoken lines cut away before the voice ends (L-cut), only into a silent beat of the same scene.
+ */
+function applyPacing(story: StoryLike, voiceDurations: ReadonlyMap<string, number>, report: JackNoirReport): void {
   const frames = buildKeyframes(story);
-  for (let i = 0; i < frames.length - 1; i += 1) {
+  for (let i = 0; i < frames.length; i += 1) {
     const frame = frames[i];
     const beat = frame.beat;
-    const next = frames[i + 1];
     if (!beat.audioUrl || beat.durationFrames || beat.gap) continue;
-    if (next.sceneId !== frame.sceneId || next.beat.audioUrl || next.beat.gap) continue; // never over a reply or a scene change
-    const vo = isJackVoiceOver(beat);
-    if (!vo && hashInt(String(beat.id)) % 4 !== 0) continue;
     const voiceSec = voiceDurations.get(String(beat.audioUrl));
+    if (voiceSec === undefined) continue; // unmeasured voice: leave the film's own timing
+    const next = frames[i + 1];
+    const lastInScene = !next || next.sceneId !== frame.sceneId;
     const full = clipFrames(frame, voiceSec);
-    const voiceFrames = Math.max(1, Math.round((voiceSec ?? 3) * FPS));
-    const lead = Math.max(0, Math.round(Number(beat.voiceStartFrame) || 0));
+    const offsetSec = Math.max(0, Number(beat.audioOffsetSeconds || 0));
+    const voiceFrames = Math.max(1, Math.round(Math.max(0, voiceSec - offsetSec) * FPS));
+    const explicitStart = Number(beat.voiceStartFrame);
+    const lead = Math.max(0, Number.isFinite(explicitStart) ? Math.round(explicitStart) : sceneProseFrames(frame));
     const voiceEnd = Math.min(full, lead + voiceFrames);
-    const tail = full - voiceEnd; // breathing room after the voice
-    const cut = Math.round((vo ? 0.8 : 0.35) * FPS);
-    const target = Math.max(voiceEnd - cut, lead + Math.round(0.5 * FPS), Math.round(FPS));
-    // Only shorten when the picture really outlasts the cut point.
-    if (target >= full - 2 || tail < 0) continue;
+
+    // 1. Tight tail. A scene's last line keeps room for its transition.
+    const transition = Math.min(2.4, Math.max(0, Number(frame.scene.transitionSpeed) || 0));
+    const lastTail = Math.round(Math.max(0.9, transition + 0.25) * FPS);
+    let target = voiceEnd + (lastInScene ? lastTail : TAIL_MID_FRAMES);
+    let cut = false;
+
+    // 2. L-cut: the voice runs on over the next (silent) picture of the same scene.
+    if (next && !lastInScene && !next.beat.audioUrl && !next.beat.gap) {
+      if (hashInt(String(beat.id)) % 4 === 0) {
+        const lcut = Math.max(voiceEnd - Math.round(0.35 * FPS), lead + Math.round(0.5 * FPS), FPS);
+        if (lcut < voiceEnd) {
+          target = lcut;
+          cut = true;
+        }
+      }
+    }
+    target = Math.max(target, Math.round(FPS / 2));
+    if (target >= full - 1) continue;
     beat.durationFrames = target;
-    report.lCuts += 1;
+    report.tightTails += cut ? 0 : 1;
+    report.lCuts += cut ? 1 : 0;
   }
 }
 
@@ -275,32 +285,6 @@ function applyCamera(
   }
 }
 
-function dipKeys(
-  clipStartMs: number,
-  clipDurationMs: number,
-  windows: { startMs: number; endMs: number; scale: number }[],
-): AudioVolumeKey[] | undefined {
-  const rel = windows
-    .map((w) => ({ s: w.startMs - clipStartMs, e: w.endMs - clipStartMs, scale: w.scale }))
-    .filter((w) => w.e > 0 && w.s < clipDurationMs)
-    .sort((a, b) => a.s - b.s);
-  if (!rel.length) return undefined;
-  const keys: AudioVolumeKey[] = [];
-  const push = (atMs: number, gain: number) => {
-    const at = Math.max(0, Math.min(clipDurationMs, roundMicros(atMs)));
-    const last = keys[keys.length - 1];
-    if (last && at <= last.atMs) return;
-    keys.push({ atMs: at, gain });
-  };
-  for (const w of rel) {
-    push(w.s - 300, 1);
-    push(w.s, w.scale);
-    push(w.e, w.scale);
-    push(w.e + 400, 1);
-  }
-  return keys;
-}
-
 /** Pass 4: sound, built only from files already in the film. */
 function polishAudio(
   story: StoryLike,
@@ -318,24 +302,6 @@ function polishAudio(
   const voiceSorted = resolved.filter((c) => c.lane === "voice").sort((a, b) => a.startMs - b.startMs);
   const prevEnd = new Map<string, number>();
   voiceSorted.forEach((c, i) => prevEnd.set(c.id, i ? voiceSorted[i - 1].endMs : 0));
-
-  // Windows where the music steps back: under Jack's voice-over, and silence after gunfire.
-  const musicWindows: { startMs: number; endMs: number; scale: number }[] = [];
-  const voiceOver = new Set<string>();
-  for (const rc of voiceSorted) {
-    const frame = frameById.get(rc.anchorId);
-    if (frame && isJackVoiceOver(frame.beat)) {
-      voiceOver.add(rc.id);
-      musicWindows.push({ startMs: rc.startMs, endMs: rc.endMs, scale: 0.45 });
-    }
-  }
-  for (const rc of resolved) {
-    if (rc.lane === "sfx" && SHOT_SFX.test(rc.src)) {
-      musicWindows.push({ startMs: rc.startMs + 250, endMs: rc.startMs + 2600, scale: 0 });
-      report.silenceWindows += 1;
-    }
-  }
-  report.voiceOverBeats = voiceOver.size;
 
   const out: AudioClip[] = [];
   const plain = (rc: (typeof resolved)[number], patch: Partial<AudioClip> = {}): AudioClip => ({
@@ -366,27 +332,20 @@ function polishAudio(
 
   for (const rc of resolved) {
     if (rc.lane === "music") {
-      const keys = dipKeys(rc.startMs, rc.durationMs, musicWindows);
-      out.push(plain(rc, { gain: rc.gain * 0.85, ...(keys ? { volumeKeys: keys } : {}) }));
+      out.push(plain(rc, { gain: rc.gain * 0.85 })); // never dipped for sound effects
       continue;
     }
     if (rc.lane === "voice") {
-      const frame = frameById.get(rc.anchorId);
-      const isVO = voiceOver.has(rc.id);
       const clear = rc.startMs - (prevEnd.get(rc.id) ?? 0);
       const atStart = Math.abs(rc.offsetMs) < 35;
       const eligible = atStart && rc.startMs > 3000 && clear >= 700;
-      const lead = isVO ? Math.min(650, clear - 150) : hashInt(rc.id) % 3 !== 0 ? 240 : 0;
+      const lead = hashInt(rc.id) % 3 !== 0 ? 240 : 0;
       let voice = plain(rc);
       if (eligible && lead >= 120) {
         voice = plain(rc, { offsetMs: roundMicros(rc.offsetMs - lead), fadeInMs: 14, fadeOutMs: 24 });
         report.jCuts += 1;
       }
       out.push(voice);
-      if (isVO && frame) {
-        out.push(tap(voice as never, 1, 210, 0.16), tap(voice as never, 2, 430, 0.08));
-        report.echoTaps += 2;
-      }
       continue;
     }
     out.push(plain(rc));
@@ -428,7 +387,7 @@ export function applyJackNoirTreatment(
   story.captionStyle = { position: "bottom", size: "S", backgroundBox: false, showSpeaker: true, italicNarration: true };
   const looks = applyLook(story, report);
   addSirens(story, looks, report);
-  applyLCuts(story, voiceDurations, report);
+  applyPacing(story, voiceDurations, report);
   applyCamera(story, voiceDurations, looks, report);
   const audioClips = polishAudio(story, voiceDurations, musicDurations, looks, report);
   return {

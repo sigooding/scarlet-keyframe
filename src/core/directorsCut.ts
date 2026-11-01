@@ -85,10 +85,10 @@ export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
   },
   {
     id: "jack-noir",
-    label: "Jack’s Noir — Narrated Cut",
+    label: "Jack’s Noir Cut",
     shortLabel: "Jack’s Noir",
     description:
-      "Original Uncut in full, in classic noir colour, camera, light and sound; Jack’s own recorded lines become voice-over (J/L cuts, echo, music ducking). Existing pictures and sounds only.",
+      "Original Uncut in full, in classic noir colour, camera, light and sound, with tighter pacing after each line and J/L cuts. Existing pictures and sounds only; no narration.",
   },
   {
     id: "uncut",

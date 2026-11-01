@@ -5,7 +5,7 @@ import bundledEdits from "../data/studio-edits.json";
 import { buildTimelineClips } from "../sequence/animate";
 import { resolveAudioClips } from "./audioClips";
 import { buildDirectorsCutById, DIRECTORS_CUT_OPTIONS } from "./directorsCut";
-import { applyJackNoirTreatment, classifyScene, isJackVoiceOver } from "./jackNoirCut";
+import { applyJackNoirTreatment, classifyScene } from "./jackNoirCut";
 import { applyStudioMusicSync, buildKeyframes, createProjectState, parseImportPayload } from "./model";
 import { extractKnownMusicDurations } from "./previewAudio";
 
@@ -78,14 +78,6 @@ describe("Jack's Noir cut", () => {
     expect(classifyScene({ id: "d", title: "Room", ambientAudio: "file:/film/sfx/amb-hive.mp3", dialogueBeats: [] } as never).mood).toBe("amber");
   });
 
-  it("promotes Jack's reflective recorded lines to voice-over, only Jack's", () => {
-    const beats = buildKeyframes(uncut.story).map((f) => f.beat);
-    const vo = beats.filter(isJackVoiceOver);
-    expect(vo.length).toBeGreaterThanOrEqual(10);
-    expect(vo.every((b) => b.characterId === "nw_jack" && b.audioUrl)).toBe(true);
-    expect(isJackVoiceOver({ characterId: "nw_vera", audioUrl: "/x.mp3", text: "x".repeat(200) } as never)).toBe(false);
-  });
-
   it("replaces the camera only on treated beats, tilts safely, and never produces tiny clips", () => {
     const before = new Map(buildKeyframes(uncut.story).map((f) => [f.id, JSON.stringify(f.beat.animation ?? null)]));
     const frames = buildKeyframes(jack.story);
@@ -105,37 +97,74 @@ describe("Jack's Noir cut", () => {
     expect(Math.min(...clips.filter((c) => !c.keyframe.beat.gap).map((c) => c.durationFrames))).toBeGreaterThan(0);
   });
 
-  it("L-cuts only shorten a spoken beat that is followed by a silent beat in the same scene", () => {
-    const a = buildKeyframes(uncut.story);
-    const b = buildKeyframes(jack.story);
-    let changed = 0;
-    b.forEach((f, i) => {
-      if (f.beat.durationFrames && !a[i].beat.durationFrames) {
-        changed += 1;
-        expect(f.beat.audioUrl).toBeTruthy();
-        expect(b[i + 1].sceneId).toBe(f.sceneId);
-        expect(b[i + 1].beat.audioUrl).toBeFalsy();
-        expect(f.beat.durationFrames).toBeGreaterThanOrEqual(24);
-      }
+  const tailsOf = (p: typeof uncut) => {
+    const { clips, totalFrames } = buildTimelineClips(buildKeyframes(p.story), voiceMap);
+    const mid: number[] = [];
+    const last: number[] = [];
+    clips.forEach((c, i) => {
+      if (!c.keyframe.beat.audioUrl || c.voiceFrames <= 0) return;
+      const tail = (c.durationFrames - (c.voiceInFrame + c.voiceFrames)) / 24;
+      const isLast = i + 1 >= clips.length || clips[i + 1].keyframe.sceneId !== c.keyframe.sceneId;
+      (isLast ? last : mid).push(tail);
     });
-    expect(changed).toBeGreaterThan(5);
+    const median = (a: number[]) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
+    return { mid: median(mid), last: median(last), minutes: totalFrames / 24 / 60 };
+  };
+
+  it("cuts the silence after spoken lines: 0.54 s to 0.25 s, and a scene's last line to about a second", () => {
+    const before = tailsOf(uncut);
+    const after = tailsOf(jack);
+    expect(before.mid).toBeGreaterThan(0.5);
+    expect(after.mid).toBeLessThan(0.3);
+    expect(before.last).toBeGreaterThan(1.5);
+    expect(after.last).toBeLessThan(1.4);
+    expect(before.minutes - after.minutes).toBeGreaterThan(3);
   });
 
-  it("never lets two spoken lines overlap, and echoes only belong to voice-over and footsteps", () => {
+  it("only lets a voice run past its picture as an L-cut into a silent beat of the same scene", () => {
+    const a = buildKeyframes(uncut.story);
+    const b = buildKeyframes(jack.story);
+    const { clips } = buildTimelineClips(b, voiceMap);
+    let lcuts = 0;
+    clips.forEach((c, i) => {
+      if (!c.keyframe.beat.audioUrl || c.voiceFrames <= 0) return;
+      expect(c.durationFrames).toBeGreaterThanOrEqual(12);
+      const voiceEnd = c.voiceInFrame + c.voiceFrames;
+      if (c.durationFrames < voiceEnd) {
+        lcuts += 1;
+        expect(b[i + 1].sceneId).toBe(b[i].sceneId);
+        expect(b[i + 1].beat.audioUrl).toBeFalsy();
+      } else {
+        expect(c.durationFrames - voiceEnd).toBeGreaterThanOrEqual(5); // the last words are never clipped
+      }
+      void a;
+    });
+    expect(lcuts).toBeGreaterThan(5);
+  });
+
+  it("never lets two spoken lines overlap, and the only echo is on footsteps (none on voices)", () => {
     const frames = buildKeyframes(jack.story);
     const { clips } = buildTimelineClips(frames, voiceMap);
     const resolved = resolveAudioClips(jack.audioClips, clips);
-    const voices = resolved.filter((c) => c.lane === "voice" && !c.id.includes("_echo")).sort((x, y) => x.startMs - y.startMs);
+    const voices = resolved.filter((c) => c.lane === "voice").sort((x, y) => x.startMs - y.startMs);
     for (let i = 1; i < voices.length; i += 1) expect(voices[i].startMs).toBeGreaterThanOrEqual(voices[i - 1].endMs - 5);
+    expect(voices.some((c) => c.id.includes("_echo"))).toBe(false);
     const echoes = resolved.filter((c) => c.id.includes("_echo"));
-    expect(echoes.length).toBeGreaterThan(0);
-    expect(echoes.length).toBeLessThan(200);
+    expect(echoes.every((c) => c.lane === "sfx" && /footsteps|boots|heels|running/.test(c.src))).toBe(true);
+    expect(echoes.length).toBeLessThan(60);
   });
 
-  it("drops the music after gunfire and under voice-over", () => {
-    const keyed = (jack.audioClips ?? []).filter((c) => c.lane === "music" && c.volumeKeys?.length);
-    expect(keyed.length).toBeGreaterThan(0);
-    for (const c of keyed) for (const k of c.volumeKeys!) expect(k.gain).toBeGreaterThanOrEqual(0);
+  it("never dips the music: no music clip gets volume keys, and each is the Uncut clip at 85%", () => {
+    const keyOf = (c: { src: string; anchorId: string }) => `${c.src}@${c.anchorId}`;
+    const before = new Map((uncut.audioClips ?? []).filter((c) => c.lane === "music").map((c) => [keyOf(c), c]));
+    const music = (jack.audioClips ?? []).filter((c) => c.lane === "music");
+    expect(music.length).toBeGreaterThan(0);
+    for (const c of music) {
+      const was = before.get(keyOf(c));
+      expect(was, `music ${keyOf(c)} exists in Original Uncut`).toBeDefined();
+      expect(c.volumeKeys ?? []).toEqual(was!.volumeKeys ?? []);
+      expect(c.gain).toBeCloseTo(was!.gain * 0.85, 6);
+    }
   });
 
   it("leaves Original Uncut itself untouched", () => {
