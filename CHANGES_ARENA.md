@@ -150,6 +150,7 @@ toolchain as Sweet Jesus.
 - `src/core/bundledFilms.ts` - `miami-vice-film` is now a selectable built-in film; the
   screenplay downloads from the topbar button.
 
-Draft length: 95 scenes / 442 beats compiles to about 39 minutes of beat time, which is
-roughly a feature's screen time once action shots play out. The next pass deepens the
-scenes toward a full two hours before locations, props and keyframes begin.
+Draft length after the Act I pass: 102 scenes / 710 beats, 61.6 minutes of compiled beat
+time. Compiled beat time runs roughly a third of screen time (dialogue is timed at
+fourteen characters a second and action shots cap at nine seconds), so this is a feature
+draft; Acts II and III get the same treatment next, then locations, props and keyframes.
