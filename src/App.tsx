@@ -6,6 +6,7 @@ import { AssetBrowser, type BrowserAsset } from "./components/AssetBrowser";
 import type { SelectedCaptionState } from "./components/CaptionLane";
 import { CinematicPreview } from "./components/CinematicPreview";
 import { CharacterReferences } from "./components/CharacterReferences";
+import { MiamiViceCast } from "./components/MiamiViceCast";
 import { LaunderetteReferences } from "./components/LaunderetteReferences";
 import { CurveEditor } from "./components/CurveEditor";
 import { CropModal, type CropState } from "./components/CropModal";
@@ -198,6 +199,7 @@ import { renderTimelineAudioOfflineWav, uint8ArrayToBase64 } from "./core/offlin
 import bundledFilm from "./data/nobodys-witness-film.json";
 import bundledEdits from "./data/studio-edits.json";
 import sweetJesusScreenplay from "./data/sweet-jesus.fountain?raw";
+import miamiViceScreenplay from "./data/miami-vice.fountain?raw";
 
 type BrowseTarget = BrowseMediaTarget;
 type BrowserState = { kind: "image" | "audio"; target: BrowseTarget; frameId?: string };
@@ -663,6 +665,7 @@ export default function App() {
   const [missingOpen, setMissingOpen] = useState(false);
   const [charactersOpen, setCharactersOpen] = useState(false);
   const [launderetteOpen, setLaunderetteOpen] = useState(false);
+  const [miamiCastOpen, setMiamiCastOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportTab, setExportTab] = useState<ExportTab>("bundle");
   const [exportProgress, setExportProgress] = useState(0);
@@ -4828,10 +4831,16 @@ export default function App() {
         onDownloadScreenplay={
           project.story.id === "sweet-jesus-film"
             ? () => downloadText(sweetJesusScreenplay, "sweet-jesus-screenplay.fountain")
-            : undefined
+            : project.story.id === "miami-vice-film"
+              ? () => downloadText(miamiViceScreenplay, "miami-vice-screenplay.fountain")
+              : undefined
         }
         onShowCharacterReferences={
-          project.story.id === "sweet-jesus-film" ? () => setCharactersOpen(true) : undefined
+          project.story.id === "sweet-jesus-film"
+            ? () => setCharactersOpen(true)
+            : project.story.id === "miami-vice-film"
+              ? () => setMiamiCastOpen(true)
+              : undefined
         }
         onShowLaunderetteReferences={
           project.story.id === "sweet-jesus-film" ? () => setLaunderetteOpen(true) : undefined
@@ -6015,6 +6024,9 @@ export default function App() {
       )}
       {charactersOpen && project.story.id === "sweet-jesus-film" && (
         <CharacterReferences onClose={() => setCharactersOpen(false)} />
+      )}
+      {miamiCastOpen && project.story.id === "miami-vice-film" && (
+        <MiamiViceCast onClose={() => setMiamiCastOpen(false)} />
       )}
       {launderetteOpen && project.story.id === "sweet-jesus-film" && (
         <LaunderetteReferences

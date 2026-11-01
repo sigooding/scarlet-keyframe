@@ -6,6 +6,7 @@ import { LaunderetteReferences } from "../components/LaunderetteReferences";
 import { Topbar } from "../components/Topbar";
 import blankFilm from "../data/sweet-jesus-film.json";
 import { createBundledFilm } from "./bundledFilms";
+import { SWEET_JESUS_SHOTS } from "./sweetJesusShots";
 import { buildPortableBundle } from "./exportBundle";
 import { effectiveFilmCutOptions } from "./filmFraming";
 import { buildKeyframes, createProjectState, parseImportPayload } from "./model";
@@ -98,9 +99,11 @@ describe("Sweet Jesus launderette and opening", () => {
     const covered = SWEET_JESUS_OPENING_REFERENCES.flatMap((shot) => shot.beats);
     expect(new Set(covered).size).toBe(22);
     expect(covered).toEqual(opening.map((frame) => frame.id));
-    expect(project.assets).toHaveLength(7);
+    // The seven opening stills, plus the scene keyframes installed later in the film.
+    expect(project.assets).toHaveLength(7 + SWEET_JESUS_SHOTS.length);
     // Vitest stubs static imports as paths; the browser smoke test checks the real inlined data URLs.
-    expect(project.assets.every((asset) => asset.width === 1280 && asset.height === 720 && !!asset.dataUrl)).toBe(true);
+    expect(project.assets.slice(0, 7).every((asset) => asset.width === 1280 && asset.height === 720 && !!asset.dataUrl)).toBe(true);
+    expect(project.assets.slice(7).every((asset) => asset.width === 1024 && asset.height === 576 && !!asset.dataUrl)).toBe(true);
     expect(opening.every((frame) => frame.picture?.startsWith("asset:sj-opening-v1-") && frame.beat.backgroundHold === false)).toBe(true);
     expect(opening.slice(0, 8).every((frame) => frame.picture?.endsWith("brothers-washer"))).toBe(true);
     expect(opening.slice(8, 12).every((frame) => frame.picture?.endsWith("brothers-newspaper"))).toBe(true);
@@ -108,7 +111,8 @@ describe("Sweet Jesus launderette and opening", () => {
     expect(opening.slice(15, 20).every((frame) => frame.picture?.endsWith("bug-recording"))).toBe(true);
     expect(opening[20].picture).toMatch(/pinky-ring$/);
     expect(opening[21].picture).toMatch(/bug-labels-tape$/);
-    expect(frames.slice(22).every((frame) => !frame.picture)).toBe(true);
+    const shotBeats = new Set(SWEET_JESUS_SHOTS.flatMap((shot) => shot.beats));
+    expect(frames.slice(22).filter((frame) => !shotBeats.has(frame.id)).every((frame) => !frame.picture)).toBe(true);
     expect(project.audioClips).toEqual([]);
     expect(project.story.scenes[0].dialogueBeats?.[20].captions?.[0].text).toContain("Peanut laughs");
     expect(countEmptySweetJesusOpeningShots(project)).toBe(0);
@@ -181,7 +185,7 @@ describe("Sweet Jesus launderette and opening", () => {
   it("exports the opening assets in a portable bundle", async () => {
     const bundle = await buildPortableBundle(fresh(), new Map(), new Set());
     expect(bundle.missing).toEqual([]);
-    expect(bundle.assets).toHaveLength(7);
+    expect(bundle.assets).toHaveLength(7 + SWEET_JESUS_SHOTS.length);
     expect(bundle.assets.every((asset) => !!asset.dataUrl)).toBe(true);
     expect(bundle.story.scenes[0].dialogueBeats![0].background).toMatch(/^asset:sj-opening-v1-/);
   });

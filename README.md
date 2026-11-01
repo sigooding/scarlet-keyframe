@@ -10,6 +10,38 @@ switching. Existing single-project autosaves are preserved.
     npm run build        # one self-contained page, dist/index.html, that opens from disk
     npm test
 
+## Miami Vice - Salt Water
+
+Select **Miami Vice - Salt Water** in the film selector to open an original feature in the season-four register:
+pastels draining into shadow, night-heavy Miami, and the season-four squad (Crockett, Tubbs, Castillo, Gina, Trudy,
+Switek, Zito and Izzy) alongside two characters written for this story - Marta Escobar, who runs a relief charity, and
+Ray Coburn, a federal agent twenty-two months under. A dock foreman counts the crates twice; a Nassau trust with no
+name on it is called Salt Water; a twelve-year-old keeps her father's watch.
+
+The draft is a full feature: 122 scenes and 1,192 storyboard frames, with editable shot directions and timed dialogue
+and non-dialogue closed captions. As with Sweet Jesus, dialogue recordings, music and sound effects are **not yet
+produced**, and the **Screenplay** button downloads the Fountain draft (it does not incorporate timeline edits).
+
+Choose **Characters** while the film is open to browse the ten generated casting plates, with wardrobe and continuity
+notes. Locations, props and scene keyframes are built the same way as Sweet Jesus: reference plates first, then
+keyframes that stage the beat with the cast and props in the room. The nineteen location plates built so far live in
+`src/data/miami-vice-locations.json`: the OCB bullpen, container yard, the St. Vitus, the warehouse and its
+glass office, the Carlyle bar, Marta's office, the causeway, the thrift store, the Miramar pool, Castillo's
+office, the Marin kitchen, Izzy's lot, the bookie's back room, the bank room with no name, the airstrip,
+the hospital, Ocean Drive and county family services.
+
+`docs/miami-vice-music.md` is the sound supervision note: an original synth score in the Jan Hammer register, five
+licensed period songs, source music in every location, and 29 cues keyed to scene ids in
+`src/data/miami-vice-music.json`.
+
+Regenerate the compiled storyboard after editing the screenplay:
+
+```bash
+npm run build:miami-vice            # src/data/miami-vice.fountain -> src/data/miami-vice-film.json
+npm run build:miami-vice-previews   # public/miami-vice/characters/*.png -> src/assets/miami-vice/portraits/*.jpg
+npm run build:miami-vice-locations  # public/miami-vice/locations/*.png   -> src/assets/miami-vice/locations/*.jpg
+```
+
 ## Sweet Jesus
 
 Select **Sweet Jesus** in the film selector to open its separate 30-scene storyboard. It includes the supplied

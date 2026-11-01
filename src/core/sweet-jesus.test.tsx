@@ -8,6 +8,7 @@ import { findTimelineShots } from "../components/Timeline";
 import film from "../data/sweet-jesus-film.json";
 import { buildTimelineClips } from "../sequence/animate";
 import { BUILT_IN_FILMS, createBundledFilm } from "./bundledFilms";
+import { SWEET_JESUS_SHOTS } from "./sweetJesusShots";
 import { captionMetrics, effectiveCaptionsForBeat, makeCaptionsSrt } from "./captions";
 import { setBeatField, setPicture } from "./edits";
 import { buildKeyframes, parseImportPayload, runningOrderDiagnostics, runningSceneIds } from "./model";
@@ -15,6 +16,8 @@ import { clipFrames } from "./timing";
 
 const project = createBundledFilm("sweet-jesus-film", new Map(), new Map())!;
 const frames = buildKeyframes(project.story);
+const shotBeats = new Set(SWEET_JESUS_SHOTS.flatMap((shot) => shot.beats));
+const firstBlank = frames.find((frame) => !frame.picture)!;
 const screenplay = readFileSync("src/data/sweet-jesus.fountain", "utf8");
 const noop = () => {};
 
@@ -36,9 +39,12 @@ describe("Sweet Jesus storyboard", () => {
     expect(frames.every((frame) => String(frame.scene.prose).startsWith("INT.") || String(frame.scene.prose).startsWith("EXT."))).toBe(true);
     expect(frames.every((frame) => String(frame.beat.shotDescription).trim().length > 0)).toBe(true);
     expect(frames.slice(0, 22).every((frame) => frame.picture?.startsWith("asset:sj-opening-v1-"))).toBe(true);
-    expect(frames.slice(22).every((frame) => !frame.picture)).toBe(true);
+    // Every beat covered by a scene keyframe carries it; every other beat stays blank.
+    expect(frames.filter((frame) => shotBeats.has(frame.id))).toHaveLength(shotBeats.size);
+    expect(frames.filter((frame) => shotBeats.has(frame.id)).every((frame) => frame.picture?.startsWith("asset:sj-shot-v1-"))).toBe(true);
+    expect(frames.filter((frame) => !shotBeats.has(frame.id) && frame.number > 22).every((frame) => !frame.picture)).toBe(true);
     expect(frames[frames.length - 1].beat.gap).toBe(true);
-    expect(project.assets).toHaveLength(7);
+    expect(project.assets).toHaveLength(7 + SWEET_JESUS_SHOTS.length);
     expect(project.audioClips).toEqual([]);
     expect(project.sourceEdits).toBeUndefined();
     const warehouse = project.story.scenes.find((scene) => scene.title?.includes("WAREHOUSE 3"))!;
@@ -50,7 +56,7 @@ describe("Sweet Jesus storyboard", () => {
     expect(nickySeconds).toBeLessThan(250);
     const tickHolds = beats.filter((beat) => /Tick is gut-shot|hooks a finger|gets his fingers|reaches again, slips/.test(String(beat.shotDescription)));
     expect(tickHolds.reduce((sum, beat) => sum + Number(beat.durationFrames), 0) / 24).toBeGreaterThanOrEqual(60);
-    expect(BUILT_IN_FILMS.map((item) => item.id)).toEqual(["nobodys-witness-film", "sweet-jesus-film"]);
+    expect(BUILT_IN_FILMS.map((item) => item.id)).toEqual(["nobodys-witness-film", "sweet-jesus-film", "miami-vice-film"]);
   });
 
   it("gives every dialogue line readable, timed CC and includes non-dialogue sound cues", () => {
@@ -91,24 +97,23 @@ describe("Sweet Jesus storyboard", () => {
   });
 
   it("keeps pictures independent when a blank shot is filled, while allowing intentional holds", () => {
-    const firstBlank = frames[22];
     const edited = setPicture(project, firstBlank.id, "asset:my-picture");
     const nextFrames = buildKeyframes(edited.story);
-    expect(nextFrames[22].picture).toBe("asset:my-picture");
-    expect(nextFrames[23].picture).toBeUndefined();
-    expect(nextFrames[24].picture).toBeUndefined();
-    expect(frames[22].picture).toBeUndefined();
+    const index = frames.indexOf(firstBlank);
+    expect(nextFrames[index].picture).toBe("asset:my-picture");
+    expect(nextFrames[index + 1].picture).toBeUndefined();
+    expect(nextFrames[index + 2].picture).toBeUndefined();
     const held = setPicture(setBeatField(project, firstBlank.id, "backgroundHold", true), firstBlank.id, "asset:held");
-    expect(buildKeyframes(held.story)[23].picture).toBe("asset:held");
+    expect(buildKeyframes(held.story)[index + 1].picture).toBe("asset:held");
   });
 
   it("exposes an editable-description slate, the film selector, and a screenplay download", () => {
     const preview = renderToStaticMarkup(
-      <CinematicPreview frame={frames[22]} localFrame={0} resolveMedia={() => undefined}
+      <CinematicPreview frame={firstBlank} localFrame={0} resolveMedia={() => undefined}
         playing={false} soundOn={false} showCaption={true} showMark={true} />,
     );
     expect(preview).toContain("STORYBOARD");
-    expect(preview).toContain("No music. ETTA RAY");
+    expect(preview).toContain(String(firstBlank.beat.shotDescription));
     expect(preview).toContain("Blank picture");
     const { totalFrames } = buildTimelineClips(frames);
     const topbar = renderToStaticMarkup(

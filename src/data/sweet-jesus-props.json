@@ -1,0 +1,321 @@
+[
+  {
+    "id": "ledger",
+    "title": "Corn's ledger",
+    "kicker": "THE BOOK \u2014 S06 / S11 / S18 / S23 / S24 / S26 / S28",
+    "subtitle": "What everybody is actually looking for",
+    "alt": "A slim dark green cloth-bound accounts ledger with worn corners, a cracked spine and ruled columns of handwritten figures.",
+    "summary": "A mottled green cloth-bound book, thin enough to hide and heavy enough to end a career. Six years of Vera's handwriting are in it.",
+    "design": "Slim, pocket-sized, older than it looks: cracked spine, ribbon marker, slips of paper flagging pages. Numbers in blue-black ink, dates in the margin.",
+    "continuity": "Corn turns a single page face down in the coffee shop; the page reads FULTON LAUNDRY and a delivery to Warehouse 3. It rides on Nicky's cart, goes into a grocery bag at the clinic, is copied by hand on Sunday, and is handed to the lawyer in the church basement.",
+    "scenes": [
+      "sj_s06",
+      "sj_s11",
+      "sj_s18",
+      "sj_s23",
+      "sj_s24",
+      "sj_s26",
+      "sj_s28"
+    ],
+    "original": "ledger.png"
+  },
+  {
+    "id": "stamp",
+    "title": "The oversized stamp",
+    "kicker": "LOT THIRTEEN \u2014 S09 / S23 / S25 / S28",
+    "subtitle": "A wood-handled stamp the size of a coffee can",
+    "alt": "A heavy cast-iron and turned-wood stamping press with a thick rubber die, resting beside a hinged wooden stamp pad.",
+    "summary": "Kellerman's joke and his weapon. The city sells thirty kilos of seized heroin as 'industrial cleaning compound' with this one stamp and two signatures.",
+    "design": "Oversized on purpose \u2014 it should look ridiculous and official at the same time. Blackened iron, turned wooden knob, dried ink on the die.",
+    "continuity": "Friday: it thuds onto transfer slips in the property office and sits on the folding table in Warehouse 3. Saturday: it is in a clear evidence bag on Kellerman's desk. Sunday: Etta lays a transfer slip beside Peanut's torn corner and the stamp impressions match.",
+    "scenes": [
+      "sj_s09",
+      "sj_s23",
+      "sj_s25",
+      "sj_s28"
+    ],
+    "original": "stamp.png"
+  },
+  {
+    "id": "glassine-note",
+    "title": "The bag and the note",
+    "kicker": "A REMINDER \u2014 S05 / S27",
+    "subtitle": "WE KNOW WHAT YOU WERE",
+    "alt": "A small empty translucent glassine bag beside a torn piece of lined notepaper with a short message printed in blue ballpoint capitals.",
+    "summary": "The brand the Ray boy was carrying, and the sentence somebody chose to leave on Jack's desk. Pike calls it a reminder, not evidence.",
+    "design": "Small, cheap and unimpressive: the bag is empty, the note is a torn corner of lined paper, the capitals are hurried rather than theatrical.",
+    "continuity": "Pike takes it out of the property room to leave it on Jack's desk with the note. Jack never touches it; he wraps both together and locks them in a drawer. On Monday he empties the bag into the laundromat utility sink and the note follows into the wastebasket.",
+    "scenes": [
+      "sj_s05",
+      "sj_s27"
+    ],
+    "original": "glassine-note.png"
+  },
+  {
+    "id": "tape-loop",
+    "title": "The loop",
+    "kicker": "DRYER BEAT \u2014 S22 / S23 / S30",
+    "subtitle": "A period tape splice, not a sampler",
+    "alt": "An open shoebox cassette recorder with a hand-spliced loop of magnetic tape joined by white splicing tape, threaded through a wooden pencil, with a grease pencil beside it.",
+    "summary": "Bug's invention: a short length of copied tape with the ends joined, so his brother's laugh and the man's offer repeat for as long as the batteries last.",
+    "design": "A razor cut, a strip of white splicing tape, a loop fed through the body of a pencil and back into the shell. Marked in grease pencil. Nothing digital, nothing clever.",
+    "continuity": "Made in Bug's bedroom on Friday evening, played in Warehouse 3 to stop fourteen guns, rewound and restarted on Sunday, and cut into the final track of the film on Monday.",
+    "scenes": [
+      "sj_s22",
+      "sj_s23",
+      "sj_s30"
+    ],
+    "original": "tape-loop.png"
+  },
+  {
+    "id": "transfer-slip",
+    "title": "The transfer slip",
+    "kicker": "LOT 13 / THIRTY KILOS \u2014 S11 / S14 / S18 / S23 / S26 / S28",
+    "subtitle": "Carbon copy, city seal, one torn corner",
+    "alt": "A thin manila carbon-copy transfer form with a dark blue embossed municipal seal and a stamped signature block, beside a small torn triangle of the same paper.",
+    "summary": "The paper trail in triplicate. One corner of it came out of a washing machine coin box with three quarters; the rest of it is what Etta reads aloud to a room full of witnesses.",
+    "design": "Manila, ruled fields, a typed description line, a perforated edge. The seal is embossed, not printed. The torn corner must visibly belong to the same sheet.",
+    "continuity": "Vera keeps a duplicate with the city seal in her desk drawer. Peanut's torn corner carries part of the same seal, and the torn edges match the duplicate exactly.",
+    "scenes": [
+      "sj_s11",
+      "sj_s14",
+      "sj_s18",
+      "sj_s23",
+      "sj_s26",
+      "sj_s28"
+    ],
+    "original": "transfer-slip.png"
+  },
+  {
+    "id": "laundry-receipt",
+    "title": "The laundry receipt",
+    "kicker": "THIRTEEN \u2014 S04 / S08 / S12 / S15",
+    "subtitle": "A navy-yard address and a pencilled number",
+    "alt": "A narrow pink carbon laundry receipt with a printed delivery address and a large pencilled thirteen circled in the margin, beside an opened brown paper seed wrapper with an address pencilled on its back.",
+    "summary": "The only thing Peanut brought home from the job that killed him, and the address Jack copies onto the back of his seed wrapper.",
+    "design": "Pink carbon paper, folded once. The thirteen is pencilled large and circled by somebody in a hurry, not printed.",
+    "continuity": "It comes home with Peanut's personal effects from the morgue. Jack slides it through the auction office window, and Nicky recognises the handwriting before he can hide it.",
+    "scenes": [
+      "sj_s04",
+      "sj_s08",
+      "sj_s12",
+      "sj_s15"
+    ],
+    "original": "laundry-receipt.png"
+  },
+  {
+    "id": "cash-envelope",
+    "title": "The advance",
+    "kicker": "FIVE HUNDRED \u2014 S06 / S07",
+    "subtitle": "Corn's envelope, Etta's decision",
+    "alt": "A cheap manila pay envelope with its flap open and a fan of worn small-denomination banknotes half out of it.",
+    "summary": "Five hundred dollars of Corn's money, which Jack gives away the same day and Etta accepts without selling her son's name.",
+    "design": "Small bills, soft and creased, nothing new. A rubber band, not a clip. The envelope is cheap and unmarked.",
+    "continuity": "Corn pushes it across the coffee-shop table and stops Jack leaving with one finger on it. Half of it goes into Etta's biscuit tin and half beside the funeral-home bill.",
+    "scenes": [
+      "sj_s06",
+      "sj_s07"
+    ],
+    "original": "cash-envelope.png"
+  },
+  {
+    "id": "coin-box",
+    "title": "The coin box",
+    "kicker": "COPY FIRST \u2014 S08 / S14",
+    "subtitle": "What Bug and Jack fish out of the washer",
+    "alt": "The grey metal coin box of a coin-operated washing machine, its lid levered open with a bent wire coat hanger, holding three quarters and a folded corner of carbon paper.",
+    "summary": "Peanut's hiding place. Inside: three quarters and the folded corner of a carbon transfer slip, which is the first hard evidence in the film.",
+    "design": "Grey painted metal, greasy dust and lint, a bent coat hanger rather than a tool. The folded paper corner must be legibly paper, not a smudge.",
+    "continuity": "Jack writes COPY FIRST on the envelope, gives it to Bug with two quarters, and tells him to make two copies and keep one somewhere that isn't here.",
+    "scenes": [
+      "sj_s08",
+      "sj_s14"
+    ],
+    "original": "coin-box.png"
+  },
+  {
+    "id": "pinball-machine",
+    "title": "The Spirit of '76",
+    "kicker": "CLUTCH'S MACHINE \u2014 S12 / S13 / S23",
+    "subtitle": "Bally, electromechanical, one scuffed leg",
+    "alt": "A 1970s electromechanical pinball machine with a red, white and blue patriotic playfield, a light-up backbox with score reels and chrome legs.",
+    "summary": "The funniest object in a film about heroin: a man argues about its legs at the gate, wheels it through the middle of a gun standoff, and dies hugging its leg.",
+    "design": "Upright cabinet, glass playfield with flippers and bumpers, score reels in the backbox rather than a digital display. One leg must read as scuffed.",
+    "continuity": "Clutch buys it at the auction, cannot get it into his van until Monday, wheels it through the circle of guns, and it tilts and lights up PLAYER ONE / HIGH SCORE as he dies.",
+    "scenes": [
+      "sj_s12",
+      "sj_s13",
+      "sj_s23"
+    ],
+    "original": "pinball-machine.png"
+  },
+  {
+    "id": "hearse",
+    "title": "The hearse",
+    "kicker": "LOT THIRTEEN \u2014 S19 / S23 / S29",
+    "subtitle": "A battered 1966 Cadillac funeral coach",
+    "alt": "A long black 1960s Cadillac hearse with a tall glass side window, faded vinyl roof, dull chrome and whitewall tyres, seen from the front three-quarter.",
+    "summary": "The Panthers' vehicle: a funeral car used to take thirty kilos of heroin off the street, and later to carry a wounded man out of a firefight.",
+    "design": "Black, long, battered but not wrecked: faded vinyl roof, dull chrome, a small dent in the rear quarter, a rear loading door. No funeral-home lettering.",
+    "continuity": "Loaded with blankets and an empty hand truck in the church yard. It backs through the warehouse bay doors at eight, leaves with Dove and the sealed cart, and thirty kilos are in the Hudson by dark.",
+    "scenes": [
+      "sj_s19",
+      "sj_s23",
+      "sj_s29"
+    ],
+    "original": "hearse.png"
+  },
+  {
+    "id": "revolver",
+    "title": "Jack's .38",
+    "kicker": "A BAD ROUND \u2014 S23",
+    "subtitle": "Snub-nose, five shots, one that will not fire",
+    "alt": "A compact snub-nose .38 revolver with a worn blued finish and a checkered wooden grip, its cylinder open showing one spent casing and one live round.",
+    "summary": "Six years off the badge and one gun in the drawer. When Corn steps over him to finish it, the hammer falls on a bad round and Jack's shaking fingers cannot clear the jam.",
+    "design": "Two-inch barrel, holster wear at the muzzle, cylinder swung out. A prop with history, not a hero weapon.",
+    "continuity": "Carried into Warehouse 3. It clicks once on Corn, and Vera shoots Corn through the chest before Jack can work the jammed cylinder.",
+    "scenes": [
+      "sj_s23"
+    ],
+    "original": "revolver.png"
+  },
+  {
+    "id": "pike-photo",
+    "title": "The surveillance photograph",
+    "kicker": "A REMINDER OF HIS OWN \u2014 S16 / S17",
+    "subtitle": "Jack on the stoop, Bug in the doorway",
+    "alt": "A grainy black-and-white night surveillance print with a white border showing a man on a stoop and a smaller figure in a doorway behind him.",
+    "summary": "Pike's proof that he is still watching: a night print of Jack outside the Ray apartment with Bug standing in the doorway behind him.",
+    "design": "8x10 glossy, high contrast, blown out around the streetlamp, corners curling, a pencilled date on the back. It must look like a picture taken from a parked car.",
+    "continuity": "Produced in Pike's car as a threat. Jack takes it with him and later puts it face down on Etta's table.",
+    "scenes": [
+      "sj_s16",
+      "sj_s17"
+    ],
+    "original": "pike-photo.png"
+  },
+  {
+    "id": "pike-badge",
+    "title": "The badge",
+    "kicker": "LEFT IT ON THE DESK \u2014 S25 / S26 / S28",
+    "subtitle": "A lieutenant's shield in a leather wallet",
+    "alt": "A worn nickel shield-style police lieutenant's badge beside its dark leather badge wallet, one flap open.",
+    "summary": "Twenty-eight years of authority, small enough to put in a pocket. On Saturday morning an investigator makes him set it on a desk.",
+    "design": "Nickel shield with fine scratches, dark patina in the recesses, a safety-pin clasp. The wallet is worn where the badge has sat for years.",
+    "continuity": "Pike sets it down on the property office desk; it makes a small sound. In the church basement he sits in the back row in civilian clothes, and the badge is gone.",
+    "scenes": [
+      "sj_s25",
+      "sj_s26",
+      "sj_s28"
+    ],
+    "original": "pike-badge.png"
+  },
+  {
+    "id": "nicky-cart",
+    "title": "Nicky's cart",
+    "kicker": "HE LOGS EVERYTHING \u2014 S09 / S12 / S23",
+    "subtitle": "A rolling cart of precise piles",
+    "alt": "A two-shelf metal office cart on castors with manila folders, a receipt book, a spike of receipts and a clipboard squared into precise piles.",
+    "summary": "Nicky's whole character on four castors: a cart of paperwork squared into exact piles, which he keeps updating until a stray round takes the side of his head.",
+    "design": "Squared piles, a pen on a string, a coffee ring on the lower shelf. Nothing on it is ever untidy.",
+    "continuity": "It carries the ledger into Warehouse 3. He crouches behind it and keeps writing \u2014 'Lot Thirteen, discharge, multiple, unknown' \u2014 until the pen stops moving a second after he does.",
+    "scenes": [
+      "sj_s09",
+      "sj_s12",
+      "sj_s23"
+    ],
+    "original": "nicky-cart.png"
+  },
+  {
+    "id": "seed-twist",
+    "title": "The seed twist",
+    "kicker": "WHAT JACK DOES WITH HIS HANDS \u2014 S03 / S06 / S15 / S18",
+    "subtitle": "Sunflower shells, never a lollipop",
+    "alt": "A small twist of brown paper holding roasted sunflower seeds with striped shells spilling out beside a saucer of shells.",
+    "summary": "Jack's tell. He eats seeds instead of drinking, spits the shells into gutters, ashtrays and clean saucers, and leaves them where people will have to notice.",
+    "design": "A cheap brown paper twist, seeds spilling, striped shells on the ground. The saucer is somebody else's crockery.",
+    "continuity": "He scrapes a shell off his shoe on Etta's step, leaves shells on Corn's clean saucer in Vetrano's, spits them into a pool-hall ashtray in front of Tick, and a diner brings him a plate for them.",
+    "scenes": [
+      "sj_s03",
+      "sj_s06",
+      "sj_s15",
+      "sj_s18"
+    ],
+    "original": "seed-twist.png"
+  },
+  {
+    "id": "wheelchair",
+    "title": "The borrowed wheelchair",
+    "kicker": "HE DOES NOT WALK AGAIN \u2014 S26 / S27 / S28",
+    "subtitle": "Steel, cracked vinyl, one wheel out of true",
+    "alt": "An elderly steel and vinyl hospital wheelchair with chrome hand rims, a cracked black seat and a coarse blanket folded over the back.",
+    "summary": "The film's honest answer to a shot thigh: from the clinic onwards Jack is wheeled, not walking, and he is angry at every movement.",
+    "design": "Institutional, borrowed, slightly broken: chipped grey paint, cracked vinyl, one wheel out of true, a blanket somebody lent him.",
+    "continuity": "Sunday: Jack dictates ledger pages from it while Etta changes the cloth under his heel. Monday: Bug wheels him through the laundromat. In the church basement he sits by the wall.",
+    "scenes": [
+      "sj_s26",
+      "sj_s27",
+      "sj_s28"
+    ],
+    "original": "wheelchair.png"
+  },
+  {
+    "id": "hand-truck",
+    "title": "The hand truck",
+    "kicker": "LOT THIRTEEN \u2014 S19 / S23",
+    "subtitle": "Thirty kilos, strapped and sealed",
+    "alt": "A battered red steel hand truck carrying a sealed cardboard carton strapped on with webbing, the carton stencilled with a lot number and a stamped seal.",
+    "summary": "How thirty kilos leave the room. The Panthers bring the truck in empty and, if they get it, they take it out loaded and seal it themselves.",
+    "design": "Worn pneumatic tyres, chipped red paint, heavy taped seams on the carton, a stencilled lot number and a municipal seal.",
+    "continuity": "Loaded with blankets into the hearse in the church yard while it is still empty. Harriett grabs it in the smoke, counts the people in the vehicle, and thirty kilos are in the Hudson by dark.",
+    "scenes": [
+      "sj_s19",
+      "sj_s23"
+    ],
+    "original": "hand-truck.png"
+  },
+  {
+    "id": "two-recorders",
+    "title": "Two recorders, one cable",
+    "kicker": "COPY EVERYTHING \u2014 S22 / S26",
+    "subtitle": "A copy of a copy, made on the floor",
+    "alt": "Two shoebox cassette recorders sitting face to face on a wooden floor, joined by a patch cable, one playing and one recording, loose tape spilling between them.",
+    "summary": "The film's central act of resistance: an ordinary copy of an ordinary cassette, made face to face on a bedroom floor, so that no one can be the only person holding it.",
+    "design": "Identical shoebox recorders, a short patch cable between earphone and microphone sockets, tape spaghetti across the floor. Nothing professional.",
+    "continuity": "Friday: Bug copies DRYER BEAT and then builds the loop. Sunday: the same pair copies the cassette again while Etta writes names and Vera copies ledger pages by hand.",
+    "scenes": [
+      "sj_s22",
+      "sj_s26"
+    ],
+    "original": "two-recorders.png"
+  },
+  {
+    "id": "evidence-bag",
+    "title": "The evidence bag",
+    "kicker": "SATURDAY MORNING \u2014 S25",
+    "subtitle": "The stamp, bagged and labelled",
+    "alt": "A large clear plastic evidence bag with a white printed label panel and a red tape seal, holding an oversized wood-handled stamp.",
+    "summary": "The weapon of the whole conspiracy, reduced to an exhibit with a label on it. Kellerman studies it and signs a notice requiring him to appear.",
+    "design": "Clear plastic, a white printed label panel, a red evidence tape seal across the zip. Cloudy creases, not sterile.",
+    "continuity": "It sits on Kellerman's own desk, on his own floor, while an investigator tells a lieutenant to leave his badge behind.",
+    "scenes": [
+      "sj_s25"
+    ],
+    "original": "evidence-bag.png"
+  },
+  {
+    "id": "ledger-copies",
+    "title": "The carbon copies",
+    "kicker": "NOBODY GETS TO BE THE ONLY ONE \u2014 S26 / S28",
+    "subtitle": "Hand-made copies, signed and initialled",
+    "alt": "A stack of cheap typing paper, each page a purple carbon copy of ruled ledger columns, signed and initialled in the corner, with a sheet of blue carbon paper and a ballpoint beside it.",
+    "summary": "Etta's answer to power: copies. A reporter gets a set, a lawyer gets a set, the church gets a set, and no single person holds the only one.",
+    "design": "Purple carbon impression, cheap paper, a page number and Etta's initials on every sheet. Vera leaves her own signature in the pages she wrote.",
+    "continuity": "Copied by hand on Sunday afternoon. In the church basement a woman in the front row takes one set, the reporter takes another, and the lawyer gets the original ledger.",
+    "scenes": [
+      "sj_s26",
+      "sj_s28"
+    ],
+    "original": "ledger-copies.png"
+  }
+]
