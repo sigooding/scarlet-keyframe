@@ -170,11 +170,11 @@ export interface ProjectState {
   /** One-time migration marker for the optional Sweet Jesus opening stills. */
   sweetJesusOpeningVersion?: number;
   sweetJesusShotsVersion?: number;
-  directorsCutId?: "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "uncut";
+  directorsCutId?: "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "jack-noir" | "uncut";
   cutOptions?: CutOptions;
   savedCutStates?: Partial<
     Record<
-      "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "uncut",
+      "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "jack-noir" | "uncut",
       { story: StoryLike; audioClips?: AudioClip[]; updatedAt: number }
     >
   >;
