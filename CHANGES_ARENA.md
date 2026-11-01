@@ -189,3 +189,23 @@ where Burnett is spent to pull Gina out of a van.
   location - salsa at the docks, a ball game in the bookie's back room, a house pianist
   at the Carlyle, a cover band at the Miramar.
 - `npm run build:miami-vice-locations` added. Suite is 34 files / 244 tests green.
+
+## Miami Vice - location plates, second batch
+
+Ten more plates, for nineteen in total covering 84 of the film's 122 scenes:
+
+Castillo's office, the Marin kitchen, Izzy's lot, the bookie's back room, the bank room
+with no name on the door, the Everglades airstrip, the hospital corridor, Ocean Drive,
+county family services, and the glass office inside the warehouse.
+
+Each plate carries camera design notes and continuity notes in
+`src/data/miami-vice-locations.json`, and is keyed to its scenes through
+`MIAMI_VICE_LOCATION_BY_SCENE`.
+
+Still to plate (38 scenes, roughly fifteen more sheets): the federal building, the OCB
+evidence room and cage, the interrogation room, the locker room, the hallway, the Little
+Havana cafeteria, Switek's car and apartment, the sorting room, the river channel, the
+surveillance van, the warehouse loading dock, the dog track, the rooftops, the morgue, the
+St. Vitus cabin, the Carlyle suite and street, the school, Gina's apartment, the alley, the
+Miramar corridor, Tubbs' car, the beach at dawn and the cemetery. Then the prop sheets,
+then two to three keyframes a scene.

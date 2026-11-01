@@ -24,9 +24,11 @@ produced**, and the **Screenplay** button downloads the Fountain draft (it does 
 
 Choose **Characters** while the film is open to browse the ten generated casting plates, with wardrobe and continuity
 notes. Locations, props and scene keyframes are built the same way as Sweet Jesus: reference plates first, then
-keyframes that stage the beat with the cast and props in the room. The nine location plates built so far live in
-`src/data/miami-vice-locations.json` (OCB bullpen, container yard, the St. Vitus, the warehouse, the Carlyle bar,
-Marta's office, the causeway, the thrift store and the Miramar pool).
+keyframes that stage the beat with the cast and props in the room. The nineteen location plates built so far live in
+`src/data/miami-vice-locations.json`: the OCB bullpen, container yard, the St. Vitus, the warehouse and its
+glass office, the Carlyle bar, Marta's office, the causeway, the thrift store, the Miramar pool, Castillo's
+office, the Marin kitchen, Izzy's lot, the bookie's back room, the bank room with no name, the airstrip,
+the hospital, Ocean Drive and county family services.
 
 `docs/miami-vice-music.md` is the sound supervision note: an original synth score in the Jan Hammer register, five
 licensed period songs, source music in every location, and 29 cues keyed to scene ids in

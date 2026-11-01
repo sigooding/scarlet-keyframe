@@ -8,7 +8,29 @@
     "summary": "The squad's floor. Nothing about it was designed and everything in it has been there too long: the television wall that shows nothing, the whiteboard nobody is allowed to wipe, the coffee that has been on since Tuesday. Most of the film's thinking happens here at two in the morning.",
     "design": "Camera at standing height on a 25mm, deep focus, shooting down the length of the desks toward the blinds. Fluorescent green-white overhead against the orange city glow through the slats; one desk lamp as a practical. No windows behind camera, so the room reads as a box.",
     "continuity": "Same desks and same monitor wall all film. The whiteboard starts empty (S02), carries the docks-to-Nassau line (S08) and is wiped clean at the tag (S117). Gina sits at the desk nearest the door until S113, when she is on a sling and a telephone and cannot reach the board.",
-    "scenes": ["mv_s02", "mv_s08", "mv_s16", "mv_s24", "mv_s27", "mv_s34", "mv_s40", "mv_s47", "mv_s52", "mv_s57", "mv_s64", "mv_s68", "mv_s71", "mv_s78", "mv_s81", "mv_s88", "mv_s101", "mv_s105", "mv_s113", "mv_s117", "mv_s118"],
+    "scenes": [
+      "mv_s02",
+      "mv_s08",
+      "mv_s16",
+      "mv_s24",
+      "mv_s27",
+      "mv_s34",
+      "mv_s40",
+      "mv_s47",
+      "mv_s52",
+      "mv_s57",
+      "mv_s64",
+      "mv_s68",
+      "mv_s71",
+      "mv_s78",
+      "mv_s81",
+      "mv_s88",
+      "mv_s101",
+      "mv_s105",
+      "mv_s113",
+      "mv_s117",
+      "mv_s118"
+    ],
     "original": "ocb-bullpen.png"
   },
   {
@@ -20,7 +42,13 @@
     "summary": "Where the film begins and where it turns: two hundred identical blue crates, a light standard every forty feet, and a man walking the rows with a clipboard because the numbers don't add up. Every scene here is at night except the briefing in the storm.",
     "design": "Camera low, 21mm, looking down a row of stacks so the receding lines converge; rain in the sodium cones and the reflections doubled in the asphalt. Crate stencilling must stay legible in every shot — that is the whole point of the location.",
     "continuity": "Crate nineteen is always the third stack in from the fence, camera-left of the container office. S03 establishes it closed; S06 has the new seal; S23 is Lupe knocking on it; S26 is the same stack burning, which is why the number has to be readable from the start.",
-    "scenes": ["mv_s03", "mv_s06", "mv_s23", "mv_s26", "mv_s89"],
+    "scenes": [
+      "mv_s03",
+      "mv_s06",
+      "mv_s23",
+      "mv_s26",
+      "mv_s89"
+    ],
     "original": "docks.png"
   },
   {
@@ -32,7 +60,15 @@
     "summary": "The only place in the film where Crockett is not pretending, and therefore the place he goes least. Burnett's boat, Crockett's boat, the tape recorder below decks, the drum where the jacket burns.",
     "design": "Camera on the dock at eye level, 32mm, water taking up the lower third so the navigation lights double. Amber dock lights against the cyan city glow; humid haze and a slight flare off the wet boards.",
     "continuity": "The transom is shot from the same side every time, so nobody has to work out where the cabin is. S10 is Tubbs bringing coffee at dawn; S80 is the drum on the dock with Burnett's jacket going in; S112 is the passport and the tape going into the water from the same spot.",
-    "scenes": ["mv_s10", "mv_s28", "mv_s53", "mv_s80", "mv_s112", "mv_s121", "mv_s122"],
+    "scenes": [
+      "mv_s10",
+      "mv_s28",
+      "mv_s53",
+      "mv_s80",
+      "mv_s112",
+      "mv_s121",
+      "mv_s122"
+    ],
     "original": "st-vitus.png"
   },
   {
@@ -44,7 +80,14 @@
     "summary": "The building the whole film is about: a cathedral of blue crates and hanging sodium, with a glass office at the back where the people who can afford to watch do their watching. Eleven tons of bandages and nine hundred kilos of product, in the same stacks.",
     "design": "Camera at chest height on a 25mm in the centre aisle, racking on both sides converging. Sodium amber pools with cold blue spill from the roller door; dust in the light shafts; rain audible on the roof. The false-bottom crates sit at hip height in the aisle so the discovery is a bend, not a climb.",
     "continuity": "Nineteen is open from the first frame of S92. The glass office is where Coburn takes the ledger in S93 and where Marta has been writing it for two years. S97 is the same yard in the storm with the roller door coming down.",
-    "scenes": ["mv_s91", "mv_s92", "mv_s94", "mv_s95", "mv_s96", "mv_s97"],
+    "scenes": [
+      "mv_s91",
+      "mv_s92",
+      "mv_s94",
+      "mv_s95",
+      "mv_s96",
+      "mv_s97"
+    ],
     "original": "warehouse.png"
   },
   {
@@ -56,7 +99,9 @@
     "summary": "A room full of people who have never been arrested. Burnett sits at the bar with a drink he is not drinking and Marta Escobar sits down beside him without asking, and touches his sleeve exactly once all film.",
     "design": "Camera at bar height on a 40mm across the stools toward the piano; brass and glass catching the uplights, a tall window with palms and neon behind. Warm tungsten and magenta, no daylight anywhere.",
     "continuity": "The same two stools at the end of the bar for every Carlyle scene. The piano plays the same song in S21 and S55 because it is the same night; the suite upstairs (S55) is the same hotel and the same pastel, one floor up.",
-    "scenes": ["mv_s21"],
+    "scenes": [
+      "mv_s21"
+    ],
     "original": "carlyle-bar.png"
   },
   {
@@ -68,7 +113,11 @@
     "summary": "Warmth as a weapon. Three telephones: one for donors, one for the warehouse, one for the pipeline. A strand of pearls, a photograph with a bishop, and eleven tons of somebody else's bandages in the doorway.",
     "design": "Camera at seated height on a 35mm, curtain blowing at camera-right, the crate in the doorway held in focus at the back. Bright soft Florida daylight, cream and mint, no harsh shadows — this is the only warm room the villains get.",
     "continuity": "S19 is Marta alone, switching the donor voice on and off between the three handsets. S32 is Burnett across the same desk with the bag on his lap. S107 is the arrest: same desk, same pearls, the box of her own files going out the door.",
-    "scenes": ["mv_s19", "mv_s32", "mv_s107"],
+    "scenes": [
+      "mv_s19",
+      "mv_s32",
+      "mv_s107"
+    ],
     "original": "marta-office.png"
   },
   {
@@ -80,7 +129,13 @@
     "summary": "The film opens and closes on the same two hundred yards of slow lane. A furniture truck with its hazards ticking, a cigarette boat with no running lights, and twenty-four hours later the same spot with a child in the back seat of a stolen car.",
     "design": "Camera low and level from the slow lane on a 21mm, skyline small and white across the bay, road surface taking the reflection. Cyan city glow against sodium orange, drizzle haze, hazard lights ticking as the only movement.",
     "continuity": "S01, S99 and S100 are the identical setup: the hazard lights, the same lane, the same water on the other side. S31 and S115 are the same road going east into sunrise. The film's first and last image of Miami are the same frame.",
-    "scenes": ["mv_s01", "mv_s31", "mv_s99", "mv_s100", "mv_s115"],
+    "scenes": [
+      "mv_s01",
+      "mv_s31",
+      "mv_s99",
+      "mv_s100",
+      "mv_s115"
+    ],
     "original": "causeway.png"
   },
   {
@@ -92,7 +147,10 @@
     "summary": "One of sixteen. Coral stucco, a blue awning, a bin in the parking lot, and donations that come in all year while the books lose money every year and a seventeenth store opens.",
     "design": "Camera across the parking lot at head height on a 28mm, storefront flat-on so the awning and the window both read, heat shimmer off the asphalt. Bleached sunlight, faded pink and blue, no shade anywhere.",
     "continuity": "S17 is the day: Trudy in a volunteer's smock sorting the bin while a clerk watches from the door. S48 is the same storefront at three in the morning with the box truck's lights off and the driver checking the street before he loads.",
-    "scenes": ["mv_s17", "mv_s48"],
+    "scenes": [
+      "mv_s17",
+      "mv_s48"
+    ],
     "original": "thrift-store.png"
   },
   {
@@ -104,7 +162,172 @@
     "summary": "A party Burnett paid for. Gina works the far side of it in a borrowed dress, Prieto watches her the way a man watches a door he has already checked, and thirty feet away a band starts something fast.",
     "design": "Camera on the deck at standing height on a 28mm, pool in the lower half so the neon doubles in the water, the bandstand behind it and the service door with its green exit sign held visible at the back. Hot pink and cyan, wet reflections, humid haze.",
     "continuity": "The green exit sign at the back is the way out and the way she is taken: S75 is the poolside, S76 the service corridor behind it, S77 the loading bay. The van is parked where the bandstand's cable run is, so the music covers everything.",
-    "scenes": ["mv_s75", "mv_s77"],
+    "scenes": [
+      "mv_s75",
+      "mv_s77"
+    ],
     "original": "miramar-pool.png"
+  },
+  {
+    "id": "castillo-office",
+    "title": "Castillo's office",
+    "kicker": "S05 / S39 / S66 / S102 — INTERIOR MASTER",
+    "subtitle": "OCB · lieutenant's office, night and dawn",
+    "alt": "An empty 1980s lieutenant's office at night with a bare steel desk and one telephone, two visitor chairs, venetian blinds open onto a wet parking lot, a wall map of Miami-Dade and a single grey filing cabinet.",
+    "summary": "A room with nothing in it on purpose. A desk with no papers, a chair for whoever is being told something, and blinds left open on a parking lot where nothing is happening. Castillo does his standing at the window and his deciding in the chair.",
+    "design": "Camera at standing height on a 32mm from the doorway, desk against the window so the subject is backlit by the blinds and the parking-lot sodium. Fluorescent off for most scenes, so the room reads on the city glow alone.",
+    "continuity": "The window is the location: S05 Crockett in the visitor's chair with five weeks of Burnett on him, S39 Tubbs standing, S66 the plan for the warehouse, S102 at dawn with the prosecutor. Nothing is ever on the desk, not even at the end.",
+    "scenes": [
+      "mv_s05",
+      "mv_s39",
+      "mv_s66",
+      "mv_s102"
+    ],
+    "original": "castillo-office.png"
+  },
+  {
+    "id": "marin-kitchen",
+    "title": "The Marin kitchen",
+    "kicker": "S04 / S25 / S111 — INTERIOR MASTER",
+    "subtitle": "Little Havana · tin roof and one warm bulb",
+    "alt": "An empty 1980s Cuban-American kitchen at night with a formica table holding a pay envelope and a framed photograph, a school bag on a chair, a chain lock on the back door, a fridge covered with magnets and a single bulb on a cord.",
+    "summary": "Where the film's only honest transactions happen. A father who won't turn on the light, a daughter who won't open the door, and eleven dollars a month for nine years so that a page in an envelope would get opened.",
+    "design": "Camera at seated height on a 35mm across the table, the back door with its chain lock camera-left and the fridge camera-right, rain audible on a tin roof overhead. One tungsten bulb as the only source, blue rain light at the window.",
+    "continuity": "The pay envelope sits unopened on the table in S04 and S25 and is opened only in S111, by Lupe, off screen. The wristwatch changes hands on this table: S25 Tubbs picking it up, S111 him putting it down.",
+    "scenes": [
+      "mv_s04",
+      "mv_s25",
+      "mv_s111"
+    ],
+    "original": "marin-kitchen.png"
+  },
+  {
+    "id": "izzy-lot",
+    "title": "Izzy's lot",
+    "kicker": "S37 / S38 / S58 / S90 / S106 — EXTERIOR NIGHT AND DAY",
+    "subtitle": "Little Havana · used cars, string lights, an open hood",
+    "alt": "An empty 1980s fenced used-car lot in Little Havana at night with a 1970s Cadillac with the hood up and a work light under it, strings of bulbs over the lot, a corrugated office with a hand-painted sign, tool chests and a chain-link fence.",
+    "summary": "Miami's information desk. Izzy knows every warehouse, truck and bank in the city and will trade any of them for a favour, usually from under the hood of a Cadillac he is not going to fix.",
+    "design": "Camera at standing height on a 28mm over the hood of the Cadillac toward the corrugated office, string lights drawing the eye back, neon from the storefront across the street throwing cyan onto the gravel.",
+    "continuity": "S58 is the tracker going under a refrigerated truck on the gravel; S90 is the same lot in daylight with the Hands of the Gulf box truck idling; S106 is the reward, which is nothing, and a handshake by the same hood.",
+    "scenes": [
+      "mv_s37",
+      "mv_s38",
+      "mv_s58",
+      "mv_s90",
+      "mv_s106"
+    ],
+    "original": "izzy-lot.png"
+  },
+  {
+    "id": "bookie-backroom",
+    "title": "The bookie's back room",
+    "kicker": "S13 / S73 — INTERIOR NIGHT",
+    "subtitle": "Behind a storefront · a ledger, a fan, one bare bulb",
+    "alt": "An empty 1980s back room at night with a folding card table holding a lined ledger, a pencil and a rotary telephone, a slow ceiling fan, a wall calendar, a glass coffee pot on a hot plate, one bare bulb and a bead curtain in the doorway.",
+    "summary": "The room where Switek sells the squad eight months of Tuesdays for three hundred dollars a week. Cuba is never cruel here, which is what makes it work: there is coffee, there is a ledger, and there is always a next week.",
+    "design": "Camera low and tight on a 40mm across the folding table, the bare bulb just out of frame so the fan blade cuts the light, the bead curtain bright behind the visitor. No windows at all.",
+    "continuity": "The ledger is the same book in S13 and S73, and the drawer that does not contain money is the same drawer. In S73 the wire is on Switek and the room knows it before he speaks.",
+    "scenes": [
+      "mv_s13",
+      "mv_s73"
+    ],
+    "original": "bookie-backroom.png"
+  },
+  {
+    "id": "bank-private-room",
+    "title": "The bank room with no name",
+    "kicker": "S42 / S43 — INTERIOR DAY",
+    "subtitle": "Miami · private room, and a corridor to a door with no name on it",
+    "alt": "An empty 1980s private bank room in daylight with a polished desk holding one form, a rubber stamp and a plain white card, no nameplate, venetian blinds closed against a bright Miami day, two leather chairs and a potted palm.",
+    "summary": "The word does the work. Say Salt Water and a man opens a drawer he did not open before; say it again in a corridor and a door with no name on it opens onto a room with a scale and a ledger and no conversation.",
+    "design": "Camera at seated height on a 35mm, blinds closed and slatted light striping the desk, the frame dim against the bright day outside so the room feels like a confession. Green-grey bank palette, no warmth.",
+    "continuity": "S42 is the desk with the stamp; S43 is the corridor beyond it and the door with no name, where a woman counts four hundred thousand dollars in bands and tells Burnett not to come back with a policeman.",
+    "scenes": [
+      "mv_s42",
+      "mv_s43"
+    ],
+    "original": "bank-private-room.png"
+  },
+  {
+    "id": "airstrip",
+    "title": "The airstrip",
+    "kicker": "S61 / S62 / S63 — EXTERIOR NIGHT",
+    "subtitle": "Everglades · grass strip, strobe and sawgrass",
+    "alt": "An empty 1980s grass airstrip in the Everglades at night with a twin-prop DC-3 engines turning, strobe lights flaring across sawgrass, a conveyor of blue crates going aboard, a refrigerated truck, generators and a shovel standing in a pile of dirt at the edge of the light.",
+    "summary": "Where the arithmetic gets done in public. Crates go on a plane registered to a company dissolved in 1981 with an operating certificate issued by the United States government, and at the treeline two men with a shovel and a shape in tarpaulin do not look up.",
+    "design": "Camera low on a 21mm from the treeline side, the aircraft fuselage with its tail number legible camera-left, the strobe washing the sawgrass, the shovel in the mid-ground where it can be ignored but not unseen.",
+    "continuity": "The tail number N427M must be readable in S62 - it is the only thing Crockett gets out of the night. S61 is the two-lane drive in with a pistol on the seat; S63 is the payphone back down the road.",
+    "scenes": [
+      "mv_s61",
+      "mv_s62",
+      "mv_s63"
+    ],
+    "original": "airstrip.png"
+  },
+  {
+    "id": "hospital-corridor",
+    "title": "The hospital",
+    "kicker": "S29 / S79 / S84 / S103 / S104 — INTERIOR",
+    "subtitle": "Miami · corridor, chapel and waiting room",
+    "alt": "An empty 1980s hospital corridor at night with pale green wall tile, fluorescent strips doubled in a waxed vinyl floor, a parked gurney, a chapel door with a small window, a row of plastic chairs, a vending machine and a surgery sign with a red light.",
+    "summary": "Everybody in this film ends up waiting in a plastic chair eventually: Tubbs with a sleeping twelve-year-old in a chapel at two in the morning, Switek with a cold coffee and a pocketful of bet slips while Zito is in surgery.",
+    "design": "Camera standing at corridor height on a 28mm down the length so the fluorescent strips repeat into depth, the chapel door camera-left and the surgery light camera-right. Cold green-white, no daylight, everything waxed and reflective.",
+    "continuity": "S29 is the chapel with Lupe asleep on Tubbs' shoulder; S79 is Gina on a gurney in a torn dress; S84 is Zito signing himself out; S103 is Switek waiting; S104 is the parking lot where he throws the slips away and Castillo watches him do it.",
+    "scenes": [
+      "mv_s29",
+      "mv_s79",
+      "mv_s84",
+      "mv_s103",
+      "mv_s104"
+    ],
+    "original": "hospital-corridor.png"
+  },
+  {
+    "id": "ocean-drive",
+    "title": "Ocean Drive",
+    "kicker": "S36 / S87 / S109 / S110 — EXTERIOR NIGHT",
+    "subtitle": "South Beach · pastel deco and neon, wet street",
+    "alt": "An empty 1980s Ocean Drive at night with pastel art-deco hotels outlined in neon, palms down the median, low-slung convertibles at the kerb, wet asphalt reflecting pink and cyan and a glass and chrome telephone booth on the sidewalk.",
+    "summary": "The city showing off, and the two places the film stops to talk: a telephone booth in the rain where a woman tells a detective that the truth is a thing you schedule, and a parked convertible where two men work out what they actually got.",
+    "design": "Camera at bonnet height on a 28mm down the row of hotels so the neon runs into depth, wet asphalt taking the reflection, the telephone booth held small in the frame. Saturated pink and cyan, humid haze, everything reflected twice.",
+    "continuity": "S36 and S109/S110 are the convertible at the kerb with the top down, in the same spot; S87 is the booth, glass beaded with rain, a receiver pressed to an ear. The neon goes through one full cycle in the puddle beside the car in S110.",
+    "scenes": [
+      "mv_s36",
+      "mv_s87",
+      "mv_s109",
+      "mv_s110"
+    ],
+    "original": "ocean-drive.png"
+  },
+  {
+    "id": "county-family-services",
+    "title": "County family services",
+    "kicker": "S70 / S85 / S86 — INTERIOR DAY AND NIGHT",
+    "subtitle": "Miami · a small office, a box of tissues, a parking lot",
+    "alt": "An empty 1980s county family-services office with a small desk, a box of tissues and a telephone, a corkboard poster about reporting abuse, fluorescent panels, venetian blinds over a parking lot, two plastic visitor chairs and a child's drawing pinned to the wall.",
+    "summary": "A room built to do the right thing badly. A social worker doing her best, a detective asking for something the system cannot give, and a twelve-year-old explaining that somebody has to be able to say what was there.",
+    "design": "Camera at seated height on a 35mm across the small desk, blinds flattening the parking-lot daylight behind the visitor, the child's drawing held in focus at the edge. Flat institutional grey-green, no warmth, fluorescent hum.",
+    "continuity": "S70 is the daytime interview and the aunt's husband in Hialeah; S85 is the same office at night with the supervisor on the telephone; S86 is the parking lot in the rain where Lupe is sitting on the bonnet of Tubbs' car with her school bag.",
+    "scenes": [
+      "mv_s70",
+      "mv_s85",
+      "mv_s86"
+    ],
+    "original": "county-family-services.png"
+  },
+  {
+    "id": "warehouse-office",
+    "title": "The glass office",
+    "kicker": "S93 — INTERIOR NIGHT",
+    "subtitle": "Inside the warehouse · a filing cabinet and a space heater",
+    "alt": "An empty 1980s glass-walled office inside a warehouse at night with a metal desk holding a ledger and a satchel, a filing cabinet with one drawer standing open, an electric space heater glowing orange on the floor, a wall clock and blue crates stacked just outside the glass.",
+    "summary": "The room where the film's secret has been kept for two years: a federal agent taking a ledger out of a cabinet, and a woman at the window watching her own crates and deciding to invite the police.",
+    "design": "Camera outside the glass on a 32mm looking in, so the racking and the crates are visible through and behind the people, with the heater's orange glow as the only warm thing in a sodium-blue building.",
+    "continuity": "The open drawer is the same drawer the ledger came out of; the ledger is what Coburn carries to the car in S97 and what sits in an evidence bag in S101. The heater is on in every scene in this room, including the last one.",
+    "scenes": [
+      "mv_s93"
+    ],
+    "original": "warehouse-office.png"
   }
 ]
