@@ -1,4 +1,5 @@
 import { addRecreatedUncutCoverage } from "./recreatedUncut";
+import { applyJackNoirTreatment } from "./jackNoirCut";
 import {
   buildAudioClipsFromFilm,
   frameToMs,
@@ -42,8 +43,9 @@ export type DirectorsCutId =
   | "creative"
   | "noir-1940s"
   | "noir-1950s"
+  | "jack-noir"
   | "uncut";
-type EditorialCutVariant = Exclude<DirectorsCutId, "uncut">;
+type EditorialCutVariant = Exclude<DirectorsCutId, "uncut" | "jack-noir">;
 
 export interface DirectorsCutOptionMeta {
   id: DirectorsCutId;
@@ -80,6 +82,13 @@ export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
     shortLabel: "1950s Noir Cut",
     description:
       "High-contrast silver-gelatin B&W, classical studio pacing, optical lap-dissolves, and sparse atmospheric sound.",
+  },
+  {
+    id: "jack-noir",
+    label: "Jack’s Noir — Narrated Cut",
+    shortLabel: "Jack’s Noir",
+    description:
+      "Original Uncut in full, in classic noir colour, camera, light and sound; Jack’s own recorded lines become voice-over (J/L cuts, echo, music ducking). Existing pictures and sounds only.",
   },
   {
     id: "uncut",
@@ -3806,7 +3815,7 @@ export function buildDirectorsCutById(
   )
     ? cutId
     : "neo-noir";
-  if (resolvedCutId === "uncut") {
+  if (resolvedCutId === "uncut" || resolvedCutId === "jack-noir") {
     const uncutSnapshot: ProjectSnapshot = {
       id: "snapshot-uncut-original-import",
       name: "Uncut Original Import (1,584 raw beats)",
@@ -3829,6 +3838,12 @@ export function buildDirectorsCutById(
       directorsCutId: "uncut",
       updatedAt: Date.now(),
     };
+    if (resolvedCutId === "jack-noir") {
+      // The true source is Original Uncut; the treatment only adds look, camera, light and sound from existing files.
+      const { project } = applyJackNoirTreatment(builtUncut, voiceDurations, musicDurations);
+      const jack: ProjectState = { ...project, directorsCutId: "jack-noir" };
+      return options ? applyCutOptionsToProject(jack, options) : jack;
+    }
     return options ? applyCutOptionsToProject(builtUncut, options) : builtUncut;
   }
   const built = buildEditorialCut(baseProject, resolvedCutId, voiceDurations, musicDurations);

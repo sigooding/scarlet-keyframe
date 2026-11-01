@@ -101,7 +101,7 @@ describe("Turn 28 — User-Voted Reference-Matched Gap Frames & Depth Maps", () 
   it("wires all 7 voted plates across Neo-Noir, Creative, 1940s/1950s Noir, and Uncut with timeline markers and zero border clamping", () => {
     const { baseProject, voiceMap, musicMap } = buildBaseProjectFixture();
 
-    const cutExpectedGrade: Record<Exclude<DirectorsCutId, "uncut">, string> = {
+    const cutExpectedGrade: Record<Exclude<DirectorsCutId, "uncut" | "jack-noir">, string> = {
       "neo-noir": "tokyo-noir",
       creative: "sodium-amber",
       "noir-1940s": "noir-1940s",

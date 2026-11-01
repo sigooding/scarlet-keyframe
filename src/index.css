@@ -8220,3 +8220,8 @@ kbd {
 @media (max-width: 720px) {
   .is-sweet-jesus .topbar-actions { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 }
+
+.topbar-cut-trigger-dot.is-jack-noir {
+  background: #5b7fa6;
+  box-shadow: 0 0 0 1px rgba(193, 18, 31, 0.8);
+}

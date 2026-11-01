@@ -51,6 +51,7 @@ describe("Turn 32–33 — 1940s Noir Director's Cut (original running order, si
       "creative",
       "noir-1940s",
       "noir-1950s",
+      "jack-noir",
       "uncut",
     ]);
     expect(getDirectorsCutLabel("noir-1940s")).toBe("1940s Noir Director’s Cut");
