@@ -100,7 +100,7 @@ describe("Turn 31 — User-Voted Dialogue Close-Ups Fitted After Resized Origina
   it("preserves every original master frame (resized shorter, never deleted) and fits each close-up immediately after it across all cuts", () => {
     const { baseProject, voiceMap, musicMap } = buildBaseProjectFixture();
 
-    const cutExpectedGrade: Record<Exclude<DirectorsCutId, "uncut">, string> = {
+    const cutExpectedGrade: Record<Exclude<DirectorsCutId, "uncut" | "jack-noir">, string> = {
       "neo-noir": "tokyo-noir",
       creative: "sodium-amber",
       "noir-1940s": "noir-1940s",

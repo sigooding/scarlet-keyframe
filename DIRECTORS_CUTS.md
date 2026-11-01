@@ -1,6 +1,6 @@
 # Editorial Cuts — Project Notes (`Nobody's Witness`)
 
-Scarlet Keyframe Studio provides five non-destructive selectable film versions via the topbar cut selector dropdown (`data-testid="topbar-directors-cut-btn"`). Every cut is constructed deterministically from `project.originalStory` without mutating any underlying `beat.text`, story dialogue, or existing snapshots, and switching between cuts preserves undo/redo history as well as the current narrative beat/scene under the playhead.
+Scarlet Keyframe Studio provides six non-destructive selectable film versions via the topbar cut selector dropdown (`data-testid="topbar-directors-cut-btn"`). Every cut is constructed deterministically from `project.originalStory` without mutating any underlying `beat.text`, story dialogue, or existing snapshots, and switching between cuts preserves undo/redo history as well as the current narrative beat/scene under the playhead.
 
 ---
 
@@ -99,4 +99,14 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
 - **Per-Cut Saved Working State + Factory Reset**: Optional `Remember custom edits per cut when switching` stashes custom trims, keyframes, notes, and `audioClips` per cut slot (`savedCutStates`) across cut switches, paired with a one-click `Reset <Cut> to factory` control.
 - **Instant Cut-Compare (`\` Hold / Toggle)**: Hold `\` (or click `Compare (\)` in the viewer) to preview the exact matching beat and normalized shot progress in any selectable reference cut (`Neo-Noir`, `Creative`, `1940s B&W`, `1950s B&W`, or `Uncut`) without mutating the active project, timeline, or undo stack.
 - **Embedded MP4 Chapter Markers (`FFMETADATA1`)**: Selectable `Embed MP4 chapters` (`--chapters` / `--no-chapters`) muxes timeline chapter/part markers (with scene-boundary fallback) directly into the `.mp4` container for QuickTime, VLC, and Apple TV scrub-bar navigation.
+
+---
+
+## 6. Jack's Noir — Narrated Cut (`"jack-noir"`)
+- **Source**: Original Uncut in full (all 1,584 beats, running order and recreated coverage), built non-destructively from `project.originalStory`. **No new pictures and no new sounds**: every picture and sound file it uses already exists in the film (`src/core/jack-noir-cut.test.ts` checks this). Code: `src/core/jackNoirCut.ts`.
+- **Colour & contrast**: each scene gets a mood from what it carries (title, heading, ambience, effects): `blue` midnight-teal (loneliness, cold rain), `amber` sodium (artificial light), `red` neon-noir with a red point light (danger: the inn raid and the shootings), `green` cool grade with a sickly green light (police, interview, newsroom, Kurose, Harada), `muted` desaturated (bleak daylight, aftermath). Neon scenes add magenta/cyan points. Close emotional lines get a stronger vignette.
+- **Camera** (keyframes, the film's only camera): slow Dutch tilts on tense beats (1.6–3.1 degrees, zoom raised so no edge shows), push-ins on fear / suspicion / guilt lines, a slow tilt for Kurose (power) and for Vera / Mara when afraid, a sideways drift on reflection beats (mirror, puddle, glass, window). Only treated beats get their camera replaced; every other beat keeps the film's own move. Real low/high angles cannot be made from existing pictures: the tilts are an approximation.
+- **Lighting**: existing overlays only: venetian blinds (offices, interview rooms, hotel, apartments), backlight rim (wet streets), key slash (raid), eye light (emotive close lines), neon points.
+- **Sound** (existing files only): music drops out for 2.4 s after gunfire (silence) and steps back under voice-over; distant sirens on one wet night; echo is a faint slap-back made from copies of the same clip (footsteps in stairwells, viaducts, rooftops and the Hive, and Jack's voice-over); J-cuts lead the picture on about two thirds of eligible lines; L-cuts cut away up to 0.8 s before a voice-over line ends, 0.35 s on a few others, only into a silent beat of the same scene.
+- **Voice-over**: Jack's own recorded reflective lines (long lines and "I promised", "twenty years", "I'm sorry", "my statement"...) are treated as voice-over: they lead and trail the picture, carry the echo and the music ducks under them. This is not a narration track: a real narration needs new recordings.
 
