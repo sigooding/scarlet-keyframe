@@ -115,6 +115,25 @@ button:disabled {
   outline-offset: -2px;
 }
 
+/* One line, only when the editor was opened from disk (file:): those saves are
+   a different browser origin from the ones at the localhost address. */
+.save-location-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 38px;
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: min(1040px, calc(100vw - 32px));
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(232, 162, 74, 0.45);
+  background: rgba(13, 16, 22, 0.96);
+  color: var(--accent-amber);
+  font: 11px/1.4 var(--mono);
+  text-align: center;
+  pointer-events: none;
+}
+
 .eyebrow {
   display: block;
   font-family: var(--mono);

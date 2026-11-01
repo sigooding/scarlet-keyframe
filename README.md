@@ -6,9 +6,32 @@ Each film (including imported projects) is saved separately in this browser; the
 switching. Existing single-project autosaves are preserved.
 
     npm ci
-    npm run dev          # the editor, at the address it prints
+    npm run serve        # the editor at http://127.0.0.1:4173 (production build - use this)
+    npm run dev          # development server at http://127.0.0.1:5173 (only while coding)
     npm run build        # one self-contained page, dist/index.html, that opens from disk
     npm test
+
+## Running locally
+
+Run the app with **`npm run serve`** and open <http://127.0.0.1:4173>. That command builds a normal
+multi-file production build into `dist-local/` and serves it: the editor starts in about two seconds
+instead of five to ten, playback leaves the main thread idle most of the time, and Export > MP4 works
+from the production build. `public/` (1.7 GB of film pictures, depth maps and audio) is not copied into
+the build; the preview server reads it from `public/` as it is, with range requests and cache headers.
+
+`npm run dev` (port 5173) is for **coding only** — it has hot reload and React's development build, which
+is several times slower at playback. Both ports are pinned (`strictPort`): if 4173 is busy, `npm run serve`
+stops and names the port instead of quietly moving to another one.
+
+Where your work is saved: **in this browser, at that exact address**. Projects live in the browser's
+IndexedDB, which belongs to one origin, so `http://127.0.0.1:4173`, `http://127.0.0.1:5173` and a page
+opened from `dist/index.html` (`file:`) are three separate libraries — the same project does not appear in
+all three. The editor says so: the Save button's tooltip and the status text read *Saved in this browser
+for http://127.0.0.1:4173*, and a page opened from a file shows a one-line warning at the bottom of the
+screen.
+
+A browser profile reset, "clear site data", or a different browser means starting from the last backup, so
+**real backup = Export > Portable Bundle (.reel.json)**, then Import that file on any machine.
 
 ## Miami Vice - Salt Water
 
@@ -160,9 +183,14 @@ settings are remembered in this browser. The reverb room is generated, not a sou
 
 ## MP4 export
 
-Use the MP4 export button while the editor is running with `npm run dev`, or run a short CLI export:
+Use the MP4 export button while the editor is running — `npm run serve` (recommended: the frames render from
+the production build) or `npm run dev` — or run a short CLI export:
 
     npm run export -- --from 0 --to 47 --draft --workers 6
+
+The exporter uploads the project to the editor's own `/__api/export/start` endpoint, which both the dev and
+the preview server provide. When `npm run serve` is running, the CLI renders from it
+(`http://127.0.0.1:4173`, or `--url <address>`); with no server running it starts its own Vite server.
 
 GPU acceleration is enabled by default (`--gpu`, or disable with `--no-gpu`): Chromium renders WebGL depth parallax,
 2D canvas overlays, and compositing on the hardware GPU, and FFmpeg automatically probes hardware H.264 encoders

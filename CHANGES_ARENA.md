@@ -1,5 +1,35 @@
 # Changes in this branch
 
+## `npm run serve` — the production build is now how the app is run
+
+`npm run dev` stays for coding only; the app is meant to run from a production build. New command:
+
+    npm run serve
+
+- `scripts/serve-local.mjs` builds with `--mode serve` into `dist-local/` and serves it with `vite preview` on
+  127.0.0.1:4173 (both ports are now `strictPort`, so a busy port stops with a message instead of moving to a new
+  origin and showing an empty project). Node only — no shell commands — so it works on Windows.
+- The serve build is a normal multi-file build: `build.copyPublicDir: false` (the 1.7 GB `public/` folder is served
+  from the repository, not copied), `assetsInlineLimit: 4096`, and no `viteSingleFile`. `npm run build` still makes
+  the single self-contained `dist/index.html`.
+- `vite-plugins/public-preview-assets.ts` serves `public/` in preview with sirv (new devDependency): Range requests
+  (206) for audio and video, ETag/304, and 30-day cache for `/film/img`, `/film/audio`, `/film/depth`,
+  `/sweet-jesus`, `/miami-vice`, `/reels`, `/img`, `/audio`, `/fonts`.
+- `vite-plugins/mp4-export-api.ts` is the MP4 export API, moved out of `vite.config.ts` and registered by
+  **both** `configureServer` and `configurePreviewServer`, so Export > MP4 and `npm run export` work against
+  `npm run serve` (and the frames render from the production build). `vite-plugins/media-library.ts` is the
+  existing Scarlett Reel media fallback, now shared by both servers too.
+- `scripts/export-mp4.mjs` renders from a running `npm run serve` when it finds one (`http://127.0.0.1:4173`,
+  `--url` overrides), instead of starting its own Vite server.
+- The production build now reads film pictures, depth maps and audio from its own server instead of
+  raw.githubusercontent.com (`src/core/servedMedia.ts`); only a `file:` page falls back to the repository copy.
+- Saves are one browser origin, so the app says which one: the Save button's tooltip and the status text read
+  "Saved in this browser for http://127.0.0.1:4173" (`src/core/saveLocation.ts`), and a page opened from a file
+  shows a one-line warning (`src/components/SaveLocationBanner.tsx`). README has a "Running locally" section.
+- `npm run check:serve` (`scripts/check-serve.mjs`) drives headless Chromium against the running server: editor
+  opens, edit survives Save + reload, picture/depth/audio (206) load, and a 24-frame draft MP4 comes out one second
+  long.
+
 ## Sweet Jesus — location and prop reference sheets (in progress)
 
 The remaining Sweet Jesus pictures are being built **sheets first**: every room, exterior and vehicle in the

@@ -30,6 +30,7 @@ import { SnapshotModal } from "./components/SnapshotModal";
 import { ShortcutsOverlay } from "./components/ShortcutsOverlay";
 import { Timeline } from "./components/Timeline";
 import { Topbar } from "./components/Topbar";
+import { SaveLocationBanner } from "./components/SaveLocationBanner";
 import { resolveAmbienceSpans } from "./components/Tracks";
 import {
   buildAudioClipsFromFilm,
@@ -153,6 +154,8 @@ import {
 } from "./core/media";
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
+import { savedStatusText } from "./core/saveLocation";
+import { servesLocalMedia } from "./core/servedMedia";
 import { BUILT_IN_FILMS, createBundledFilm } from "./core/bundledFilms";
 import { countEmptySweetJesusOpeningShots, fillEmptySweetJesusOpeningShots, upgradeSweetJesusOpening } from "./core/sweetJesusOpening";
 import { effectiveFilmCutOptions } from "./core/filmFraming";
@@ -919,7 +922,7 @@ export default function App() {
               : normalizedSaved;
             statusLabel = normalizedSaved.story.id === "nobodys-witness-film"
               ? getDirectorsCutLabel(initialProject.directorsCutId).toUpperCase()
-              : "SAVED TO THIS BROWSER";
+              : savedStatusText();
           }
         } else {
           const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json", {
@@ -1112,10 +1115,9 @@ export default function App() {
       if (linked) return linked;
       if (hasPublicMediaPath(publicPaths, path)) {
         const encoded = encodeMediaPath(path);
-        const isDev = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
-        if (isDev && typeof window !== "undefined" && window.location.protocol !== "file:") {
-          return `/${encoded}`;
-        }
+        // Served by the dev server or `npm run serve`; only a file: page has to
+        // reach for the repository copy.
+        if (servesLocalMedia()) return `/${encoded}`;
         return `${SCARLETT_WITNESS_RAW_BASE}/${encoded}`;
       }
       return undefined;
@@ -1384,7 +1386,7 @@ export default function App() {
       setSaveStatus("SAVING…");
       void saveActiveProject(project)
         .then(() => {
-          if (!switchingProjectRef.current && projectRef.current === project) setSaveStatus("SAVED TO THIS BROWSER");
+          if (!switchingProjectRef.current && projectRef.current === project) setSaveStatus(savedStatusText());
         })
         .catch(() => {
           if (!switchingProjectRef.current && projectRef.current === project) setSaveStatus("AUTOSAVE FAILED");
@@ -2495,7 +2497,7 @@ export default function App() {
       setExportFromFrame(0);
       setExportToFrame(Math.max(0, built.totalFrames - 1));
       setEditLabel(next.story.id === "sweet-jesus-film" ? "Storyboard draft" : "Film opened");
-      setSaveStatus("SAVED TO THIS BROWSER");
+      setSaveStatus(savedStatusText());
       void listSavedProjects().then((items) => setSavedProjects((old) => mergeProjectSummaries(old, items)));
     } catch (error) {
       // If a late edit raced the switch, restore the active pointer to that edit.
@@ -4133,7 +4135,7 @@ export default function App() {
     setSaveStatus("SAVING…");
     void saveActiveProject(current)
       .then(() => {
-        if (!switchingProjectRef.current && projectRef.current === current) setSaveStatus("SAVED TO THIS BROWSER");
+        if (!switchingProjectRef.current && projectRef.current === current) setSaveStatus(savedStatusText());
       })
       .catch(() => {
         if (!switchingProjectRef.current && projectRef.current === current) setSaveStatus("AUTOSAVE FAILED");
@@ -4866,6 +4868,7 @@ export default function App() {
       />
       <input ref={folderInputRef} className="hidden-input" type="file" multiple onChange={handleFolderPick} />
 
+      <SaveLocationBanner />
       <Topbar
         project={project}
         projectChoices={[...filmChoices.values()]}
