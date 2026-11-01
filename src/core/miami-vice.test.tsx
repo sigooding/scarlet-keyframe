@@ -11,14 +11,14 @@ describe("Miami Vice - Salt Water", () => {
     expect(BUILT_IN_FILMS.map((item) => item.id)).toContain("miami-vice-film");
     const built = project();
     expect(built.story.title).toBe("Miami Vice - Salt Water");
-    expect(built.story.scenes.length).toBeGreaterThanOrEqual(90);
+    expect(built.story.scenes.length).toBeGreaterThanOrEqual(120);
     const beats = built.story.scenes.flatMap((scene) => scene.dialogueBeats ?? []);
-    expect(beats.length).toBeGreaterThan(400);
+    expect(beats.length).toBeGreaterThan(1100);
     // Compiled beats time dialogue at fourteen characters a second and cap each
     // action shot at nine seconds, so a two-hour feature compiles to roughly a
     // third of its screen time. Sweet Jesus (30 scenes) compiles to 40 minutes.
     const frames = beats.reduce((sum, beat) => sum + Number(beat.durationFrames), 0);
-    expect(frames).toBeGreaterThan(45_000);
+    expect(frames).toBeGreaterThan(120_000);
     expect(frames).toBeLessThan(200_000);
   });
 

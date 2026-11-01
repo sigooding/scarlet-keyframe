@@ -155,6 +155,14 @@ time. Compiled beat time runs roughly a third of screen time (dialogue is timed 
 fourteen characters a second and action shots cap at nine seconds), so this is a feature
 draft. Act III gets the same treatment next, then locations, props and keyframes.
 
+Act III added: Lupe running from the county home to Tubbs' car, Marta's telephone call in a
+rain-soaked booth - she is Coburn's witness and she has scheduled the truth for a Wednesday - Izzy driving the
+donation truck in, the shootout in the racking, Prieto's answer, Coburn's car with a child in it, the causeway
+standoff where Tubbs has the shot and lowers it, and the ledger traded for a twelve-year-old.
+
+Draft length after the Act III pass: 122 scenes / 1,192 beats, 102.6 minutes of compiled beat time, which is roughly
+a two-hour film once action shots play out. Locations, props and keyframes come next.
+
 Act II added: the buy money and its band numbers, a bank room with no name on the door,
 Switek taking two thousand dollars in a parking lot, the tape of the truck that leaves at
 three, the mule who walks behind it, Eddie's autopsy (a broken arm, graphite on the palm),
