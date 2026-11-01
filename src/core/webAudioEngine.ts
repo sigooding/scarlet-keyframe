@@ -11,9 +11,11 @@ import {
 import {
   createDefaultTrackMix,
   effectiveTrackLevel,
+  trackFxOf,
   type MediaResolver,
   type TrackMixMap,
 } from "./previewAudio";
+import { createFxChain, type FxChain } from "./audioFx";
 import {
   ingestDecodedBufferForWaveform,
   registerWaveformDecoder,
@@ -87,6 +89,7 @@ export class WebAudioPlaybackEngine {
   private meterBufR: Float32Array<ArrayBuffer> = new Float32Array(new ArrayBuffer(METER_FFT_SIZE * 4));
   private stickyClipped = false;
   private laneBuses: Partial<Record<AudioLaneId, GainNode>> = {};
+  private laneFx: Partial<Record<AudioLaneId, FxChain>> = {};
   private noiseBuffer: AudioBuffer | null = null;
 
   private bufferCache = new Map<string, AudioBuffer>();
@@ -203,10 +206,19 @@ export class WebAudioPlaybackEngine {
         const bus = ctx.createGain();
         bus.gain.value = effectiveTrackLevel(this.trackMix, lane) * BASE_LANE_LEVEL[lane];
         // Music and ambience pass through the ducking bus; voice and sfx bypass ducking
-        if (lane === "music" || lane === "ambience") {
-          bus.connect(duck);
+        const destination = lane === "music" || lane === "ambience" ? duck : preMaster;
+        let chain: FxChain | null = null;
+        try {
+          chain = createFxChain(ctx, destination);
+        } catch {
+          chain = null; // minimal mock contexts have no effects
+        }
+        if (chain) {
+          bus.connect(chain.input);
+          chain.update(trackFxOf(this.trackMix, lane), true);
+          this.laneFx[lane] = chain;
         } else {
-          bus.connect(preMaster);
+          bus.connect(destination);
         }
         this.laneBuses[lane] = bus;
       }
@@ -356,6 +368,7 @@ export class WebAudioPlaybackEngine {
         const target = effectiveTrackLevel(mix, lane) * BASE_LANE_LEVEL[lane];
         bus.gain.setTargetAtTime(target, now, 0.015);
       }
+      this.laneFx[lane]?.update(trackFxOf(mix, lane));
     }
     this.updateDuckingAtMs(this.getCurrentPlayheadMs());
   }

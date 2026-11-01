@@ -8369,3 +8369,78 @@ kbd {
   background: #5b7fa6;
   box-shadow: 0 0 0 1px rgba(193, 18, 31, 0.8);
 }
+
+/* Track effects: FX button and panel */
+.track-ms-btn.is-fx {
+  font-size: 9px;
+  letter-spacing: 0.02em;
+}
+.track-ms-btn.is-fx.is-active {
+  background: rgba(103, 183, 209, 0.28);
+  border-color: rgba(103, 183, 209, 0.8);
+  color: #cdeefa;
+}
+.track-fx-panel {
+  position: fixed;
+  z-index: 3000;
+  width: 300px;
+  padding: 10px 12px 12px;
+  border-radius: 8px;
+  background: var(--bg-900);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  color: var(--ink-primary);
+  font-size: 11px;
+}
+.track-fx-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.track-fx-preset {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.track-fx-section {
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--line-mid);
+}
+.track-fx-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.track-fx-row {
+  display: grid;
+  grid-template-columns: 58px 1fr 48px;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+.track-fx-row output {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-align: right;
+}
+.track-fx-row.is-disabled {
+  opacity: 0.4;
+}
+.track-fx-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-mid);
+}
+.track-fx-foot small {
+  color: var(--ink-muted);
+  font-size: 9.5px;
+  line-height: 1.3;
+}

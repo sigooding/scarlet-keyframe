@@ -143,6 +143,21 @@ PNG capture:
 
     npm run export -- --from 0 --to 2879 --workers 4 --capture jpeg --capture-quality 97
 
+## Captions
+
+A beat's text becomes proper closed-caption cues, not one paragraph: at most two lines of 42 characters per cue, broken at
+sentence ends, then clauses, then the word nearest the middle (never inside a word, not between the parts of a name), with
+two-line cues balanced. Cues are timed across the words as they are spoken (the scene slate before the first line is
+skipped), in proportion to their length. Cues already authored in a cut that are too long are split across their own span.
+The CC lane, the viewer, the .srt/.vtt files and the MP4 burn-in all use the same cues. Code: `src/core/captionCues.ts`.
+
+## Track effects (reverb, delay, echo)
+
+Each audio track (Voice, SFX, Music, Ambience) has an **FX** button on its header. The panel has a preset list (Small room,
+Stairwell, Large hall, Slapback, Echo, Tape delay), **Reverb** (mix, size, pre-delay, damping) and **Delay / Echo** (mix, time,
+repeats, tone). It plays live and is part of the MP4 export (the export renders the tails across its chunk boundaries). The
+settings are remembered in this browser. The reverb room is generated, not a sound file. Code: `src/core/audioFx.ts`.
+
 ## MP4 export
 
 Use the MP4 export button while the editor is running with `npm run dev`, or run a short CLI export:

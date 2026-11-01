@@ -22,6 +22,8 @@ import {
   type UploadMediaTarget,
 } from "./components/Inspector";
 import { MediaBin } from "./components/MediaBin";
+import type { TrackFx } from "./core/audioFx";
+import { applyStoredTrackFx, storeTrackFx } from "./core/trackFxStore";
 import type { SceneFrameLite } from "./core/sceneImages";
 import { MissingMediaModal } from "./components/MissingMediaModal";
 import { SnapshotModal } from "./components/SnapshotModal";
@@ -499,7 +501,11 @@ export default function App() {
     () => new Map(Object.entries(bundledAudioDurations as Record<string, number>)),
   );
   const [decodedAudioMs, setDecodedAudioMs] = useState<Map<string, number>>(() => new Map());
-  const [trackMix, setTrackMix] = useState<TrackMixMap>(() => createDefaultTrackMix());
+  const [trackMix, setTrackMix] = useState<TrackMixMap>(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("render") === "1"
+      ? createDefaultTrackMix()
+      : applyStoredTrackFx(createDefaultTrackMix()),
+  );
   const [duckDepth, setDuckDepth] = useState(DEFAULT_DUCK_DEPTH);
   const [mediaBinOpen, setMediaBinOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("clip");
@@ -1342,6 +1348,18 @@ export default function App() {
       [track]: { ...prev[track], solo: !prev[track].solo },
     }));
   }, []);
+
+  const handleSetTrackFx = useCallback((track: TrackId, fx: TrackFx) => {
+    setTrackMix((prev) => ({
+      ...prev,
+      [track]: { ...prev[track], fx },
+    }));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("render") === "1") return;
+    storeTrackFx(trackMix);
+  }, [trackMix]);
 
   const handleSetTrackLevel = useCallback((track: TrackId, level: number) => {
     const clamped = Math.max(0, Math.min(1, Number.isFinite(level) ? level : 1));
@@ -5822,6 +5840,7 @@ export default function App() {
             onToggleTrackMute={handleToggleTrackMute}
             onToggleTrackSolo={handleToggleTrackSolo}
             onSetTrackLevel={handleSetTrackLevel}
+            onSetTrackFx={handleSetTrackFx}
             onFocusInspectorTab={setInspectorTab}
             onToggleSnap={() => setSnapEnabled((prev) => !prev)}
             resizeLeaveGaps={resizeLeaveGaps}
