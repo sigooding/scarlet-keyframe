@@ -56,7 +56,7 @@ describe("Sweet Jesus storyboard", () => {
     expect(nickySeconds).toBeLessThan(250);
     const tickHolds = beats.filter((beat) => /Tick is gut-shot|hooks a finger|gets his fingers|reaches again, slips/.test(String(beat.shotDescription)));
     expect(tickHolds.reduce((sum, beat) => sum + Number(beat.durationFrames), 0) / 24).toBeGreaterThanOrEqual(60);
-    expect(BUILT_IN_FILMS.map((item) => item.id)).toEqual(["nobodys-witness-film", "sweet-jesus-film"]);
+    expect(BUILT_IN_FILMS.map((item) => item.id)).toEqual(["nobodys-witness-film", "sweet-jesus-film", "miami-vice-film"]);
   });
 
   it("gives every dialogue line readable, timed CC and includes non-dialogue sound cues", () => {

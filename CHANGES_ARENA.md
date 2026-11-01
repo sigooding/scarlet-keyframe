@@ -127,3 +127,29 @@ The workspace was reset to the base checkout during this session. The previously
 
 - Use Ctrl+A (Cmd+A on Mac), or **Select all images** in the timeline, to select all still-image frames. Text fields keep their normal Select All shortcut; videos, gaps, gradients and other non-image frames are excluded.
 - In the Clip inspector, expand **Camera & effects → Grade & texture** and change a setting. It applies to every selected image frame in one undoable edit; camera, timing, audio and other effects are preserved. Other effect groups still affect only the current frame.
+
+## Miami Vice - Salt Water (new film, first slice)
+
+An original feature in the season-four register, night-heavy Miami, built on the same
+toolchain as Sweet Jesus.
+
+- `src/data/miami-vice.fountain` - the screenplay: 95 scenes, 442 beats. A dock foreman
+  who counts the crates twice, a relief charity with a laundering route through Nassau
+  called Salt Water, a federal agent running a witness by letting half of it through, and
+  a surveillance man who has been handing their movements to a bookie for eight months.
+- `scripts/build-miami-vice.mjs` (`npm run build:miami-vice`) - compiles the Fountain
+  draft into `src/data/miami-vice-film.json` (ids `mv_*`).
+- `public/miami-vice/characters/*.png` - ten generated casting plates: Crockett, Tubbs,
+  Castillo, Gina, Trudy, Switek, Zito, Izzy, plus two originals for the new plot, Marta
+  Escobar (the charity director) and Ray Coburn (the federal agent).
+- `scripts/build-miami-vice-previews.sh` (`npm run build:miami-vice-previews`) - 1024x576
+  JPEG previews into `src/assets/miami-vice/portraits/`; the originals are never touched.
+- `src/core/miamiViceCharacters.ts` + `src/data/miami-vice-characters.json` - cast
+  references with wardrobe and continuity notes; `src/components/MiamiViceCast.tsx` is
+  the gallery, reachable from the topbar when the Miami Vice film is open.
+- `src/core/bundledFilms.ts` - `miami-vice-film` is now a selectable built-in film; the
+  screenplay downloads from the topbar button.
+
+Draft length: 95 scenes / 442 beats compiles to about 39 minutes of beat time, which is
+roughly a feature's screen time once action shots play out. The next pass deepens the
+scenes toward a full two hours before locations, props and keyframes begin.
