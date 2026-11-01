@@ -169,6 +169,7 @@ export interface ProjectState {
   recreatedUncutCoverageVersion?: number;
   /** One-time migration marker for the optional Sweet Jesus opening stills. */
   sweetJesusOpeningVersion?: number;
+  sweetJesusShotsVersion?: number;
   directorsCutId?: "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "uncut";
   cutOptions?: CutOptions;
   savedCutStates?: Partial<

@@ -39,6 +39,22 @@ the same room in every scene that uses it.
 - Four scene stills were drafted before this rule (`public/sweet-jesus/scenes/s02-*`, `s03-01-stoop`); they will be
   regenerated against the new room sheets.
 
+## Sweet Jesus — scene keyframes (in progress)
+
+Every still from here on is a **keyframe of the film**, not a reference plate: the characters are acting the
+beat, in the room from the location sheets, holding the props from the prop sheets, lit and composed as a shot.
+
+- Ten keyframes installed, covering **38 beats across S02–S05**: `s02-01-coffee`, `s02-02-officers`,
+  `s02-03-bug-doorway`, `s03-01-stoop`, `s03-02-coroner-van`, `s04-01-counter`, `s04-02-receipt`,
+  `s04-03-seed-wrapper`, `s05-01-bag-note`, `s05-02-pike`. Each is prompted from its room plate plus the voted
+  cast portrait and prop sheet for whatever is in frame.
+- `src/data/sweet-jesus-shots.json` is the shot list: label, alt text, a note on what the frame has to carry, the
+  scene, the exact beats it covers, and the location, cast and props it was generated from.
+  `src/core/sweetJesusShots.ts` bundles the previews (1024×576, a third of a 1280×720 plate — 89 of them are
+  inline assets) and fills only blank beats, so dialogue, captions, timing, deliberate gaps and any custom
+  picture a user has set are untouched.
+- `createBundledFilm` now applies the shot upgrade after the opening one. Beat pictures are `asset:sj-shot-v1-*`.
+
 - A selected caption can be split at the playhead with S or Split CC without splitting its picture or audio clip. The cue text is divided at an estimated word boundary and can be edited afterwards; single-word cues cannot be divided this way. With no caption selected, Split continues to split the picture clip.
 - The marker name editor is positioned above the timeline toolbar controls so its buttons remain accessible.
 - Original imported source images remain unchanged.

@@ -1,0 +1,210 @@
+[
+  {
+    "id": "s02-01-coffee",
+    "label": "Coffee she isn't drinking",
+    "sceneId": "sj_s02",
+    "beats": [
+      "sj_s02_b001"
+    ],
+    "location": "ray-flat",
+    "cast": [
+      "etta-ray"
+    ],
+    "props": [],
+    "alt": "Etta Ray sits alone at the kitchen table of her Bed-Stuy flat holding a cup of coffee she is not drinking, the front door open behind her onto the stairwell.",
+    "note": "The film's first cut away from the laundromat: no music, no dialogue, a woman sitting still while her building moves carefully around her.",
+    "original": "s02-01-coffee.png"
+  },
+  {
+    "id": "s02-02-officers",
+    "label": "The signature",
+    "sceneId": "sj_s02",
+    "beats": [
+      "sj_s02_b002",
+      "sj_s02_b003",
+      "sj_s02_b004",
+      "sj_s02_b005",
+      "sj_s02_b006",
+      "sj_s02_b007"
+    ],
+    "location": "ray-flat",
+    "cast": [
+      "etta-ray"
+    ],
+    "props": [],
+    "alt": "Two uniformed officers wait in the open doorway of the Ray flat with a clipboard form while, out of focus on the landing behind them, a covered stretcher is carried down the stairs; Etta signs with a pen that has run out of ink.",
+    "note": "Covers the officers' lines and Etta's. The pen running dry is the beat: she presses hard enough to leave her name in the paper.",
+    "original": "s02-02-officers.png"
+  },
+  {
+    "id": "s02-03-bug-doorway",
+    "label": "Thumb over PLAY",
+    "sceneId": "sj_s02",
+    "beats": [
+      "sj_s02_b008",
+      "sj_s02_b009"
+    ],
+    "location": "ray-flat",
+    "cast": [
+      "bug-ray"
+    ],
+    "props": [],
+    "alt": "Bug Ray stands in the bedroom doorway hugging the shoebox cassette recorder, his thumb hovering over the PLAY button without pressing it.",
+    "note": "Holds through the FREEZE and the SWEET JESUS title card. He never presses play here; the film cuts away instead.",
+    "original": "s02-03-bug-doorway.png"
+  },
+  {
+    "id": "s03-01-stoop",
+    "label": "He fixed my window",
+    "sceneId": "sj_s03",
+    "beats": [
+      "sj_s03_b001",
+      "sj_s03_b002",
+      "sj_s03_b003",
+      "sj_s03_b004"
+    ],
+    "location": "ray-stoop",
+    "cast": [
+      "jack-monroe",
+      "etta-ray"
+    ],
+    "props": [
+      "seed-twist"
+    ],
+    "alt": "A Halloween mask hanging from the fire escape; Jack Monroe waits on the stoop with a paper twist of sunflower seeds in his breast pocket and looks up as Etta Ray comes out of the door behind him.",
+    "note": "Jack has just spat shells into the gutter. Etta's first line to him is a refusal of condolence, so the frame keeps both of them and the distance between them.",
+    "original": "s03-01-stoop.png"
+  },
+  {
+    "id": "s03-02-coroner-van",
+    "label": "A shell on the step",
+    "sceneId": "sj_s03",
+    "beats": [
+      "sj_s03_b005",
+      "sj_s03_b006",
+      "sj_s03_b007",
+      "sj_s03_b008"
+    ],
+    "location": "ray-stoop",
+    "cast": [
+      "bug-ray",
+      "jack-monroe"
+    ],
+    "props": [
+      "seed-twist"
+    ],
+    "alt": "The coroner's van pulls away from the kerb while Bug watches from the doorway hugging the recorder and Jack, on the stoop, scrapes a sunflower seed shell off his shoe on the stone step.",
+    "note": "Ends the scene: Jack has no answer to Etta's question, Etta goes inside, and he is left with a shell stuck to his shoe.",
+    "original": "s03-02-coroner-van.png"
+  },
+  {
+    "id": "s04-01-counter",
+    "label": "Behind the line she gave him",
+    "sceneId": "sj_s04",
+    "beats": [
+      "sj_s04_b001",
+      "sj_s04_b002",
+      "sj_s04_b003",
+      "sj_s04_b004",
+      "sj_s04_b005"
+    ],
+    "location": "morgue",
+    "cast": [
+      "etta-ray",
+      "jack-monroe"
+    ],
+    "props": [
+      "laundry-receipt"
+    ],
+    "alt": "In the green-tiled morgue corridor, Etta stands at the high wooden counter while a clerk in a white jacket slides a personal-effects list towards her; Jack stands two paces behind her, hands empty, staying behind the line she gave him.",
+    "note": "Jack's position in this frame is the scene: he does not step up to the counter for the rest of it.",
+    "original": "s04-01-counter.png"
+  },
+  {
+    "id": "s04-02-receipt",
+    "label": "A pencilled thirteen",
+    "sceneId": "sj_s04",
+    "beats": [
+      "sj_s04_b006",
+      "sj_s04_b007",
+      "sj_s04_b008",
+      "sj_s04_b009"
+    ],
+    "location": "morgue",
+    "cast": [
+      "etta-ray",
+      "jack-monroe"
+    ],
+    "props": [
+      "laundry-receipt"
+    ],
+    "alt": "Tight insert on the morgue counter: the personal-effects list, one empty glassine bag, a set of keys and the pink laundry receipt with a navy-yard address and a pencilled circled thirteen, as Etta signs the release with a dry pen.",
+    "note": "The insert that starts the investigation. Jack's eye is on the receipt, not on Etta.",
+    "original": "s04-02-receipt.png"
+  },
+  {
+    "id": "s04-03-seed-wrapper",
+    "label": "Copied onto the wrapper",
+    "sceneId": "sj_s04",
+    "beats": [
+      "sj_s04_b010"
+    ],
+    "location": "morgue",
+    "cast": [
+      "jack-monroe"
+    ],
+    "props": [
+      "laundry-receipt",
+      "seed-twist"
+    ],
+    "alt": "Close insert of Jack's hands copying the navy-yard address in pencil onto the back of an opened brown paper sunflower-seed twist, the laundry receipt and a few spilled shells beside it on the counter.",
+    "note": "He asks before he takes the receipt, and copies the address rather than keeping the original.",
+    "original": "s04-03-seed-wrapper.png"
+  },
+  {
+    "id": "s05-01-bag-note",
+    "label": "A reminder on the desk",
+    "sceneId": "sj_s05",
+    "beats": [
+      "sj_s05_b001"
+    ],
+    "location": "jack-office",
+    "cast": [
+      "jack-monroe"
+    ],
+    "props": [
+      "glassine-note"
+    ],
+    "alt": "Jack's shabby one-room office in late morning: he stands at the sticking sash window with his back three-quarters to camera, while in the foreground on the battered desk lie an empty glassine bag and a torn note printed in blue ballpoint capitals.",
+    "note": "The desk is dressed before Pike is revealed: Jack has not turned round to look at it yet.",
+    "original": "s05-01-bag-note.png"
+  },
+  {
+    "id": "s05-02-pike",
+    "label": "That's not evidence",
+    "sceneId": "sj_s05",
+    "beats": [
+      "sj_s05_b002",
+      "sj_s05_b003",
+      "sj_s05_b004",
+      "sj_s05_b005",
+      "sj_s05_b006",
+      "sj_s05_b007",
+      "sj_s05_b008",
+      "sj_s05_b009",
+      "sj_s05_b010",
+      "sj_s05_b011"
+    ],
+    "location": "jack-office",
+    "cast": [
+      "jack-monroe",
+      "frank-pike"
+    ],
+    "props": [
+      "glassine-note"
+    ],
+    "alt": "Lieutenant Frank Pike stands at his ease by the green filing cabinet, coat open over a rumpled suit, while Jack stands between him and the desk without touching the glassine bag and the note lying on it.",
+    "note": "Covers the whole confrontation. Jack never touches the bag; Pike watches the effort it costs him.",
+    "original": "s05-02-pike.png"
+  }
+]

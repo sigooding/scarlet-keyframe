@@ -5,6 +5,7 @@ import { buildAudioClipsFromFilm } from "./audioClips";
 import { buildDirectorsCutProject } from "./directorsCut";
 import { applyStudioMusicSync, createProjectState, parseImportPayload, type AnyRecord, type ProjectState } from "./model";
 import { upgradeSweetJesusOpening } from "./sweetJesusOpening";
+import { upgradeSweetJesusShots } from "./sweetJesusShots";
 
 export const BUILT_IN_FILMS = [
   { id: "nobodys-witness-film", title: "Nobody's Witness" },
@@ -19,7 +20,7 @@ export function createBundledFilm(
 ): ProjectState | undefined {
   if (id === "sweet-jesus-film") {
     const imported = parseImportPayload(sweetJesusFilm, "sweet-jesus-film.json", { voiceDurations });
-    const project = upgradeSweetJesusOpening(createProjectState(imported));
+    const project = upgradeSweetJesusShots(upgradeSweetJesusOpening(createProjectState(imported)));
     return {
       ...project,
       originalStory: JSON.parse(JSON.stringify(project.story)),

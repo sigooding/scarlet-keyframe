@@ -15,6 +15,16 @@ plate() {
     -extent 1280x720 -strip -quality 84 "$2"
 }
 
+# Scene keyframes are inline assets in the built editor, so they are previewed at
+# 1024x576: a third of the bytes of a 1280x720 plate, and still full-frame sharp
+# in the cinematic preview.
+scenes="src/assets/sweet-jesus/scenes"
+mkdir -p "$scenes"
+keyframe() {
+  convert "$1" -resize '1024x576' -background '#14120f' -gravity center \
+    -extent 1024x576 -strip -quality 80 "$2"
+}
+
 count=0
 for source in public/sweet-jesus/locations/*.png; do
   [ -e "$source" ] || continue
@@ -32,4 +42,12 @@ for source in public/sweet-jesus/props/*.png; do
   pcount=$((pcount + 1))
 done
 
-printf 'Built %s Sweet Jesus location plates and %s prop sheets from the preserved originals.\n' "$count" "$pcount"
+kcount=0
+for source in public/sweet-jesus/scenes/*.png; do
+  [ -e "$source" ] || continue
+  keyframe "$source" "$scenes/$(basename "${source%.png}").jpg"
+  kcount=$((kcount + 1))
+done
+
+printf 'Built %s location plates, %s prop sheets and %s scene keyframes from the preserved originals.\n' \
+  "$count" "$pcount" "$kcount"
