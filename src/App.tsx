@@ -2618,6 +2618,38 @@ export default function App() {
     setKenBurnsDraftStart(null);
   }, [selectedFrameId]);
 
+  // While playing, the selection stays put (see the playback loop). When playback stops it follows the playhead.
+  const wasPlayingRef = useRef(false);
+  useEffect(() => {
+    if (playback) {
+      wasPlayingRef.current = true;
+      return;
+    }
+    if (!wasPlayingRef.current) return;
+    wasPlayingRef.current = false;
+    const hit = clipAtFrame(clips, playheadRef.current);
+    if (!hit) return;
+    const curSel = multiSelectionRef.current;
+    if (
+      curSel.audioClipIds.length === 0 &&
+      curSel.captions.length === 0 &&
+      curSel.keyframes.length === 0 &&
+      curSel.pictureIds.length <= 1
+    ) {
+      selectedIdsRef.current = [hit.keyframe.id];
+      setSelectedFrameId(hit.keyframe.id);
+      setSelectedFrameIds([hit.keyframe.id]);
+      const nextSel: MultiLaneSelection = {
+        pictureIds: [hit.keyframe.id],
+        captions: [],
+        audioClipIds: [],
+        keyframes: [],
+      };
+      multiSelectionRef.current = nextSel;
+      setMultiSelection(nextSel);
+    }
+  }, [playback, clips]);
+
   useEffect(() => {
     if (!playback || !totalFrames) return;
     let rafId = 0;
@@ -2664,28 +2696,9 @@ export default function App() {
         }
         if (nextFrame !== playheadRef.current) {
           setPlayheadFrame(nextFrame);
-          const hit = clipAtFrame(clips, nextFrame);
-          if (hit) {
-            setSelectedFrameId(hit.keyframe.id);
-            const curSel = multiSelectionRef.current;
-            if (
-              curSel.audioClipIds.length === 0 &&
-              curSel.captions.length === 0 &&
-              curSel.keyframes.length === 0 &&
-              curSel.pictureIds.length <= 1
-            ) {
-              selectedIdsRef.current = [hit.keyframe.id];
-              setSelectedFrameIds([hit.keyframe.id]);
-              const nextSel: MultiLaneSelection = {
-                pictureIds: [hit.keyframe.id],
-                captions: [],
-                audioClipIds: [],
-                keyframes: [],
-              };
-              multiSelectionRef.current = nextSel;
-              setMultiSelection(nextSel);
-            }
-          }
+          // The selection is NOT moved to each new clip while playing: that re-rendered the inspector and the whole
+          // timeline at every cut and stalled the picture (about 130 ms per cut measured). It snaps to the clip under
+          // the playhead when playback stops (see the effect below).
         }
         rafId = requestAnimationFrame(tickForward);
       };
@@ -2709,8 +2722,6 @@ export default function App() {
       }
       if (nextFrame !== playheadRef.current) {
         setPlayheadFrame(nextFrame);
-        const hit = clipAtFrame(clips, nextFrame);
-        if (hit) setSelectedFrameId(hit.keyframe.id);
       }
       rafId = requestAnimationFrame(tickReverse);
     };
