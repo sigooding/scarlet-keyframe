@@ -5,7 +5,7 @@ import bundledEdits from "../data/studio-edits.json";
 import { buildTimelineClips } from "../sequence/animate";
 import { resolveAudioClips } from "./audioClips";
 import { buildDirectorsCutById, DIRECTORS_CUT_OPTIONS } from "./directorsCut";
-import { applyJackNoirTreatment, classifyScene, isJackVoiceOver } from "./jackNoirCut";
+import { applyJackNoirTreatment, classifyScene } from "./jackNoirCut";
 import { applyStudioMusicSync, buildKeyframes, createProjectState, parseImportPayload } from "./model";
 import { extractKnownMusicDurations } from "./previewAudio";
 
@@ -78,14 +78,6 @@ describe("Jack's Noir cut", () => {
     expect(classifyScene({ id: "d", title: "Room", ambientAudio: "file:/film/sfx/amb-hive.mp3", dialogueBeats: [] } as never).mood).toBe("amber");
   });
 
-  it("promotes Jack's reflective recorded lines to voice-over, only Jack's", () => {
-    const beats = buildKeyframes(uncut.story).map((f) => f.beat);
-    const vo = beats.filter(isJackVoiceOver);
-    expect(vo.length).toBeGreaterThanOrEqual(10);
-    expect(vo.every((b) => b.characterId === "nw_jack" && b.audioUrl)).toBe(true);
-    expect(isJackVoiceOver({ characterId: "nw_vera", audioUrl: "/x.mp3", text: "x".repeat(200) } as never)).toBe(false);
-  });
-
   it("replaces the camera only on treated beats, tilts safely, and never produces tiny clips", () => {
     const before = new Map(buildKeyframes(uncut.story).map((f) => [f.id, JSON.stringify(f.beat.animation ?? null)]));
     const frames = buildKeyframes(jack.story);
@@ -150,21 +142,29 @@ describe("Jack's Noir cut", () => {
     expect(lcuts).toBeGreaterThan(5);
   });
 
-  it("never lets two spoken lines overlap, and echoes only belong to voice-over and footsteps", () => {
+  it("never lets two spoken lines overlap, and the only echo is on footsteps (none on voices)", () => {
     const frames = buildKeyframes(jack.story);
     const { clips } = buildTimelineClips(frames, voiceMap);
     const resolved = resolveAudioClips(jack.audioClips, clips);
-    const voices = resolved.filter((c) => c.lane === "voice" && !c.id.includes("_echo")).sort((x, y) => x.startMs - y.startMs);
+    const voices = resolved.filter((c) => c.lane === "voice").sort((x, y) => x.startMs - y.startMs);
     for (let i = 1; i < voices.length; i += 1) expect(voices[i].startMs).toBeGreaterThanOrEqual(voices[i - 1].endMs - 5);
+    expect(voices.some((c) => c.id.includes("_echo"))).toBe(false);
     const echoes = resolved.filter((c) => c.id.includes("_echo"));
-    expect(echoes.length).toBeGreaterThan(0);
-    expect(echoes.length).toBeLessThan(200);
+    expect(echoes.every((c) => c.lane === "sfx" && /footsteps|boots|heels|running/.test(c.src))).toBe(true);
+    expect(echoes.length).toBeLessThan(60);
   });
 
-  it("drops the music after gunfire and under voice-over", () => {
-    const keyed = (jack.audioClips ?? []).filter((c) => c.lane === "music" && c.volumeKeys?.length);
-    expect(keyed.length).toBeGreaterThan(0);
-    for (const c of keyed) for (const k of c.volumeKeys!) expect(k.gain).toBeGreaterThanOrEqual(0);
+  it("never dips the music: no music clip gets volume keys, and each is the Uncut clip at 85%", () => {
+    const keyOf = (c: { src: string; anchorId: string }) => `${c.src}@${c.anchorId}`;
+    const before = new Map((uncut.audioClips ?? []).filter((c) => c.lane === "music").map((c) => [keyOf(c), c]));
+    const music = (jack.audioClips ?? []).filter((c) => c.lane === "music");
+    expect(music.length).toBeGreaterThan(0);
+    for (const c of music) {
+      const was = before.get(keyOf(c));
+      expect(was, `music ${keyOf(c)} exists in Original Uncut`).toBeDefined();
+      expect(c.volumeKeys ?? []).toEqual(was!.volumeKeys ?? []);
+      expect(c.gain).toBeCloseTo(was!.gain * 0.85, 6);
+    }
   });
 
   it("leaves Original Uncut itself untouched", () => {
