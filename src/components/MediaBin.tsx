@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import type { BrowserAsset } from "./AssetBrowser";
+import { MediaBinStills } from "./MediaBinScene";
+import type { SceneFrameLite } from "../core/sceneImages";
 
 export const ASSET_DRAG_MIME = "application/x-frame24-asset";
 
@@ -50,6 +52,10 @@ export interface MediaBinProps {
   audioAssets: BrowserAsset[];
   onApplyImageToSelection?: (ref: string) => void;
   onInsertAudioAtPlayhead?: (ref: string) => void;
+  /** Keyframes (id, scene, number, picture) for the scene view of the Stills tab. */
+  frames?: SceneFrameLite[];
+  selectedSceneId?: string;
+  onSelectFrame?: (frameId: string) => void;
 }
 
 export function MediaBin({
@@ -59,6 +65,9 @@ export function MediaBin({
   audioAssets,
   onApplyImageToSelection,
   onInsertAudioAtPlayhead,
+  frames = [],
+  selectedSceneId,
+  onSelectFrame,
 }: MediaBinProps) {
   const [tab, setTab] = useState<"image" | "audio">("image");
   const [query, setQuery] = useState("");
@@ -78,7 +87,7 @@ export function MediaBin({
             `${item.name} ${item.folder} ${item.ref}`.toLowerCase().includes(q),
         )
       : source.filter((item) => !item.missing);
-    return list.slice(0, 120);
+    return list;
   }, [tab, imageAssets, audioAssets, query]);
 
   if (!open) return null;
@@ -137,21 +146,33 @@ export function MediaBin({
 
       <p className="media-bin-hint">
         {tab === "image"
-          ? "Drag a picture onto a shot or gap on the Video lane, or double-click to fill selected."
+          ? "Pictures of the selected keyframe's scene: in use, earlier versions, alternatives. Drag onto a shot or gap, or double-click to fill selected."
           : "Drag a sound onto Voice, SFX, Music, or Ambience lane."}
       </p>
 
+      {tab === "image" ? (
+        <MediaBinStills
+          assets={imageAssets}
+          frames={frames}
+          selectedSceneId={selectedSceneId}
+          query={query}
+          onApply={onApplyImageToSelection}
+          onSelectFrame={onSelectFrame}
+          onHover={(item, x, y) => setHover({ item, x, y })}
+          onHoverEnd={(item) => setHover((prev) => (prev?.item.id === item.id ? null : prev))}
+        />
+      ) : (
       <div className="media-bin-list" data-testid="media-bin-list">
         {filtered.map((item) => (
           <div
             key={item.id}
-            className={`media-bin-item is-${tab}`}
+            className="media-bin-item is-audio"
             data-testid={`media-bin-item-${item.name}`}
             data-asset-ref={item.ref}
             draggable
             onDragStart={(e) =>
               encodeDraggedAsset(e, {
-                kind: tab,
+                kind: "audio",
                 ref: item.ref,
                 name: item.name,
               })
@@ -162,22 +183,11 @@ export function MediaBin({
               setHover((prev) => (prev?.item.id === item.id ? null : prev))
             }
             onDoubleClick={() => {
-              if (tab === "image") onApplyImageToSelection?.(item.ref);
-              else onInsertAudioAtPlayhead?.(item.ref);
+              onInsertAudioAtPlayhead?.(item.ref);
             }}
             title={`${item.name} (${item.folder || "Project"}) — drag onto timeline`}
           >
-            {tab === "image" ? (
-              <span className="media-bin-thumb">
-                {item.src ? (
-                  <img src={item.src} alt={item.name} loading="lazy" decoding="async" />
-                ) : (
-                  <i>STILL</i>
-                )}
-              </span>
-            ) : (
-              <span className="media-bin-audio-badge">♫</span>
-            )}
+            <span className="media-bin-audio-badge">♫</span>
             <span className="media-bin-meta">
               <strong>{item.name}</strong>
               <small>{item.folder || item.source}</small>
@@ -188,6 +198,7 @@ export function MediaBin({
           <div className="media-bin-empty">No matching media items.</div>
         )}
       </div>
+      )}
 
       {/* Hover preview: large roll-over preview for stills (follows the cursor, never blocks it) */}
       {hover && tab === "image" && hover.item.src && (
