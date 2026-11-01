@@ -1,3 +1,4 @@
+import { createFxChain, fxTailSeconds } from "./audioFx";
 import {
   AUDIO_LANES,
   computeScheduleWindow,
@@ -7,6 +8,7 @@ import {
 } from "./audioClips";
 import {
   createDefaultTrackMix,
+  trackFxOf,
   effectiveTrackLevel,
   type MediaResolver,
   type TrackMixMap,
@@ -283,11 +285,10 @@ async function renderOfflineChunk(
   for (const lane of AUDIO_LANES) {
     const bus = ctx.createGain();
     bus.gain.value = effectiveTrackLevel(trackMix, lane) * BASE_LANE_LEVEL[lane];
-    if (lane === "music" || lane === "ambience") {
-      bus.connect(duck);
-    } else {
-      bus.connect(preMaster);
-    }
+    const destination = lane === "music" || lane === "ambience" ? duck : preMaster;
+    const chain = createFxChain(ctx, destination);
+    chain.update(trackFxOf(trackMix, lane), true);
+    bus.connect(chain.input);
     laneBuses[lane] = bus;
   }
 
@@ -398,6 +399,9 @@ export async function renderTimelineAudioOfflineWav(
 
   const outLeft = new Float32Array(totalSamples);
   const outRight = new Float32Array(totalSamples);
+  const fxPreRollMs = Math.round(
+    Math.max(0, ...AUDIO_LANES.map((lane) => fxTailSeconds(trackFxOf(trackMix, lane)))) * 1000,
+  );
 
   let frameCursor = startFrame;
   let sampleCursor = 0;
@@ -407,6 +411,10 @@ export async function renderTimelineAudioOfflineWav(
     const chunkSamples = Math.min(totalSamples - sampleCursor, chunkFrames * samplesPerFrame);
     const chunkStartMs = (frameCursor * 1000) / fps;
 
+    // Reverb and echo tails from before this chunk: render a little earlier and drop that lead-in.
+    const preRollMs = Math.min(chunkStartMs, fxPreRollMs);
+    const preRollSamples = Math.round((preRollMs / 1000) * sampleRate);
+
     const { left, right } = await renderOfflineChunk(
       options.resolvedClips,
       options.resolveMedia,
@@ -414,14 +422,14 @@ export async function renderTimelineAudioOfflineWav(
       fileDurationsMs,
       trackMix,
       duckDepth,
-      chunkStartMs,
-      chunkSamples,
+      chunkStartMs - preRollMs,
+      chunkSamples + preRollSamples,
       sampleRate,
       Boolean(options.opticalPrintEq),
     );
 
-    outLeft.set(left.subarray(0, chunkSamples), sampleCursor);
-    outRight.set(right.subarray(0, chunkSamples), sampleCursor);
+    outLeft.set(left.subarray(preRollSamples, preRollSamples + chunkSamples), sampleCursor);
+    outRight.set(right.subarray(preRollSamples, preRollSamples + chunkSamples), sampleCursor);
 
     frameCursor += chunkFrames;
     sampleCursor += chunkSamples;

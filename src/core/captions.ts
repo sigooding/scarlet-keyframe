@@ -1,3 +1,4 @@
+import { balanceLines, cuesForText, splitLongCue } from "./captionCues";
 import type { BeatLike, Keyframe, NoteMarker } from "./model";
 import { FPS, srtTime } from "./timing";
 
@@ -127,9 +128,28 @@ export function normalizeCaptions(
   return out;
 }
 
+/** Where a beat's words are spoken (or read) inside its clip. Set when the timeline is built; see setCaptionWindow. */
+export interface CaptionWindow {
+  startFrame: number;
+  endFrame: number;
+}
+
+const captionWindows = new WeakMap<object, CaptionWindow>();
+const derivedCues = new WeakMap<object, { key: string; cues: BeatCaption[] }>();
+
+/**
+ * The timeline builder tells each beat where its voice sits in its clip, so derived cues start with the words and
+ * not with the scene slate before them. Not stored in the story; a beat without a window spreads over its whole clip.
+ */
+export function setCaptionWindow(beat: object, window: CaptionWindow | undefined): void {
+  if (window) captionWindows.set(beat, window);
+  else captionWindows.delete(beat);
+}
+
 /**
  * Effective captions for a beat over `[0, clipDurationFrames]`.
- * Without `beat.captions`, a beat shows `beat.text` across `[0, clipDurationFrames]`.
+ * Without `beat.captions`, the beat's text becomes proper cues (sentences, at most two 42-character lines each)
+ * timed across the words. Authored cues that are too long for the screen are split across their own span.
  */
 export function effectiveCaptionsForBeat(
   beat: BeatLike,
@@ -137,12 +157,22 @@ export function effectiveCaptionsForBeat(
 ): BeatCaption[] {
   const maxFrame = Math.max(1, Math.round(clipDurationFrames));
   if (Array.isArray(beat.captions)) {
-    return normalizeCaptions(beat.captions, maxFrame);
+    return normalizeCaptions(beat.captions, maxFrame).flatMap((cap) =>
+      cap.free ? [cap] : splitLongCue(cap).map((part) => ({ ...cap, text: part.text, inFrame: part.inFrame, outFrame: part.outFrame })),
+    );
   }
   const rawText = String(beat.text ?? "");
   const trimmed = rawText.trim();
   if (!trimmed || trimmed === "·") return [];
-  return [{ text: rawText, inFrame: 0, outFrame: maxFrame }];
+  const win = captionWindows.get(beat);
+  const start = win ? Math.max(0, Math.min(maxFrame - 1, Math.round(win.startFrame))) : 0;
+  const end = win ? Math.max(start + 1, Math.min(maxFrame, Math.round(win.endFrame))) : maxFrame;
+  const key = `${rawText}|${maxFrame}|${start}|${end}`;
+  const hit = derivedCues.get(beat);
+  if (hit && hit.key === key) return hit.cues;
+  const cues = cuesForText(rawText, start, end).map((cue) => ({ text: cue.text, inFrame: cue.inFrame, outFrame: cue.outFrame }));
+  derivedCues.set(beat, { key, cues });
+  return cues;
 }
 
 /**
@@ -187,6 +217,8 @@ export function wrapCaptionLines(text: string, maxChars = CAPTION_MAX_LINE_CHARS
     }
     if (current) lines.push(current);
   }
+  // two lines of similar length read better than a long line and a stub
+  if (paragraphs.length === 1 && lines.length === 2) return balanceLines(lines.join(" "), maxChars);
   return lines;
 }
 

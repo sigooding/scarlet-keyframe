@@ -186,7 +186,7 @@ describe("Captions (CC) editor model & exports", () => {
     const srt = makeCaptionsSrt(frames, durationsFrames, 24);
     expect(srt).toBe(
       [
-        "1\n00:00:00,000 --> 00:00:02,000\nVera sits at the low table in the dawn\nlight.",
+        "1\n00:00:00,000 --> 00:00:02,000\nVera sits at the low\ntable in the dawn light.", // two balanced lines, not a long line and a stub
         "2\n00:00:02,500 --> 00:00:04,000\nThe fire began in two places at once.",
         "3\n00:00:04,000 --> 00:00:06,000\nFires don't do that.",
       ].join("\n\n"),
@@ -196,7 +196,7 @@ describe("Captions (CC) editor model & exports", () => {
     expect(vtt).toBe(
       [
         "WEBVTT",
-        "1\n00:00:00.000 --> 00:00:02.000\nVera sits at the low table in the dawn\nlight.",
+        "1\n00:00:00.000 --> 00:00:02.000\nVera sits at the low\ntable in the dawn light.",
         "2\n00:00:02.500 --> 00:00:04.000\nThe fire began in two places at once.",
         "3\n00:00:04.000 --> 00:00:06.000\nFires don't do that.",
       ].join("\n\n") + "\n",

@@ -248,7 +248,7 @@ describe("Turn 18 — Speed ramps, Tokyo-Noir viewer engine, and Full-Film Direc
     // 6. Eliminates redundant silent stage-direction captions while preserving Kurose/Jack & written clues
     const resolvedCaptions = resolveTimelineCaptions(clips);
     expect(resolvedCaptions.length).toBeGreaterThanOrEqual(566);
-    expect(resolvedCaptions.length).toBeLessThan(590);
+    expect(resolvedCaptions.length).toBeLessThan(800); // long cues are now split into proper two-line cues
     expect(
       resolvedCaptions.some((c) => c.text.includes("Everyone is allowed one.")),
     ).toBe(true);

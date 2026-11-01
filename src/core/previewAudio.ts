@@ -5,6 +5,8 @@ import { buildTimelineClips, type TimelineClip } from "../sequence/animate";
 import { buildKeyframes, type SceneLike, type StoryLike } from "./model";
 import { FPS } from "./timing";
 
+import type { TrackFx } from "./audioFx";
+
 export type MediaResolver = (value: string | undefined) => string | undefined;
 
 export type TrackId = "video" | "voice" | "sfx" | "music" | "ambience";
@@ -15,6 +17,8 @@ export interface TrackMixState {
   mute: boolean;
   solo: boolean;
   level: number;
+  /** Reverb and delay / echo on this track (see core/audioFx.ts). Absent = no effect. */
+  fx?: TrackFx;
 }
 
 export type TrackMixMap = Record<TrackId, TrackMixState>;
@@ -27,6 +31,10 @@ export function createDefaultTrackMix(): TrackMixMap {
     music: { mute: false, solo: false, level: 1 },
     ambience: { mute: false, solo: false, level: 1 },
   };
+}
+
+export function trackFxOf(mix: TrackMixMap, track: TrackId): TrackFx | undefined {
+  return mix[track]?.fx;
 }
 
 export function effectiveTrackLevel(mix: TrackMixMap, track: TrackId): number {

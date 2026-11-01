@@ -59,6 +59,8 @@ import {
   type SelectedCutoutLayerState,
 } from "./DepthCutoutLanes";
 import type { BrowseMediaTarget, InspectorTab, UploadMediaTarget } from "./Inspector";
+import { TrackFxPanel } from "./TrackFxPanel";
+import { isTrackFxActive, type TrackFx } from "../core/audioFx";
 import { decodeDraggedAsset } from "./MediaBin";
 import { Tracks } from "./Tracks";
 import {
@@ -117,6 +119,7 @@ export interface TimelineProps {
   onToggleTrackMute?: (track: TrackId) => void;
   onToggleTrackSolo?: (track: TrackId) => void;
   onSetTrackLevel?: (track: TrackId, level: number) => void;
+  onSetTrackFx?: (track: TrackId, fx: TrackFx) => void;
   onFocusInspectorTab?: (tab: InspectorTab) => void;
   onToggleSnap: () => void;
   /** Resize-leaves-gaps mode: trimming shorter opens/extends a black gap instead of shifting later keyframes. */
@@ -300,6 +303,7 @@ export function Timeline({
   onToggleTrackMute,
   onToggleTrackSolo,
   onSetTrackLevel,
+  onSetTrackFx,
   onFocusInspectorTab,
   onToggleSnap,
   resizeLeaveGaps = false,
@@ -1253,6 +1257,7 @@ export function Timeline({
   } | null>(null);
 
   const effectiveMix = useMemo(() => trackMix ?? createDefaultTrackMix(), [trackMix]);
+  const [fxPanel, setFxPanel] = useState<{ track: TrackId; x: number; y: number } | null>(null);
   const videoSilenced = effectiveTrackLevel(effectiveMix, "video") === 0;
 
   const trackWidth = Math.max(viewportWidth, Math.ceil(totalFrames * pxPerFrame) + 160);
@@ -1676,6 +1681,17 @@ export function Timeline({
         style={{ gridTemplateColumns: `${trackHeaderWidth}px 5px minmax(0, 1fr)` }}
       >
         <aside className="timeline-track-headers" data-testid="timeline-track-headers" aria-label="Track headers">
+          {fxPanel && onSetTrackFx && (
+            <TrackFxPanel
+              trackLabel={TRACK_HEADERS.find((h) => h.id === fxPanel.track)?.label ?? fxPanel.track}
+              testId={`track-fx-panel-${fxPanel.track}`}
+              fx={effectiveMix[fxPanel.track]?.fx}
+              x={fxPanel.x}
+              y={fxPanel.y}
+              onChange={(fx) => onSetTrackFx(fxPanel.track, fx)}
+              onClose={() => setFxPanel(null)}
+            />
+          )}
           <div className="track-header-ruler">
             <span>TRACKS</span>
             <div className="track-header-ruler-actions">
@@ -1822,6 +1838,24 @@ export function Timeline({
                         >
                           S
                         </button>
+                        {header.id !== "video" && onSetTrackFx && (
+                          <button
+                            type="button"
+                            className={`track-ms-btn is-fx ${isTrackFxActive(state.fx) ? "is-active" : ""}`}
+                            data-testid={`track-fx-${header.id}`}
+                            aria-label={`Effects for ${header.label}`}
+                            aria-pressed={fxPanel?.track === header.id}
+                            title={`Reverb, delay and echo on ${header.label}`}
+                            onClick={(event) => {
+                              const rect = event.currentTarget.getBoundingClientRect();
+                              setFxPanel((prev) =>
+                                prev?.track === header.id ? null : { track: header.id, x: rect.right + 8, y: rect.top },
+                              );
+                            }}
+                          >
+                            FX
+                          </button>
+                        )}
                         <LaneEyeButton
                           laneLabel={header.label}
                           testId={`track-eye-${header.id}`}
