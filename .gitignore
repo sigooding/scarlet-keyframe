@@ -7,3 +7,6 @@ Unselected files/
 dist-local/
 public/thumbs/
 public/.thumbs-check-parked/
+.depth-venv/
+__pycache__/
+*.pyc
