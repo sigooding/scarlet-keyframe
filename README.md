@@ -17,7 +17,10 @@ Run the app with **`npm run serve`** and open <http://127.0.0.1:4173>. That comm
 multi-file production build into `dist-local/` and serves it: the editor starts in about two seconds
 instead of five to ten, playback leaves the main thread idle most of the time, and Export > MP4 works
 from the production build. `public/` (1.7 GB of film pictures, depth maps and audio) is not copied into
-the build; the preview server reads it from `public/` as it is, with range requests and cache headers.
+the build; the preview server reads it from `public/` as it is, with range requests. Files in `public/` are
+working files (a retaken picture or a re-made depth map replaces the old one under the same name), so the
+browser is told to check with the server each time (`Cache-Control: no-cache`, answered with `304` when
+nothing changed) and a replaced file shows up on the next load.
 
 `npm run dev` (port 5173) is for **coding only** — it has hot reload and React's development build, which
 is several times slower at playback. Both ports are pinned (`strictPort`): if 4173 is busy, `npm run serve`
