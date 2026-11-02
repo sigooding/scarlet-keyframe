@@ -149,6 +149,24 @@ describe("npm run thumbs", () => {
     expect(output).toContain("1 indexed path not on disk");
   }, 120000);
 
+  it("refuses an output folder that is not <public>/thumbs, and deletes nothing", () => {
+    // A run deletes thumbnails it no longer produces. Pointed at a folder of
+    // originals (or at public/ itself) it would delete them, so it stops first.
+    const originalsFolder = path.join(publicDir, "film", "img");
+    const before = fs.readdirSync(originalsFolder).sort();
+    for (const target of [originalsFolder, publicDir, path.join(workDir, "elsewhere")]) {
+      expect(() =>
+        execFileSync(
+          process.execPath,
+          [SCRIPT, "--index", indexFile, "--public", publicDir, "--out", target, "--assets", path.join(workDir, "no-assets")],
+          { encoding: "utf8", stdio: "pipe", env: { ...process.env, FFMPEG: ffmpegPath } },
+        ),
+      ).toThrow(/must be the "thumbs" folder/);
+    }
+    expect(fs.readdirSync(originalsFolder).sort()).toEqual(before);
+    expect(fs.existsSync(path.join(workDir, "elsewhere"))).toBe(false);
+  }, 60000);
+
   it("stops with a clear message when the index is missing", () => {
     expect(() =>
       execFileSync(

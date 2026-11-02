@@ -92,6 +92,17 @@ const sumBytes = (entries) => entries.reduce((total, [, bytes]) => total + bytes
 
 const isThumb = (pathname) => pathname.startsWith("/thumbs/");
 
+/**
+ * Runs in the page: how many resources answered 4xx/5xx. The browser's own
+ * /favicon.ico request is not the editor's (the page ships no icon file), so it
+ * is not counted.
+ */
+function countFailedResources() {
+  return performance
+    .getEntriesByType("resource")
+    .filter((entry) => entry.responseStatus >= 400 && !/\/favicon\.ico(?:$|\?)/.test(entry.name)).length;
+}
+
 try {
   // ---------------------------------------------------------------- first screen
   let firstScreenListBytes = 0;
@@ -190,9 +201,7 @@ try {
         hoverSrc.slice(0, 90) || "(no hover preview)",
       );
     }
-    const failures = await page.evaluate(
-      () => performance.getEntriesByType("resource").filter((entry) => entry.responseStatus >= 400).length,
-    );
+    const failures = await page.evaluate(countFailedResources);
     check("no failed picture requests", failures === 0, `${failures} failures`);
     await context.close();
     await browser.close();
@@ -213,9 +222,7 @@ try {
         listPictures.length > 0 && listPictures.every(([pathname]) => !isThumb(pathname)),
         `${listPictures.length} originals, ${mb(sumBytes(listPictures))}`,
       );
-      const failures = await page.evaluate(
-        () => performance.getEntriesByType("resource").filter((entry) => entry.responseStatus >= 400).length,
-      );
+      const failures = await page.evaluate(countFailedResources);
       check("without public/thumbs/ there is no 404 spam", failures === 0, `${failures} failures`);
       await context.close();
       await browser.close();

@@ -73,6 +73,22 @@ function parseArgs(argv) {
   return opts;
 }
 
+/**
+ * Thumbnails are derived files, and a full run deletes the ones it no longer
+ * produces. So the output folder must be exactly `<originals>/thumbs` — never
+ * a folder of originals, the originals folder itself, or anywhere else.
+ */
+function assertThumbsFolder(publicDir, outDir) {
+  const relative = path.relative(path.resolve(publicDir), path.resolve(outDir));
+  const isThumbs = process.platform === "win32" ? relative.toLowerCase() === "thumbs" : relative === "thumbs";
+  if (!isThumbs) {
+    throw new Error(
+      `--out must be the "thumbs" folder inside the originals folder (${path.join(publicDir, "thumbs")}), not ${outDir}. ` +
+        "A run deletes thumbnails it no longer produces, so it will not write anywhere else. Originals are never written or deleted.",
+    );
+  }
+}
+
 function printHelp() {
   console.log(`Usage:
   npm run thumbs [options]
@@ -85,7 +101,7 @@ Options:
   --limit <n>    Only the first n pictures (for a quick check)
   --index <file> Media index to read (default: src/data/media-index.json)
   --public <dir> Originals folder (default: public)
-  --out <dir>    Thumbnail folder (default: public/thumbs)
+  --out <dir>    Thumbnail folder; must be <public>/thumbs (default: public/thumbs)
   --assets <dir> Extra picture folder to include (default: src/assets)
   --help         Show this help
 `);
@@ -310,6 +326,7 @@ export async function main(argv = process.argv.slice(2)) {
     printHelp();
     return 0;
   }
+  assertThumbsFolder(opts.publicDir, opts.outDir);
   if (!fs.existsSync(opts.index)) throw new Error(`Media index not found: ${opts.index}`);
   if (!fs.existsSync(opts.publicDir)) throw new Error(`Originals folder not found: ${opts.publicDir}`);
 
