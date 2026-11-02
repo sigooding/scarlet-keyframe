@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { encodeDraggedAsset } from "./MediaBin";
+import { thumbFor } from "../core/thumbs";
+import { useThumbIndex } from "./useThumbIndex";
 
 export interface BrowserAsset {
   id: string;
@@ -23,6 +25,8 @@ interface AssetBrowserProps {
 const ITEM_HEIGHT = 70;
 
 export function AssetBrowser({ title, kind, items, onSelect, onClose }: AssetBrowserProps) {
+  // Rows switch to thumbnails as soon as the index arrives.
+  useThumbIndex();
   const [search, setSearch] = useState("");
   const [folder, setFolder] = useState("All folders");
   const [hovered, setHovered] = useState<BrowserAsset | null>(null);
@@ -124,7 +128,11 @@ export function AssetBrowser({ title, kind, items, onSelect, onClose }: AssetBro
                     >
                       {kind === "image" ? (
                         <span className="asset-thumb">
-                          {asset.src && !asset.missing ? <img src={asset.src} alt="" loading="lazy" decoding="async" /> : <i>STILL</i>}
+                          {asset.src && !asset.missing ? (
+                            // Rows list pictures: the 400 px thumbnail. The hover
+                            // preview on the right keeps the original.
+                            <img src={thumbFor(asset.src)} alt="" loading="lazy" decoding="async" />
+                          ) : <i>STILL</i>}
                         </span>
                       ) : <span className="asset-audio-icon">♫</span>}
                       <span className="asset-row-copy"><strong>{asset.name}</strong><small>{asset.folder || "Project media"}{asset.missing ? " · NOT LINKED" : ""}</small></span>

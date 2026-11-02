@@ -11,6 +11,8 @@ import {
 import type { BeatAnimation, NoteMarker } from "../core/model";
 import { insertionSlotAtFrame, type ReorderDestination } from "../core/edits";
 import { pictureLabel, storyboardGradient } from "../core/helpers";
+import { thumbFor } from "../core/thumbs";
+import { useThumbIndex } from "./useThumbIndex";
 import { firstLine, sceneLabel } from "../core/model";
 import {
   createDefaultTrackMix,
@@ -392,6 +394,8 @@ export function Timeline({
   onClearInOut,
   onToggleLoop,
 }: TimelineProps) {
+  // Re-render the lanes once thumbnails are known (see src/core/thumbs.ts).
+  useThumbIndex();
   const [cutoutsExpanded, setCutoutsExpanded] = useState(false);
   const [manualCutoutSublanes, setManualCutoutSublanes] = useState(2);
   const [selectedCutoutLayer, setSelectedCutoutLayer] =
@@ -2349,7 +2353,9 @@ export function Timeline({
                 rawSrc &&
                 !rawSrc.startsWith("gradient:") &&
                 !rawSrc.startsWith("emoji:")
-                  ? rawSrc
+                  ? // Lists and lanes use the 400 px thumbnail; the viewer keeps
+                    // the original.
+                    thumbFor(rawSrc)
                   : undefined;
               const prevClip = clip.index > 0 ? clips[clip.index - 1] : undefined;
               const rawAlign: TransitionAlignment =

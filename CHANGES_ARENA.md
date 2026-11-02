@@ -1,5 +1,62 @@
 # Changes in this branch
 
+## Thumbnails for the timeline, the Media Bin and the picture lists
+
+Scrolling the timeline and opening the Media Bin used to pull the full-size pictures: 8.49 MB of the first
+screen's 9.55 MB, and 54.2 MB while stepping through scenes 1–20. Lists now use 400 px thumbnails
+(0.19 MB and 1.72 MB respectively; the rest of those totals is the viewer's own original picture, the depth
+parallax plates and the preloader, which keep the full-size files by design).
+
+- `scripts/make-thumbs.mjs` / `npm run thumbs`: 400 px wide copies of every picture in
+  `src/data/media-index.json` under `public/thumbs/` (path mirrored), JPEG sources as JPEG `-q:v 4`, pictures
+  with transparency as WebP when the bundled FFmpeg has libwebp (otherwise counted and reported as skipped).
+  Incremental, four at a time, progress line, `public/thumbs/index.json` lists what exists. Originals are only
+  read — nothing under `public/` or `src/assets/` is touched — and `public/thumbs/` is in `.gitignore`.
+- `src/core/thumbs.ts`: `thumbFor(ref)` returns the thumbnail when the index lists the picture, else the
+  original. The index is fetched once, lazily; missing/unparseable/no server means originals only. Query
+  strings are ignored, `%20` and literal spaces both match, only listed paths are ever returned (no 404s).
+- Used in the timeline clip thumbnails (video lane), the depth and cutout lane thumbnails, Media Bin tiles
+  (scene and Show everything), AssetBrowser rows. The viewer, depth camera, preloader, MP4 export and the
+  bundle keep the originals; the Media Bin hover preview and the picture chooser's preview stay full size.
+- `npm run build` (the single-file page) no longer leaves the derived `public/thumbs/` copies in `dist/`:
+  a `file:` page always uses the originals, so `vite-plugins/skip-thumbs-in-single-file-build.ts` removes
+  that one folder after the build (dist stays 1.7 GB instead of 1.8 GB). `npm run serve` copies no public/
+  at all, and `public/` itself is never modified.
+- `npm run check:thumbs` (`scripts/check-thumbs.mjs`) drives headless Chromium: first screen lists are
+  `/thumbs/…` and under 1.5 MB, the viewer asks for the original, a scroll across scenes 1–20 only asks for
+  thumbnails, Media Bin tiles are thumbnails with the original on hover, and with `public/thumbs/` moved away
+  every picture still shows from the originals with no failed requests.
+
+## `npm run serve` — the production build is now how the app is run
+
+`npm run dev` stays for coding only; the app is meant to run from a production build. New command:
+
+    npm run serve
+
+- `scripts/serve-local.mjs` builds with `--mode serve` into `dist-local/` and serves it with `vite preview` on
+  127.0.0.1:4173 (both ports are now `strictPort`, so a busy port stops with a message instead of moving to a new
+  origin and showing an empty project). Node only — no shell commands — so it works on Windows.
+- The serve build is a normal multi-file build: `build.copyPublicDir: false` (the 1.7 GB `public/` folder is served
+  from the repository, not copied), `assetsInlineLimit: 4096`, and no `viteSingleFile`. `npm run build` still makes
+  the single self-contained `dist/index.html`.
+- `vite-plugins/public-preview-assets.ts` serves `public/` in preview with sirv (new devDependency): Range requests
+  (206) for audio and video, ETag/304, and 30-day cache for `/film/img`, `/film/audio`, `/film/depth`,
+  `/sweet-jesus`, `/miami-vice`, `/reels`, `/img`, `/audio`, `/fonts`.
+- `vite-plugins/mp4-export-api.ts` is the MP4 export API, moved out of `vite.config.ts` and registered by
+  **both** `configureServer` and `configurePreviewServer`, so Export > MP4 and `npm run export` work against
+  `npm run serve` (and the frames render from the production build). `vite-plugins/media-library.ts` is the
+  existing Scarlett Reel media fallback, now shared by both servers too.
+- `scripts/export-mp4.mjs` renders from a running `npm run serve` when it finds one (`http://127.0.0.1:4173`,
+  `--url` overrides), instead of starting its own Vite server.
+- The production build now reads film pictures, depth maps and audio from its own server instead of
+  raw.githubusercontent.com (`src/core/servedMedia.ts`); only a `file:` page falls back to the repository copy.
+- Saves are one browser origin, so the app says which one: the Save button's tooltip and the status text read
+  "Saved in this browser for http://127.0.0.1:4173" (`src/core/saveLocation.ts`), and a page opened from a file
+  shows a one-line warning (`src/components/SaveLocationBanner.tsx`). README has a "Running locally" section.
+- `npm run check:serve` (`scripts/check-serve.mjs`) drives headless Chromium against the running server: editor
+  opens, edit survives Save + reload, picture/depth/audio (206) load, and a 24-frame draft MP4 comes out one second
+  long.
+
 ## Sweet Jesus — location and prop reference sheets (in progress)
 
 The remaining Sweet Jesus pictures are being built **sheets first**: every room, exterior and vehicle in the

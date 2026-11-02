@@ -4,6 +4,7 @@ import {
   normalizeCutOptions,
   type DirectorsCutId,
 } from "../core/directorsCut";
+import { saveButtonTitle } from "../core/saveLocation";
 import type { AspectFramingMode, CutOptions, ProjectState } from "../core/model";
 import { FPS, formatTimecode } from "../core/timing";
 
@@ -474,7 +475,7 @@ export function Topbar({
         <button className="button button-quiet" onClick={onSnapshot}>
           Snapshots{project.snapshots.length > 0 ? ` (${project.snapshots.length})` : ""}
         </button>
-        <button className="button button-quiet" onClick={onSave} title="Save to browser storage (Ctrl/Cmd+S)">
+        <button className="button button-quiet" onClick={onSave} title={saveButtonTitle()}>
           Save
         </button>
         <button

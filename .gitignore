@@ -4,3 +4,6 @@ screenshots/
 exports/
 Unselected files/
 .cache/
+dist-local/
+public/thumbs/
+public/.thumbs-check-parked/

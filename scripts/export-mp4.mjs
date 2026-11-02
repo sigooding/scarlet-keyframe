@@ -23,6 +23,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, "..");
 
+// `npm run serve` always serves the production build here; browser saves and
+// the export API belong to that one address. When it is running, render from
+// it instead of starting a second, slower development server.
+const DEFAULT_SERVE_URL =
+  process.env.SCARLET_KEYFRAME_SERVE_URL?.trim() || "http://127.0.0.1:4173";
+
 const FPS = 24;
 const SAMPLE_RATE = 48000;
 const SAMPLES_PER_FRAME = SAMPLE_RATE / FPS; // Exact integer: 2000 samples/frame
@@ -61,7 +67,8 @@ Options:
   --no-srt                Do not write .srt file
   --marks                 Burn timecode and scene/beat mark in corners
   --no-marks              Hide timecode and scene/beat mark (default)
-  --url <http://...>      Existing dev server URL (auto-starts Vite when omitted)
+  --url <http://...>      Existing server URL (uses a running \`npm run serve\` on
+                          http://127.0.0.1:4173, otherwise starts its own Vite server)
   --job <id>              Dev-server live project job ID
   --progress-json         Emit JSON progress events on stdout
   --help                  Show this help
@@ -478,6 +485,23 @@ function createSemaphore(limit) {
   return { acquire, release };
 }
 
+/** True when something at baseUrl serves the Scarlet Keyframe editor page. */
+async function isScarletKeyframeServer(baseUrl) {
+  try {
+    const res = await fetch(`${baseUrl}/`, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok) return false;
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("text/html")) return false;
+    const html = await res.text();
+    return html.includes('id="root"');
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
   const opts = parseCliArgs(process.argv.slice(2));
   if (opts.help) {
@@ -570,6 +594,22 @@ async function main() {
 
   try {
     let serverBaseUrl = opts.url.replace(/\/+$/, "");
+    let usingRunningServer = false;
+    if (!serverBaseUrl && (await isScarletKeyframeServer(DEFAULT_SERVE_URL))) {
+      serverBaseUrl = DEFAULT_SERVE_URL;
+      usingRunningServer = true;
+      if (!opts.progressJson) {
+        process.stderr.write(
+          `\n[export] Rendering from the running server at ${serverBaseUrl} (npm run serve).\n`,
+        );
+      }
+      emitProgress({
+        phase: `Using the running production server at ${serverBaseUrl}…`,
+        completedFrames: 0,
+        totalFrames: 1,
+        percent: 1,
+      });
+    }
     if (!serverBaseUrl) {
       emitProgress({
         phase: "Starting local Vite render server…",
@@ -1138,6 +1178,9 @@ async function main() {
       console.log(
         `Exported ${expectedFrames} exact frame${expectedFrames === 1 ? "" : "s"} (${fromFrame}..${toFrame} @ ${FPS} fps, ${renderWidth}x${renderHeight}, ${workerCount}w, ${browserGpuActive ? "GPU WebGL" : "CPU WebGL"}, ${activeEncoderPlan.id}, ${captureLabel}) -> ${finalMp4Path}${opts.srt ? ` (+ ${finalSrtPath})` : ""}`,
       );
+      if (usingRunningServer) {
+        console.log(`Rendered from the running server at ${serverBaseUrl}.`);
+      }
       const wallSec = (Date.now() - captureStart) / 1000;
       const per = Math.max(1, expectedFrames);
       const ms = (v) => (v / per).toFixed(1);
