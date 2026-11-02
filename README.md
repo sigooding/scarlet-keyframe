@@ -49,7 +49,9 @@ sources become JPEG (`-q:v 4`); PNG/WebP/AVIF/GIF sources keep transparency and 
 `public/thumbs/index.json`. Set `FFMPEG` to use a different FFmpeg. Nothing under `public/` or `src/assets/` is
 modified, moved, downscaled or re-encoded, and `public/thumbs/` is in `.gitignore`. If the folder is missing,
 `src/core/thumbs.ts` simply uses the originals — the app works with no thumbnails at all, and it never asks
-for a thumbnail the index does not list.
+for a thumbnail the index does not list. The single-file `npm run build` leaves the derived folder out of
+`dist/` (a page opened from disk uses the originals), while `npm run serve` and `npm run dev` serve
+`/thumbs/…` from `public/`.
 
 ## Miami Vice - Salt Water
 

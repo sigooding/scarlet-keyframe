@@ -7,6 +7,7 @@ import { viteSingleFile } from "vite-plugin-singlefile";
 import { mediaLibraryPlugin } from "./vite-plugins/media-library";
 import { mp4ExportApiPlugin } from "./vite-plugins/mp4-export-api";
 import { publicPreviewAssetsPlugin } from "./vite-plugins/public-preview-assets";
+import { skipThumbsInSingleFileBuild } from "./vite-plugins/skip-thumbs-in-single-file-build";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,7 +44,9 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       // The single-file page stays the default build; `npm run serve` opts out.
-      ...(isLocalServe ? [] : [viteSingleFile()]),
+      // A file: page always uses the originals, so the derived thumbs/ copies
+      // are not left in dist/.
+      ...(isLocalServe ? [] : [viteSingleFile(), skipThumbsInSingleFileBuild()]),
     ],
     server: {
       host: HOST,

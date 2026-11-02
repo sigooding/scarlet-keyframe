@@ -3,7 +3,9 @@
 ## Thumbnails for the timeline, the Media Bin and the picture lists
 
 Scrolling the timeline and opening the Media Bin used to pull the full-size pictures: 8.49 MB of the first
-screen's 9.55 MB, and 52.45 MB while stepping through scenes 1–20. Lists now use 400 px thumbnails.
+screen's 9.55 MB, and 54.2 MB while stepping through scenes 1–20. Lists now use 400 px thumbnails
+(0.19 MB and 1.72 MB respectively; the rest of those totals is the viewer's own original picture, the depth
+parallax plates and the preloader, which keep the full-size files by design).
 
 - `scripts/make-thumbs.mjs` / `npm run thumbs`: 400 px wide copies of every picture in
   `src/data/media-index.json` under `public/thumbs/` (path mirrored), JPEG sources as JPEG `-q:v 4`, pictures
@@ -16,6 +18,10 @@ screen's 9.55 MB, and 52.45 MB while stepping through scenes 1–20. Lists now u
 - Used in the timeline clip thumbnails (video lane), the depth and cutout lane thumbnails, Media Bin tiles
   (scene and Show everything), AssetBrowser rows. The viewer, depth camera, preloader, MP4 export and the
   bundle keep the originals; the Media Bin hover preview and the picture chooser's preview stay full size.
+- `npm run build` (the single-file page) no longer leaves the derived `public/thumbs/` copies in `dist/`:
+  a `file:` page always uses the originals, so `vite-plugins/skip-thumbs-in-single-file-build.ts` removes
+  that one folder after the build (dist stays 1.7 GB instead of 1.8 GB). `npm run serve` copies no public/
+  at all, and `public/` itself is never modified.
 - `npm run check:thumbs` (`scripts/check-thumbs.mjs`) drives headless Chromium: first screen lists are
   `/thumbs/…` and under 1.5 MB, the viewer asks for the original, a scroll across scenes 1–20 only asks for
   thumbnails, Media Bin tiles are thumbnails with the original on hover, and with `public/thumbs/` moved away
