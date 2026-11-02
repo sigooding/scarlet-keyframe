@@ -1,5 +1,26 @@
 # Changes in this branch
 
+## Thumbnails for the timeline, the Media Bin and the picture lists
+
+Scrolling the timeline and opening the Media Bin used to pull the full-size pictures: 8.49 MB of the first
+screen's 9.55 MB, and 52.45 MB while stepping through scenes 1–20. Lists now use 400 px thumbnails.
+
+- `scripts/make-thumbs.mjs` / `npm run thumbs`: 400 px wide copies of every picture in
+  `src/data/media-index.json` under `public/thumbs/` (path mirrored), JPEG sources as JPEG `-q:v 4`, pictures
+  with transparency as WebP when the bundled FFmpeg has libwebp (otherwise counted and reported as skipped).
+  Incremental, four at a time, progress line, `public/thumbs/index.json` lists what exists. Originals are only
+  read — nothing under `public/` or `src/assets/` is touched — and `public/thumbs/` is in `.gitignore`.
+- `src/core/thumbs.ts`: `thumbFor(ref)` returns the thumbnail when the index lists the picture, else the
+  original. The index is fetched once, lazily; missing/unparseable/no server means originals only. Query
+  strings are ignored, `%20` and literal spaces both match, only listed paths are ever returned (no 404s).
+- Used in the timeline clip thumbnails (video lane), the depth and cutout lane thumbnails, Media Bin tiles
+  (scene and Show everything), AssetBrowser rows. The viewer, depth camera, preloader, MP4 export and the
+  bundle keep the originals; the Media Bin hover preview and the picture chooser's preview stay full size.
+- `npm run check:thumbs` (`scripts/check-thumbs.mjs`) drives headless Chromium: first screen lists are
+  `/thumbs/…` and under 1.5 MB, the viewer asks for the original, a scroll across scenes 1–20 only asks for
+  thumbnails, Media Bin tiles are thumbnails with the original on hover, and with `public/thumbs/` moved away
+  every picture still shows from the originals with no failed requests.
+
 ## `npm run serve` — the production build is now how the app is run
 
 `npm run dev` stays for coding only; the app is meant to run from a production build. New command:

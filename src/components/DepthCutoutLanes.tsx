@@ -18,6 +18,8 @@ import {
   type TimelineLaneId,
 } from "../core/depthLanes";
 import { formatTimecode } from "../core/timing";
+import { thumbFor } from "../core/thumbs";
+import { useThumbIndex } from "./useThumbIndex";
 import { clipAtFrame, type TimelineClip } from "../sequence/animate";
 import type { BrowseMediaTarget, InspectorTab, UploadMediaTarget } from "./Inspector";
 import { decodeDraggedAsset } from "./MediaBin";
@@ -616,6 +618,8 @@ export function DepthCutoutCanvasLanes({
   onDragStart,
   onDragEnd,
 }: DepthCutoutCanvasLanesProps) {
+  // Lane thumbnails switch to the small pictures once the index arrives.
+  useThumbIndex();
   const [dropTarget, setDropTarget] = useState<{
     lane: "depth" | "cutouts" | `cutout:${number}`;
     frameId: string;
@@ -865,7 +869,7 @@ export function DepthCutoutCanvasLanes({
             >
               {widthPx >= 26 && thumbSrc && (
                 <span className="depth-lane-thumb">
-                  <img src={thumbSrc} alt="" loading="lazy" decoding="async" />
+                  <img src={thumbFor(thumbSrc)} alt="" loading="lazy" decoding="async" />
                 </span>
               )}
               {widthPx >= 48 && <span className="depth-lane-label">{label}</span>}
@@ -1003,7 +1007,7 @@ export function DepthCutoutCanvasLanes({
                           borderColor: CUTOUT_LAYER_COLORS[layer.layerIndex] ?? CUTOUT_LAYER_COLORS[0],
                         }}
                       >
-                        <img src={src} alt="" loading="lazy" decoding="async" />
+                        <img src={thumbFor(src)} alt="" loading="lazy" decoding="async" />
                       </span>
                     ) : null;
                   })}
@@ -1167,7 +1171,7 @@ export function DepthCutoutCanvasLanes({
                     <span className="cutout-sublane-bar" style={{ background: layerColor }} />
                     {widthPx >= 24 && src && (
                       <span className="cutout-alpha-thumb">
-                        <img src={src} alt="" loading="lazy" decoding="async" />
+                        <img src={thumbFor(src)} alt="" loading="lazy" decoding="async" />
                       </span>
                     )}
                     {widthPx >= 52 && <span className="cutout-lane-label">{label}</span>}

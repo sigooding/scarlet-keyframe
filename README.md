@@ -33,6 +33,24 @@ screen.
 A browser profile reset, "clear site data", or a different browser means starting from the last backup, so
 **real backup = Export > Portable Bundle (.reel.json)**, then Import that file on any machine.
 
+## Thumbnails (timeline, Media Bin, picture lists)
+
+The lanes, the Media Bin tiles and the picture chooser load **400 px wide thumbnails**, not the full-size
+pictures; the viewer, the depth camera, the preloader, MP4 export and the `.reel.json` bundle always use the
+originals. Build them once (and again whenever you add pictures):
+
+    npm run thumbs      # every picture in src/data/media-index.json -> public/thumbs/
+    npm run check:thumbs   # browser check, while `npm run serve` is up
+
+`scripts/make-thumbs.mjs` reads the originals and only ever writes derived copies under `public/thumbs/`,
+mirroring the original path (`public/film/img/s2/10-bar.jpg` -> `public/thumbs/film/img/s2/10-bar.jpg`). JPEG
+sources become JPEG (`-q:v 4`); PNG/WebP/AVIF/GIF sources keep transparency and become WebP. It is incremental
+(a thumbnail newer than its original is skipped), encodes four files at a time, and writes
+`public/thumbs/index.json`. Set `FFMPEG` to use a different FFmpeg. Nothing under `public/` or `src/assets/` is
+modified, moved, downscaled or re-encoded, and `public/thumbs/` is in `.gitignore`. If the folder is missing,
+`src/core/thumbs.ts` simply uses the originals — the app works with no thumbnails at all, and it never asks
+for a thumbnail the index does not list.
+
 ## Miami Vice - Salt Water
 
 Select **Miami Vice - Salt Water** in the film selector to open an original feature in the season-four register:

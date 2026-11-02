@@ -156,6 +156,7 @@ import { UndoHistory } from "./core/history";
 import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
 import { savedStatusText } from "./core/saveLocation";
 import { servesLocalMedia } from "./core/servedMedia";
+import { awaitThumbIndex } from "./core/thumbs";
 import { BUILT_IN_FILMS, createBundledFilm } from "./core/bundledFilms";
 import { countEmptySweetJesusOpeningShots, fillEmptySweetJesusOpeningShots, upgradeSweetJesusOpening } from "./core/sweetJesusOpening";
 import { effectiveFilmCutOptions } from "./core/filmFraming";
@@ -780,7 +781,10 @@ export default function App() {
                 .catch(() => null)
             : Promise.resolve(null);
 
-        const [saved, mediaIndex, jobSnapshot] = await Promise.all([
+        // Wait briefly for the thumbnail index so the first paint of the
+        // timeline and the media bin already asks for the small pictures.
+        const [, saved, mediaIndex, jobSnapshot] = await Promise.all([
+          awaitThumbIndex(),
           isRenderMode ? Promise.resolve(undefined) : loadActiveProject().catch(() => undefined),
           window.location.protocol === "file:"
             ? Promise.resolve([] as string[])

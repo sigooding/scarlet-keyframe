@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "serve": "node scripts/serve-local.mjs",
+    "thumbs": "node scripts/make-thumbs.mjs",
+    "check:thumbs": "node scripts/check-thumbs.mjs",
     "check:serve": "node scripts/check-serve.mjs",
     "build:local": "vite build --mode serve",
     "build": "vite build",

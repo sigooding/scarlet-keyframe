@@ -8,6 +8,8 @@ import {
   type SceneTile,
   type SceneTileKind,
 } from "../core/sceneImages";
+import { thumbFor } from "../core/thumbs";
+import { useThumbIndex } from "./useThumbIndex";
 
 interface Section {
   id: string;
@@ -48,6 +50,8 @@ export function MediaBinStills({
   onHover,
   onHoverEnd,
 }: MediaBinStillsProps) {
+  // Tiles switch to thumbnails as soon as the index arrives.
+  useThumbIndex();
   const [mode, setMode] = useState<"scene" | "all">("scene");
   const [viewSceneId, setViewSceneId] = useState<string | null>(null);
   const [cols, setCols] = useState(2);
@@ -324,7 +328,9 @@ function Tile({
       title={`${asset.name} (${asset.folder || "Project"}) — drag onto the timeline, double-click to fill the selected keyframe`}
     >
       <span className="media-bin-tile-thumb">
-        {asset.src ? <img src={asset.src} alt={asset.name} loading="lazy" decoding="async" /> : <i>STILL</i>}
+        {/* Tiles are lists: the thumbnail, never the full picture. The hover
+            preview in Media Bin keeps the original. */}
+        {asset.src ? <img src={thumbFor(asset.src)} alt={asset.name} loading="lazy" decoding="async" /> : <i>STILL</i>}
         {showBadge && <b className={`media-bin-badge is-${tile.kind}`}>{BADGE[tile.kind]}{owners.length > 1 ? ` ×${owners.length}` : ""}</b>}
         <span className="media-bin-tile-actions">
           <button type="button" data-testid="media-bin-use" onClick={() => onApply?.(asset.ref)} title="Use for the selected keyframe">
