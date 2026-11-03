@@ -157,7 +157,7 @@ import {
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
 import { savedStatusText } from "./core/saveLocation";
-import { fetchDepthFiles, plainPictureRef, type ApplyCutouts, type ApplyDepthMap } from "./core/depthMaker";
+import { depthMapRefForPicture, fetchDepthFiles, plainPictureRef, type ApplyCutouts, type ApplyDepthMap } from "./core/depthMaker";
 import { useDepthMaker } from "./core/useDepthMaker";
 import { moveTo, pointMarkers as buildPointMarkers, sameTarget, targetExists, type CinematicPatch } from "./core/lightsFlares";
 import type { CinematicSettings } from "../vendor/scarlet-reel/types";
@@ -505,6 +505,9 @@ export default function App() {
   const [folderFiles, setFolderFiles] = useState<Map<string, File>>(new Map());
   const [folderLabel, setFolderLabel] = useState("");
   const [objectUrls, setObjectUrls] = useState<Map<string, string>>(new Map());
+  // Files that were replaced in place while the editor was open (a depth map made again): their address gets a version, so the
+  // viewer fetches the new file instead of showing the picture it already decoded.
+  const [mediaRevisions, setMediaRevisions] = useState<Map<string, number>>(new Map());
   const [voiceDurations, setVoiceDurations] = useState<Map<string, number>>(
     () => new Map(Object.entries(bundledAudioDurations as Record<string, number>)),
   );
@@ -1130,12 +1133,13 @@ export default function App() {
         const encoded = encodeMediaPath(path);
         // Served by the dev server or `npm run serve`; only a file: page has to
         // reach for the repository copy.
-        if (servesLocalMedia()) return `/${encoded}`;
+        const revision = mediaRevisions.get(path);
+        if (servesLocalMedia()) return `/${encoded}${revision ? `?v=${revision}` : ""}`;
         return `${SCARLETT_WITNESS_RAW_BASE}/${encoded}`;
       }
       return undefined;
     },
-    [objectUrls, publicPaths],
+    [objectUrls, publicPaths, mediaRevisions],
   );
 
   useEffect(() => {
@@ -2002,7 +2006,7 @@ export default function App() {
   // as one undo step and the same way a map chosen with Browse does (setFrameDepthMap), unless that shot's picture changed in
   // the meantime. It is always ONE picture, the selected shot's: never a batch.
   const applyMadeDepthMap = useCallback<ApplyDepthMap>(
-    (frameId, picture, mapRef) => {
+    (frameId, picture, mapRef, replaced) => {
       const frame = frames.find((item) => item.id === frameId);
       if (!frame) return { applied: false, reason: "That shot is no longer in the film." };
       if (!frame.picture || plainPictureRef(frame.picture) !== picture) {
@@ -2010,7 +2014,13 @@ export default function App() {
       }
       // The new file is not in the media index the editor started with: say it is there, or the viewer cannot find it.
       setPublicPaths((current) => withPublicPaths(current, [mapRef]));
-      editProject((current) => setFrameDepthMap(current, frameId, mapRef), "Depth map made");
+      // A map made again is the same file with new contents: give it a new address so the viewer loads it afresh.
+      if (replaced) setMediaRevisions((current) => new Map(current).set(normalizeMediaPath(mapRef), Date.now()));
+      const using = (effectiveFrameCinematic(frame) as CinematicSettings | undefined)?.depthMap;
+      // Nothing to change on a shot that already uses this very file.
+      if (!(typeof using === "string" && normalizeMediaPath(using) === normalizeMediaPath(mapRef))) {
+        editProject((current) => setFrameDepthMap(current, frameId, mapRef), replaced ? "Depth map made again" : "Depth map made");
+      }
       return { applied: true };
     },
     [editProject, frames],
@@ -2063,14 +2073,19 @@ export default function App() {
         if (fresh) depthMaker.controller.dismiss(); // "Check again" starts the row over, a failed attempt included
         void depthMaker.controller.checkReady(fresh);
       },
-      onMake: (frameId: string, picture: string) => void depthMaker.controller.start(frameId, picture),
+      onMake: (frameId: string, picture: string, options?: { replace?: boolean }) => void depthMaker.controller.start(frameId, picture, options),
+      // The picture's own map file, when it is already on disk (the media index and the server's list of the depth folder)
+      existingMapFor: (picture: string) => {
+        const ref = depthMapRefForPicture(plainPictureRef(picture));
+        return hasPublicMediaPath(publicPaths, normalizeMediaPath(ref)) ? ref : undefined;
+      },
       onMakeCutouts: (frameId: string, picture: string, sourceMap?: string) => void depthMaker.controller.startCutouts(frameId, picture, sourceMap),
       onDownload: (ids: string[]) => void depthMaker.controller.downloadModels(ids),
       onQuality: (quality: "best" | "fast") => depthMaker.controller.setQuality(quality),
       onCancel: () => void depthMaker.controller.cancel(),
       onDismiss: () => depthMaker.controller.dismiss(),
     }),
-    [depthMaker.controller, depthMaker.state],
+    [depthMaker.controller, depthMaker.state, publicPaths],
   );
 
   const handlePlacePoint = useCallback(

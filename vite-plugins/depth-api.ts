@@ -611,8 +611,11 @@ export function createDepthMiddleware(options: DepthApiOptions): Connect.NextHan
         const map = depthMapRefFor(picture.ref);
         const mapFile = fileForRef(publicDir, map);
 
-        // A map made earlier is simply used: nothing to make, nothing to overwrite.
-        if (fs.existsSync(mapFile)) {
+        // `replace: true` asks for a new map although one exists: the command keeps the old file as depth--vN.png beside it.
+        const replace = body.replace === true;
+
+        // Without that, a map made earlier is simply used: nothing to make, nothing to overwrite.
+        if (!replace && fs.existsSync(mapFile)) {
           const size = pngSize(mapFile);
           send(200, {
             id: null,
@@ -641,6 +644,7 @@ export function createDepthMiddleware(options: DepthApiOptions): Connect.NextHan
         if (options.modelFile) args.push("--model-file", options.modelFile);
         else args.push("--model", QUALITIES[quality].depth.replace(/^depth-/, ""));
         if (caps.gpu) args.push("--gpu");
+        if (replace) args.push("--replace");
         const job = newJob("depth", picture.ref, map, { folder: path.dirname(fileForRef(publicDir, map)) });
         send(200, view(runJob(job, args)));
         return;

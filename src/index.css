@@ -9034,3 +9034,8 @@ kbd {
 .models-panel > .button {
   margin-top: 8px;
 }
+
+.depth-make-choices {
+  display: inline-flex;
+  gap: 6px;
+}

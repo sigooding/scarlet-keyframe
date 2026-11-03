@@ -36,7 +36,7 @@ export function useDepthMaker(deps: { apply: ApplyDepthMap; applyCutouts: ApplyC
   const controller = useMemo(
     () =>
       createDepthMaker({
-        apply: (frameId, picture, mapRef) => applyRef.current(frameId, picture, mapRef),
+        apply: (frameId, picture, mapRef, replaced) => applyRef.current(frameId, picture, mapRef, replaced),
         applyCutouts: (frameId, picture, made) => cutoutsRef.current(frameId, picture, made),
         quality: readStoredQuality(),
         onQualityChange: (quality) => storeQuality(quality),

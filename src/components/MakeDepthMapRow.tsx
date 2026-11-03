@@ -20,13 +20,15 @@ import { ModelsPanel } from "./ModelsPanel";
 export interface MakeDepthMapRowProps {
   view: DepthRowView;
   onMake: () => void;
+  /** Make a new map although the picture has one (the old file is kept beside it). */
+  onMakeNew: () => void;
   onCancel: () => void;
   onDismiss: () => void;
   onCheckAgain: () => void;
   onCopy: (text: string) => void;
 }
 
-export function MakeDepthMapRow({ view, onMake, onCancel, onDismiss, onCheckAgain, onCopy }: MakeDepthMapRowProps) {
+export function MakeDepthMapRow({ view, onMake, onMakeNew, onCancel, onDismiss, onCheckAgain, onCopy }: MakeDepthMapRowProps) {
   if (view.kind === "hidden") return null;
 
   const waiting = view.kind === "checking" || view.kind === "busy" || view.kind === "unavailable";
@@ -35,7 +37,34 @@ export function MakeDepthMapRow({ view, onMake, onCancel, onDismiss, onCheckAgai
     <div className={`depth-make is-${view.kind}`} data-testid="make-depth-row" data-state={view.kind}>
       <div className="depth-make-head">
         <span className="control-label">Depth map</span>
-        {(view.kind === "ready" || waiting) && (
+        {view.kind === "ready" && view.existingMap && (
+          <span className="depth-make-choices">
+            <button type="button" className="button button-quiet depth-make-button" data-testid="make-depth-use" onClick={onMake} title="Use the depth map file that is already there">
+              Use it
+            </button>
+            <button
+              type="button"
+              className="button button-primary depth-make-button"
+              data-testid="make-depth-new"
+              onClick={onMakeNew}
+              title="Make a new depth map from this picture; the old file is kept beside it"
+            >
+              Make a new one
+            </button>
+          </span>
+        )}
+        {view.kind === "redo" && (
+          <button
+            type="button"
+            className="button button-quiet depth-make-button"
+            data-testid="make-depth-redo"
+            onClick={onMakeNew}
+            title="Make a new depth map from this picture; the old file is kept beside it"
+          >
+            Make a new one
+          </button>
+        )}
+        {((view.kind === "ready" && !view.existingMap) || waiting) && (
           <button
             type="button"
             className="button button-primary depth-make-button"
@@ -98,7 +127,7 @@ export function MakeDepthMapRow({ view, onMake, onCancel, onDismiss, onCheckAgai
         </>
       )}
 
-      {(view.kind === "ready" || view.kind === "busy") && <p className="depth-make-note">{view.note}</p>}
+      {(view.kind === "ready" || view.kind === "busy" || view.kind === "redo") && <p className="depth-make-note">{view.note}</p>}
 
       {view.kind === "running" && (
         <div role="status" aria-live="polite">
@@ -147,7 +176,10 @@ export function MakeDepthMapRow({ view, onMake, onCancel, onDismiss, onCheckAgai
 export interface DepthMakerBinding {
   state: DepthMakerState;
   onCheck: (fresh?: boolean) => void;
-  onMake: (frameId: string, picture: string) => void;
+  /** `replace`: make a new map although the picture has one (the old file is kept beside it). */
+  onMake: (frameId: string, picture: string, options?: { replace?: boolean }) => void;
+  /** The picture's own depth map file when it is already on disk (so the row can offer to use it or make a new one). */
+  existingMapFor?: (picture: string) => string | undefined;
   /** Cut the people out of this shot's picture; `sourceMap` is a depth map the shot already has, to keep. */
   onMakeCutouts: (frameId: string, picture: string, sourceMap?: string) => void;
   onDownload: (ids: string[]) => void;
@@ -182,7 +214,8 @@ export function DepthToolsForShot({
   maker: DepthMakerBinding;
 }) {
   const now = Date.now();
-  const depthView = depthRowView({ frameId, picture, hasDepthMap, state: maker.state, now });
+  const existingMap = picture && !hasDepthMap ? maker.existingMapFor?.(picture) : undefined;
+  const depthView = depthRowView({ frameId, picture, hasDepthMap, hasCutouts, existingMap, state: maker.state, now });
   let cutoutsView = cutoutsRowView({ frameId, picture, hasCutouts, keptMap, state: maker.state, now });
   // One explanation is enough when both rows would say the same thing (no server, no setup, still checking).
   if (cutoutsView.kind === depthView.kind && (cutoutsView.kind === "unavailable" || cutoutsView.kind === "setup-needed" || cutoutsView.kind === "checking")) {
@@ -202,6 +235,7 @@ export function DepthToolsForShot({
       <MakeDepthMapRow
         view={depthView}
         onMake={() => picture && maker.onMake(frameId, picture)}
+        onMakeNew={() => picture && maker.onMake(frameId, picture, { replace: true })}
         onCancel={maker.onCancel}
         onDismiss={maker.onDismiss}
         onCheckAgain={() => onCheck(true)}

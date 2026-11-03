@@ -376,6 +376,29 @@ describe("making a map (POST make, GET status)", () => {
     expect((await request<DepthReady>("GET", "ready")).json.busy).toBeNull();
   });
 
+  it("makes a new map although the picture has one when asked to (replace), and passes --replace so the command keeps the old file", async () => {
+    const file = path.join(publicDir, "film", "depth", "t", "has-map", "depth.png");
+    const before = fs.readFileSync(file);
+    try {
+      const asked = await request<DepthJobView & DepthApiError>("POST", "make", { body: { picture: "/film/img/t/has-map.jpg", replace: true } });
+      expect(asked.status).toBe(200);
+      expect(asked.json.existing).not.toBe(true);
+      expect(asked.json.id).toBeTruthy();
+      started.push(asked.json.id as string);
+      const done = await waitFor(asked.json.id as string, "done");
+      expect(done.log.find((line) => line.startsWith("flags:"))).toContain("--replace");
+      expect(done.result).toMatchObject({ ok: true, map: "/film/depth/t/has-map/depth.png" });
+      // not asked: the file that is there is used, as before, and the command is not run
+      const plain = await make("/film/img/t/has-map.jpg");
+      expect(plain.json).toMatchObject({ id: null, existing: true });
+      // `replace` must be exactly true
+      const odd = await request<DepthJobView & DepthApiError>("POST", "make", { body: { picture: "/film/img/t/has-map.jpg", replace: "yes" } });
+      expect(odd.json).toMatchObject({ id: null, existing: true });
+    } finally {
+      fs.writeFileSync(file, before);
+    }
+  });
+
   it("says what the command said when it fails, and leaves nothing behind", async () => {
     mode("fail");
     const first = await make("/film/img/t/a.jpg");
@@ -889,6 +912,17 @@ function pythonWithPackages() {
     const second = await make("/film/img/t/pic.jpg");
     expect(second.json).toMatchObject({ id: null, status: "done", existing: true, map: "/film/depth/t/pic/depth.png" });
     expect(fs.readdirSync(path.join(real, "public", "film", "depth", "t", "pic"))).toEqual(["depth.png"]);
+
+    // asked for a new one: made again from the model, and the old file is kept beside it, untouched
+    const folder = path.join(real, "public", "film", "depth", "t", "pic");
+    const oldBytes = fs.readFileSync(path.join(folder, "depth.png"));
+    const again = await request<DepthJobView & DepthApiError>("POST", "make", { body: { picture: "/film/img/t/pic.jpg", replace: true } });
+    expect(again.json.existing).not.toBe(true);
+    started.push(again.json.id as string);
+    const redone = await waitFor(again.json.id as string, "done", 80000);
+    expect(redone.result).toMatchObject({ ok: true, map: "/film/depth/t/pic/depth.png", written: true, archived: "depth--v1.png" });
+    expect(fs.readdirSync(folder).sort()).toEqual(["depth--v1.png", "depth.png"]);
+    expect(fs.readFileSync(path.join(folder, "depth--v1.png")).equals(oldBytes)).toBe(true);
   }, 120000);
 
   it("makes the cut-outs of a picture with a person in it, and a second run gets a folder of its own", async () => {
