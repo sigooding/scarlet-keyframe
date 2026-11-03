@@ -1,0 +1,4 @@
+# For an NVIDIA GPU (needs CUDA 12 and cuDNN 9 installed). Replaces onnxruntime.
+numpy>=1.26
+opencv-python-headless>=4.9
+onnxruntime-gpu>=1.18

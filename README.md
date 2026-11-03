@@ -9,6 +9,7 @@ switching. Existing single-project autosaves are preserved.
     npm run serve        # the editor at http://127.0.0.1:4173 (production build - use this)
     npm run dev          # development server at http://127.0.0.1:5173 (only while coding)
     npm run build        # one self-contained page, dist/index.html, that opens from disk
+    npm run depth:setup  # once, then npm run depth -- <picture> makes or lines up a depth map (see Depth maps)
     npm test
 
 ## Running locally
@@ -17,7 +18,10 @@ Run the app with **`npm run serve`** and open <http://127.0.0.1:4173>. That comm
 multi-file production build into `dist-local/` and serves it: the editor starts in about two seconds
 instead of five to ten, playback leaves the main thread idle most of the time, and Export > MP4 works
 from the production build. `public/` (1.7 GB of film pictures, depth maps and audio) is not copied into
-the build; the preview server reads it from `public/` as it is, with range requests and cache headers.
+the build; the preview server reads it from `public/` as it is, with range requests. Files in `public/` are
+working files (a retaken picture or a re-made depth map replaces the old one under the same name), so the
+browser is told to check with the server each time (`Cache-Control: no-cache`, answered with `304` when
+nothing changed) and a replaced file shows up on the next load.
 
 `npm run dev` (port 5173) is for **coding only** — it has hot reload and React's development build, which
 is several times slower at playback. Both ports are pinned (`strictPort`): if 4173 is busy, `npm run serve`
@@ -52,6 +56,43 @@ modified, moved, downscaled or re-encoded, and `public/thumbs/` is in `.gitignor
 for a thumbnail the index does not list. The single-file `npm run build` leaves the derived folder out of
 `dist/` (a page opened from disk uses the originals), while `npm run serve` and `npm run dev` serve
 `/thumbs/…` from `public/`.
+
+## Depth maps (`npm run depth`)
+
+The depth-map camera plays a picture's `depth.png` (white = near, black = far) from
+`public/film/depth/<folder>/<picture>/`. This command makes or repairs one on your own machine, with Depth Anything V2
+run through `onnxruntime` (no torch; the same stack as the film's own tool in scarlett-witness). One-time setup:
+
+    npm run depth:setup              # a Python environment in .depth-venv (Python 3.9-3.13); CPU, works everywhere
+    npm run depth:setup -- --gpu     # optional: onnxruntime-gpu for an NVIDIA card (needs CUDA 12 + cuDNN 9 installed)
+
+Then, with the picture's path or just its name:
+
+    npm run depth -- m4-railway-rain --check     # is its map lined up with the picture? changes nothing
+    npm run depth -- m4-railway-rain --fit       # line the existing map up with the picture, keeping its detail
+    npm run depth -- 337-engine-off              # a picture with no map yet: make one from the model
+    npm run depth -- 337-engine-off --replace    # make a new one from the model although one exists
+
+**A map must have the picture's exact shape and size.** The engine stretches the map over the whole picture, so a map
+of another shape, or one with a border (a map made with Google's image tools comes out 1408x768 with rounded
+corners), puts every edge in the wrong place; as the camera moves, thin things (poles, rails, railings) are torn and
+appear twice. `--fit` finds the scale and shift that put the map's edges on the picture's, using the model only as a
+ruler, and writes the map again at the picture's exact size. `--fit=<file>` does the same for a map from anywhere
+and installs it as the picture's map. `--check` and `--fit` print how far out of place the edges were (in pixels of
+a 1920-wide picture) and `--fit` writes `exports/depth/<picture>-fit-check.jpg`: the picture with the map's edges in
+red, before and after, to look at.
+
+Nothing is overwritten without a copy: the map that was there is first copied to `depth--v1.png`, `depth--v2.png` ...
+in the same folder (copy one back over `depth.png` to undo). The model (`small` 99 MB, `base` 389 MB by default,
+`large` 1.3 GB; `--model large` for the most detail) is downloaded once into a cache folder outside the repository
+(`%LOCALAPPDATA%\scarlet-keyframe\models` on Windows; `SCARLET_KEYFRAME_MODELS` changes it) and checked against a
+pinned size and SHA-256. A new map is softened like the film's own (`--smooth`, default 3); a fitted map is not
+(default 0) unless you ask, because softening trades the doubling for a rubbery smear.
+
+This makes the *depth-only* kind of map. A picture with **people** in it also needs cut-outs and a background plate,
+or they stretch as the camera moves (scarlett-witness `tools/make-depth-layers.py`). A map from a model is a
+relative guess: look at it in the app before it ships. `npm test` covers the command with a tiny stand-in model
+(`scripts/depth/fixtures/tiny-depth.onnx`), and `python scripts/depth/test_fit.py` checks the fitting maths alone.
 
 ## Miami Vice - Salt Water
 

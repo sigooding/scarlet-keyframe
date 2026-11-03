@@ -15,14 +15,17 @@ import type { Plugin } from "vite";
  *
  * - `Range: bytes=…` (206 Partial Content), which audio seeking and video need;
  * - `ETag` / `If-None-Match` (304), so a reload does not re-download pictures;
- * - long `Cache-Control` lifetimes for film pictures, depth maps and audio.
+ * - `Cache-Control: no-cache`: ask the server before reusing a copy (see below).
  */
 
-/** Film pictures, depth maps, audio and reference plates rarely change. */
-const LONG_CACHE = "public, max-age=2592000";
-
-/** Everything else in public/ (manuals, example files) is not build output. */
-const SHORT_CACHE = "public, max-age=300";
+/**
+ * public/ holds working files, not release assets: a retaken picture, or a depth map made again with
+ * `npm run depth`, replaces the old file under the same name. A long `max-age` (this was 30 days) would make the
+ * browser keep showing the old one without even asking. `no-cache` means "check before you reuse it": the answer is
+ * 304 Not Modified (from the ETag) when nothing changed, which on localhost costs next to nothing, and a changed
+ * file shows up on the next load.
+ */
+const REVALIDATE = "no-cache";
 
 const MEDIA_EXTENSIONS = new Set([
   ".jpg",
@@ -42,20 +45,6 @@ const MEDIA_EXTENSIONS = new Set([
   ".mp4",
   ".webm",
 ]);
-
-const LONG_CACHE_PREFIXES = [
-  /^\/film\/(img|audio|voice|depth|video|sfx|review)\//i,
-  /^\/img\//i,
-  /^\/sweet-jesus\//i,
-  /^\/miami-vice\//i,
-  /^\/reels\//i,
-  /^\/audio\//i,
-  /^\/fonts\//i,
-];
-
-function cacheControlFor(pathname: string): string {
-  return LONG_CACHE_PREFIXES.some((prefix) => prefix.test(pathname)) ? LONG_CACHE : SHORT_CACHE;
-}
 
 function isSeekableMedia(pathname: string): boolean {
   return MEDIA_EXTENSIONS.has(path.extname(pathname).toLowerCase());
@@ -111,7 +100,7 @@ export function publicPreviewAssetsPlugin({ publicDir }: PublicPreviewAssetsOpti
         dev: true,
         etag: true,
         setHeaders(res, pathname) {
-          res.setHeader("Cache-Control", cacheControlFor(pathname));
+          res.setHeader("Cache-Control", REVALIDATE);
           if (isSeekableMedia(pathname)) res.setHeader("Accept-Ranges", "bytes");
         },
       });

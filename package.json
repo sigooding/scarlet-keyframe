@@ -9,6 +9,8 @@
     "thumbs": "node scripts/make-thumbs.mjs",
     "check:thumbs": "node scripts/check-thumbs.mjs",
     "check:serve": "node scripts/check-serve.mjs",
+    "depth": "node scripts/make-depth.mjs",
+    "depth:setup": "node scripts/depth-setup.mjs",
     "build:local": "vite build --mode serve",
     "build": "vite build",
     "preview": "vite preview",
