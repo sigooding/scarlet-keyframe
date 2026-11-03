@@ -126,6 +126,12 @@ export interface DepthJobView {
   elapsedMs: number;
 }
 
+/** GET /__api/depth/files: every picture file in the film's depth folder (what the Make buttons wrote, and the rest), as paths under public/. */
+export interface DepthFiles {
+  ok: true;
+  paths: string[];
+}
+
 /** A refusal: the HTTP status says which kind, `message` is for a person. */
 export interface DepthApiError {
   error: "forbidden" | "bad-request" | "bad-picture" | "setup-needed" | "models-missing" | "busy" | "not-found" | "failed";

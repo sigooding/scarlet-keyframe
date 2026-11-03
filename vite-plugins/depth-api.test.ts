@@ -908,3 +908,66 @@ function pythonWithPackages() {
     expect(fs.existsSync(path.join(folder, "cutout-1.png"))).toBe(true);
   }, 240000);
 });
+
+// ---- the list of depth files (GET files) ---------------------------------------------------------------------------------
+
+describe("the depth folder's files (GET files)", () => {
+  const put = (relative: string, content = "x") => {
+    const file = path.join(publicDir, ...relative.split("/"));
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, content);
+  };
+
+  it("lists the pictures under film/depth as paths under public/, so the editor can tell they are there", async () => {
+    put("film/depth/s6/321-the-form/people-1/plate.jpg");
+    put("film/depth/s6/321-the-form/people-1/cutout-1.png");
+    put("film/depth/s6/321-the-form/people-1/depth.png");
+    put("film/depth/s6/321-the-form/people-1/review.jpg");
+    put("film/depth/m4/rain/depth.webp");
+    const reply = await request<{ ok: boolean; paths: string[] }>("GET", "files");
+    expect(reply.status).toBe(200);
+    expect(reply.json.ok).toBe(true);
+    expect(reply.json.paths).toEqual(
+      expect.arrayContaining([
+        "film/depth/s6/321-the-form/people-1/plate.jpg",
+        "film/depth/s6/321-the-form/people-1/cutout-1.png",
+        "film/depth/s6/321-the-form/people-1/depth.png",
+        "film/depth/m4/rain/depth.webp",
+      ]),
+    );
+    expect([...reply.json.paths].sort()).toEqual(reply.json.paths);
+  });
+
+  it("leaves out what is not a finished picture: folders still being written, temporary and hidden files, other kinds of file", async () => {
+    put("film/depth/s7/x/people-1.part/cutout-1.png");
+    put("film/depth/s7/x/.depth-abc.tmp.png");
+    put("film/depth/s7/x/.hidden.png");
+    put("film/depth/s7/x/depth-1.tmp.png");
+    put("film/depth/s7/x/notes.txt");
+    put("film/depth/s7/x/depth.png");
+    const { paths } = (await request<{ paths: string[] }>("GET", "files")).json;
+    expect(paths.filter((p) => p.startsWith("film/depth/s7/"))).toEqual(["film/depth/s7/x/depth.png"]);
+  });
+
+  it("never follows a link out of the folder", async () => {
+    const outside = path.join(work, "outside-pictures");
+    fs.mkdirSync(outside, { recursive: true });
+    fs.writeFileSync(path.join(outside, "secret.png"), "x");
+    const linkDir = path.join(publicDir, "film", "depth", "linked");
+    fs.mkdirSync(path.dirname(linkDir), { recursive: true });
+    try {
+      fs.symlinkSync(outside, linkDir, "dir");
+      fs.symlinkSync(path.join(outside, "secret.png"), path.join(publicDir, "film", "depth", "link.png"));
+    } catch {
+      return; // no symlinks on this machine: nothing to prove
+    }
+    const { paths } = (await request<{ paths: string[] }>("GET", "files")).json;
+    expect(paths.some((p) => p.includes("secret") || p.includes("linked") || p === "film/depth/link.png")).toBe(false);
+  });
+
+  it("is an empty list when the folder does not exist, and only answers the editor page itself", async () => {
+    fs.rmSync(path.join(publicDir, "film", "depth"), { recursive: true, force: true });
+    expect((await request<{ paths: string[] }>("GET", "files")).json.paths).toEqual([]);
+    expect((await request("GET", "files", { headers: { Host: "evil.example" } })).status).toBe(403);
+  });
+});

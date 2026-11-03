@@ -14,6 +14,7 @@ import {
   DEPTH_API,
   type CutoutLayer,
   type DepthApiError,
+  type DepthFiles,
   type DepthJobView,
   type DepthMakeResult,
   type DepthQuality,
@@ -111,6 +112,16 @@ export async function fetchDepthReady(fetchImpl: FetchLike = fetch, fresh = fals
   try {
     const json = await callApi<DepthReady>(fetchImpl, "GET", `ready${fresh ? "?fresh=1" : ""}`);
     return json && json.ok === true && Array.isArray(json.models) ? json : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The picture files in the film's depth folder (paths under public/), or null when there is no server to ask. */
+export async function fetchDepthFiles(fetchImpl: FetchLike = fetch): Promise<string[] | null> {
+  try {
+    const json = await callApi<DepthFiles>(fetchImpl, "GET", "files");
+    return json && json.ok === true && Array.isArray(json.paths) ? json.paths.filter((path) => typeof path === "string") : null;
   } catch {
     return null;
   }

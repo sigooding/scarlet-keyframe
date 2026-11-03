@@ -10,6 +10,7 @@ import {
   cutoutsRowView,
   depthMapRefForPicture,
   depthRowView,
+  fetchDepthFiles,
   fetchDepthJob,
   fetchDepthReady,
   formatModelSize,
@@ -264,6 +265,16 @@ describe("asking the server", () => {
 
   it("an answer that knows nothing of models cannot drive the rows, so it counts as no depth API", async () => {
     expect(await fetchDepthReady(fakeServer({ ready: [ok({ ok: true, python: "python3", packages: true, gpu: false })] }).fetch)).toBeNull();
+  });
+
+  it("fetchDepthFiles gives the list of depth pictures, and null when there is no depth API or an odd answer", async () => {
+    const paths = ["film/depth/s6/x/people-1/plate.jpg", "film/depth/s6/x/people-1/depth.png"];
+    expect(await fetchDepthFiles(fakeServer({ files: [ok({ ok: true, paths })] }).fetch)).toEqual(paths);
+    expect(await fetchDepthFiles(fakeServer({ files: [ok({ ok: true, paths: ["a.png", 5, null] })] }).fetch)).toEqual(["a.png"]);
+    expect(await fetchDepthFiles(fakeServer({}).fetch)).toBeNull();
+    expect(await fetchDepthFiles(fakeServer({ files: ["network-error"] }).fetch)).toBeNull();
+    expect(await fetchDepthFiles(fakeServer({ files: [ok({ hello: "a static host's page" })] }).fetch)).toBeNull();
+    expect(await fetchDepthFiles(fakeServer({ files: [{ status: 403, json: { error: "forbidden", message: "no" } }] }).fetch)).toBeNull();
   });
 
   it("fetchDepthReady(fresh) asks the server to look again", async () => {

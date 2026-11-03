@@ -188,6 +188,12 @@ the project it comes from, a **File** link to the file itself (to download by ha
 it: the cut-outs paint the people out of that map instead of making a new one, and no depth model is needed. If nobody
 is found in the picture, nothing is written and the row says so.
 
+The editor only treats a file as there if it is in its media index, which is made when the film is imported. So that the
+layers these buttons write are found at once, and again after a reload, it adds them when they are put on a shot and, on
+`npm run dev` / `npm run serve`, asks the server for the depth folder's file list (`GET /__api/depth/files`) when it starts.
+(Without that the plate was not found and the viewer drew the original picture, people and all, under the cut-outs: everyone
+appeared twice.)
+
 ## Miami Vice - Salt Water
 
 Select **Miami Vice - Salt Water** in the film selector to open an original feature in the season-four register:

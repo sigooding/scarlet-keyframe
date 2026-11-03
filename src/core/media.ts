@@ -85,6 +85,23 @@ export function hasPublicMediaPath(publicPaths: Set<string>, path: string): bool
   return decoded !== path && publicPaths.has(decoded);
 }
 
+/**
+ * `publicPaths` with these added (as normalised paths). The editor only treats a file as there when it is in this set, which
+ * starts as the media index made when the film was imported, so files made since (the layers of the Make buttons) have to be
+ * added. Returns the SAME set when nothing is new, so React does not draw again for nothing.
+ */
+export function withPublicPaths(current: Set<string>, extra: Iterable<string | undefined | null>): Set<string> {
+  let next: Set<string> | null = null;
+  for (const value of extra) {
+    if (!value) continue;
+    const path = normalizeMediaPath(value);
+    if (!path || current.has(path) || next?.has(path)) continue;
+    next ??= new Set(current);
+    next.add(path);
+  }
+  return next ?? current;
+}
+
 export function normalizeMediaPath(value: string): string {
   let path = value;
   if (/^https?:\/\//i.test(path)) {
