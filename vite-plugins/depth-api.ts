@@ -11,6 +11,7 @@ import type {
   DepthJobView,
   DepthMakeResult,
   DepthQuality,
+  DepthFiles,
   DepthReady,
   ModelRole,
   ModelStatus,
@@ -167,6 +168,40 @@ function refusal(req: IncomingMessage, allowedHosts: Set<string>): { code: numbe
     }
   }
   return null;
+}
+
+const DEPTH_FOLDER = ["film", "depth"];
+const LAYER_EXT = /\.(?:png|jpe?g|webp)$/i;
+const MAX_LISTED_FILES = 50_000;
+
+/**
+ * Every picture under public/film/depth/ as a path under public/ (`film/depth/s6/321-the-form/people-1/plate.jpg`). The editor's
+ * media index is made when the film is imported, so the layers the Make buttons write are not in it; this is how the editor
+ * learns they are there. Never follows a link, and leaves out folders still being written (`people-N.part`), hidden files and
+ * temporary files.
+ */
+export function listDepthFiles(publicDir: string): string[] {
+  const found: string[] = [];
+  const walk = (dir: string, relative: string[]) => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (found.length >= MAX_LISTED_FILES) return;
+      const name = entry.name;
+      if (name.startsWith(".") || entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) {
+        if (!name.endsWith(".part")) walk(path.join(dir, name), [...relative, name]);
+      } else if (entry.isFile() && LAYER_EXT.test(name) && !/\.tmp\.[a-z]+$/i.test(name)) {
+        found.push([...relative, name].join("/"));
+      }
+    }
+  };
+  walk(path.join(publicDir, ...DEPTH_FOLDER), DEPTH_FOLDER);
+  return found.sort();
 }
 
 function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
@@ -555,6 +590,11 @@ export function createDepthMiddleware(options: DepthApiOptions): Connect.NextHan
           defaultQuality: DEFAULT_QUALITY as DepthQuality,
           busy: runningJob()?.id ?? null,
         } satisfies DepthReady);
+        return;
+      }
+
+      if (route === "files" && req.method === "GET") {
+        send(200, { ok: true, paths: listDepthFiles(publicDir) } satisfies DepthFiles);
         return;
       }
 

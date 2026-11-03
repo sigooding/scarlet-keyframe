@@ -152,11 +152,12 @@ import {
   normalizeMediaPath,
   referencedPath,
   SCARLETT_WITNESS_RAW_BASE,
+  withPublicPaths,
 } from "./core/media";
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
 import { savedStatusText } from "./core/saveLocation";
-import { plainPictureRef, type ApplyCutouts, type ApplyDepthMap } from "./core/depthMaker";
+import { fetchDepthFiles, plainPictureRef, type ApplyCutouts, type ApplyDepthMap } from "./core/depthMaker";
 import { useDepthMaker } from "./core/useDepthMaker";
 import { moveTo, pointMarkers as buildPointMarkers, sameTarget, targetExists, type CinematicPatch } from "./core/lightsFlares";
 import type { CinematicSettings } from "../vendor/scarlet-reel/types";
@@ -2007,6 +2008,8 @@ export default function App() {
       if (!frame.picture || plainPictureRef(frame.picture) !== picture) {
         return { applied: false, reason: "This shot's picture changed while the map was being made." };
       }
+      // The new file is not in the media index the editor started with: say it is there, or the viewer cannot find it.
+      setPublicPaths((current) => withPublicPaths(current, [mapRef]));
       editProject((current) => setFrameDepthMap(current, frameId, mapRef), "Depth map made");
       return { applied: true };
     },
@@ -2028,6 +2031,9 @@ export default function App() {
         depthCutouts: made.cutouts.slice(0, 4).map(({ image, depth }) => ({ image, depth })),
         ...(typeof cinematic?.depthAmount === "number" ? {} : { depthAmount: 0.4 }),
       };
+      // The new files are not in the media index the editor started with. Without this the viewer cannot find the plate and
+      // draws the original picture (people and all) under the cut-outs: everyone appears twice.
+      setPublicPaths((current) => withPublicPaths(current, [made.depthMap, made.plate, ...made.cutouts.map((cutout) => cutout.image)]));
       editProject((current) => setEffectFields(current, frameId, patch), "Cutouts made");
       const mode = String(cinematic?.mode ?? "pan");
       return {
@@ -2037,6 +2043,18 @@ export default function App() {
     },
     [editProject, frames],
   );
+  // What the Make buttons wrote in earlier sessions is not in the media index either: ask the server what is in the depth
+  // folder once the film has loaded, so a saved shot still finds its plate after a reload.
+  useEffect(() => {
+    if (loading || window.location.protocol === "file:") return;
+    let alive = true;
+    void fetchDepthFiles().then((paths) => {
+      if (alive && paths) setPublicPaths((current) => withPublicPaths(current, paths));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [loading]);
   const depthMaker = useDepthMaker({ apply: applyMadeDepthMap, applyCutouts: applyMadeCutouts });
   const depthMakerBinding = useMemo(
     () => ({
