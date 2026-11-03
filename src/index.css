@@ -8463,3 +8463,340 @@ kbd {
   font-size: 9.5px;
   line-height: 1.3;
 }
+
+/* ============================================================================
+ * Clip tab: Lights & flares panel, tidier effect groups, placing on the picture
+ * ============================================================================ */
+
+.lights-panel .lf-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.lf-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lf-menu {
+  min-width: 250px;
+  max-width: 300px;
+}
+
+.lf-menu > button {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lf-menu > button small {
+  font-size: 10px;
+  color: var(--ink-muted);
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.lf-placing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--accent-amber);
+  border-radius: 4px;
+  background: var(--accent-amber-soft);
+  font-size: 11px;
+  color: var(--ink-primary);
+}
+
+.lf-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.lf-card {
+  border: 1px solid var(--line-subtle);
+  border-radius: 4px;
+  background: var(--bg-900);
+}
+
+.lf-card.is-selected {
+  border-color: var(--accent-amber);
+}
+
+.lf-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.lf-card-top:focus-visible {
+  outline: 1px solid var(--accent-amber);
+  outline-offset: -1px;
+}
+
+.lf-card-top strong {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lf-card-top small {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--ink-muted);
+}
+
+.lf-swatch {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 7px rgba(255, 255, 255, 0.22);
+}
+
+.lf-swatch.is-flare {
+  border-radius: 2px;
+  transform: rotate(45deg) scale(0.85);
+}
+
+.lf-place-btn,
+.lf-remove-btn {
+  flex-shrink: 0;
+}
+
+.lf-remove-btn:hover {
+  color: var(--accent-scarlet);
+}
+
+.lf-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 8px 8px;
+  border-top: 1px solid var(--line-subtle);
+}
+
+.lf-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 26px;
+}
+
+.lf-row select {
+  width: 150px;
+  flex-shrink: 0;
+}
+
+.lf-noir {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-subtle);
+}
+
+.lf-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.lf-pair .field-number > div {
+  grid-template-columns: minmax(0, 1fr) 34px;
+}
+
+.lf-segmented {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.lf-segmented button {
+  padding: 3px 9px;
+  border: 0;
+  border-right: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-secondary);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.lf-segmented button:last-child {
+  border-right: 0;
+}
+
+.lf-segmented button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.lf-segmented button.is-active {
+  background: var(--accent-amber-soft);
+  color: var(--accent-amber);
+}
+
+.lf-hint {
+  display: block;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+
+.lf-more > summary {
+  cursor: pointer;
+  padding: 4px 0;
+  font-size: 10.5px;
+  color: var(--ink-secondary);
+}
+
+.lf-filename {
+  flex: 1;
+  min-width: 0;
+  margin: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+}
+
+/* A group inside a group (Camera > Simple move, Foreground subject) */
+.effect-subgroup {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.effect-subgroup > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+.effect-subgroup > summary span {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-muted);
+}
+
+/* While placing a light or flare: crosshair, rings over the picture, a hint at the top */
+.cin-preview.is-placing-point,
+.cin-preview.is-placing-point.is-direct-framing {
+  cursor: crosshair;
+}
+
+.cin-point-markers {
+  position: absolute;
+  inset: 0;
+  z-index: 58;
+  pointer-events: none;
+}
+
+.cin-point-marker {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.65), 0 0 10px rgba(0, 0, 0, 0.55);
+}
+
+.cin-point-marker.is-flare {
+  border-radius: 3px;
+  transform: rotate(45deg);
+}
+
+.cin-point-marker.is-selected {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-color: var(--accent-amber);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 0 14px rgba(232, 162, 74, 0.7);
+}
+
+.cin-point-marker span {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-top: 5px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: 600 10px/1 var(--mono);
+  color: #fff;
+  text-shadow: 0 1px 3px #000, 0 0 6px #000;
+}
+
+.cin-point-marker.is-flare span {
+  transform: translateX(-50%) rotate(-45deg);
+  margin-top: 9px;
+}
+
+.cin-point-marker.label-above span {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 5px;
+}
+
+.cin-point-marker.is-flare.label-above span {
+  margin-bottom: 9px;
+}
+
+.cin-placing-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  z-index: 59;
+  transform: translateX(-50%);
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(14, 17, 23, 0.9);
+  border: 1px solid var(--accent-amber);
+  color: var(--ink-primary);
+  font-size: 11px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Lights & flares: the viewer is still dissolving in, so a new glow is hidden under the previous shot. */
+.lf-dissolve-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.14));
+  border-radius: 6px;
+  background: rgba(232, 178, 60, 0.08);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted, #aeb4bd);
+}
+.lf-dissolve-note span {
+  flex: 1 1 180px;
+}

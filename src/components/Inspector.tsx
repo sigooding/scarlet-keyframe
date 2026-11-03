@@ -19,7 +19,22 @@ import {
   updateCaptionText,
   type BeatCaption,
 } from "../core/captions";
-import { CINEMATIC_GROUPS, type CinematicField } from "../core/cinematicSchema";
+import type { CinematicField } from "../core/cinematicSchema";
+import {
+  ATMOSPHERE_KEYS,
+  DEPTH_KEYS,
+  FOREGROUND_KEYS,
+  foregroundRowLabel,
+  FRAMING_KEYS,
+  LOOK_KEYS,
+  advancedFieldKeys,
+  cameraFieldKeys,
+  countSet,
+  fieldsFor,
+} from "../core/clipTabLayout";
+import type { CinematicPatch } from "../core/lightsFlares";
+import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
+import { LightsFlaresPanel, type PointEditState } from "./LightsFlaresPanel";
 import {
   CUTOUT_LAYER_COLORS,
   defaultDepthForCutoutLayer,
@@ -175,7 +190,15 @@ interface InspectorProps {
   onMergeFrames?: () => void;
   onDelete: () => void;
   onExecuteDelete?: (ripple: boolean) => void;
-  onDeleteClip?: (ripple: boolean) => void;
+  /** "Lights & flares" panel: what is selected, applying a patch to the shot, and placing on the viewer. */
+  pointEdit?: PointEditState;
+  onPointEditChange?: (edit: PointEditState) => void;
+  canPlaceOnViewer?: boolean;
+  /** The viewer is still dissolving into this shot, and a button to jump past the dissolve. */
+  dissolvingIn?: boolean;
+  onShowShot?: () => void;
+  onApplyEffects?: (patch: CinematicPatch, label: string) => void;
+  onPreviewEffects?: (patch: CinematicPatch) => void;
   onMove: (delta: -1 | 1) => void;
   kenBurnsActive?: boolean;
   onToggleKenBurns?: () => void;
@@ -211,6 +234,9 @@ interface InspectorProps {
   presetOffsetFrames?: number;
   onConvertAllToKeyframes?: () => void;
 }
+
+const NO_POINT_EDIT: PointEditState = { target: null, placing: false };
+const NOOP_POINT_EDIT = () => undefined;
 
 const TRANSITIONS = ["cut", "dissolve", "dip-to-black", "wipe-left", "wipe-right"];
 const PARTICLES = [
@@ -290,6 +316,37 @@ export function Inspector(props: InspectorProps) {
     setPresetMenuOpen(false);
   };
 
+  const cinRecord = effectiveCin as Record<string, unknown> | undefined;
+  const cameraKeys = cameraFieldKeys(cinRecord);
+  const advancedKeys = advancedFieldKeys(cinRecord);
+  const setBadge = (count: number) => (count > 0 ? `${count} set` : "");
+  const renderFields = (keys: readonly string[], shortLabel?: (label: string) => string) =>
+    fieldsFor(keys).map((field) => (
+      <EffectField
+        key={field.key}
+        field={shortLabel ? { ...field, label: shortLabel(field.label) } : field}
+        value={getEffectValue(frame, `cinematic.${field.key}`)}
+        onChange={(value) => props.onSetEffect(`cinematic.${field.key}`, value)}
+        onReset={() => props.onResetEffect(`cinematic.${field.key}`)}
+        onBrowse={() =>
+          props.onBrowse(
+            "image",
+            field.key === "depthMap" ? "depthMap" : field.key === "depthPlate" ? "depthPlate" : "foregroundImage",
+          )
+        }
+        jsonError={jsonError}
+        setJsonError={setJsonError}
+      />
+    ));
+  // One finished change, and a live change while a slider or the picture is being dragged. Without the app's
+  // multi-field edit (tests render the Inspector bare) each field is set on its own.
+  const applyEffects =
+    props.onApplyEffects ??
+    ((patch: CinematicPatch) => {
+      for (const [key, value] of Object.entries(patch)) props.onSetEffect(`cinematic.${key}`, value);
+    });
+  const previewEffects = props.onPreviewEffects ?? (() => undefined);
+
   const musicUrl = String(scene.musicUrl || scene.sceneAudioUrl || "");
   const ambParsed = parseAmbienceSpec(scene.ambientAudio);
   const useFreeAudioClips = props.resolvedAudioClips !== undefined;
@@ -366,7 +423,7 @@ export function Inspector(props: InspectorProps) {
             }
             title="Delete current selection (Shift+Click to ripple-delete shot & anchored sounds)"
           >
-            Delete
+            {beat.gap ? "Delete gap" : "Delete"}
           </button>
           <button
             type="button"
@@ -454,7 +511,6 @@ export function Inspector(props: InspectorProps) {
           <div className="inspector-audio-tab" data-testid="inspector-panel-voice">
             <section className="inspector-section">
               <SectionTitle
-                number="01"
                 title="Voice file"
                 status={beat.audioUrl ? "ASSIGNED" : "NO VOICE"}
               />
@@ -510,7 +566,7 @@ export function Inspector(props: InspectorProps) {
             </section>
 
             <section className="inspector-section">
-              <SectionTitle number="02" title="Timing & dialogue" status={frame.speaker || "LINE"} />
+              <SectionTitle title="Timing & dialogue" status={frame.speaker || "LINE"} />
               <FieldNumber
                 label="Voice start"
                 value={
@@ -545,7 +601,6 @@ export function Inspector(props: InspectorProps) {
           <div className="inspector-audio-tab" data-testid="inspector-panel-sfx">
             <section className="inspector-section">
               <SectionTitle
-                number="01"
                 title="Sound effect file"
                 status={beat.sfxUrl ? "ASSIGNED" : "NO SFX"}
               />
@@ -601,7 +656,7 @@ export function Inspector(props: InspectorProps) {
             </section>
 
             <section className="inspector-section">
-              <SectionTitle number="02" title="Effect level" status={`${Math.round(Number(beat.sfxVolume ?? 1) * 100)}%`} />
+              <SectionTitle title="Effect level" status={`${Math.round(Number(beat.sfxVolume ?? 1) * 100)}%`} />
               <FieldNumber
                 label="Effect level"
                 value={Number(beat.sfxVolume ?? 1)}
@@ -618,7 +673,6 @@ export function Inspector(props: InspectorProps) {
           <div className="inspector-audio-tab" data-testid="inspector-panel-music">
             <section className="inspector-section">
               <SectionTitle
-                number="01"
                 title="Music file"
                 status={String(scene.musicMode || "inherit").toUpperCase()}
               />
@@ -718,7 +772,7 @@ export function Inspector(props: InspectorProps) {
             </section>
 
             <section className="inspector-section">
-              <SectionTitle number="02" title="Cue & beat sync" status={`SC ${frame.mark}`} />
+              <SectionTitle title="Cue & beat sync" status={`SC ${frame.mark}`} />
               <FieldSelect
                 label="Mode"
                 value={String(scene.musicMode || "inherit")}
@@ -781,7 +835,6 @@ export function Inspector(props: InspectorProps) {
           <div className="inspector-audio-tab" data-testid="inspector-panel-ambience">
             <section className="inspector-section">
               <SectionTitle
-                number="01"
                 title="Ambience file"
                 status={ambParsed.mode.toUpperCase()}
               />
@@ -902,7 +955,7 @@ export function Inspector(props: InspectorProps) {
             </section>
 
             <section className="inspector-section">
-              <SectionTitle number="02" title="Synth bed & raw layers" status={`SC ${frame.mark}`} />
+              <SectionTitle title="Synth bed & raw layers" status={`SC ${frame.mark}`} />
               <FieldSelect
                 label="Synth bed"
                 value={ambParsed.synth}
@@ -946,7 +999,6 @@ export function Inspector(props: InspectorProps) {
           <>
             <section className="inspector-section picture-section">
               <SectionTitle
-                number="01"
                 title="Picture"
                 status={beat.gap ? "BLACK GAP" : !frame.picture ? "EMPTY SLOT" : frame.carried ? "CARRIED" : "OWN FRAME"}
               />
@@ -1015,7 +1067,7 @@ export function Inspector(props: InspectorProps) {
             </section>
 
             <section className="inspector-section action-section">
-              <SectionTitle number="02" title="Clip" status={`+${localFrame}f / ${clipDurationFrames}f`} />
+              <SectionTitle title="Edit clip" status={`+${localFrame}f / ${clipDurationFrames}f`} />
               <div className="keyframe-actions">
                 <button
                   className="button button-quiet"
@@ -1043,20 +1095,6 @@ export function Inspector(props: InspectorProps) {
                     Merge frames
                   </button>
                 )}
-                <button
-                  className="button button-quiet danger-quiet"
-                  data-testid="inspector-delete-clip-btn"
-                  onClick={(e) =>
-                    props.onDeleteClip
-                      ? props.onDeleteClip(e.shiftKey)
-                      : props.onExecuteDelete
-                        ? props.onExecuteDelete(e.shiftKey)
-                        : props.onDelete()
-                  }
-                  title="Delete lifts picture to black gap (or removes gap completely); Shift+Click ripple-deletes shot & anchored sounds"
-                >
-                  {beat.gap ? "Delete gap" : "Delete"}
-                </button>
               </div>
               <div className="move-actions">
                 <button onClick={() => props.onMove(-1)}>↑ Move earlier</button>
@@ -1075,9 +1113,23 @@ export function Inspector(props: InspectorProps) {
               onMergeCaptions={props.onMergeCaptions}
             />
 
+            <LightsFlaresPanel
+              cinematic={effectiveCin as CinematicSettings | undefined}
+              disabled={Boolean(beat.gap) || !frame.picture || frame.picture.startsWith("gradient:")}
+              edit={props.pointEdit ?? NO_POINT_EDIT}
+              onEditChange={props.onPointEditChange ?? NOOP_POINT_EDIT}
+              canPlaceOnViewer={Boolean(props.canPlaceOnViewer)}
+              dissolvingIn={Boolean(props.dissolvingIn)}
+              onShowShot={props.onShowShot}
+              noirLighting={String(cinRecord?.hitchcockLighting ?? "")}
+              onApply={applyEffects}
+              onPreview={previewEffects}
+              onDragStart={props.onDragStart}
+              onDragEnd={props.onDragEnd}
+            />
+
             <section className="inspector-section animation-section" data-testid="inspector-animation">
               <SectionTitle
-                number="03"
                 title="Animation"
                 status={animated ? "KEYFRAMED" : hasPlain ? "PLAIN" : "STILL"}
               />
@@ -1246,44 +1298,44 @@ export function Inspector(props: InspectorProps) {
               </p>
             </section>
 
-            <details className="inspector-details">
+            <details className="inspector-details more-effects" data-testid="inspector-more-effects">
               <summary>
-                <SectionTitle number="04" title="Camera & effects" status="SCARLET REEL" />
+                <SectionTitle title="More effects" status="CAMERA · LOOK · ATMOSPHERE" />
               </summary>
-              <div className="effect-intro">
-                Controls mirror the vendored Scarlet Reel cinematic settings. Click the preview to place the focal point.
-              </div>
-              <div className="button-row copy-effects">
-                <button
-                  type="button"
-                  className="button button-quiet"
-                  data-testid="effects-section-copy-btn"
-                  onClick={props.onCopyEffects}
-                >
-                  ⧉ Copy effects
-                </button>
-                <button
-                  type="button"
-                  className={`button button-quiet ${props.copied ? "is-active" : ""}`}
-                  data-testid="effects-section-paste-btn"
-                  disabled={!props.copied}
-                  onClick={props.onPasteEffects}
-                >
-                  ↳ Paste effects
-                </button>
-              </div>
-              {CINEMATIC_GROUPS.map((group) => (
-                <details className="effect-group" key={group.id} open={group.id === "camera" || group.id === "depth"}>
+              <p className="inspector-note">
+                Camera, depth, colour, atmosphere, particles and transitions for this shot. Lights and flares are in the panel above.
+              </p>
+
+              <details className="effect-group" open data-testid="effects-camera">
+                <summary>
+                  Camera
+                  <span>{setBadge(cameraKeys.length ? countSet(cinRecord, cameraKeys) : 0)}</span>
+                </summary>
+                <div className="effect-fields">{renderFields(cameraKeys)}</div>
+                <p className="inspector-note">Alt+click on the picture to set the focal point.</p>
+                <details className="effect-subgroup" data-testid="effects-framing">
                   <summary>
-                    {group.label}
-                    <span>{group.fields.length} fields</span>
+                    Simple start → end move
+                    <span>{setBadge(countSet(cinRecord, FRAMING_KEYS))}</span>
                   </summary>
-                  {group.id === "look" && props.selectedCount > 1 && (
-                    <p className="preview-only-note" data-testid="bulk-grade-hint">
-                      Grade and texture changes apply to all selected image frames.
-                    </p>
-                  )}
-                  {group.id === "depth" && (() => {
+                  <p className="inspector-note">An easy two-point zoom and framing. For a keyframed move use Animation above.</p>
+                  <div className="effect-fields">{renderFields(FRAMING_KEYS)}</div>
+                </details>
+                <details className="effect-subgroup" open={Boolean(cinRecord?.foregroundImage)} data-testid="effects-foreground">
+                  <summary>
+                    Foreground subject
+                    <span>{setBadge(countSet(cinRecord, FOREGROUND_KEYS))}</span>
+                  </summary>
+                  <div className="effect-fields">{renderFields(FOREGROUND_KEYS, foregroundRowLabel)}</div>
+                </details>
+              </details>
+
+              <details className="effect-group" open={hasDepthMap} data-testid="effects-depth">
+                <summary>
+                  Depth &amp; parallax
+                  <span>{setBadge(countSet(cinRecord, DEPTH_KEYS))}</span>
+                </summary>
+                  {(() => {
                     const depthInfo = extractKeyframeDepthInfo(frame);
                     const hasOpenSlot = depthInfo.cutoutSlots.some((s) => !s || !s.image);
                     return (
@@ -1384,36 +1436,35 @@ export function Inspector(props: InspectorProps) {
                       </div>
                     );
                   })()}
-                  <div className="effect-fields">
-                    {group.fields.map((field) => (
-                      <EffectField
-                        key={field.key}
-                        field={field}
-                        value={getEffectValue(frame, `cinematic.${field.key}`)}
-                        onChange={(value) => props.onSetEffect(`cinematic.${field.key}`, value)}
-                        onReset={() => props.onResetEffect(`cinematic.${field.key}`)}
-                        onBrowse={() =>
-                          props.onBrowse(
-                            "image",
-                            field.key === "depthMap"
-                              ? "depthMap"
-                              : field.key === "depthPlate"
-                                ? "depthPlate"
-                                : "foregroundImage",
-                          )
-                        }
-                        jsonError={jsonError}
-                        setJsonError={setJsonError}
-                      />
-                    ))}
-                  </div>
-                </details>
-              ))}
-              <div className="effect-group particle-group">
-                <div className="particle-group-head">
-                  <span>Particles</span>
-                  <small>Beat override</small>
-                </div>
+                <div className="effect-fields">{renderFields(DEPTH_KEYS)}</div>
+              </details>
+
+              <details className="effect-group" data-testid="effects-look">
+                <summary>
+                  Colour &amp; film look
+                  <span>{setBadge(countSet(cinRecord, LOOK_KEYS))}</span>
+                </summary>
+                {props.selectedCount > 1 && (
+                  <p className="preview-only-note" data-testid="bulk-grade-hint">
+                    Grade and texture changes apply to all selected image frames.
+                  </p>
+                )}
+                <div className="effect-fields">{renderFields(LOOK_KEYS)}</div>
+              </details>
+
+              <details className="effect-group" data-testid="effects-atmosphere">
+                <summary>
+                  Atmosphere
+                  <span>{setBadge(countSet(cinRecord, ATMOSPHERE_KEYS))}</span>
+                </summary>
+                <div className="effect-fields">{renderFields(ATMOSPHERE_KEYS)}</div>
+              </details>
+
+              <details className="effect-group" data-testid="effects-particles">
+                <summary>
+                  Particles
+                  <span>{String(beat.particles ?? scene.particles ?? "none") === "none" ? "" : String(beat.particles ?? scene.particles)}</span>
+                </summary>
                 <FieldSelect
                   label="Kind"
                   value={String(beat.particles ?? scene.particles ?? "none")}
@@ -1444,12 +1495,13 @@ export function Inspector(props: InspectorProps) {
                   step={0.05}
                   onChange={(value) => props.onSetBeat("particleConfig.wind", value)}
                 />
-              </div>
-              <div className="effect-group particle-group">
-                <div className="particle-group-head">
-                  <span>Transition & hold</span>
-                  <small>Beat timing</small>
-                </div>
+              </details>
+
+              <details className="effect-group" data-testid="effects-transition">
+                <summary>
+                  Transition &amp; hold
+                  <span>{mapTransitionKind(beat.backgroundTransition) === "cut" ? "" : mapTransitionKind(beat.backgroundTransition)}</span>
+                </summary>
                 <FieldSelect
                   label="Transition"
                   value={mapTransitionKind(beat.backgroundTransition)}
@@ -1503,45 +1555,25 @@ export function Inspector(props: InspectorProps) {
                   checked={Boolean(beat.backgroundRevert)}
                   onChange={(value) => props.onSetBeat("backgroundRevert", value)}
                 />
-              </div>
-              <div className="button-row copy-effects">
-                <button className="button button-quiet" onClick={props.onCopyEffects}>
-                  ⧉ Copy effects
-                </button>
-                <button
-                  className="button button-quiet"
-                  disabled={!props.copied}
-                  onClick={props.onPasteEffects}
-                >
-                  ↳ Paste effects
-                </button>
-                <button
-                  type="button"
-                  className="button button-quiet"
-                  disabled={!animated}
-                  onClick={props.onCopyAnimation}
-                >
-                  Copy animation
-                </button>
-                <button
-                  type="button"
-                  className="button button-quiet"
-                  disabled={!props.copiedAnimation}
-                  onClick={props.onPasteAnimation}
-                >
-                  Paste animation
-                </button>
-              </div>
-              <p className="preview-only-note">
-                Framing extensions, vignette and grain controls are editor-side additions and are marked preview-only in the
-                export report.
-              </p>
+              </details>
+
+              <details className="effect-group" data-testid="effects-advanced">
+                <summary>
+                  Advanced (raw data)
+                  <span>{setBadge(countSet(cinRecord, advancedKeys))}</span>
+                </summary>
+                <p className="inspector-note">
+                  Settings that have no panel of their own yet, as plain data. Lights and flares are in the panel above.
+                </p>
+                <div className="effect-fields">{renderFields(advancedKeys)}</div>
+              </details>
             </details>
 
-            <details className="inspector-details">
+            <details className="inspector-details" data-testid="inspector-scene">
               <summary>
-                <SectionTitle number="05" title="Scene group" status={frame.mark} />
+                <SectionTitle title="Scene" status={frame.mark} />
               </summary>
+              <p className="inspector-note">Shared by every clip in this scene.</p>
               <label className="control-label">Scene heading</label>
               <textarea
                 className="inspector-textarea"
@@ -1551,16 +1583,22 @@ export function Inspector(props: InspectorProps) {
               />
               <div className="control-row">
                 <span className="control-label">Scene plate</span>
+                <span className="lf-filename" title={String(scene.background || "")}>
+                  {pictureLabel(scene.background ? String(scene.background) : undefined, false, "none")}
+                </span>
                 <button className="button button-text" onClick={() => props.onBrowse("image", "scenePicture")}>
                   Choose
                 </button>
               </div>
-              <input
-                className="text-control"
-                aria-label="Scene background path"
-                value={String(scene.background || "")}
-                onChange={(event) => props.onSetScene("background", event.target.value)}
-              />
+              <details className="lf-more">
+                <summary>Edit the file path</summary>
+                <input
+                  className="text-control"
+                  aria-label="Scene background path"
+                  value={String(scene.background || "")}
+                  onChange={(event) => props.onSetScene("background", event.target.value)}
+                />
+              </details>
               {soundSources.length > 0 && (
                 <p className="inspector-note">
                   {soundSources.length} imported/uploaded sound files in the project library.
@@ -1755,10 +1793,9 @@ function AnimationChannelControl({
   );
 }
 
-function SectionTitle({ number, title, status }: { number: string; title: string; status?: string }) {
+function SectionTitle({ title, status }: { title: string; status?: string }) {
   return (
     <span className="section-title">
-      <i>{number}</i>
       <b>{title}</b>
       {status && <small>{status}</small>}
     </span>
@@ -1783,9 +1820,8 @@ function EffectField({
   setJsonError: (value: string) => void;
 }) {
   const label = (
-    <span className="control-label">
+    <span className="control-label" title={field.key}>
       {field.label}
-      {field.extension && <small className="field-extension">EXT</small>}
     </span>
   );
   const reset = (
@@ -1798,7 +1834,6 @@ function EffectField({
       <div className="field-line">
         <div>
           {label}
-          <small className="field-help">{field.key}</small>
         </div>
         <button
           className={`toggle ${value ? "is-on" : ""}`}
@@ -1816,8 +1851,7 @@ function EffectField({
         <div className="field-line">
           <div>
             {label}
-            <small className="field-help">{field.key}</small>
-          </div>
+            </div>
           <output>
             {value === undefined
               ? "—"
@@ -1846,7 +1880,6 @@ function EffectField({
       <div className="field-line">
         <div>
           {label}
-          <small className="field-help">{field.key}</small>
         </div>
         <select
           data-testid={`effect-${field.key}`}
@@ -1869,8 +1902,7 @@ function EffectField({
         <div className="field-line">
           <div>
             {label}
-            <small className="field-help">{field.key}</small>
-          </div>
+            </div>
           {reset}
         </div>
         <textarea
@@ -1898,8 +1930,7 @@ function EffectField({
         <div className="field-line">
           <div>
             {label}
-            <small className="field-help">{field.key}</small>
-          </div>
+            </div>
           {reset}
         </div>
         <div className="media-field">
@@ -1920,7 +1951,6 @@ function EffectField({
       <div className="field-line">
         <div>
           {label}
-          <small className="field-help">{field.key}</small>
         </div>
         <input
           type="color"
@@ -1936,7 +1966,6 @@ function EffectField({
     <div className="field-line">
       <div>
         {label}
-        <small className="field-help">{field.key}</small>
       </div>
       <input
         className="text-control"
@@ -2066,7 +2095,6 @@ function CaptionInspectorSection({
       data-testid="inspector-caption-section"
     >
       <SectionTitle
-        number="CC"
         title="Caption"
         status={authored ? "EDITED" : "DEFAULT"}
       />
@@ -2409,7 +2437,6 @@ function FreeAudioClipTabPanel({
     <div className="inspector-audio-tab" data-testid={`inspector-panel-${lane}`}>
       <section className="inspector-section">
         <SectionTitle
-          number="01"
           title={meta.title}
           status={active ? `${formatMsTimecode(active.startMs)}` : "NONE AT PLAYHEAD"}
         />
@@ -2515,7 +2542,6 @@ function FreeAudioClipTabPanel({
       {active && (
         <section className="inspector-section" data-testid="inspector-audio-timing">
           <SectionTitle
-            number="02"
             title="Millisecond timing & mix"
             status={`${Math.round(active.startMs)} ms`}
           />
@@ -2657,7 +2683,6 @@ function FreeAudioClipTabPanel({
       {(lane === "music" || lane === "ambience") && onSetDuckDepth && (
         <section className="inspector-section">
           <SectionTitle
-            number="03"
             title="Voice ducking"
             status={`-${Math.round(duckDepth * 100)}%`}
           />
@@ -2673,7 +2698,7 @@ function FreeAudioClipTabPanel({
       )}
 
       <section className="inspector-section">
-        <SectionTitle number="04" title="Film audioClips" status={`${resolvedAudioClips.length} CLIPS`} />
+        <SectionTitle title="Film audioClips" status={`${resolvedAudioClips.length} CLIPS`} />
         <p className="preview-only-note">
           Sound lanes, waveforms, mixer, and Web Audio playback run from free{" "}
           <code>audioClips</code> in milliseconds while leaving story beat &amp; scene fields untouched.

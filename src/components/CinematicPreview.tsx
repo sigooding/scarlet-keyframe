@@ -106,6 +106,21 @@ export interface CinematicPreviewProps {
   onPreviewAnimation?: (animation: BeatAnimation | undefined) => void;
   onCommitAnimation?: (animation: BeatAnimation | undefined, label: string) => void;
   setFocalPoint?: (value: string) => void;
+  /** Rings drawn over the picture for this shot's lights and flares (the one being edited stands out). */
+  pointMarkers?: PreviewPointMarker[];
+  /** While set, a click or drag on the picture places the selected light or flare instead of panning the shot. */
+  placingPoint?: { label: string } | null;
+  /** Where on the picture (percent of its width and height) the pointer is: "down" on press, "move" while dragging,
+   *  "up" on release. */
+  onPlacePoint?: (xPercent: number, yPercent: number, phase: "down" | "move" | "up") => void;
+}
+
+export interface PreviewPointMarker {
+  x: number;
+  y: number;
+  kind: "light" | "flare";
+  label: string;
+  selected: boolean;
 }
 
 type KBCorner = "nw" | "ne" | "sw" | "se";
@@ -175,8 +190,21 @@ export function CinematicPreview({
   onPreviewAnimation,
   onCommitAnimation,
   setFocalPoint,
+  pointMarkers,
+  placingPoint = null,
+  onPlacePoint,
 }: CinematicPreviewProps) {
   const previewRef = useRef<HTMLDivElement | null>(null);
+  const placeSessionRef = useRef<number | null>(null);
+  const isPlacingPoint = Boolean(placingPoint && onPlacePoint && !renderMode);
+  const pointerPercent = (event: { clientX: number; clientY: number; currentTarget: HTMLElement }) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    return {
+      x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
+      y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100)),
+    };
+  };
   const [edgeWarningMsg, setEdgeWarningMsg] = useState<string | null>(null);
   const edgeTimerRef = useRef<number | null>(null);
   const [shiftAxisGuide, setShiftAxisGuide] = useState<"x" | "y" | null>(null);
@@ -524,6 +552,7 @@ export function CinematicPreview({
         canDirectFrame ? "is-direct-framing" : "",
         isPanning ? "is-panning" : "",
         showEdgeBanner ? "is-edge-clamped" : "",
+        isPlacingPoint ? "is-placing-point" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -532,7 +561,19 @@ export function CinematicPreview({
       data-gap={frame.beat.gap ? "true" : undefined}
       data-transition-kind={transition?.kind || "none"}
       data-transition-progress={transition ? p.toFixed(4) : undefined}
+      data-placing-point={isPlacingPoint ? "true" : undefined}
       onPointerDown={(event) => {
+        if (isPlacingPoint && event.button === 0) {
+          // Placing a light or flare: the press (and a drag) sets its position; the shot is not panned.
+          if ((event.target as HTMLElement | null)?.closest("button, .cin-kb-trigger-wrap, .cin-corner-toggles")) return;
+          const at = pointerPercent(event);
+          if (!at) return;
+          event.preventDefault();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          placeSessionRef.current = event.pointerId;
+          onPlacePoint?.(at.x, at.y, "down");
+          return;
+        }
         if (!canDirectFrame || event.button !== 0 || !onPreviewAnimation) return;
         const target = event.target as HTMLElement | null;
         if (
@@ -557,6 +598,11 @@ export function CinematicPreview({
         };
       }}
       onPointerMove={(event) => {
+        if (placeSessionRef.current === event.pointerId) {
+          const at = pointerPercent(event);
+          if (at) onPlacePoint?.(at.x, at.y, "move");
+          return;
+        }
         const session = panSessionRef.current;
         if (!session || session.pointerId !== event.pointerId || !onPreviewAnimation) return;
         let dxPx = event.clientX - session.startX;
@@ -630,6 +676,12 @@ export function CinematicPreview({
         onPreviewAnimation(nextAnim);
       }}
       onPointerUp={(event) => {
+        if (placeSessionRef.current === event.pointerId) {
+          placeSessionRef.current = null;
+          const at = pointerPercent(event);
+          if (at) onPlacePoint?.(at.x, at.y, "up");
+          return;
+        }
         const session = panSessionRef.current;
         if (!session || session.pointerId !== event.pointerId) return;
         panSessionRef.current = null;
@@ -674,7 +726,13 @@ export function CinematicPreview({
           }
         }
       }}
-      onPointerCancel={() => {
+      onPointerCancel={(event) => {
+        if (placeSessionRef.current === event.pointerId) {
+          placeSessionRef.current = null;
+          const at = pointerPercent(event);
+          if (at) onPlacePoint?.(at.x, at.y, "up");
+          return;
+        }
         const session = panSessionRef.current;
         panSessionRef.current = null;
         setShiftAxisGuide(null);
@@ -1558,6 +1616,30 @@ export function CinematicPreview({
         <div className="cin-preview-crosshair" aria-hidden>
           <i />
           <b />
+        </div>
+      )}
+      {!renderMode && pointMarkers && pointMarkers.length > 0 && (
+        <div className="cin-point-markers" data-testid="cin-point-markers" aria-hidden="true">
+          {pointMarkers.map((marker, index) => (
+            <div
+              key={`${marker.kind}-${index}`}
+              className={`cin-point-marker is-${marker.kind} ${marker.selected ? "is-selected" : ""} ${
+                // A flare that follows a light sits right on it: that second label goes above its ring, not on the first.
+                pointMarkers.slice(0, index).some((other) => Math.abs(other.x - marker.x) < 7 && Math.abs(other.y - marker.y) < 7)
+                  ? "label-above"
+                  : ""
+              }`}
+              data-testid={`cin-point-marker-${index}`}
+              style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
+            >
+              <span>{marker.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {isPlacingPoint && (
+        <div className="cin-placing-hint" data-testid="cin-placing-hint" aria-hidden="true">
+          Click or drag to place {placingPoint?.label} · Esc to stop
         </div>
       )}
     </div>
