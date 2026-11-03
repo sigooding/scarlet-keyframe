@@ -18,7 +18,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: "Shift + Space", label: "Loop In → Out playback" },
       { keys: "J  K  L", label: "Rewind · stop · play (L cycles speed)" },
       { keys: "F", label: "Fullscreen playback" },
-      { keys: "Esc", label: "Exit fullscreen / clear selection" },
+      { keys: "Esc", label: "Blur focused slider / exit fullscreen / clear selection" },
     ],
   },
   {

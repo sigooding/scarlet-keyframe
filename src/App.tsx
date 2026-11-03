@@ -154,6 +154,7 @@ import {
   SCARLETT_WITNESS_RAW_BASE,
 } from "./core/media";
 import { UndoHistory } from "./core/history";
+import { controlOwnsArrowKeys } from "./core/keyTargets";
 import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
 import { savedStatusText } from "./core/saveLocation";
 import { moveTo, pointMarkers as buildPointMarkers, sameTarget, targetExists, type CinematicPatch } from "./core/lightsFlares";
@@ -3934,14 +3935,6 @@ export default function App() {
       const typingSpaceText = isTextTypingTarget(target, true);
       const mod = event.ctrlKey || event.metaKey;
 
-      // A control that uses the arrow keys itself (the Lights & flares sliders) keeps them: no frame stepping.
-      if (
-        target?.closest?.("[data-owns-arrow-keys]") &&
-        /^(Arrow(Left|Right|Up|Down)|Home|End|PageUp|PageDown)$/.test(event.key)
-      ) {
-        return;
-      }
-
       if (mod && event.key.toLowerCase() === "s") {
         event.preventDefault();
         saveNow();
@@ -3999,6 +3992,23 @@ export default function App() {
       if (!typingText && mod && event.key.toLowerCase() === "v") {
         event.preventDefault();
         handlePasteClips();
+        return;
+      }
+      const focusedInputType = target?.tagName === "INPUT"
+        ? ((target as HTMLInputElement).type || "text").toLowerCase()
+        : "";
+      if (
+        event.key === "Escape" &&
+        (target?.tagName === "SELECT" || (target?.tagName === "INPUT" && ["range", "number"].includes(focusedInputType)))
+      ) {
+        event.preventDefault();
+        target?.blur();
+        return;
+      }
+      if (
+        controlOwnsArrowKeys(target) &&
+        /^(Arrow(Left|Right|Up|Down)|Home|End|PageUp|PageDown)$/.test(event.key)
+      ) {
         return;
       }
       if (typingText) return;

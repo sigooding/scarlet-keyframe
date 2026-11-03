@@ -102,7 +102,6 @@ function LfSlider({
         <input
           type="range"
           data-testid={testId}
-          data-owns-arrow-keys="true"
           aria-label={label}
           min={min}
           max={max}
