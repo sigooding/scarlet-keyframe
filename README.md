@@ -64,7 +64,7 @@ The depth-map camera plays a picture's `depth.png` (white = near, black = far) f
 run through `onnxruntime` (no torch; the same stack as the film's own tool in scarlett-witness). One-time setup:
 
     npm run depth:setup              # a Python environment in .depth-venv (Python 3.9-3.13); CPU, works everywhere
-    npm run depth:setup -- --gpu     # optional: onnxruntime-gpu for an NVIDIA card (needs CUDA 12 + cuDNN 9 installed)
+    npm run depth:setup -- --gpu     # optional: an NVIDIA card (about 1.3 GB of CUDA libraries as pip packages; see below)
 
 Then, with the picture's path or just its name:
 
@@ -139,8 +139,25 @@ the depth command).
 **What it cannot do.** The finder looks for whole people. A close-up of a hand, a lone face, or an object is not found
 (use the film's own `people: true` workflow for those), and a face on a television or in a photograph can be counted as
 a person; the review sheet and the list are there to catch both. Nobody in the picture means nothing is written, and it
-says so. The models run on the CPU unless `npm run depth:setup -- --gpu` was run (onnxruntime-gpu, CUDA 12 + cuDNN 9);
-the code asks for the NVIDIA card and falls back to the CPU, but the GPU path has not been tried on a real card.
+says so. The models run on the CPU unless `npm run depth:setup -- --gpu` was run (see *Using the NVIDIA GPU*);
+the code asks for the NVIDIA card and falls back to the CPU, saying why. The GPU path itself has only been exercised with a stand-in onnxruntime here.
+
+### Using the NVIDIA GPU
+
+    npm run depth:setup -- --gpu
+
+This replaces onnxruntime with `onnxruntime-gpu` **1.22 to 1.26** and adds NVIDIA's **CUDA 12 runtime and cuDNN 9 as ordinary
+pip packages** inside `.depth-venv` (about 1.3 GB, once), so nothing has to be installed on the system except the NVIDIA
+driver (R525 or newer; Python 3.10+). The version is held below 1.27 on purpose: from 1.27 the default onnxruntime-gpu is built for
+CUDA 13, which needs a much newer driver (R580+). The worker finds the packages' DLLs itself (it puts
+`site-packages/nvidia/*/bin` on the DLL search path and calls onnxruntime's `preload_dlls`).
+
+The list of providers onnxruntime prints (`CUDAExecutionProvider` ...) only says what it was *built* with, not whether CUDA and
+cuDNN can be *loaded*. So the setup ends by making a real session on a tiny model and printing the verdict; the editor does the
+same when it starts and shows the result in the rows: "Uses your graphics card" or "Not using your graphics card: <why>", and a
+run that still ended on the CPU says why. `python scripts/depth/make_depth.py --gpu-check` prints the same check as one JSON line.
+If the GPU cannot be used everything still works on the CPU, only slower. Restart `npm run serve` / `npm run dev` after changing
+the setup: the server checks once when it starts.
 
 ### Models (`npm run models`)
 

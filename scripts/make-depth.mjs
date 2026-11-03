@@ -224,6 +224,7 @@ async function main() {
       bytes: fs.statSync(mapFile).size,
       model: result.model,
       provider: result.provider === "CUDAExecutionProvider" ? "gpu" : "cpu",
+      gpuNote: result.gpu_note ?? null,
       seconds: result.seconds,
       archived: archived || null,
     });

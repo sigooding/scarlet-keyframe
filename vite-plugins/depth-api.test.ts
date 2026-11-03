@@ -352,6 +352,20 @@ describe("making a map (POST make, GET status)", () => {
     expect(gpuDone.result?.provider).toBe("gpu");
   });
 
+  it("tells the editor why the GPU is not used when its package is installed but cannot load, and does not pass --gpu", async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    machine = { python: "p", packages: true, gpu: false, gpuNote: "Failed to create CUDAExecutionProvider. Require cuDNN 9.* and CUDA 12.*" };
+    await startServer({ modelFile: "/models/mine.onnx" });
+    const ready = (await request<DepthReady>("GET", "ready")).json;
+    expect(ready).toMatchObject({ gpu: false, gpuNote: "Failed to create CUDAExecutionProvider. Require cuDNN 9.* and CUDA 12.*" });
+    fs.rmSync(path.join(publicDir, "film", "depth", "t", "a"), { recursive: true, force: true });
+    const cpu = await make("/film/img/t/a.jpg");
+    const cpuDone = await waitFor(cpu.json.id as string, "done");
+    const flagLine = cpuDone.log.find((line) => line.startsWith("flags:")) ?? "";
+    expect(flagLine).toBe("flags: --json --model-file /models/mine.onnx");
+    expect(cpuDone.result?.provider).toBe("cpu");
+  });
+
   it("uses a map that is already there instead of making another (nothing is overwritten)", async () => {
     const before = fs.readFileSync(path.join(publicDir, "film", "depth", "t", "has-map", "depth.png"));
     const { status: code, json } = await make("/film/img/t/has-map.jpg");

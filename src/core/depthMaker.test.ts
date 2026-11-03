@@ -843,6 +843,13 @@ describe("what the Make depth map row shows", () => {
     });
   });
 
+  it("says why the graphics card is not used when its package is installed but cannot load (and nothing when there is no such package)", () => {
+    const why = "Failed to create CUDAExecutionProvider. Require cuDNN 9.* and CUDA 12.*";
+    expect(row(idle(ready({ here: ["depth-large"], gpuNote: why })))).toMatchObject({ note: expect.stringMatching(new RegExp(` Not using your graphics card: ${why.replace(/[.*]/g, "\\$&")}$`)) });
+    expect((row(idle(ready({ here: ["depth-large"] }))) as { note: string }).note).not.toContain("graphics card");
+    expect((row(idle(ready({ here: ["depth-large"], gpu: true, gpuNote: null }))) as { note: string }).note).toContain("Uses your graphics card.");
+  });
+
   it("says when it will use the graphics card, and when the model file is one of your own", () => {
     expect(row(idle(ready({ here: ["depth-large"], gpu: true })))).toMatchObject({ note: expect.stringMatching(/ Uses your graphics card\.$/) });
     expect(row(idle(ready({ patch: { "depth-large": { overridden: true, cached: true } } })))).toMatchObject({
@@ -1025,6 +1032,23 @@ describe("what the Make cutouts row shows", () => {
     const kept = cutRow(idle(here), { keptMap: "/film/depth/s1/pic/depth.png" }) as { note: string; keepsMap: boolean };
     expect(kept.keepsMap).toBe(true);
     expect(kept.note).toContain("paints them out of the depth map you have (kept as it is)");
+  });
+
+  it("says why the graphics card is not used, in the note and after a run that ended on the CPU", () => {
+    const why = "cudnn64_9.dll could not be loaded";
+    const note = (cutRow(idle(ready({ here: BEST, gpuNote: why }))) as { note: string }).note;
+    expect(note).toContain("A few minutes on the CPU.");
+    expect(note).toContain(`Not using your graphics card: ${why}`);
+    expect((cutRow(idle(ready({ here: BEST }))) as { note: string }).note).not.toContain("graphics card");
+    const done = job({ kind: "cutouts", status: "done", applied: true, result: cutoutsResult({ provider: "cpu", seconds: 101.1, gpuNote: why }) });
+    expect((cutRow(idle(ready(), { job: done }), { hasCutouts: true }) as { text: string }).text).toBe(
+      `2 cut-outs, a plate and a depth map made in 101.1 s on the CPU. This shot now uses them (one undo step). Your graphics card was not used: ${why}`,
+    );
+    const depthDone = job({ status: "done", applied: true, result: { ok: true, map: "/film/depth/s1/pic/depth.png", width: 1920, height: 1080, provider: "cpu", seconds: 30, gpuNote: why } });
+    expect((row(idle(ready(), { job: depthDone }), { hasDepthMap: true }) as { text: string }).text).toContain(`Your graphics card was not used: ${why}`);
+    // a run that used the GPU never mentions it
+    const fine = job({ kind: "cutouts", status: "done", applied: true, result: cutoutsResult({ provider: "gpu" }) });
+    expect((cutRow(idle(ready(), { job: fine }), { hasCutouts: true }) as { text: string }).text).not.toContain("not used");
   });
 
   it("shows the steps while it works, with its seconds", () => {

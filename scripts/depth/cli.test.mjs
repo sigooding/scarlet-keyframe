@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { RESULT_MARKER, parseResultLine, pngSize, pythonCandidates } from "./lib.mjs";
+import { RESULT_MARKER, gpuStatus, parseResultLine, pngSize, pythonCandidates } from "./lib.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..", "..");
@@ -219,4 +219,20 @@ suite("the depth worker's safety nets (scripts/depth/test_worker.py, no model ne
     expect(run.stdout).toContain("all passed");
     expect(run.status).toBe(0);
   }, 120000);
+});
+
+suite("gpuStatus: can onnxruntime REALLY use the GPU here (a session on a tiny model)", () => {
+  it("answers with what this machine has, and says why not when it cannot", () => {
+    const status = gpuStatus(python);
+    expect(typeof status.gpu).toBe("boolean");
+    expect(status.providers).toContain("CPUExecutionProvider");
+    if (!status.gpu) expect(status.reason).toBeTruthy();
+    if (!status.installed) expect(status.reason).toContain("CPU package");
+  }, 120000);
+
+  it("does not claim a GPU when Python cannot be run", () => {
+    const status = gpuStatus({ cmd: "this-python-does-not-exist", args: [] });
+    expect(status).toMatchObject({ gpu: false, installed: false });
+    expect(status.reason).toContain("could not check the GPU");
+  });
 });
