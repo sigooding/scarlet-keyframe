@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DEFAULT_MODEL, MODELS, modelCacheDir } from "./models.mjs";
 import {
+  lastWords,
   UserError,
   depthMapRefFor,
   findPicturesByName,
@@ -253,5 +254,22 @@ describe("a path that climbs out of public/", () => {
     touch("/film/img/s9/v1.2.final.jpg");
     expect(resolvePicture("/film/img/s9/v1.2.final.jpg", publicDir).ref).toBe("/film/img/s9/v1.2.final.jpg");
     expect(resolvePicture("/film/img/s9/..hidden.jpg", publicDir).ref).toBe("/film/img/s9/..hidden.jpg");
+  });
+});
+
+describe("lastWords: what a worker that died without an answer last said", () => {
+  it("is the last few lines, indented, under a heading", () => {
+    const text = lastWords("one\ntwo\n\nthree\nfour\nfive\nsix\nseven\neight\n", 3);
+    expect(text).toBe("\nIts last words:\n  six\n  seven\n  eight");
+  });
+
+  it("is nothing when the worker said nothing", () => {
+    expect(lastWords("")).toBe("");
+    expect(lastWords(undefined)).toBe("");
+    expect(lastWords("  \n\n")).toBe("");
+  });
+
+  it("shortens a very long line", () => {
+    expect(lastWords("x".repeat(500))).toContain(`${"x".repeat(299)}…`);
   });
 });

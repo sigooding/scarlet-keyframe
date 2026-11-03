@@ -27,6 +27,7 @@ It never touches the picture or the map it was given. It prints one JSON line la
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import os
 import sys
@@ -108,6 +109,40 @@ def make_session(ort, model, want_gpu):
         sys.stderr.write("  --gpu asked for the GPU but onnxruntime is running on the CPU "
                          "(it needs onnxruntime-gpu with CUDA 12 and cuDNN 9); the map is the same, only slower\n")
     return session, used
+
+
+def depth_with_cpu_fallback(ort, cv2, np, model, want_gpu, rgb):
+    """The picture's depth, and the provider that made it. If the GPU stops while running (a CUDA library that cannot load, no
+    memory left) it is done again on the CPU: slower, same map. Loading the model on the GPU may already have fallen back."""
+    session, provider = make_session(ort, model, want_gpu)
+    try:
+        return depth_of(cv2, np, session, rgb), provider
+    except Exception as error:
+        if provider == "CPUExecutionProvider":
+            raise
+        sys.stderr.write(f"  the GPU stopped ({str(error).strip().splitlines()[0][:200] if str(error).strip() else type(error).__name__}); doing it again on the CPU\n")
+        session = None
+        gc.collect()
+        session, provider = make_session(ort, model, False)
+        return depth_of(cv2, np, session, rgb), provider
+
+
+def run_guarded(main):
+    """Runs main(). A crash is answered like any other failure (one JSON line saying what went wrong), so the editor can show it,
+    instead of a traceback and an exit code nobody sees."""
+    try:
+        code = main()
+    except SystemExit:
+        raise
+    except Exception as error:  # noqa: BLE001
+        import traceback
+
+        traceback.print_exc(file=sys.stderr)
+        text = str(error).strip().splitlines()
+        message = f"The worker crashed: {type(error).__name__}" + (f": {text[0][:300]}" if text else "")
+        print(json.dumps({"ok": False, "error": "crashed", "message": message}))
+        code = 1
+    raise SystemExit(code)
 
 
 def model_input_size(session):
@@ -290,8 +325,7 @@ def main() -> int:
     ort.set_default_logger_severity(3)
     rgb = read_rgb(cv2, np, args.picture)
     height, width = rgb.shape[:2]
-    session, provider = make_session(ort, args.model, args.gpu)
-    depth = depth_of(cv2, np, session, rgb)
+    depth, provider = depth_with_cpu_fallback(ort, cv2, np, args.model, args.gpu, rgb)
     result = {
         "ok": True,
         "width": int(width),
@@ -342,4 +376,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    run_guarded(main)

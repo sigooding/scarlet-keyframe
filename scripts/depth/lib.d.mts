@@ -29,3 +29,4 @@ export function pythonHasGpu(python: PythonCandidate): boolean;
 export function parseResultLine(output: string): ({ ok: boolean } & Record<string, unknown>) | null;
 export function nextRunName(existingNames: string[]): string;
 export function resolveSourceMap(arg: string, publicDir: string): { ref: string; file: string };
+export function lastWords(stderr: string | undefined, lines?: number): string;

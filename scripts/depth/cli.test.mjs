@@ -212,3 +212,11 @@ suite("the fitting maths (scripts/depth/test_fit.py, no model needed)", () => {
     expect(run.status).toBe(0);
   }, 120000);
 });
+
+suite("the depth worker's safety nets (scripts/depth/test_worker.py, no model needed)", () => {
+  it("does the work again on the CPU when the GPU stops, and answers a crash as JSON", () => {
+    const run = spawnSync(python.cmd, [...python.args, path.join(here, "test_worker.py")], { encoding: "utf8" });
+    expect(run.stdout).toContain("all passed");
+    expect(run.status).toBe(0);
+  }, 120000);
+});
