@@ -107,15 +107,24 @@ export function setBeatField(project: ProjectState, frameId: string, path: strin
 }
 
 export function setEffectField(project: ProjectState, frameId: string, path: string, value: unknown): ProjectState {
+  return setEffectFields(project, frameId, { [path]: value });
+}
+
+/**
+ * Several cinematic fields of one shot in ONE edit: the story is copied once and the change is one undo step.
+ * A value of `undefined` removes the field. Paths may be written with or without a leading `cinematic.`.
+ */
+export function setEffectFields(project: ProjectState, frameId: string, patch: Record<string, unknown>): ProjectState {
+  const entries = Object.entries(patch);
+  if (!entries.length) return project;
   const story = cloneStory(project.story);
   const frames = buildKeyframes(story);
   const target = frames.find((f) => f.id === frameId);
   const location = locateBeat(story, frameId);
   if (!location) return project;
-  const normalized = path.replace(/^cinematic\.?/, "");
   const baseCin = location.beat.cinematic ?? target?.cinematic ?? location.scene.cinematic ?? {};
   const cinematic: AnyRecord = JSON.parse(JSON.stringify(baseCin));
-  setPath(cinematic, normalized, value);
+  for (const [path, value] of entries) setPath(cinematic, path.replace(/^cinematic\.?/, ""), value);
   if (Object.keys(cinematic).length) location.beat.cinematic = cinematic;
   else delete location.beat.cinematic;
   return { ...project, story, updatedAt: Date.now() };

@@ -106,6 +106,7 @@ import {
   setBeatField,
   setCutTransition,
   setEffectField,
+  setEffectFields,
   setPicture,
   setRollDurations,
   setSceneField,
@@ -155,6 +156,9 @@ import {
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
 import { savedStatusText } from "./core/saveLocation";
+import { moveTo, pointMarkers as buildPointMarkers, sameTarget, targetExists, type CinematicPatch } from "./core/lightsFlares";
+import type { CinematicSettings } from "../vendor/scarlet-reel/types";
+import type { PointEditState } from "./components/LightsFlaresPanel";
 import { servesLocalMedia } from "./core/servedMedia";
 import { awaitThumbIndex } from "./core/thumbs";
 import { BUILT_IN_FILMS, createBundledFilm } from "./core/bundledFilms";
@@ -513,6 +517,8 @@ export default function App() {
   const [duckDepth, setDuckDepth] = useState(DEFAULT_DUCK_DEPTH);
   const [mediaBinOpen, setMediaBinOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("clip");
+  // The light or flare being edited in the Clip tab's "Lights & flares" panel, and whether a click on the picture places it.
+  const [lightEdit, setLightEdit] = useState<PointEditState>({ target: null, placing: false });
   const inspectorTabRef = useRef<InspectorTab>("clip");
   inspectorTabRef.current = inspectorTab;
 
@@ -1951,6 +1957,82 @@ export default function App() {
     [editProject, viewerFrame],
   );
 
+  // Lights & flares: the Inspector panel edits the selected shot; clicking or dragging on the picture places the
+  // selected light or flare (the same live-preview-then-one-undo-step protocol as the sliders).
+  const canPlaceLightOnViewer = Boolean(selectedFrame && viewerFrame && selectedFrame.id === viewerFrame.id);
+  // A shot's own lights are drawn on its layer, which is mostly hidden while the viewer dissolves in from the shot
+  // before it. Say so, and let the panel jump the playhead to where the dissolve ends.
+  const selectedShotDissolvingIn = Boolean(
+    selectedFrame &&
+      activeTransition &&
+      activeTransition.incomingClip.keyframe.id === selectedFrame.id &&
+      activeTransition.progress < 0.5,
+  );
+  const showSelectedShot = useCallback(() => {
+    if (!activeTransition) return;
+    const clip = activeTransition.incomingClip;
+    scrubToFrame(Math.max(clip.startFrame, Math.min(activeTransition.endFrame, clip.endFrame - 1)));
+  }, [activeTransition, scrubToFrame]);
+  const lightEditShot = selectedFrame?.id;
+  const selectedCinematic = selectedFrame ? (effectiveFrameCinematic(selectedFrame) as CinematicSettings | undefined) : undefined;
+  const lightEditValid = targetExists(selectedCinematic, lightEdit.target);
+  const placingNow = lightEdit.placing && lightEditValid && canPlaceLightOnViewer && inspectorTab === "clip";
+
+  const applyEffects = useCallback(
+    (patch: CinematicPatch, label: string) => {
+      if (!selectedFrame || !Object.keys(patch).length) return;
+      editProject((current) => setEffectFields(current, selectedFrame.id, patch), label);
+    },
+    [editProject, selectedFrame],
+  );
+
+  const previewEffects = useCallback(
+    (patch: CinematicPatch) => {
+      if (!selectedFrame || !Object.keys(patch).length) return;
+      previewProjectEdit((current) => setEffectFields(current, selectedFrame.id, patch));
+    },
+    [previewProjectEdit, selectedFrame],
+  );
+
+  const handlePlacePoint = useCallback(
+    (xPercent: number, yPercent: number, phase: "down" | "move" | "up") => {
+      if (!selectedFrame || !lightEdit.target) return;
+      if (phase === "down") beginDragEdit();
+      const patch = moveTo(effectiveFrameCinematic(selectedFrame) as CinematicSettings | undefined, lightEdit.target, { x: xPercent, y: yPercent });
+      if (Object.keys(patch).length) previewProjectEdit((current) => setEffectFields(current, selectedFrame.id, patch));
+      if (phase === "up") endDragEdit(lightEdit.target.kind === "light" ? "Light placed" : "Flare placed");
+    },
+    [beginDragEdit, endDragEdit, lightEdit.target, previewProjectEdit, selectedFrame],
+  );
+
+  // A different shot, or a light that is gone: nothing is selected any more.
+  useEffect(() => {
+    setLightEdit((prev) => (prev.target || prev.placing ? { target: null, placing: false } : prev));
+  }, [lightEditShot]);
+  useEffect(() => {
+    if (lightEdit.target && !lightEditValid) setLightEdit({ target: null, placing: false });
+  }, [lightEdit.target, lightEditValid]);
+  useEffect(() => {
+    if (!lightEdit.placing) return;
+    const stop = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightEdit((prev) => ({ ...prev, placing: false }));
+    };
+    window.addEventListener("keydown", stop);
+    return () => window.removeEventListener("keydown", stop);
+  }, [lightEdit.placing]);
+
+  const lightPointMarkers = useMemo(() => {
+    if (!lightEdit.target || !canPlaceLightOnViewer) return undefined;
+    return buildPointMarkers(selectedCinematic).map((marker) => ({
+      x: marker.x,
+      y: marker.y,
+      kind: marker.kind,
+      label: marker.label,
+      selected: sameTarget(marker.target, lightEdit.target),
+    }));
+  }, [canPlaceLightOnViewer, lightEdit.target, selectedCinematic]);
+  const placingPointInfo = placingNow && lightEdit.target ? { label: lightEdit.target.kind === "light" ? `Light ${lightEdit.target.index + 1}` : "the flare" } : null;
+
   const setFramePicture = useCallback(
     (picture?: string) => {
       if (!selectedFrame) return;
@@ -3386,22 +3468,6 @@ export default function App() {
     [handleDeleteSelectedCaptions, runDeleteForSelection],
   );
 
-  const handleDeleteInspectorClip = useCallback(
-    (forceRipple = false) => {
-      const targetId = selectedFrameIdRef.current;
-      if (!targetId) return;
-      const picIds =
-        selectedIdsRef.current.length > 0 && selectedIdsRef.current.includes(targetId)
-          ? selectedIdsRef.current
-          : [targetId];
-      runDeleteForSelection(
-        { ...EMPTY_MULTI_SELECTION, pictureIds: picIds },
-        forceRipple,
-      );
-    },
-    [runDeleteForSelection],
-  );
-
   const mergeCandidateIds = useMemo(
     () =>
       selectedFrameIds.length > 0
@@ -3867,6 +3933,14 @@ export default function App() {
       const typingText = isTextTypingTarget(target, false);
       const typingSpaceText = isTextTypingTarget(target, true);
       const mod = event.ctrlKey || event.metaKey;
+
+      // A control that uses the arrow keys itself (the Lights & flares sliders) keeps them: no frame stepping.
+      if (
+        target?.closest?.("[data-owns-arrow-keys]") &&
+        /^(Arrow(Left|Right|Up|Down)|Home|End|PageUp|PageDown)$/.test(event.key)
+      ) {
+        return;
+      }
 
       if (mod && event.key.toLowerCase() === "s") {
         event.preventDefault();
@@ -5423,6 +5497,9 @@ export default function App() {
                     );
                   }}
                   setFocalPoint={setFocalPoint}
+                  pointMarkers={compareActive ? undefined : lightPointMarkers}
+                  placingPoint={compareActive ? null : placingPointInfo}
+                  onPlacePoint={handlePlacePoint}
                 />
               </div>
               {playback && (
@@ -5629,6 +5706,13 @@ export default function App() {
             onSetScene={(path, value) =>
               editProject((current) => setSceneField(current, selectedFrame.sceneId, path, value), `${path} changed`)
             }
+            onApplyEffects={applyEffects}
+            onPreviewEffects={previewEffects}
+            pointEdit={lightEdit}
+            onPointEditChange={setLightEdit}
+            canPlaceOnViewer={canPlaceLightOnViewer && !compareActive}
+            dissolvingIn={selectedShotDissolvingIn && !compareActive}
+            onShowShot={showSelectedShot}
             onCopyEffects={copyEffects}
             onPasteEffects={pasteEffects}
             copiedAnimation={copiedAnimation}
@@ -5667,7 +5751,6 @@ export default function App() {
             onMergeFrames={handleMergeFrames}
             onDelete={() => executeDelete(false)}
             onExecuteDelete={executeDelete}
-            onDeleteClip={handleDeleteInspectorClip}
             kenBurnsActive={
               kenBurnsDrawStep !== null ||
               (Boolean(selectedFrame.beat.animation?.kenBurns) && !kenBurnsSuppressed)
