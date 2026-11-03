@@ -31,6 +31,19 @@ const PREVIEW_PORT = 4173;
  */
 const HOST = process.env.SCARLET_KEYFRAME_HOST?.trim() || "127.0.0.1";
 
+function parseModelFiles(text: string | undefined): Partial<Record<"people" | "matte" | "inpaint", string>> | undefined {
+  if (!text?.trim()) return undefined;
+  try {
+    const value = JSON.parse(text) as Record<string, unknown>;
+    const files: Partial<Record<"people" | "matte" | "inpaint", string>> = {};
+    for (const role of ["people", "matte", "inpaint"] as const) if (typeof value[role] === "string") files[role] = value[role] as string;
+    return files;
+  } catch {
+    console.warn("SCARLET_KEYFRAME_CUTOUT_MODEL_FILES is not valid JSON; ignored.");
+    return undefined;
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const isLocalServe = mode === LOCAL_SERVE_MODE;
@@ -42,6 +55,8 @@ export default defineConfig(({ mode }) => {
       depthApiPlugin({
         repoRoot: __dirname,
         modelFile: process.env.SCARLET_KEYFRAME_DEPTH_MODEL_FILE?.trim() || undefined,
+        // .onnx files of your own for the cut-out models, as JSON: {"people":"..","matte":"..","inpaint":".."}
+        modelFiles: parseModelFiles(process.env.SCARLET_KEYFRAME_CUTOUT_MODEL_FILES),
         allowedHosts: [HOST],
       }),
       // Serves public/ from the repository on `npm run serve` (no copy).

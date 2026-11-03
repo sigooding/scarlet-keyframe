@@ -8890,3 +8890,147 @@ kbd {
   color: var(--ink-primary);
   white-space: pre-line;
 }
+
+/* Make cutouts, and the models list (under the Make depth map row) */
+.cutouts-make .depth-make-head {
+  align-items: center;
+}
+
+.cutouts-review {
+  display: block;
+  margin-top: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cutouts-review img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line-mid);
+  border-radius: 4px;
+  background: var(--bg-900);
+}
+
+.cutouts-review span {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.cutouts-review:hover span {
+  color: var(--ink-primary);
+}
+
+.cutouts-flags {
+  margin-top: 4px;
+}
+
+.cutouts-flags p {
+  margin-bottom: 2px;
+}
+
+.cutouts-flags ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--accent-amber);
+}
+
+.models-panel {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-subtle);
+}
+
+.models-panel > summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ink-primary);
+}
+
+.models-panel > summary small {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.models-quality {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.models-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.models-item {
+  padding: 6px 8px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 4px;
+  background: var(--bg-900);
+}
+
+.models-item.is-here .models-status {
+  color: var(--accent-ok);
+}
+
+.models-item.is-missing .models-status {
+  color: var(--ink-muted);
+}
+
+.models-item-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.models-item-head strong {
+  flex: 1 1 auto;
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.models-size {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-muted);
+}
+
+.models-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 2px;
+  padding-left: 18px;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.models-item-meta a {
+  color: var(--ink-secondary);
+}
+
+.models-licence.is-noncommercial {
+  color: var(--accent-amber);
+}
+
+.models-item .button {
+  margin: 6px 0 0 18px;
+}
+
+.models-panel > .button {
+  margin-top: 8px;
+}

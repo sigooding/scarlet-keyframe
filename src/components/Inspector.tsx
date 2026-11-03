@@ -35,7 +35,8 @@ import {
 import type { CinematicPatch } from "../core/lightsFlares";
 import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
 import { LightsFlaresPanel, type PointEditState } from "./LightsFlaresPanel";
-import { MakeDepthMapForShot, type DepthMakerBinding } from "./MakeDepthMapRow";
+import { keepableDepthMap } from "../core/depthMaker";
+import { DepthToolsForShot, type DepthMakerBinding } from "./MakeDepthMapRow";
 import {
   CUTOUT_LAYER_COLORS,
   defaultDepthForCutoutLayer,
@@ -198,7 +199,7 @@ interface InspectorProps {
   /** The viewer is still dissolving into this shot, and a button to jump past the dissolve. */
   dissolvingIn?: boolean;
   onShowShot?: () => void;
-  /** "Make depth map" in the Picture section: the controller's state and what the row can ask for. */
+  /** "Make depth map" and "Make cutouts" in the Picture section: the controller's state and what the rows can ask for. */
   depthMaker?: DepthMakerBinding;
   onApplyEffects?: (patch: CinematicPatch, label: string) => void;
   onPreviewEffects?: (patch: CinematicPatch) => void;
@@ -1054,10 +1055,12 @@ export function Inspector(props: InspectorProps) {
                 </button>
               </div>
               {!beat.gap && frame.picture && props.depthMaker && (
-                <MakeDepthMapForShot
+                <DepthToolsForShot
                   frameId={frame.id}
                   picture={frame.picture}
                   hasDepthMap={Boolean(effectiveCin?.depthMap)}
+                  hasCutouts={Array.isArray(effectiveCin?.depthCutouts) && effectiveCin.depthCutouts.length > 0}
+                  keptMap={keepableDepthMap(effectiveCin?.depthMap)}
                   maker={props.depthMaker}
                 />
               )}

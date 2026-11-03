@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { DepthApiError, DepthJobStatus, DepthJobView, DepthReady } from "../src/core/depthApiTypes";
 import { pngSize, pythonCandidates } from "../scripts/depth/lib.mjs";
+import { ALL_MODELS } from "../scripts/depth/models.mjs";
 import { createDepthMiddleware, type DepthApiOptions, type DepthCapabilities } from "./depth-api";
 
 // The editor's "Make depth map" button talks to this API. Most tests drive it against a stand-in for scripts/make-depth.mjs
@@ -57,9 +58,66 @@ if (mode === "ok") {
 }
 `;
 
+const FAKE_CUTOUTS_CLI = `
+const fs = require("node:fs");
+const path = require("node:path");
+const [, , picture, ...flags] = process.argv;
+const mode = process.env.FAKE_CUTOUTS_MODE || "ok";
+const publicDir = process.env.SCARLET_KEYFRAME_PUBLIC;
+const parts = picture.replace(/^\\/film\\/img\\//, "").replace(/\\.[a-z]+$/i, "").split("/");
+const base = path.join(publicDir, "film", "depth", ...parts);
+const ref = "/film/depth/" + parts.join("/") + "/people-1";
+const say = (text) => process.stdout.write(text + "\\n");
+const warn = (text) => process.stderr.write(text + "\\n");
+const result = (value) => say("@@result " + JSON.stringify(value));
+say(picture + "  (cutting out the people, fake)");
+say("flags: " + flags.map((flag) => (flag.startsWith(process.env.FAKE_WORK) ? path.basename(flag) : flag)).join(" "));
+const answer = (extra) => ({ ok: true, mode: "cutouts", written: true, picture, folder: ref, depthMap: ref + "/depth.png", plate: ref + "/plate.jpg", review: ref + "/review.jpg",
+  cutouts: [{ image: ref + "/cutout-1.png", depth: 0.8, box: [1, 2, 3, 4], how: "feet" }], seen: 1, leftOut: 0, flags: ["1 smaller figure(s) were left in the plate"],
+  quality: flags.includes("fast") ? "fast" : "best", provider: "cpu", source: flags.includes("--source-map") ? "given" : "model", seconds: 1.5, width: 1, height: 1, ...extra });
+const stages = () => { warn("1/5 finding the people"); warn("2/5 the depth (from the model; 1 person found)"); warn("3/5 cutting out (1)"); warn("4/5 painting in the plate"); warn("5/5 checking, and writing the files"); };
+const write = (names) => { const dir = path.join(base, "people-1"); fs.mkdirSync(dir, { recursive: true }); for (const name of names) fs.writeFileSync(path.join(dir, name), name.endsWith(".png") ? Buffer.from(process.env.FAKE_PNG, "base64") : "jpg"); };
+if (mode === "ok") { stages(); write(["depth.png", "cutout-1.png", "plate.jpg", "review.jpg"]); result(answer({})); }
+else if (mode === "none") { warn("1/5 finding the people"); result({ ok: true, mode: "cutouts", written: false, reason: "no-people", seen: 0, flags: [], picture, quality: "best" }); }
+else if (mode === "lie") { stages(); write(["depth.png"]); result(answer({})); }
+else if (mode === "escape") { stages(); result(answer({ depthMap: "/film/depth/../../escaped.png" })); }
+else if (mode === "fail") { process.stderr.write("\\nThe Python packages for depth maps are not installed (python3).\\n"); result({ ok: false, message: "The Python packages for depth maps are not installed (python3)." }); process.exit(1); }
+else if (mode === "checking") { console.log("Checking inpainting_lama_2025jan.onnx …"); setInterval(() => {}, 1000); }
+else if (mode === "slow") { warn("1/5 finding the people"); fs.mkdirSync(path.join(base, "people-1.part"), { recursive: true }); fs.writeFileSync(path.join(base, "people-1.part", "cutout-1.png"), "partial"); setInterval(() => {}, 1000); }
+`;
+
+const FAKE_MODELS_CLI = `
+const fs = require("node:fs");
+const path = require("node:path");
+const ids = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+const mode = process.env.FAKE_MODELS_MODE || "ok";
+const dir = process.env.SCARLET_KEYFRAME_MODELS;
+const files = JSON.parse(process.env.FAKE_MODEL_FILES);
+const say = (text) => process.stdout.write(text + "\\n");
+say("ids: " + ids.join(" "));
+const done = [];
+for (const id of ids) {
+  const { file, bytes } = files[id];
+  say("Downloading " + file + " (1.0 MB). This happens once; it is kept in " + dir);
+  say("  10%");
+  if (mode === "slow") { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, file + ".part"), "partial"); setInterval(() => {}, 1000); return; }
+  say("  50%");
+  say("  100%");
+  fs.mkdirSync(dir, { recursive: true });
+  const fd = fs.openSync(path.join(dir, file), "w"); fs.ftruncateSync(fd, bytes); fs.closeSync(fd);
+  done.push({ id, file: path.join(dir, file), bytes });
+}
+if (mode === "fail") { process.stderr.write("\\nThe download failed (HTTP 404).\\n"); say("@@result " + JSON.stringify({ ok: false, message: "The download failed (HTTP 404)." })); process.exit(1); }
+say("@@result " + JSON.stringify({ ok: true, models: done }));
+`;
+
 let work: string;
 let publicDir: string;
 let cli: string;
+let cutoutsCli: string;
+let modelsCli: string;
+let modelsDir: string;
+let fakeModel: string;
 let server: http.Server;
 let port: number;
 const started: string[] = [];
@@ -78,6 +136,9 @@ async function startServer(extra: Partial<DepthApiOptions> = {}) {
     repoRoot,
     publicDir,
     cliPath: cli,
+    cutoutsCliPath: cutoutsCli,
+    modelsCliPath: modelsCli,
+    modelsDir,
     probe: () => machine,
     ...extra,
   });
@@ -148,23 +209,43 @@ beforeAll(() => {
   publicDir = path.join(work, "public");
   cli = path.join(work, "fake-cli.cjs");
   fs.writeFileSync(cli, FAKE_CLI);
+  cutoutsCli = path.join(work, "fake-cutouts.cjs");
+  fs.writeFileSync(cutoutsCli, FAKE_CUTOUTS_CLI);
+  modelsCli = path.join(work, "fake-models.cjs");
+  fs.writeFileSync(modelsCli, FAKE_MODELS_CLI);
+  modelsDir = path.join(work, "models");
+  fs.mkdirSync(modelsDir, { recursive: true });
+  fakeModel = path.join(work, "fake.onnx");
+  fs.writeFileSync(fakeModel, "model");
+  process.env.FAKE_MODEL_FILES = JSON.stringify(Object.fromEntries(Object.entries(ALL_MODELS).map(([id, spec]) => [id, { file: spec.file, bytes: spec.bytes }])));
   process.env.FAKE_PNG = PNG_1X1;
+  process.env.FAKE_WORK = work;
   touch("film/img/t/a.jpg");
   touch("film/img/t/b.jpg");
   touch("film/img/t/has-map.jpg");
+  touch("film/img/t/c.jpg");
   touch("film/depth/t/has-map/depth.png");
   fs.writeFileSync(path.join(publicDir, "film", "depth", "t", "has-map", "depth.png"), Buffer.from(PNG_1X1, "base64"));
 });
 
 afterAll(() => {
   delete process.env.FAKE_DEPTH_MODE;
+  delete process.env.FAKE_CUTOUTS_MODE;
+  delete process.env.FAKE_MODELS_MODE;
+  delete process.env.FAKE_MODEL_FILES;
   delete process.env.FAKE_PNG;
+  delete process.env.FAKE_WORK;
   fs.rmSync(work, { recursive: true, force: true });
 });
 
 beforeEach(async () => {
   machine = READY;
   mode("ok");
+  process.env.FAKE_CUTOUTS_MODE = "ok";
+  process.env.FAKE_MODELS_MODE = "ok";
+  fs.rmSync(modelsDir, { recursive: true, force: true });
+  fs.mkdirSync(modelsDir, { recursive: true });
+  fs.rmSync(path.join(publicDir, "film", "depth", "t", "c"), { recursive: true, force: true });
   started.length = 0;
   fs.rmSync(path.join(publicDir, "film", "depth", "t", "a"), { recursive: true, force: true });
   fs.rmSync(path.join(publicDir, "film", "depth", "t", "b"), { recursive: true, force: true });
@@ -178,14 +259,26 @@ afterEach(async () => {
 });
 
 describe("what this computer can do (GET ready)", () => {
-  it("reports Python, its packages, the GPU and the model", async () => {
+  it("reports Python, its packages, the GPU, every model and what each quality uses", async () => {
     machine = { python: ".depth-venv", packages: true, gpu: true };
     const { status: code, json } = await request<DepthReady>("GET", "ready");
     expect(code).toBe(200);
-    expect(json).toMatchObject({ ok: true, python: ".depth-venv", packages: true, gpu: true, busy: null });
-    expect(json.model).toMatchObject({ name: "base", custom: false });
-    expect(json.model.mb).toBeGreaterThan(300);
-    expect(typeof json.model.cached).toBe("boolean");
+    expect(json).toMatchObject({ ok: true, python: ".depth-venv", packages: true, gpu: true, busy: null, defaultQuality: "best", modelsDir });
+    expect(json.models.map((m) => m.id)).toEqual(["depth-small", "depth-base", "depth-large", "people", "matte-best", "matte-lite", "inpaint"]);
+    for (const model of json.models) {
+      expect(model.source, model.id).toMatch(/^https:\/\//);
+      // the file itself, for downloading by hand: its last part is the name the models folder expects
+      expect(model.url, model.id).toMatch(/^https:\/\//);
+      expect(model.url.endsWith(`/${model.file}`), model.id).toBe(true);
+      expect(model.license, model.id).toBeTruthy();
+      expect(model.bytes, model.id).toBeGreaterThan(1_000_000);
+      expect(model.cached, model.id).toBe(false);
+      expect(model.overridden, model.id).toBe(false);
+    }
+    expect(json.qualities.best).toEqual({ depth: "depth-large", matte: "matte-best", people: "people", inpaint: "inpaint" });
+    expect(json.qualities.fast.depth).toBe("depth-small");
+    // the non-commercial ones are marked, so a person can choose
+    expect(json.models.filter((m) => m.nonCommercial).map((m) => m.id)).toEqual(["depth-base", "depth-large"]);
   });
 
   it("says when Python or its packages are missing", async () => {
@@ -193,12 +286,29 @@ describe("what this computer can do (GET ready)", () => {
     expect((await request<DepthReady>("GET", "ready")).json).toMatchObject({ python: null, packages: false });
   });
 
-  it("knows a model file chosen by the person", async () => {
+  it("knows which models are in the models folder, by their size alone, so it is quick", async () => {
+    const put = (id: string, bytes: number) => {
+      const fd = fs.openSync(path.join(modelsDir, ALL_MODELS[id].file), "w");
+      fs.ftruncateSync(fd, bytes);
+      fs.closeSync(fd);
+    };
+    put("inpaint", ALL_MODELS.inpaint.bytes);
+    put("people", 12345); // the wrong size: a download that was cut off, or another file
+    const models = (await request<DepthReady>("GET", "ready")).json.models;
+    expect(models.find((m) => m.id === "inpaint")?.cached).toBe(true);
+    expect(models.find((m) => m.id === "people")?.cached).toBe(false);
+    expect(models.find((m) => m.id === "matte-best")?.cached).toBe(false);
+  });
+
+  it("counts a file of your own for a role as that role's model", async () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
-    const own = path.join(work, "mine.onnx");
-    fs.writeFileSync(own, "model");
-    await startServer({ modelFile: own });
-    expect((await request<DepthReady>("GET", "ready")).json.model).toEqual({ name: "mine.onnx", mb: 0, cached: true, custom: true });
+    await startServer({ modelFile: fakeModel, modelFiles: { people: fakeModel, matte: path.join(work, "gone.onnx") } });
+    const models = (await request<DepthReady>("GET", "ready")).json.models;
+    for (const id of ["depth-small", "depth-large"]) expect(models.find((m) => m.id === id), id).toMatchObject({ cached: true, overridden: true });
+    expect(models.find((m) => m.id === "people")).toMatchObject({ cached: true, overridden: true });
+    // a file that is not there does not count as the model
+    expect(models.find((m) => m.id === "matte-best")).toMatchObject({ cached: false, overridden: true });
+    expect(models.find((m) => m.id === "inpaint")).toMatchObject({ cached: false, overridden: false });
   });
 
   it("is never cached by the browser", async () => {
@@ -229,7 +339,8 @@ describe("making a map (POST make, GET status)", () => {
     const plain = await make("/film/img/t/a.jpg");
     const done = await waitFor(plain.json.id as string, "done");
     const flags = (view: DepthJobView) => view.log.find((line) => line.startsWith("flags:")) ?? "";
-    expect(flags(done)).toBe("flags: --json");
+    // the depth model follows the quality: best is Depth Anything Large, fast the Small
+    expect(flags(done)).toBe("flags: --json --model large");
 
     fs.rmSync(path.join(publicDir, "film", "depth", "t", "a"), { recursive: true, force: true });
     await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -414,6 +525,308 @@ describe("who may ask", () => {
   });
 });
 
+// ---- cut-outs ---------------------------------------------------------------------------------------------------------------
+
+const cutouts = (body: Record<string, unknown>) => request<DepthJobView & DepthApiError>("POST", "make".replace("make", "cutouts"), { body });
+const cutoutMode = (value: string) => {
+  process.env.FAKE_CUTOUTS_MODE = value;
+};
+const flagsOf = (job: DepthJobView) => job.log.find((line) => line.startsWith("flags:")) ?? "";
+const ownModels = () => ({ modelFile: fakeModel, modelFiles: { people: fakeModel, matte: fakeModel, inpaint: fakeModel } });
+async function restart(extra: Partial<DepthApiOptions>) {
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  await startServer(extra);
+}
+
+describe("cut-outs (POST cutouts)", () => {
+  it("makes the cut-outs of a picture's people, follows its five steps, and reports the new folder", async () => {
+    await restart(ownModels());
+    const first = await cutouts({ picture: "/film/img/t/c.jpg" });
+    expect(first.status).toBe(200);
+    expect(first.json).toMatchObject({ kind: "cutouts", status: "running", picture: "/film/img/t/c.jpg" });
+    started.push(first.json.id as string);
+    const done = await waitFor(first.json.id as string, "done");
+    expect(done.kind).toBe("cutouts");
+    expect(done.step).toEqual({ n: 5, of: 5, text: "checking, and writing the files" });
+    expect(done.current).toBe("Step 5 of 5: checking, and writing the files");
+    expect(done.result).toMatchObject({
+      ok: true,
+      written: true,
+      folder: "/film/depth/t/c/people-1",
+      depthMap: "/film/depth/t/c/people-1/depth.png",
+      plate: "/film/depth/t/c/people-1/plate.jpg",
+      review: "/film/depth/t/c/people-1/review.jpg",
+      seen: 1,
+      leftOut: 0,
+      quality: "best",
+    });
+    expect(done.result?.cutouts).toEqual([{ image: "/film/depth/t/c/people-1/cutout-1.png", depth: 0.8, box: [1, 2, 3, 4], how: "feet" }]);
+    expect(done.result?.flags).toEqual(["1 smaller figure(s) were left in the plate"]);
+    expect(fs.readdirSync(path.join(publicDir, "film", "depth", "t", "c", "people-1")).sort()).toEqual(["cutout-1.png", "depth.png", "plate.jpg", "review.jpg"]);
+  });
+
+  it("passes on the quality, a depth map to keep, and the model files you chose", async () => {
+    await restart(ownModels());
+    const job = await cutouts({ picture: "/film/img/t/c.jpg", quality: "fast", sourceMap: "/film/depth/t/has-map/depth.png" });
+    started.push(job.json.id as string);
+    const done = await waitFor(job.json.id as string, "done");
+    const flags = flagsOf(done);
+    expect(flags).toContain("--json --quality fast --source-map /film/depth/t/has-map/depth.png");
+    for (const role of ["people", "matte", "inpaint"]) expect(flags, role).toContain(`--${role}-model fake.onnx`);
+    // the depth model is not asked for when a map is kept
+    expect(flags).not.toContain("--depth-model");
+    expect(done.result).toMatchObject({ quality: "fast", source: "given" });
+
+    fs.rmSync(path.join(publicDir, "film", "depth", "t", "c"), { recursive: true, force: true });
+    const again = await cutouts({ picture: "/film/img/t/c.jpg" });
+    started.push(again.json.id as string);
+    expect(flagsOf(await waitFor(again.json.id as string, "done"))).toContain("--depth-model fake.onnx");
+  });
+
+  it("a picture with nobody in it is a finished job that made nothing", async () => {
+    await restart(ownModels());
+    cutoutMode("none");
+    const job = await cutouts({ picture: "/film/img/t/c.jpg" });
+    started.push(job.json.id as string);
+    const done = await waitFor(job.json.id as string, "done");
+    expect(done.result).toMatchObject({ ok: true, written: false, reason: "no-people", seen: 0 });
+    expect(fs.existsSync(path.join(publicDir, "film", "depth", "t", "c"))).toBe(false);
+  });
+
+  it("will not start until the models are on this computer, and says which and how big", async () => {
+    const best = await cutouts({ picture: "/film/img/t/c.jpg" });
+    expect(best.status).toBe(412);
+    expect(best.json.error).toBe("models-missing");
+    expect(best.json.missing).toEqual(["people", "matte-best", "inpaint", "depth-large"]);
+    expect(best.json.message).toContain("BiRefNet general (full)");
+    expect(best.json.message).toContain("2.8 GB");
+    const fast = await cutouts({ picture: "/film/img/t/c.jpg", quality: "fast" });
+    expect(fast.json.missing).toEqual(["people", "matte-lite", "inpaint", "depth-small"]);
+    expect(fast.json.message).toContain("0.8 GB");
+    // a depth map you already have means the depth model is not needed
+    const kept = await cutouts({ picture: "/film/img/t/c.jpg", sourceMap: "/film/depth/t/has-map/depth.png" });
+    expect(kept.json.missing).toEqual(["people", "matte-best", "inpaint"]);
+    expect(fs.existsSync(path.join(publicDir, "film", "depth", "t", "c"))).toBe(false);
+  });
+
+  it("is happy to start once the models are in the models folder", async () => {
+    for (const id of ["people", "matte-best", "inpaint", "depth-large"]) {
+      const fd = fs.openSync(path.join(modelsDir, ALL_MODELS[id].file), "w");
+      fs.ftruncateSync(fd, ALL_MODELS[id].bytes);
+      fs.closeSync(fd);
+    }
+    const job = await cutouts({ picture: "/film/img/t/c.jpg" });
+    expect(job.status).toBe(200);
+    started.push(job.json.id as string);
+    await waitFor(job.json.id as string, "done");
+  });
+
+  it("says what to run when Python is not set up", async () => {
+    await restart(ownModels());
+    machine = { python: "python3", packages: false, gpu: false };
+    const { status: code, json } = await cutouts({ picture: "/film/img/t/c.jpg" });
+    expect(code).toBe(412);
+    expect(json.error).toBe("setup-needed");
+  });
+
+  it("refuses a quality that does not exist, and a depth map that is not a depth map", async () => {
+    await restart(ownModels());
+    expect((await cutouts({ picture: "/film/img/t/c.jpg", quality: "ultra" })).status).toBe(400);
+    for (const sourceMap of ["/film/img/t/a.jpg", "/film/depth/../img/t/a.jpg", "/etc/passwd", "/film/depth/t/nothing/depth.png", "/film/depth/t/./has-map/depth.png"]) {
+      const reply = await cutouts({ picture: "/film/img/t/c.jpg", sourceMap });
+      expect(reply.status, sourceMap).toBe(400);
+      expect(reply.json.error, sourceMap).toBe("bad-picture");
+    }
+    expect(fs.existsSync(path.join(publicDir, "film", "depth", "t", "c"))).toBe(false);
+  });
+
+  it("makes one thing at a time: the same picture's cut-outs are joined, anything else waits", async () => {
+    // matte-best is in the models folder, matte-lite is not (so a download of it is a real request)
+    await restart({ modelFile: fakeModel, modelFiles: { people: fakeModel, inpaint: fakeModel } });
+    const fd = fs.openSync(path.join(modelsDir, ALL_MODELS["matte-best"].file), "w");
+    fs.ftruncateSync(fd, ALL_MODELS["matte-best"].bytes);
+    fs.closeSync(fd);
+    cutoutMode("slow");
+    const first = await cutouts({ picture: "/film/img/t/c.jpg" });
+    started.push(first.json.id as string);
+    expect((await cutouts({ picture: "/film/img/t/c.jpg" })).json.id).toBe(first.json.id);
+    const other = await cutouts({ picture: "/film/img/t/a.jpg" });
+    expect(other.status).toBe(409);
+    expect(other.json).toMatchObject({ error: "busy", id: first.json.id });
+    expect(other.json.message).toContain("cut-outs are being made");
+    // a depth map waits too, and so does a model download
+    expect((await make("/film/img/t/b.jpg")).status).toBe(409);
+    expect((await request("POST", "models/download", { body: { ids: ["matte-lite"] } })).status).toBe(409);
+  });
+
+  it("can be cancelled: the command stops and its half-made folder is removed", async () => {
+    await restart(ownModels());
+    cutoutMode("slow");
+    const first = await cutouts({ picture: "/film/img/t/c.jpg" });
+    const id = first.json.id as string;
+    started.push(id);
+    const folder = path.join(publicDir, "film", "depth", "t", "c");
+    for (let i = 0; i < 100 && !fs.existsSync(path.join(folder, "people-1.part", "cutout-1.png")); i += 1) await new Promise((r) => setTimeout(r, 30));
+    expect(fs.existsSync(path.join(folder, "people-1.part"))).toBe(true);
+    await request("POST", "cancel", { body: { id } });
+    expect((await waitFor(id, "cancelled")).message).toBe("Cancelled.");
+    expect(fs.existsSync(folder)).toBe(false);
+  });
+
+  it("says which model it is checking the first time one is used (the command checks its checksum once)", async () => {
+    await restart(ownModels());
+    cutoutMode("checking");
+    const first = await cutouts({ picture: "/film/img/t/c.jpg" });
+    const id = first.json.id as string;
+    started.push(id);
+    let seen: DepthJobView | undefined;
+    for (let i = 0; i < 200; i += 1) {
+      seen = (await status(id)).json;
+      if (seen.current) break;
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    expect(seen?.current).toBe("Checking LaMa (once)");
+    expect(seen?.percent).toBeNull();
+    expect(seen?.step ?? null).toBeNull();
+    await request("POST", "cancel", { body: { id } });
+    await waitFor(id, "cancelled");
+  });
+
+  it("checks what the command claims against the disk", async () => {
+    await restart(ownModels());
+    cutoutMode("lie");
+    const lie = await cutouts({ picture: "/film/img/t/c.jpg" });
+    started.push(lie.json.id as string);
+    const failed = await waitFor(lie.json.id as string, "error");
+    expect(failed.message).toContain("is not there");
+    cutoutMode("escape");
+    fs.rmSync(path.join(publicDir, "film", "depth", "t", "c"), { recursive: true, force: true });
+    const escape = await cutouts({ picture: "/film/img/t/c.jpg" });
+    started.push(escape.json.id as string);
+    expect((await waitFor(escape.json.id as string, "error")).message).toContain("outside the depth folder");
+  });
+
+  it("says what the command said when it fails", async () => {
+    await restart(ownModels());
+    cutoutMode("fail");
+    const job = await cutouts({ picture: "/film/img/t/c.jpg" });
+    started.push(job.json.id as string);
+    expect((await waitFor(job.json.id as string, "error")).message).toContain("not installed");
+  });
+});
+
+// ---- model downloads ----------------------------------------------------------------------------------------------------------
+
+const download = (body: Record<string, unknown>) => request<DepthJobView & DepthApiError>("POST", "models/download", { body });
+const present = (id: string) => {
+  const fd = fs.openSync(path.join(modelsDir, ALL_MODELS[id].file), "w");
+  fs.ftruncateSync(fd, ALL_MODELS[id].bytes);
+  fs.closeSync(fd);
+};
+
+describe("downloading models (POST models/download)", () => {
+  it("downloads what is missing, shows which model and how far, and then they are on this computer", async () => {
+    const job = await download({ ids: ["inpaint"] });
+    expect(job.status).toBe(200);
+    expect(job.json).toMatchObject({ kind: "models", status: "running", picture: "", map: "" });
+    started.push(job.json.id as string);
+    const done = await waitFor(job.json.id as string, "done");
+    expect(done.current).toBe("Downloading LaMa (once)");
+    expect(done.percent).toBe(100);
+    expect(done.log.join("\n")).toContain("Downloading inpainting_lama_2025jan.onnx");
+    expect(done.result).toMatchObject({ ok: true, models: [{ id: "inpaint", file: ALL_MODELS.inpaint.file, bytes: ALL_MODELS.inpaint.bytes }] });
+    // not an absolute path of this computer, only the file's name
+    expect(done.result?.models?.[0].file).not.toContain(path.sep);
+    const ready = (await request<DepthReady>("GET", "ready")).json;
+    expect(ready.models.find((m) => m.id === "inpaint")?.cached).toBe(true);
+  });
+
+  it("asks only for what is missing, by id or by quality", async () => {
+    present("inpaint");
+    present("people");
+    const job = await download({ quality: "fast" });
+    started.push(job.json.id as string);
+    const done = await waitFor(job.json.id as string, "done");
+    // only the two that were missing were downloaded (inpaint and people were already here)
+    expect(done.result?.models?.map((m) => m.id)).toEqual(["matte-lite", "depth-small"]);
+  });
+
+  it("says at once when everything asked for is already here", async () => {
+    present("inpaint");
+    const reply = await download({ ids: ["inpaint"] });
+    expect(reply.status).toBe(200);
+    expect(reply.json).toMatchObject({ id: null, kind: "models", status: "done", existing: true });
+    expect((await request<DepthReady>("GET", "ready")).json.busy).toBeNull();
+  });
+
+  it("refuses an id it does not know, a list that is not a list, and nothing at all", async () => {
+    expect((await download({ ids: ["nope"] })).status).toBe(400);
+    expect((await download({ ids: ["constructor"] })).status).toBe(400);
+    expect((await download({ ids: "inpaint" })).status).toBe(400);
+    expect((await download({ ids: [7] })).status).toBe(400);
+    expect((await download({ ids: Array.from({ length: 21 }, () => "inpaint") })).status).toBe(400);
+    expect((await download({ quality: "ultra" })).status).toBe(400);
+    expect((await download({})).status).toBe(400);
+    expect((await download({ ids: [] })).status).toBe(400);
+  });
+
+  it("is one job at a time: asking again joins it, a depth map or cut-outs wait", async () => {
+    process.env.FAKE_MODELS_MODE = "slow";
+    const first = await download({ ids: ["inpaint"] });
+    started.push(first.json.id as string);
+    expect((await download({ ids: ["inpaint"] })).json.id).toBe(first.json.id);
+    const blocked = await make("/film/img/t/a.jpg");
+    expect(blocked.status).toBe(409);
+    expect(blocked.json.message).toContain("models are being downloaded");
+    expect((await cutouts({ picture: "/film/img/t/c.jpg" })).status).toBe(409);
+  });
+
+  it("can be cancelled, and its partial file is removed", async () => {
+    process.env.FAKE_MODELS_MODE = "slow";
+    const first = await download({ ids: ["inpaint"] });
+    const id = first.json.id as string;
+    started.push(id);
+    const part = path.join(modelsDir, `${ALL_MODELS.inpaint.file}.part`);
+    for (let i = 0; i < 100 && !fs.existsSync(part); i += 1) await new Promise((r) => setTimeout(r, 30));
+    expect(fs.existsSync(part)).toBe(true);
+    await request("POST", "cancel", { body: { id } });
+    await waitFor(id, "cancelled");
+    expect(fs.existsSync(part)).toBe(false);
+  });
+
+  it("says what went wrong when a download fails, and keeps nothing", async () => {
+    process.env.FAKE_MODELS_MODE = "fail";
+    const job = await download({ ids: ["inpaint"] });
+    started.push(job.json.id as string);
+    expect((await waitFor(job.json.id as string, "error")).message).toContain("HTTP 404");
+  });
+});
+
+describe("the new routes are as careful as the old", () => {
+  const routes: [string, Record<string, unknown>][] = [
+    ["cutouts", { picture: "/film/img/t/c.jpg" }],
+    ["models/download", { ids: ["inpaint"] }],
+  ];
+
+  it.each(routes)("%s answers only this computer, this page, and JSON", async (route, body) => {
+    expect((await request("POST", route, { body, headers: { Host: "evil.example" } })).status).toBe(403);
+    expect((await request("POST", route, { body, headers: { Origin: "http://evil.example", Host: `127.0.0.1:${port}` } })).status).toBe(403);
+    expect((await request("POST", route, { body, headers: { "Sec-Fetch-Site": "cross-site" } })).status).toBe(403);
+    expect((await request("POST", route, { rawBody: JSON.stringify(body), headers: { "Content-Type": "text/plain" } })).status).toBe(415);
+    expect((await request<DepthReady>("GET", "ready")).json.busy).toBeNull();
+  });
+
+  it("cut-outs take only the film's own pictures, never a path that climbs", async () => {
+    await restart(ownModels());
+    for (const picture of ["/film/img/../../outside/secret.jpg", "/film/img/t/../t/c.jpg", "/other/c.jpg", "c.jpg", "/film/img/t/c.jpg\u0000", "/film/img/t\\c.jpg"]) {
+      const reply = await cutouts({ picture });
+      expect(reply.status, picture).toBe(400);
+      expect(reply.json.error, picture).toBe("bad-picture");
+    }
+    expect(fs.existsSync(path.join(work, "outside"))).toBe(false);
+  });
+});
+
 // The real command, with the tiny stand-in model (scripts/depth/fixtures/tiny-depth.onnx), so nothing is downloaded.
 function pythonWithPackages() {
   for (const candidate of pythonCandidates({ repoRoot })) {
@@ -434,6 +847,8 @@ function pythonWithPackages() {
     const pictureFile = path.join(real, "public", "film", "img", "t", "pic.jpg");
     fs.mkdirSync(path.dirname(pictureFile), { recursive: true });
     execFileSync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=1600x900:duration=1:rate=1", "-frames:v", "1", pictureFile]);
+    // the picture the stand-in person finder is made for: 1280x720, dark, with a bright rectangle (see scripts/cutouts/make_fixtures.py)
+    execFileSync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=0x202020:s=1280x720:d=1,drawbox=x=400:y=200:w=300:h=450:color=white:t=fill", "-frames:v", "1", "-q:v", "2", path.join(real, "public", "film", "img", "t", "person.jpg")]);
   }, 120000);
 
   afterAll(() => fs.rmSync(real, { recursive: true, force: true }));
@@ -461,4 +876,35 @@ function pythonWithPackages() {
     expect(second.json).toMatchObject({ id: null, status: "done", existing: true, map: "/film/depth/t/pic/depth.png" });
     expect(fs.readdirSync(path.join(real, "public", "film", "depth", "t", "pic"))).toEqual(["depth.png"]);
   }, 120000);
+
+  it("makes the cut-outs of a picture with a person in it, and a second run gets a folder of its own", async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    const fixtures = path.join(repoRoot, "scripts", "cutouts", "fixtures");
+    await startServer({
+      publicDir: path.join(real, "public"),
+      cliPath: path.join(repoRoot, "scripts", "make-depth.mjs"),
+      cutoutsCliPath: path.join(repoRoot, "scripts", "make-cutouts.mjs"),
+      modelsCliPath: path.join(repoRoot, "scripts", "get-models.mjs"),
+      modelFile: path.join(repoRoot, "scripts", "depth", "fixtures", "tiny-depth.onnx"),
+      modelFiles: { people: path.join(fixtures, "tiny-people.onnx"), matte: path.join(fixtures, "tiny-matte.onnx"), inpaint: path.join(fixtures, "tiny-lama.onnx") },
+      probe: undefined,
+    });
+    const ready = (await request<DepthReady>("GET", "ready")).json;
+    for (const id of ["people", "matte-best", "inpaint", "depth-large"]) expect(ready.models.find((m) => m.id === id), id).toMatchObject({ cached: true, overridden: true });
+
+    const first = await cutouts({ picture: "/film/img/t/person.jpg" });
+    expect(first.status).toBe(200);
+    started.push(first.json.id as string);
+    const done = await waitFor(first.json.id as string, "done", 100000);
+    expect(done.result).toMatchObject({ ok: true, written: true, folder: "/film/depth/t/person/people-1", seen: 1, width: 1280, height: 720 });
+    expect(done.result?.cutouts).toHaveLength(1);
+    const folder = path.join(real, "public", "film", "depth", "t", "person", "people-1");
+    expect(fs.readdirSync(folder).sort()).toEqual(["cutout-1.png", "depth.png", "plate.jpg", "review.jpg"]);
+    expect(pngSize(path.join(folder, "depth.png"))).toEqual({ width: 1280, height: 720 });
+
+    const again = await cutouts({ picture: "/film/img/t/person.jpg" });
+    started.push(again.json.id as string);
+    expect((await waitFor(again.json.id as string, "done", 100000)).result?.folder).toBe("/film/depth/t/person/people-2");
+    expect(fs.existsSync(path.join(folder, "cutout-1.png"))).toBe(true);
+  }, 240000);
 });

@@ -1,10 +1,20 @@
 import { useEffect } from "react";
-import { depthRowView, type DepthMakerState, type DepthRowView } from "../core/depthMaker";
+import {
+  cutoutsRowView,
+  depthRowView,
+  modelsPanelView,
+  type DepthMakerState,
+  type DepthQuality,
+  type DepthRowView,
+} from "../core/depthMaker";
+import { MakeCutoutsRow } from "./MakeCutoutsRow";
+import { ModelsPanel } from "./ModelsPanel";
 
 /**
- * The "Make depth map" row in the Clip tab's Picture section. Pressing the button asks the editor's server to run
- * `npm run depth` for this shot's picture; the finished map is put on the shot. What the row shows for each situation
- * is decided by `depthRowView` (src/core/depthMaker.ts); this file only draws it.
+ * The "Make depth map" row in the Clip tab's Picture section, and the wrapper that puts it together with the "Make cutouts"
+ * row and the models list for the selected shot. Pressing the button asks the editor's server to run `npm run depth` for
+ * this shot's picture; the finished map is put on the shot. What each row shows is decided by `depthRowView`
+ * (src/core/depthMaker.ts); this file only draws it.
  */
 
 export interface MakeDepthMapRowProps {
@@ -42,9 +52,14 @@ export function MakeDepthMapRow({ view, onMake, onCancel, onDismiss, onCheckAgai
             Cancel
           </button>
         )}
-        {view.kind === "failed" && (
+        {view.kind === "failed" && !view.cancelled && (
           <button type="button" className="button button-quiet" data-testid="make-depth-retry" onClick={onMake}>
             Try again
+          </button>
+        )}
+        {view.kind === "failed" && view.cancelled && (
+          <button type="button" className="button button-quiet" data-testid="make-depth-dismiss" onClick={onDismiss}>
+            OK
           </button>
         )}
         {view.kind === "done" && (
@@ -103,11 +118,17 @@ export function MakeDepthMapRow({ view, onMake, onCancel, onDismiss, onCheckAgai
         </div>
       )}
 
-      {view.kind === "failed" && (
-        <p className="depth-make-error" role="alert" data-testid="make-depth-error">
-          {view.message}
-        </p>
-      )}
+      {view.kind === "failed" &&
+        (view.cancelled ? (
+          // you stopped it yourself: a note, not an error
+          <p className="depth-make-note" role="status" data-testid="make-depth-cancelled">
+            {view.message}
+          </p>
+        ) : (
+          <p className="depth-make-error" role="alert" data-testid="make-depth-error">
+            {view.message}
+          </p>
+        ))}
 
       {view.kind === "done" && (
         <div role="status" aria-live="polite">
@@ -122,11 +143,15 @@ export function MakeDepthMapRow({ view, onMake, onCancel, onDismiss, onCheckAgai
   );
 }
 
-/** What the Inspector gets from the app: the state, and the things the row can ask for. */
+/** What the Inspector gets from the app: the state, and the things the rows can ask for. */
 export interface DepthMakerBinding {
   state: DepthMakerState;
   onCheck: (fresh?: boolean) => void;
   onMake: (frameId: string, picture: string) => void;
+  /** Cut the people out of this shot's picture; `sourceMap` is a depth map the shot already has, to keep. */
+  onMakeCutouts: (frameId: string, picture: string, sourceMap?: string) => void;
+  onDownload: (ids: string[]) => void;
+  onQuality: (quality: DepthQuality) => void;
   onCancel: () => void;
   onDismiss: () => void;
 }
@@ -139,34 +164,60 @@ function copyToClipboard(text: string) {
   }
 }
 
-/** The row for one shot: works out what to show and asks what this computer can do the first time it is needed. */
-export function MakeDepthMapForShot({
+/** The depth map row, the cut-outs row and the models list for ONE shot: asks what this computer can do the first time it is needed. */
+export function DepthToolsForShot({
   frameId,
   picture,
   hasDepthMap,
+  hasCutouts,
+  keptMap,
   maker,
 }: {
   frameId: string;
   picture: string | undefined;
   hasDepthMap: boolean;
+  hasCutouts: boolean;
+  /** The shot's depth map when the cut-outs can keep it (one of the film's, under /film/depth/). */
+  keptMap?: string;
   maker: DepthMakerBinding;
 }) {
-  const view = depthRowView({ frameId, picture, hasDepthMap, state: maker.state, now: Date.now() });
-  const needsCheck = view.kind === "checking";
+  const now = Date.now();
+  const depthView = depthRowView({ frameId, picture, hasDepthMap, state: maker.state, now });
+  let cutoutsView = cutoutsRowView({ frameId, picture, hasCutouts, keptMap, state: maker.state, now });
+  // One explanation is enough when both rows would say the same thing (no server, no setup, still checking).
+  if (cutoutsView.kind === depthView.kind && (cutoutsView.kind === "unavailable" || cutoutsView.kind === "setup-needed" || cutoutsView.kind === "checking")) {
+    cutoutsView = { kind: "hidden" };
+  }
+  const panel = modelsPanelView(maker.state);
+  const showPanel = panel !== null && (depthView.kind !== "hidden" || cutoutsView.kind !== "hidden");
+
+  const needsCheck = depthView.kind === "checking" || cutoutsView.kind === "checking";
   const { onCheck } = maker;
   useEffect(() => {
     if (needsCheck) onCheck();
   }, [needsCheck, onCheck]);
 
   return (
-    <MakeDepthMapRow
-      view={view}
-      onMake={() => picture && maker.onMake(frameId, picture)}
-      onCancel={maker.onCancel}
-      onDismiss={maker.onDismiss}
-      onCheckAgain={() => onCheck(true)}
-      onCopy={copyToClipboard}
-    />
+    <>
+      <MakeDepthMapRow
+        view={depthView}
+        onMake={() => picture && maker.onMake(frameId, picture)}
+        onCancel={maker.onCancel}
+        onDismiss={maker.onDismiss}
+        onCheckAgain={() => onCheck(true)}
+        onCopy={copyToClipboard}
+      />
+      <MakeCutoutsRow
+        view={cutoutsView}
+        onMake={() => picture && maker.onMakeCutouts(frameId, picture, keptMap)}
+        onCancel={maker.onCancel}
+        onDismiss={maker.onDismiss}
+        onCheckAgain={() => onCheck(true)}
+        onCopy={copyToClipboard}
+        onDownloadMissing={() => cutoutsView.kind === "models-missing" && maker.onDownload(cutoutsView.missing.map((model) => model.id))}
+        onCancelDownload={maker.onCancel}
+      />
+      {showPanel && panel && <ModelsPanel view={panel} onQuality={maker.onQuality} onDownload={maker.onDownload} open={cutoutsView.kind === "models-missing" || cutoutsView.kind === "downloading"} />}
+    </>
   );
 }
-

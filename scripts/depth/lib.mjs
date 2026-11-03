@@ -254,3 +254,28 @@ export function parseResultLine(output) {
   }
   return null;
 }
+
+/** The next folder name: people-1, people-2 ... (a stopped run's people-N.part counts, so its number is not reused). */
+export function nextRunName(existingNames) {
+  let highest = 0;
+  for (const name of existingNames) {
+    const match = /^people-(\d+)(?:\.part)?$/.exec(name);
+    if (match) highest = Math.max(highest, Number(match[1]));
+  }
+  return `people-${highest + 1}`;
+}
+
+/** A depth map under public/film/depth/, given as a path or ref: the file to read. Anything else is refused. */
+export function resolveSourceMap(arg, publicDir) {
+  let ref = String(arg ?? "").trim().replace(/\\/g, "/").split("?")[0].split("#")[0];
+  if (ref.startsWith("public/")) ref = `/${ref.slice("public/".length)}`;
+  else if (ref.startsWith("film/")) ref = `/${ref}`;
+  if (!ref.startsWith("/film/depth/") || !/\.(?:png|jpe?g|webp)$/i.test(ref) || ref.split("/").some((part) => part === ".." || part === ".")) {
+    throw new UserError(`${arg} is not a depth map under public/film/depth/ (a .png, .jpg or .webp).`);
+  }
+  const file = fileForRef(publicDir, ref);
+  const relative = path.relative(path.resolve(publicDir), file);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new UserError(`${arg} is not inside ${publicDir}.`);
+  if (!fs.existsSync(file)) throw new UserError(`There is no depth map at ${file}`);
+  return { ref, file };
+}

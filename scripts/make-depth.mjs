@@ -14,13 +14,11 @@
  * the rest, so it runs on Windows.
  */
 import { spawn } from "node:child_process";
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { Readable, Transform } from "node:stream";
-import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_MODEL, MODELS, modelCacheDir } from "./depth/models.mjs";
+import { ensureModelFile } from "./depth/download.mjs";
+import { DEFAULT_MODEL, MODELS } from "./depth/models.mjs";
 import {
   RESULT_MARKER,
   UserError,
@@ -74,57 +72,7 @@ function fail(message, code = 1) {
   process.exit(code);
 }
 
-async function sha256Of(file) {
-  const hash = crypto.createHash("sha256");
-  await pipeline(fs.createReadStream(file), hash);
-  return hash.digest("hex");
-}
-
-async function download(spec, file) {
-  const dir = path.dirname(file);
-  fs.mkdirSync(dir, { recursive: true });
-  const part = `${file}.part`;
-  console.log(`Downloading ${spec.file} (${formatBytes(spec.bytes)}). This happens once; it is kept in ${dir}`);
-  let response;
-  try {
-    response = await fetch(spec.url, { redirect: "follow" });
-  } catch (error) {
-    throw new UserError(`Could not reach GitHub (${error.cause?.code || error.message}).\nDownload ${spec.url}\nand put the file in ${dir}`);
-  }
-  if (!response.ok || !response.body) {
-    throw new UserError(`The download failed (HTTP ${response.status}).\nDownload ${spec.url}\nand put the file in ${dir}`);
-  }
-  const hash = crypto.createHash("sha256");
-  let received = 0;
-  let shown = -1;
-  const meter = new Transform({
-    transform(chunk, _encoding, callback) {
-      hash.update(chunk);
-      received += chunk.length;
-      const percent = Math.floor((received / spec.bytes) * 100);
-      if (percent !== shown && (process.stdout.isTTY || percent % 10 === 0)) {
-        shown = percent;
-        process.stdout.write(process.stdout.isTTY ? `\r  ${percent}%  ${formatBytes(received)}` : `  ${percent}%\n`);
-      }
-      callback(null, chunk);
-    },
-  });
-  try {
-    await pipeline(Readable.fromWeb(response.body), meter, fs.createWriteStream(part));
-  } catch (error) {
-    fs.rmSync(part, { force: true });
-    throw new UserError(`The download was interrupted (${error.message}). Run the command again.`);
-  }
-  if (process.stdout.isTTY) process.stdout.write("\n");
-  if (received !== spec.bytes || hash.digest("hex") !== spec.sha256) {
-    fs.rmSync(part, { force: true });
-    throw new UserError(`The downloaded file is not the expected one (size or checksum differs), so it was thrown away.\nTry again, or download ${spec.url} by hand.`);
-  }
-  fs.renameSync(part, file);
-  fs.writeFileSync(`${file}.ok`, `${spec.sha256}\n`);
-}
-
-/** The model file to use: downloaded and checked once, then trusted while its size is unchanged. */
+/** The model file to use: the one named with --model-file, else the cached one (downloaded and checked once). */
 async function ensureModel(name, modelFile) {
   if (modelFile) {
     const file = path.resolve(process.cwd(), modelFile);
@@ -133,23 +81,7 @@ async function ensureModel(name, modelFile) {
   }
   const spec = MODELS[name];
   if (!spec) throw new UserError(`Unknown model "${name}". Choose small, base or large.`);
-  const file = path.join(modelCacheDir(), spec.file);
-  if (fs.existsSync(file)) {
-    if (fs.statSync(file).size !== spec.bytes) {
-      throw new UserError(`${file} is not the expected size (${formatBytes(spec.bytes)}). Delete it and run the command again.`);
-    }
-    if (!fs.existsSync(`${file}.ok`)) {
-      process.stdout.write(`Checking ${spec.file} … `);
-      if ((await sha256Of(file)) !== spec.sha256) {
-        throw new UserError(`${file} does not match the published checksum. Delete it and run the command again.`);
-      }
-      fs.writeFileSync(`${file}.ok`, `${spec.sha256}\n`);
-      console.log("ok");
-    }
-    return file;
-  }
-  await download(spec, file);
-  return file;
+  return ensureModelFile(spec);
 }
 
 function runWorker(python, args) {

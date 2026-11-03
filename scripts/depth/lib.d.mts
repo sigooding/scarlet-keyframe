@@ -27,3 +27,5 @@ export function findPython(options?: {
 export function pythonHasPackages(python: PythonCandidate): boolean;
 export function pythonHasGpu(python: PythonCandidate): boolean;
 export function parseResultLine(output: string): ({ ok: boolean } & Record<string, unknown>) | null;
+export function nextRunName(existingNames: string[]): string;
+export function resolveSourceMap(arg: string, publicDir: string): { ref: string; file: string };
