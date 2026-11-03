@@ -1,4 +1,6 @@
-# For an NVIDIA GPU (needs CUDA 12 and cuDNN 9 installed). Replaces onnxruntime.
+# For an NVIDIA GPU. Replaces onnxruntime. The [cuda,cudnn] extras bring NVIDIA's CUDA 12 runtime and cuDNN 9 as ordinary pip
+# packages (about 1.3 GB), so nothing has to be installed on the system but the NVIDIA driver. The version is held below 1.27
+# on purpose: from 1.27 the default build is for CUDA 13, which needs a much newer driver (R580 or later).
 numpy>=1.26
 opencv-python-headless>=4.9
-onnxruntime-gpu>=1.18
+onnxruntime-gpu[cuda,cudnn]>=1.22,<1.27

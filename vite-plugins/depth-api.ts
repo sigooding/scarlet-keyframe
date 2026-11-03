@@ -26,7 +26,7 @@ import {
   findPython,
   parseResultLine,
   pngSize,
-  pythonHasGpu,
+  gpuStatus,
   pythonHasPackages,
   resolvePicture,
   resolveSourceMap,
@@ -58,7 +58,10 @@ import { ALL_MODELS, DEFAULT_QUALITY, QUALITIES, modelCacheDir, modelIdsFor } fr
 export interface DepthCapabilities {
   python: string | null;
   packages: boolean;
+  /** onnxruntime can REALLY use the GPU (a session on a tiny model was made on it), not just offers the provider. */
   gpu: boolean;
+  /** The GPU package is installed but cannot be used: why, in a line. Null when it works, or when there is no GPU package. */
+  gpuNote?: string | null;
 }
 
 export interface DepthApiOptions {
@@ -131,7 +134,10 @@ function probeMachine(repoRoot: string): DepthCapabilities {
   const python = findPython({ repoRoot });
   if (!python) return { python: null, packages: false, gpu: false };
   const packages = pythonHasPackages(python);
-  return { python: python.label, packages, gpu: packages ? pythonHasGpu(python) : false };
+  if (!packages) return { python: python.label, packages, gpu: false, gpuNote: null };
+  // Makes a session on a tiny model: a few seconds with a GPU package, which is why the answer is kept for a while.
+  const status = gpuStatus(python);
+  return { python: python.label, packages, gpu: status.gpu, gpuNote: status.installed && !status.gpu ? status.reason : null };
 }
 
 /** `127.0.0.1:5173` -> `127.0.0.1`, `[::1]:5173` -> `::1`. */

@@ -205,6 +205,7 @@ async function main() {
     cutouts,
     flags: result.flags ?? [],
     provider: used,
+    gpuNote: result.gpu_note ?? null,
     source: result.source,
     seconds: result.seconds,
   });

@@ -39,6 +39,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "depth"))
+import make_depth  # noqa: E402
 from make_depth import MEAN, STD, depth_of, fail, load_libraries, make_session, read_gray01, read_rgb, run_guarded, soften  # noqa: E402
 
 PAD = 0.06  # every box grows by this share of its size: hair and hems are not clipped
@@ -78,6 +79,7 @@ class Model:
         except Exception as error:  # noqa: BLE001 - onnxruntime raises plain RuntimeError for "out of memory"
             if self.provider == "CPUExecutionProvider":
                 raise
+            make_depth.GPU_NOTE = make_depth.GPU_NOTE or str(error).splitlines()[0][:200]
             self.say(f"  the GPU stopped on this step ({str(error).splitlines()[0][:120]}); doing it on the CPU")
             self.session = None
             gc.collect()
@@ -445,6 +447,7 @@ def main() -> int:
         source=source,
         provider=heavy,
         providers=providers,
+        gpu_note=make_depth.GPU_NOTE if (args.gpu and heavy != "CUDAExecutionProvider") else None,
         seconds=round(time.time() - started, 1),
     )
     print(json.dumps(result))

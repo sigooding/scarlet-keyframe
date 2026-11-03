@@ -27,7 +27,9 @@ It never touches the picture or the map it was given. It prints one JSON line la
 from __future__ import annotations
 
 import argparse
+import contextlib
 import gc
+import io
 import json
 import os
 import sys
@@ -86,6 +88,97 @@ def read_gray01(cv2, np, path):
     return raw.astype(np.float32) / (65535.0 if raw.dtype == np.uint16 else 255.0)
 
 
+# A tiny model (depth = brightness) used to find out whether the GPU can really be used, without loading a big one.
+GPU_CHECK_MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "tiny-depth.onnx")
+# Why the GPU was not used, when it was asked for and a session ended up on the CPU. The workers put it in their answer.
+GPU_NOTE = None
+_dll_handles = []
+_prepared = None
+
+
+def nvidia_dll_dirs(roots, platform=None):
+    """The folders pip's NVIDIA runtime packages (nvidia-cudnn-cu12 ...) keep their DLLs in: <site-packages>/nvidia/<name>/bin.
+    Only Windows needs them found by hand."""
+    platform = sys.platform if platform is None else platform
+    if not str(platform).startswith("win"):
+        return []
+    found = []
+    for root in roots:
+        base = os.path.join(root, "nvidia")
+        try:
+            names = sorted(os.listdir(base))
+        except OSError:
+            continue
+        for name in names:
+            folder = os.path.join(base, name, "bin")
+            if os.path.isdir(folder) and folder not in found:
+                found.append(folder)
+    return found
+
+
+def prepare_gpu_libraries(ort):
+    """Lets onnxruntime find CUDA and cuDNN: the NVIDIA pip packages' folders go on the DLL search path, and onnxruntime's own
+    preload (onnxruntime 1.21+) loads them. Done once. Returns whatever the preload printed, for a diagnosis."""
+    global _prepared
+    if _prepared is not None:
+        return _prepared
+    roots = []
+    try:
+        import site
+
+        roots = list(site.getsitepackages())
+        user = site.getusersitepackages()
+        if isinstance(user, str):
+            roots.append(user)
+    except Exception:  # noqa: BLE001
+        pass
+    for folder in nvidia_dll_dirs(roots):
+        add = getattr(os, "add_dll_directory", None)
+        if add:
+            try:
+                _dll_handles.append(add(folder))
+            except OSError:
+                pass
+        os.environ["PATH"] = folder + os.pathsep + os.environ.get("PATH", "")
+    text = io.StringIO()
+    preload = getattr(ort, "preload_dlls", None)
+    if preload:
+        try:
+            with contextlib.redirect_stdout(text), contextlib.redirect_stderr(text):
+                preload()
+        except Exception as error:  # noqa: BLE001
+            text.write(f"{type(error).__name__}: {error}\n")
+    _prepared = text.getvalue().strip()
+    return _prepared
+
+
+def _one_line(message, limit=260):
+    lines = [line.strip() for line in str(message).splitlines() if line.strip()]
+    text = lines[0] if lines else ""
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def gpu_diagnosis(ort):
+    """None when a session really runs on the GPU, else one line saying why not. The list of providers onnxruntime offers only
+    says what it was BUILT with: whether CUDA and cuDNN can be loaded is only known by making a session."""
+    if "CUDAExecutionProvider" not in ort.get_available_providers():
+        return "this onnxruntime has no GPU support (it is the CPU package): run  npm run depth:setup -- --gpu"
+    detail = prepare_gpu_libraries(ort)
+    try:
+        options = ort.SessionOptions()
+        options.log_severity_level = 4
+        session = ort.InferenceSession(GPU_CHECK_MODEL, options, providers=["CUDAExecutionProvider"])
+        used = session.get_providers()
+    except Exception as error:  # noqa: BLE001
+        reason = _one_line(error)
+        hint = next((line.strip() for line in detail.splitlines() if "dll" in line.lower() or "fail" in line.lower()), "")
+        return reason if not hint else f"{reason} ({_one_line(hint, 160)})"
+    if used and used[0] == "CUDAExecutionProvider":
+        return None
+    hint = _one_line(detail, 200)
+    return "the CUDA and cuDNN libraries could not be loaded" + (f" ({hint})" if hint else "")
+
+
 def make_session(ort, model, want_gpu):
     if not os.path.isfile(model):
         fail("no-model", f"no model file at {model}")
@@ -93,21 +186,24 @@ def make_session(ort, model, want_gpu):
     options.log_severity_level = 3
     # Without this onnxruntime keeps every run's buffers (the film's own script ran a machine out of memory).
     options.enable_cpu_mem_arena = False
+    global GPU_NOTE
     providers = ["CPUExecutionProvider"]
     if want_gpu and "CUDAExecutionProvider" in ort.get_available_providers():
+        prepare_gpu_libraries(ort)
         providers.insert(0, "CUDAExecutionProvider")
     try:
         session = ort.InferenceSession(model, options, providers=providers)
     except Exception as error:  # a CUDA provider that cannot load its libraries: carry on on the CPU
         if providers[0] != "CPUExecutionProvider":
-            sys.stderr.write(f"  the GPU could not be used ({str(error).splitlines()[0][:160]}); using the CPU\n")
+            GPU_NOTE = GPU_NOTE or _one_line(error, 200)
             session = ort.InferenceSession(model, options, providers=["CPUExecutionProvider"])
         else:
             fail("bad-model", f"{model}: {error}")
     used = session.get_providers()[0]
     if want_gpu and used != "CUDAExecutionProvider":
-        sys.stderr.write("  --gpu asked for the GPU but onnxruntime is running on the CPU "
-                         "(it needs onnxruntime-gpu with CUDA 12 and cuDNN 9); the map is the same, only slower\n")
+        # onnxruntime fell back to the CPU, usually without saying why: find out, so the person can be told
+        GPU_NOTE = GPU_NOTE or gpu_diagnosis(ort) or "the GPU could not run this model"
+        sys.stderr.write(f"  the GPU was not used ({GPU_NOTE}); using the CPU: the result is the same, only slower\n")
     return session, used
 
 
@@ -304,6 +400,20 @@ def write_check_image(cv2, np, path, rgb, before, after, label_before, label_aft
 # ------------------------------------------------------------------------------------------------- main
 
 def main() -> int:
+    if "--gpu-check" in sys.argv[1:]:
+        # `make_depth.py --gpu-check`: can onnxruntime really use the GPU here? One JSON line. Used by the setup and the editor.
+        _, _, ort = load_libraries()
+        reason = gpu_diagnosis(ort)
+        print(json.dumps({
+            "ok": True,
+            "gpu": reason is None,
+            "reason": reason,
+            "installed": "CUDAExecutionProvider" in ort.get_available_providers(),
+            "onnxruntime": ort.__version__,
+            "providers": ort.get_available_providers(),
+        }))
+        return 0
+
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("picture")
     parser.add_argument("--out", help="where to write the map (a .png); not needed with --dry-run")
@@ -370,6 +480,8 @@ def main() -> int:
                                   "BEFORE: the map as it plays now", "AFTER: the same map, lined up")
                 result["check_image"] = os.path.abspath(args.check_image)
 
+    if args.gpu and provider != "CUDAExecutionProvider" and GPU_NOTE:
+        result["gpu_note"] = GPU_NOTE
     result["seconds"] = round(time.time() - started, 1)
     print(json.dumps(result))
     return 0 if result["ok"] else 2

@@ -26,6 +26,10 @@ export function findPython(options?: {
 }): PythonCandidate | null;
 export function pythonHasPackages(python: PythonCandidate): boolean;
 export function pythonHasGpu(python: PythonCandidate): boolean;
+export function gpuStatus(
+  python: PythonCandidate,
+  options?: { timeoutMs?: number },
+): { gpu: boolean; installed: boolean; reason: string | null; onnxruntime: string | null; providers: string[] };
 export function parseResultLine(output: string): ({ ok: boolean } & Record<string, unknown>) | null;
 export function nextRunName(existingNames: string[]): string;
 export function resolveSourceMap(arg: string, publicDir: string): { ref: string; file: string };

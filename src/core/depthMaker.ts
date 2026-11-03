@@ -471,6 +471,18 @@ function modelFor(ready: DepthReady, quality: DepthQuality, role: keyof DepthRea
   return ready.models.find((model) => model.id === id);
 }
 
+/** What the notes say about the graphics card: that it is used, or why it is not (only when its package is installed). */
+function gpuSentence(ready: DepthReady): string {
+  if (ready.gpu) return " Uses your graphics card.";
+  if (ready.gpuNote) return ` Not using your graphics card: ${ready.gpuNote}`;
+  return "";
+}
+
+/** ", and why not" when the card was asked for and a run still ended on the CPU. */
+function gpuNotUsed(result: DepthMakeResult | null | undefined): string {
+  return result?.provider === "cpu" && result.gpuNote ? ` Your graphics card was not used: ${result.gpuNote}` : "";
+}
+
 /** Why a button waits: one thing runs at a time, so say what is running, and whether it is for this very shot. */
 function busyNote(state: DepthMakerState, frameId: string): string {
   if (running(state.download?.status)) return "Models are being downloaded. One thing at a time.";
@@ -540,7 +552,7 @@ export function depthRowView(input: {
     const size = result?.width && result?.height ? `${result.width}×${result.height}` : null;
     const how = result?.provider ? ` on the ${result.provider === "gpu" ? "GPU" : "CPU"}` : "";
     const took = typeof result?.seconds === "number" ? `, ${result.seconds} s${how}` : "";
-    const made = `Depth map made${size ? ` (${size}${took})` : ""}.`;
+    const made = `Depth map made${size ? ` (${size}${took})` : ""}.${gpuNotUsed(result)}`;
     return {
       kind: "done",
       text: job.existing
@@ -575,7 +587,7 @@ export function depthRowView(input: {
       : model.cached
         ? `Made on this computer from this picture (${model.title}).${licence}`
         : `Made on this computer from this picture. The first one downloads ${model.title} (${sizeText(model.bytes)}), once.${licence}`;
-  return { kind: "ready", note: `${note}${ready.gpu ? " Uses your graphics card." : ""}` };
+  return { kind: "ready", note: `${note}${gpuSentence(ready)}` };
 }
 
 export type CutoutsRowView =
@@ -640,8 +652,8 @@ export function cutoutsRowView(input: {
       kind: "done",
       made: true,
       text: job.applied
-        ? `${count} cut-out${count === 1 ? "" : "s"}, a plate and a depth map made${took}. This shot now uses them (one undo step).`
-        : `${count} cut-out${count === 1 ? "" : "s"} made${took}.`,
+        ? `${count} cut-out${count === 1 ? "" : "s"}, a plate and a depth map made${took}. This shot now uses them (one undo step).${gpuNotUsed(result)}`
+        : `${count} cut-out${count === 1 ? "" : "s"} made${took}.${gpuNotUsed(result)}`,
       flags: result?.flags ?? [],
       caution: job.caution,
       note: job.note,
@@ -668,7 +680,7 @@ export function cutoutsRowView(input: {
   if (missing.length) {
     return { kind: "models-missing", missing, bytes: missing.reduce((sum, model) => sum + model.bytes, 0), nonCommercial: missing.some((model) => model.nonCommercial) };
   }
-  const where = ready.gpu ? "A few seconds on your graphics card." : "A few minutes on the CPU.";
+  const where = ready.gpu ? "A few seconds on your graphics card." : `A few minutes on the CPU.${ready.gpuNote ? ` Not using your graphics card: ${ready.gpuNote}` : ""}`;
   return {
     kind: "ready",
     keepsMap,

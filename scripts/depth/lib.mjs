@@ -5,6 +5,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 /** A mistake the person running the command can fix: shown as a message, not a stack trace. */
 export class UserError extends Error {}
@@ -245,6 +246,29 @@ export function pythonHasGpu(python) {
     { encoding: "utf8" },
   );
   return probe.status === 0 && probe.stdout.trim() === "True";
+}
+
+/**
+ * Whether onnxruntime can REALLY use the GPU with this Python, found by making a session on a tiny model
+ * (`make_depth.py --gpu-check`). `pythonHasGpu` only reads the list of providers onnxruntime was built with, which says nothing
+ * about whether CUDA and cuDNN can be loaded. `installed` is true when the GPU package is there (so a failure is worth telling).
+ * Takes a few seconds on a machine with a GPU.
+ */
+export function gpuStatus(python, { timeoutMs = 120000 } = {}) {
+  const worker = path.join(path.dirname(fileURLToPath(import.meta.url)), "make_depth.py");
+  const probe = spawnSync(python.cmd, [...python.args, worker, "--gpu-check"], { encoding: "utf8", timeout: timeoutMs });
+  const answer = probe.status === 0 ? parseWorkerJson(probe.stdout) : null;
+  if (!answer) {
+    const why = (probe.stderr || probe.error?.message || "").trim().split(/\r?\n/).filter(Boolean).pop() ?? "no answer";
+    return { gpu: false, installed: false, reason: `could not check the GPU: ${why.slice(0, 200)}`, onnxruntime: null, providers: [] };
+  }
+  return {
+    gpu: answer.gpu === true,
+    installed: answer.installed === true,
+    reason: typeof answer.reason === "string" ? answer.reason : null,
+    onnxruntime: typeof answer.onnxruntime === "string" ? answer.onnxruntime : null,
+    providers: Array.isArray(answer.providers) ? answer.providers : [],
+  };
 }
 
 /** With `--json` the command ends with one line `@@result {...}` (the editor's server reads it instead of scraping text). */

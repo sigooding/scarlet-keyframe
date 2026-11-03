@@ -45,8 +45,10 @@ export interface DepthReady {
   python: string | null;
   /** The Python packages the worker needs are installed (npm run depth:setup does that). */
   packages: boolean;
-  /** onnxruntime offers the NVIDIA GPU; the commands use it. */
+  /** onnxruntime can really use the NVIDIA GPU (a session was made on it); the commands use it. */
   gpu: boolean;
+  /** The GPU package is installed but cannot be used: why, in a line (a missing library, an old driver). */
+  gpuNote?: string | null;
   /** Every downloadable model, with whether it is here. */
   models: ModelStatus[];
   /** The folder the models are kept in. */
@@ -76,6 +78,8 @@ export interface DepthMakeResult {
   height?: number;
   bytes?: number;
   provider?: "gpu" | "cpu";
+  /** The GPU was asked for but not used: why. */
+  gpuNote?: string | null;
   seconds?: number;
   model?: string;
   archived?: string | null;
