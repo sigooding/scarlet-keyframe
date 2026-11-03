@@ -194,9 +194,6 @@ interface InspectorProps {
   pointEdit?: PointEditState;
   onPointEditChange?: (edit: PointEditState) => void;
   canPlaceOnViewer?: boolean;
-  /** The viewer is still dissolving into this shot, and a button to jump past the dissolve. */
-  dissolvingIn?: boolean;
-  onShowShot?: () => void;
   onApplyEffects?: (patch: CinematicPatch, label: string) => void;
   onPreviewEffects?: (patch: CinematicPatch) => void;
   onMove: (delta: -1 | 1) => void;
@@ -1119,8 +1116,6 @@ export function Inspector(props: InspectorProps) {
               edit={props.pointEdit ?? NO_POINT_EDIT}
               onEditChange={props.onPointEditChange ?? NOOP_POINT_EDIT}
               canPlaceOnViewer={Boolean(props.canPlaceOnViewer)}
-              dissolvingIn={Boolean(props.dissolvingIn)}
-              onShowShot={props.onShowShot}
               noirLighting={String(cinRecord?.hitchcockLighting ?? "")}
               onApply={applyEffects}
               onPreview={previewEffects}

@@ -204,6 +204,7 @@ import {
   type TransitionAlignment,
   type TransitionKind,
 } from "./sequence/transitions";
+import { transitionForViewer } from "./core/transitionForViewer";
 import { audio } from "../vendor/scarlet-reel/audio";
 import bundledAudioDurations from "./data/audio-durations.json";
 import bundledMediaIndex from "./data/media-index.json";
@@ -644,6 +645,7 @@ export default function App() {
   }, []);
 
   const [viewerZoom, setViewerZoom] = useState(1);
+  const [editView, setEditView] = useState(true);
   const [showCaptions, setShowCaptions] = useState(() =>
     renderParams ? renderParams.captions : true,
   );
@@ -1045,20 +1047,37 @@ export default function App() {
     () => clipAtFrame(clips, playheadFrame) || clips[0],
     [clips, playheadFrame],
   );
-  const viewerFrame = activeClip?.keyframe;
-  const viewerLocalFrame = activeClip
-    ? Math.max(0, Math.min(activeClip.durationFrames - 1, playheadFrame - activeClip.startFrame))
+  const activeTransition = useMemo(
+    () => activeTransitionAtFrame(clips, playheadFrame),
+    [clips, playheadFrame],
+  );
+  const selectedClip = useMemo(
+    () => clips.find((clip) => clip.keyframe.id === selectedFrameId) || activeClip,
+    [clips, selectedFrameId, activeClip],
+  );
+  const selectedFrame = selectedClip?.keyframe;
+  const comparePreviewRequested =
+    project?.story.id === "nobodys-witness-film" && (comparePinned || compareKeyHeld);
+  const viewerTransition = transitionForViewer({
+    playing: playback,
+    compare: comparePreviewRequested,
+    renderMode: isRenderMode,
+    editView,
+    selectedClipId: selectedFrame?.id,
+    transition: activeTransition,
+  });
+  const editViewHidesDissolve = Boolean(activeTransition && !viewerTransition);
+  const previewClip = editViewHidesDissolve && selectedClip ? selectedClip : activeClip;
+  const viewerFrame = previewClip?.keyframe;
+  const viewerLocalFrame = previewClip
+    ? Math.max(0, Math.min(previewClip.durationFrames - 1, playheadFrame - previewClip.startFrame))
     : 0;
-  const activeRun = activeClip ? pictureRuns[activeClip.index] : undefined;
+  const activeRun = previewClip ? pictureRuns[previewClip.index] : undefined;
   const viewerPresetFrame = activeRun
     ? Math.max(0, playheadFrame - activeRun.runStartFrame)
     : viewerLocalFrame;
   const viewerShotKeyId = activeRun?.runKeyId ?? viewerFrame?.id;
 
-  const activeTransition = useMemo(
-    () => activeTransitionAtFrame(clips, playheadFrame),
-    [clips, playheadFrame],
-  );
   const outgoingRun = activeTransition ? pictureRuns[activeTransition.outgoingClip.index] : undefined;
   const incomingRun = activeTransition ? pictureRuns[activeTransition.incomingClip.index] : undefined;
   const outgoingPresetFrame = activeTransition
@@ -1078,11 +1097,6 @@ export default function App() {
     ? incomingRun?.runKeyId ?? activeTransition.incomingClip.keyframe.id
     : undefined;
 
-  const selectedClip = useMemo(
-    () => clips.find((clip) => clip.keyframe.id === selectedFrameId) || activeClip,
-    [clips, selectedFrameId, activeClip],
-  );
-  const selectedFrame = selectedClip?.keyframe;
   const inspectorLocalFrame = selectedClip
     ? Math.max(0, Math.min(selectedClip.durationFrames - 1, playheadFrame - selectedClip.startFrame))
     : 0;
@@ -1961,19 +1975,6 @@ export default function App() {
   // Lights & flares: the Inspector panel edits the selected shot; clicking or dragging on the picture places the
   // selected light or flare (the same live-preview-then-one-undo-step protocol as the sliders).
   const canPlaceLightOnViewer = Boolean(selectedFrame && viewerFrame && selectedFrame.id === viewerFrame.id);
-  // A shot's own lights are drawn on its layer, which is mostly hidden while the viewer dissolves in from the shot
-  // before it. Say so, and let the panel jump the playhead to where the dissolve ends.
-  const selectedShotDissolvingIn = Boolean(
-    selectedFrame &&
-      activeTransition &&
-      activeTransition.incomingClip.keyframe.id === selectedFrame.id &&
-      activeTransition.progress < 0.5,
-  );
-  const showSelectedShot = useCallback(() => {
-    if (!activeTransition) return;
-    const clip = activeTransition.incomingClip;
-    scrubToFrame(Math.max(clip.startFrame, Math.min(activeTransition.endFrame, clip.endFrame - 1)));
-  }, [activeTransition, scrubToFrame]);
   const lightEditShot = selectedFrame?.id;
   const selectedCinematic = selectedFrame ? (effectiveFrameCinematic(selectedFrame) as CinematicSettings | undefined) : undefined;
   const lightEditValid = targetExists(selectedCinematic, lightEdit.target);
@@ -5355,12 +5356,12 @@ export default function App() {
                   carriedStartPose={
                     comparePreviewState
                       ? comparePreviewState.carriedStartPose
-                      : activeClip?.carriedStartPose
+                      : previewClip?.carriedStartPose
                   }
                   clipDurationFrames={
                     comparePreviewState
                       ? comparePreviewState.clipDurationFrames
-                      : activeClip?.durationFrames
+                      : previewClip?.durationFrames
                   }
                   playheadFrame={
                     comparePreviewState ? comparePreviewState.playheadFrame : playheadFrame
@@ -5383,7 +5384,7 @@ export default function App() {
                   prevOnionSrc={comparePreviewState ? undefined : prevOnionSrc}
                   nextOnionSrc={comparePreviewState ? undefined : nextOnionSrc}
                   transition={
-                    comparePreviewState ? comparePreviewState.transition : activeTransition
+                    comparePreviewState ? comparePreviewState.transition : viewerTransition
                   }
                   outgoingImageSrc={
                     comparePreviewState
@@ -5511,6 +5512,21 @@ export default function App() {
                   placingPoint={compareActive ? null : placingPointInfo}
                   onPlacePoint={handlePlacePoint}
                 />
+                {!compareActive && (
+                  <button
+                    type="button"
+                    className={`edit-view-toggle ${editViewHidesDissolve ? "is-hiding-dissolve" : ""}`}
+                    data-testid="viewer-edit-view-toggle"
+                    aria-label="Edit view"
+                    aria-pressed={editView}
+                    title={editViewHidesDissolve ? "Show the real dissolve" : "Toggle Edit view; real transitions always play and export"}
+                    onClick={() => setEditView((enabled) => !enabled)}
+                  >
+                    {editViewHidesDissolve
+                      ? "Dissolve hidden while editing"
+                      : `Edit view · ${editView ? "On" : "Off"}`}
+                  </button>
+                )}
               </div>
               {playback && (
                 <div className="preview-progress">
@@ -5721,8 +5737,6 @@ export default function App() {
             pointEdit={lightEdit}
             onPointEditChange={setLightEdit}
             canPlaceOnViewer={canPlaceLightOnViewer && !compareActive}
-            dissolvingIn={selectedShotDissolvingIn && !compareActive}
-            onShowShot={showSelectedShot}
             onCopyEffects={copyEffects}
             onPasteEffects={pasteEffects}
             copiedAnimation={copiedAnimation}

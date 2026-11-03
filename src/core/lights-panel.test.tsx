@@ -70,13 +70,11 @@ describe("the Lights & flares panel", () => {
     expect(html).not.toContain('data-testid="lf-empty"');
   });
 
-  it("says so while the viewer is still dissolving in, but only when there is something to see", () => {
-    const dissolving = render({ cinematic: withLight, dissolvingIn: true, onShowShot: noop });
-    expect(dissolving).toContain('data-testid="lf-dissolve-note"');
-    expect(dissolving).toContain('data-testid="lf-show-shot"');
-    expect(render({ cinematic: withLight, dissolvingIn: false })).not.toContain("lf-dissolve-note");
-    expect(render({ cinematic: undefined, dissolvingIn: true })).not.toContain("lf-dissolve-note");
-    expect(render({ cinematic: withLight, dissolvingIn: true, disabled: true })).not.toContain("lf-dissolve-note");
+  it("does not show the removed dissolve warning or playhead-jump workaround", () => {
+    const html = render({ cinematic: withLight });
+    expect(html).not.toContain("lf-dissolve-note");
+    expect(html).not.toContain("lf-show-shot");
+    expect(html).not.toContain("Show the shot");
   });
 
   it("shows the noir lighting that the shot has", () => {

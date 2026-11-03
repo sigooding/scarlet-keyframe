@@ -41,10 +41,6 @@ export interface LightsFlaresPanelProps {
   onEditChange: (edit: PointEditState) => void;
   /** The viewer is showing this shot, so a click on it can place a light. */
   canPlaceOnViewer: boolean;
-  /** The viewer is still dissolving into this shot from the previous one, so its glows hardly show yet. */
-  dissolvingIn?: boolean;
-  /** Move the playhead to where the dissolve ends, so the shot is fully on screen. */
-  onShowShot?: () => void;
   /** One finished change (one undo step). */
   onApply: (patch: CinematicPatch, label: string) => void;
   /** A change while a slider is being dragged: shown at once, not yet an undo step. */
@@ -502,7 +498,6 @@ export function LightsFlaresPanel(props: LightsFlaresPanelProps) {
           onPick={(item) => {
             const { patch, target } = addLight(cinematic, item.id);
             onApply(patch, `${item.label} added`);
-            if (props.dissolvingIn) props.onShowShot?.();
             select(target, canPlaceOnViewer);
           }}
         />
@@ -514,7 +509,6 @@ export function LightsFlaresPanel(props: LightsFlaresPanelProps) {
           onPick={(item) => {
             const { patch, target } = addFlare(cinematic, item.id as LensFlarePreset);
             onApply(patch, `${item.label} flare added`);
-            if (props.dissolvingIn) props.onShowShot?.();
             select(target, canPlaceOnViewer);
           }}
         />
@@ -526,14 +520,6 @@ export function LightsFlaresPanel(props: LightsFlaresPanelProps) {
             Done
           </button>
         </div>
-      )}
-      {props.dissolvingIn && total > 0 && !disabled && (
-        <p className="lf-dissolve-note" data-testid="lf-dissolve-note" role="status">
-          <span>The viewer is still dissolving in from the previous shot, so these glows are hard to see yet.</span>
-          <button type="button" className="field-reset" data-testid="lf-show-shot" onClick={() => props.onShowShot?.()}>
-            Show the shot
-          </button>
-        </p>
       )}
       {disabled ? (
         <p className="inspector-note">Choose a picture for this shot first.</p>
