@@ -8,10 +8,14 @@ import {
   depthMapRefFor,
   findPicturesByName,
   nextArchiveName,
+  RESULT_MARKER,
   parseArgs,
+  parseResultLine,
   parseWorkerJson,
   pngSize,
   pythonCandidates,
+  pythonHasGpu,
+  pythonHasPackages,
   resolvePicture,
 } from "./lib.mjs";
 
@@ -103,6 +107,8 @@ describe("the command line", () => {
     expect(parseArgs(["pic", "--fit=other.png"]).fit).toBe("other.png");
     expect(parseArgs(["pic", "--check"]).check).toBe(true);
     expect(parseArgs(["pic", "--replace", "--gpu"])).toMatchObject({ replace: true, gpu: true });
+    expect(parseArgs(["pic"]).json).toBe(false);
+    expect(parseArgs(["pic", "--json"]).json).toBe(true);
     expect(parseArgs(["pic", "--model", "large", "--smooth", "2.5"])).toMatchObject({ model: "large", smooth: 2.5 });
     expect(parseArgs(["pic", "--model=small", "--smooth=0"])).toMatchObject({ model: "small", smooth: 0 });
     expect(parseArgs(["--help"]).help).toBe(true);
@@ -174,5 +180,78 @@ describe("reading what the worker says", () => {
     expect(pngSize(file)).toEqual({ width: 2668, height: 1500 });
     fs.writeFileSync(file, Buffer.from("not a png at all, just text"));
     expect(pngSize(file)).toBeNull();
+  });
+});
+
+describe("the --json result line", () => {
+  it("is found as the last @@result line, wherever the human text is", () => {
+    const out = [
+      "/film/img/s1/pic.jpg  (making a new map, .depth-venv)",
+      `${RESULT_MARKER}{"ok":false,"message":"early"}`,
+      "Wrote public/film/depth/s1/pic/depth.png",
+      `${RESULT_MARKER}{"ok":true,"map":"/film/depth/s1/pic/depth.png","width":1600}`,
+      "",
+    ].join("\n");
+    expect(parseResultLine(out)).toEqual({ ok: true, map: "/film/depth/s1/pic/depth.png", width: 1600 });
+    expect(parseResultLine(`${RESULT_MARKER}{"ok":true}\r\nmore\r\n`)).toEqual({ ok: true });
+  });
+
+  it("is null when there is none, or when it is not an answer", () => {
+    expect(parseResultLine("")).toBeNull();
+    expect(parseResultLine("Wrote a map")).toBeNull();
+    expect(parseResultLine(`${RESULT_MARKER}not json`)).toBeNull();
+    expect(parseResultLine(`${RESULT_MARKER}{"map":"x"}`)).toBeNull();
+    expect(parseResultLine(`  ${RESULT_MARKER}{"ok":true}`)).toBeNull();
+  });
+});
+
+describe("asking Python what it can do", () => {
+  let dir;
+  const fake = (name, source) => {
+    const file = path.join(dir, name);
+    fs.writeFileSync(file, source);
+    return { cmd: process.execPath, args: [file], label: name };
+  };
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "scarlet-depth-fakepy-"));
+  });
+  afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  it("packages: installed when the import check succeeds, missing when it fails", () => {
+    expect(pythonHasPackages(fake("ok.cjs", "process.exit(0)"))).toBe(true);
+    expect(pythonHasPackages(fake("missing.cjs", "process.exit(1)"))).toBe(false);
+  });
+
+  it("GPU: only when onnxruntime says CUDA is on offer", () => {
+    expect(pythonHasGpu(fake("gpu.cjs", "console.log('True')"))).toBe(true);
+    expect(pythonHasGpu(fake("cpu.cjs", "console.log('False')"))).toBe(false);
+    expect(pythonHasGpu(fake("broken.cjs", "process.exit(2)"))).toBe(false);
+  });
+});
+
+describe("a path that climbs out of public/", () => {
+  const climbing = [
+    "/film/img/../../outside/secret.jpg",
+    "/film/img/montage/../../../outside/secret.jpg",
+    "/film/img/./montage/m4-railway-rain.jpg",
+    "film/img/montage/../s1/01-backstreet.jpg",
+    "/film/img/montage\\..\\..\\outside\\secret.jpg",
+  ];
+
+  it("is never taken for a picture", () => {
+    for (const ref of climbing) expect(() => resolvePicture(ref, publicDir), ref).toThrow(UserError);
+  });
+
+  it("never gets a map folder of its own", () => {
+    expect(() => depthMapRefFor("/film/img/../../outside/secret.jpg")).toThrow(/not a picture/);
+    expect(() => depthMapRefFor("/film/img/a/./b.jpg")).toThrow(/not a picture/);
+    expect(depthMapRefFor("/film/img/a/b.jpg")).toBe("/film/depth/a/b/depth.png");
+  });
+
+  it("does not stop a name that merely contains dots", () => {
+    touch("/film/img/s9/..hidden.jpg");
+    touch("/film/img/s9/v1.2.final.jpg");
+    expect(resolvePicture("/film/img/s9/v1.2.final.jpg", publicDir).ref).toBe("/film/img/s9/v1.2.final.jpg");
+    expect(resolvePicture("/film/img/s9/..hidden.jpg", publicDir).ref).toBe("/film/img/s9/..hidden.jpg");
   });
 });

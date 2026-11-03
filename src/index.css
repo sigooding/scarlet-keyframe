@@ -8800,3 +8800,93 @@ kbd {
 .lf-dissolve-note span {
   flex: 1 1 180px;
 }
+
+/* Make depth map: a row under the picture's Choose / Upload buttons */
+.depth-make {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-subtle);
+}
+
+.depth-make-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.depth-make-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.depth-make-note.is-ok {
+  color: var(--accent-ok);
+}
+
+.depth-make-note code {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--bg-900);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-primary);
+}
+
+.depth-make-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.depth-make-bar {
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 2px;
+  background: var(--bg-900);
+  overflow: hidden;
+}
+
+.depth-make-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent-amber);
+  transition: width 0.3s ease;
+}
+
+.depth-make-bar.is-indeterminate > span {
+  width: 35%;
+  animation: depth-make-slide 1.3s ease-in-out infinite;
+}
+
+@keyframes depth-make-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(290%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .depth-make-bar.is-indeterminate > span {
+    width: 100%;
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+.depth-make-error {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  border: 1px solid var(--accent-scarlet);
+  border-radius: 4px;
+  background: var(--accent-scarlet-soft);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-primary);
+  white-space: pre-line;
+}

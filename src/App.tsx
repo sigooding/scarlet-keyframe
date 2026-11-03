@@ -156,6 +156,8 @@ import {
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
 import { savedStatusText } from "./core/saveLocation";
+import { plainPictureRef, type ApplyDepthMap } from "./core/depthMaker";
+import { useDepthMaker } from "./core/useDepthMaker";
 import { moveTo, pointMarkers as buildPointMarkers, sameTarget, targetExists, type CinematicPatch } from "./core/lightsFlares";
 import type { CinematicSettings } from "../vendor/scarlet-reel/types";
 import type { PointEditState } from "./components/LightsFlaresPanel";
@@ -1992,6 +1994,36 @@ export default function App() {
       previewProjectEdit((current) => setEffectFields(current, selectedFrame.id, patch));
     },
     [previewProjectEdit, selectedFrame],
+  );
+
+  // "Make depth map" (Clip tab, Picture section). The controller lives here, not in the Inspector, so a map being made is
+  // not lost when another shot is chosen. The finished map goes onto the shot it was started for, as one undo step and
+  // the same way a map chosen with Browse does (setFrameDepthMap), unless that shot's picture changed in the meantime.
+  const applyMadeDepthMap = useCallback<ApplyDepthMap>(
+    (frameId, picture, mapRef) => {
+      const frame = frames.find((item) => item.id === frameId);
+      if (!frame) return { applied: false, reason: "That shot is no longer in the film." };
+      if (!frame.picture || plainPictureRef(frame.picture) !== picture) {
+        return { applied: false, reason: "This shot's picture changed while the map was being made." };
+      }
+      editProject((current) => setFrameDepthMap(current, frameId, mapRef), "Depth map made");
+      return { applied: true };
+    },
+    [editProject, frames],
+  );
+  const depthMaker = useDepthMaker(applyMadeDepthMap);
+  const depthMakerBinding = useMemo(
+    () => ({
+      state: depthMaker.state,
+      onCheck: (fresh?: boolean) => {
+        if (fresh) depthMaker.controller.dismiss(); // "Check again" starts the row over, a failed attempt included
+        void depthMaker.controller.checkReady(fresh);
+      },
+      onMake: (frameId: string, picture: string) => void depthMaker.controller.start(frameId, picture),
+      onCancel: () => void depthMaker.controller.cancel(),
+      onDismiss: () => depthMaker.controller.dismiss(),
+    }),
+    [depthMaker.controller, depthMaker.state],
   );
 
   const handlePlacePoint = useCallback(
@@ -5708,6 +5740,7 @@ export default function App() {
             }
             onApplyEffects={applyEffects}
             onPreviewEffects={previewEffects}
+            depthMaker={depthMakerBinding}
             pointEdit={lightEdit}
             onPointEditChange={setLightEdit}
             canPlaceOnViewer={canPlaceLightOnViewer && !compareActive}

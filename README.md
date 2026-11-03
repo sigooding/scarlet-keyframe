@@ -94,6 +94,21 @@ or they stretch as the camera moves (scarlett-witness `tools/make-depth-layers.p
 relative guess: look at it in the app before it ships. `npm test` covers the command with a tiny stand-in model
 (`scripts/depth/fixtures/tiny-depth.onnx`), and `python scripts/depth/test_fit.py` checks the fitting maths alone.
 
+### In the editor: Make depth map
+
+In the Clip tab's Picture section, a shot whose picture is one of the film's (`/film/img/...`) and that has no depth map
+shows a **Make depth map** button. It asks the editor's own server (`npm run dev` or `npm run serve`; a page opened
+from disk has none, and the button says so) to run `npm run depth` for that picture, shows how it is going (the model
+download the first time, then the making; **Cancel** stops it), and puts the finished map on the shot as one undo step,
+the same way Browse does. Run `npm run depth:setup` once first; the button tells you if it is missing. It uses your
+NVIDIA GPU when `npm run depth:setup -- --gpu` was run, otherwise the CPU; `SCARLET_KEYFRAME_DEPTH_MODEL_FILE` points
+it at a model file of your own.
+
+If the picture already has a map file, that one is used and nothing is made. The button never replaces a map (that is
+still `--replace` on the command line) and only answers requests from the editor page itself, one map at a time.
+Pictures with people in them still need cut-outs: the button says so when it is done. Turn on **MAP** in the Depth
+Maps lane to look at the greyscale map.
+
 ## Miami Vice - Salt Water
 
 Select **Miami Vice - Salt Water** in the film selector to open an original feature in the season-four register:

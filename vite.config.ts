@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
+import { depthApiPlugin } from "./vite-plugins/depth-api";
 import { mediaLibraryPlugin } from "./vite-plugins/media-library";
 import { mp4ExportApiPlugin } from "./vite-plugins/mp4-export-api";
 import { publicPreviewAssetsPlugin } from "./vite-plugins/public-preview-assets";
@@ -37,6 +38,12 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       mp4ExportApiPlugin({ repoRoot: __dirname }),
+      // The editor's "Make depth map" button: runs `npm run depth` for the picture (dev and preview servers alike).
+      depthApiPlugin({
+        repoRoot: __dirname,
+        modelFile: process.env.SCARLET_KEYFRAME_DEPTH_MODEL_FILE?.trim() || undefined,
+        allowedHosts: [HOST],
+      }),
       // Serves public/ from the repository on `npm run serve` (no copy).
       ...(isLocalServe ? [publicPreviewAssetsPlugin({ publicDir: path.join(__dirname, "public") })] : []),
       // Fallback for media outside public/ (Nobody's Witness), dev and preview.

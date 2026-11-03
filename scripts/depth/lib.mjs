@@ -2,6 +2,7 @@
  * Plain helpers for `npm run depth` (scripts/make-depth.mjs): finding the picture, where its map goes, keeping the old
  * map, reading the arguments, finding Python. No side effects beyond reading the disk, so they can be tested.
  */
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -12,10 +13,13 @@ export const PICTURE_ROOT = "/film/img/";
 export const DEPTH_ROOT = "/film/depth/";
 const PICTURE_EXT = /\.(?:jpe?g|png|webp)$/i;
 
+/** A ref that climbs (`..`) or stands still (`.`) could leave public/: never accepted. */
+const hasDotSegments = (ref) => ref.split("/").some((part) => part === ".." || part === ".");
+
 /** `/film/img/montage/m4-railway-rain.jpg` -> `/film/depth/montage/m4-railway-rain/depth.png` (the film's own layout). */
 export function depthMapRefFor(pictureRef) {
   const clean = String(pictureRef).split("?")[0].split("#")[0];
-  if (!clean.startsWith(PICTURE_ROOT) || !PICTURE_EXT.test(clean)) {
+  if (!clean.startsWith(PICTURE_ROOT) || !PICTURE_EXT.test(clean) || hasDotSegments(clean)) {
     throw new UserError(`${pictureRef} is not a picture under ${PICTURE_ROOT}`);
   }
   return `${DEPTH_ROOT}${clean.slice(PICTURE_ROOT.length).replace(PICTURE_EXT, "")}/depth.png`;
@@ -87,10 +91,11 @@ export function resolvePicture(arg, publicDir, cwd = process.cwd()) {
     ref = matches[0];
   }
   ref = ref.split("?")[0].split("#")[0];
-  if (!ref.startsWith(PICTURE_ROOT) || !PICTURE_EXT.test(ref)) {
+  if (!ref.startsWith(PICTURE_ROOT) || !PICTURE_EXT.test(ref) || hasDotSegments(ref)) {
     throw new UserError(`${arg} is not a picture under public${PICTURE_ROOT} (a .jpg, .png or .webp).`);
   }
   const file = fileForRef(publicDir, ref);
+  if (!isInside(root, file)) throw new UserError(`${arg} is not inside ${root}; the picture must be in the repository's public/ folder.`);
   if (!fs.existsSync(file)) throw new UserError(`There is no picture at ${file}`);
   return { ref, file };
 }
@@ -113,7 +118,7 @@ export function nextArchiveName(existingNames) {
  *   --replace        make a new map from the model even though one exists (the old one is kept)
  */
 export function parseArgs(argv) {
-  const opts = { picture: undefined, fit: undefined, check: false, replace: false, model: undefined, modelFile: undefined, gpu: false, smooth: undefined, help: false };
+  const opts = { picture: undefined, fit: undefined, check: false, replace: false, model: undefined, modelFile: undefined, gpu: false, json: false, smooth: undefined, help: false };
   const needValue = (flag, value) => {
     if (value === undefined || value.startsWith("--")) throw new UserError(`${flag} needs a value.`);
     return value;
@@ -124,6 +129,7 @@ export function parseArgs(argv) {
     else if (arg === "--check") opts.check = true;
     else if (arg === "--replace") opts.replace = true;
     else if (arg === "--gpu") opts.gpu = true;
+    else if (arg === "--json") opts.json = true;
     else if (arg === "--fit") {
       const next = argv[i + 1];
       if (opts.picture !== undefined && next !== undefined && !next.startsWith("-")) {
@@ -202,4 +208,49 @@ export function formatBytes(bytes) {
   if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} kB`;
   return `${bytes} B`;
+}
+
+/** The first Python (3.9 or newer) this machine offers, trying the repository's own venv first; null when there is none. */
+export function findPython({ repoRoot, platform = process.platform, env = process.env } = {}) {
+  for (const candidate of pythonCandidates({ platform, repoRoot, env })) {
+    if (candidate.venv && !fs.existsSync(candidate.cmd)) continue;
+    const probe = spawnSync(candidate.cmd, [...candidate.args, "-c", "import sys; print(sys.version_info[0]*100+sys.version_info[1])"], {
+      encoding: "utf8",
+    });
+    if (probe.status === 0 && Number(probe.stdout.trim()) >= 309) return candidate;
+  }
+  return null;
+}
+
+/** True when the packages the depth worker imports are installed for this Python. */
+export function pythonHasPackages(python) {
+  return spawnSync(python.cmd, [...python.args, "-c", "import cv2, numpy, onnxruntime"], { stdio: "ignore" }).status === 0;
+}
+
+/** True when onnxruntime offers the NVIDIA GPU (onnxruntime-gpu). The worker still falls back to the CPU if it cannot load. */
+export function pythonHasGpu(python) {
+  const probe = spawnSync(
+    python.cmd,
+    [...python.args, "-c", "import onnxruntime as o; print('CUDAExecutionProvider' in o.get_available_providers())"],
+    { encoding: "utf8" },
+  );
+  return probe.status === 0 && probe.stdout.trim() === "True";
+}
+
+/** With `--json` the command ends with one line `@@result {...}` (the editor's server reads it instead of scraping text). */
+export const RESULT_MARKER = "@@result ";
+
+/** The last `@@result {...}` object in the command's output, or null. */
+export function parseResultLine(output) {
+  const lines = String(output).split(/\r?\n/);
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    if (!lines[i].startsWith(RESULT_MARKER)) continue;
+    try {
+      const value = JSON.parse(lines[i].slice(RESULT_MARKER.length));
+      if (value && typeof value === "object" && "ok" in value) return value;
+    } catch {
+      /* not it */
+    }
+  }
+  return null;
 }
