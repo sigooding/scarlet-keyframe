@@ -105,8 +105,13 @@ NVIDIA GPU when `npm run depth:setup -- --gpu` was run, otherwise the CPU; `SCAR
 it at a model file of your own. Which depth model it uses follows the **Best / Fast** switch in the *Models* list
 (Best: Depth Anything V2 Large, Fast: Small).
 
-If the picture already has a map file, that one is used and nothing is made. The button never replaces a map (that is
-still `--replace` on the command line) and only answers requests from the editor page itself, one map at a time.
+If the picture already has a map file on disk, the row offers two buttons: **Use it** (attaches that file, nothing is made)
+or **Make a new one** (the same as `--replace`: a new map is made from the model, and the old file is first copied beside it as
+`depth--v1.png`, `depth--v2.png` ... so nothing is ever lost; copy one back over `depth.png` to undo). A shot that already has a
+depth map and no cut-outs shows a quiet **Make a new one** too, for a map that needs redoing (a map from elsewhere that does not
+line up with its picture makes thin things appear twice). The file keeps its name, so the shot's address for it gets a version
+(`depth.png?v=...`) and the viewer loads the new one at once; other shots of the same picture show it after a reload. The server
+only answers requests from the editor page itself, one map at a time.
 Pictures with people in them still need cut-outs: the button says so when it is done, and **Make cutouts** (below)
 is the next button down. Turn on **MAP** in the Depth Maps lane to look at the greyscale map.
 

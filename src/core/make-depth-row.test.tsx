@@ -61,6 +61,7 @@ const job = (extra: Partial<DepthMakerJob> = {}): DepthMakerJob => ({
   message: null,
   result: null,
   existing: false,
+  replace: false,
   startedAt: Date.now() - 12_000,
   applied: false,
   note: null,
@@ -99,7 +100,7 @@ const madeResult = {
 // ---- the Make depth map row ---------------------------------------------------------------------------------------------
 
 function render(view: DepthRowView) {
-  return renderToStaticMarkup(<MakeDepthMapRow view={view} onMake={noop} onCancel={noop} onDismiss={noop} onCheckAgain={noop} onCopy={noop} />);
+  return renderToStaticMarkup(<MakeDepthMapRow view={view} onMake={noop} onMakeNew={noop} onCancel={noop} onDismiss={noop} onCheckAgain={noop} onCopy={noop} />);
 }
 
 describe("the Make depth map row", () => {
@@ -114,6 +115,23 @@ describe("the Make depth map row", () => {
     expect(html).toContain("Make depth map");
     expect(buttonTag(html, "make-depth-button")).not.toContain("disabled");
     expect(html).toContain("Made on this computer from this picture.");
+  });
+
+  it("offers two things when the picture's map file is already there: use it, or make a new one", () => {
+    const html = render({ kind: "ready", note: "This picture already has a depth map file.", existingMap: "/film/depth/s1/pic/depth.png" });
+    expect(html).toContain('data-testid="make-depth-use"');
+    expect(html).toContain("Use it");
+    expect(buttonTag(html, "make-depth-new")).not.toContain("disabled");
+    expect(html).toContain("Make a new one");
+    expect(html).not.toContain('data-testid="make-depth-button"');
+  });
+
+  it("a shot that already has a depth map gets a quiet 'Make a new one' and a note", () => {
+    const html = render({ kind: "redo", note: "Replaces this picture's map with a new one from the model. The old file is not lost." });
+    expect(html).toContain('data-state="redo"');
+    expect(buttonTag(html, "make-depth-redo")).toContain("button-quiet");
+    expect(html).toContain("The old file is not lost.");
+    expect(html).not.toContain('data-testid="make-depth-button"');
   });
 
   it("shows the button greyed out while checking, when busy, and when there is no server", () => {
@@ -492,11 +510,22 @@ describe("the rows for a shot", () => {
     expect(detailsTag(html)).toContain("open");
   });
 
-  it("offers only the cut-outs when the shot already has a depth map, and says it is kept when it can be", () => {
+  it("offers the cut-outs and, quietly, a new depth map when the shot already has a depth map, and says it is kept when it can be", () => {
     const html = tools({ state: idle(ready({ here: ["people", "matte-best", "inpaint"] })), hasDepthMap: true, keptMap: "/film/depth/s1/pic/depth.png" });
-    expect(html).not.toContain('data-testid="make-depth-row"');
+    expect(stateOf(html, "make-depth-row")).toBe("redo");
+    expect(html).toContain('data-testid="make-depth-redo"');
     expect(stateOf(html, "make-cutouts-row")).toBe("ready");
     expect(html).toContain("kept as it is");
+  });
+
+  it("when the picture's map file is already on disk, offers to use it or to make a new one", () => {
+    const html = renderToStaticMarkup(
+      <DepthToolsForShot frameId="f1" picture="/film/img/s1/pic.jpg" hasDepthMap={false} hasCutouts={false} maker={{ ...binding(idle(ready({ here: BEST }))), existingMapFor: (picture) => (picture === "/film/img/s1/pic.jpg" ? "/film/depth/s1/pic/depth.png" : undefined) }} />,
+    );
+    expect(html).toContain('data-testid="make-depth-use"');
+    expect(html).toContain('data-testid="make-depth-new"');
+    // a picture with no file there: the plain button
+    expect(tools({ state: idle(ready({ here: BEST })) })).toContain('data-testid="make-depth-button"');
   });
 
   it("offers only the depth map when the shot already has cut-outs", () => {

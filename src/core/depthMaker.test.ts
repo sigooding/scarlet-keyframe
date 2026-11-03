@@ -286,8 +286,16 @@ describe("asking the server", () => {
 
   it("startDepthJob sends the picture and the quality as JSON", async () => {
     const server = fakeServer({ make: [ok(view())] });
-    expect((await startDepthJob("/film/img/s1/pic.jpg", "fast", server.fetch)).id).toBe("job-1");
+    expect((await startDepthJob("/film/img/s1/pic.jpg", "fast", false, server.fetch)).id).toBe("job-1");
     expect(server.calls[0]).toMatchObject({ route: "make", method: "POST", body: { picture: "/film/img/s1/pic.jpg", quality: "fast" } });
+  });
+
+  it("startDepthJob asks for a new map (replace) only when told to", async () => {
+    const server = fakeServer({ make: [ok(view())] });
+    await startDepthJob("/film/img/s1/pic.jpg", "best", false, server.fetch);
+    await startDepthJob("/film/img/s1/pic.jpg", "best", true, server.fetch);
+    expect(server.calls[0].body).toEqual({ picture: "/film/img/s1/pic.jpg", quality: "best" });
+    expect(server.calls[1].body).toEqual({ picture: "/film/img/s1/pic.jpg", quality: "best", replace: true });
   });
 
   it("startCutoutsJob sends the picture and the quality, and a depth map to keep only when there is one", async () => {
@@ -307,7 +315,7 @@ describe("asking the server", () => {
 
   it("a refusal carries the server's kind, message and job", async () => {
     const server = fakeServer({ make: [{ status: 409, json: { error: "busy", message: "Another depth map is being made (a.jpg).", id: "other" } }] });
-    const failure = await startDepthJob("/film/img/s1/pic.jpg", "best", server.fetch).catch((error) => error);
+    const failure = await startDepthJob("/film/img/s1/pic.jpg", "best", false, server.fetch).catch((error) => error);
     expect(failure).toBeInstanceOf(DepthApiFailure);
     expect(failure).toMatchObject({ kind: "busy", message: "Another depth map is being made (a.jpg).", id: "other" });
   });
@@ -319,10 +327,10 @@ describe("asking the server", () => {
   });
 
   it("a server that cannot be reached is 'network', and an odd answer still says something", async () => {
-    const unreachable = await startDepthJob("/film/img/s1/pic.jpg", "best", fakeServer({ make: ["network-error"] }).fetch).catch((error) => error);
+    const unreachable = await startDepthJob("/film/img/s1/pic.jpg", "best", false, fakeServer({ make: ["network-error"] }).fetch).catch((error) => error);
     expect(unreachable).toMatchObject({ kind: "network" });
     expect(unreachable.message).toContain("editor's server");
-    const odd = await startDepthJob("/film/img/s1/pic.jpg", "best", fakeServer({ make: [{ status: 500, json: "oops" }] }).fetch).catch((error) => error);
+    const odd = await startDepthJob("/film/img/s1/pic.jpg", "best", false, fakeServer({ make: [{ status: 500, json: "oops" }] }).fetch).catch((error) => error);
     expect(odd).toMatchObject({ kind: "failed", message: "The server answered 500." });
   });
 
@@ -419,6 +427,32 @@ describe("making a map", () => {
     expect(controller.getState().job).toMatchObject({ status: "done", applied: true, note: null, existing: false });
     expect(time.pending()).toBe(0);
     expect(server.count("status")).toBe(3);
+  });
+
+  it("asks for a new map when told to, and tells the shot it is a new file (so the viewer loads it afresh)", async () => {
+    const replaced: boolean[] = [];
+    const { controller, server, time } = maker(
+      { make: [ok(view())], status: [ok(doneView({ result: { ok: true, map: "/film/depth/s1/pic/depth.png", width: 1920, height: 1080, archived: "depth--v1.png" } }))] },
+      { apply: (_frame, _picture, _map, wasReplaced) => (replaced.push(Boolean(wasReplaced)), { applied: true }) },
+    );
+    await controller.start("frame-1", "/film/img/s1/pic.jpg", { replace: true });
+    expect(server.calls[0].body).toEqual({ picture: "/film/img/s1/pic.jpg", quality: "best", replace: true });
+    expect(controller.getState().job).toMatchObject({ replace: true });
+    await time.tick();
+    expect(replaced).toEqual([true]);
+    expect(controller.getState().job).toMatchObject({ status: "done", applied: true });
+  });
+
+  it("an ordinary map is not reported as new, and neither is one that was already there", async () => {
+    const replaced: unknown[] = [];
+    const apply: ApplyDepthMap = (_frame, _picture, _map, wasReplaced) => (replaced.push(wasReplaced), { applied: true });
+    const ordinary = maker({ make: [ok(view())], status: [ok(doneView())] }, { apply });
+    await ordinary.controller.start("f", "/film/img/s1/pic.jpg");
+    await ordinary.time.tick();
+    // the server used the file that was there although a new one was asked for (an old server): still not "new"
+    const existing = maker({ make: [ok(doneView({ id: null, existing: true, result: { ok: true, existing: true, map: "/film/depth/s1/pic/depth.png" } }))] }, { apply });
+    await existing.controller.start("f", "/film/img/s1/pic.jpg", { replace: true });
+    expect(replaced).toEqual([false, false]);
   });
 
   it("a map that was already there is attached at once, with nothing to wait for", async () => {
@@ -779,6 +813,7 @@ const job = (extra: Partial<DepthMakerJob> = {}): DepthMakerJob => ({
   message: null,
   result: null,
   existing: false,
+  replace: false,
   startedAt: 10_000,
   applied: false,
   note: null,
@@ -809,7 +844,30 @@ describe("what the Make depth map row shows", () => {
   it("nothing for a picture that cannot have one, or a shot that has one", () => {
     expect(row(idle(), { picture: "asset:abc" })).toEqual({ kind: "hidden" });
     expect(row(idle(), { picture: undefined })).toEqual({ kind: "hidden" });
-    expect(row(idle(), { hasDepthMap: true })).toEqual({ kind: "hidden" });
+  });
+
+  it("a shot that already has a depth map offers, quietly, to make a new one: only when everything is in order", () => {
+    expect(row(idle(), { hasDepthMap: true })).toMatchObject({ kind: "redo", note: expect.stringContaining("The old file is not lost") });
+    expect((row(idle(ready({ here: ["depth-large"] })), { hasDepthMap: true }) as { note: string }).note).toContain("Made on this computer from this picture (Depth Anything V2 Large).");
+    // nothing for a shot whose depth map goes with its cut-outs, or while the computer is not ready
+    expect(row(idle(), { hasDepthMap: true, hasCutouts: true })).toEqual({ kind: "hidden" });
+    expect(row(idle(null), { hasDepthMap: true })).toEqual({ kind: "hidden" });
+    expect(row(idle("unavailable"), { hasDepthMap: true })).toEqual({ kind: "hidden" });
+    expect(row(idle(ready({ packages: false })), { hasDepthMap: true })).toEqual({ kind: "hidden" });
+    expect(row(idle(ready({ busy: "other" })), { hasDepthMap: true })).toEqual({ kind: "hidden" });
+    expect(row(idle(ready(), { job: job({ frameId: "f2" }) }), { hasDepthMap: true })).toEqual({ kind: "hidden" });
+    expect(row(idle(ready(), { download: download() }), { hasDepthMap: true })).toEqual({ kind: "hidden" });
+    expect(row(idle(), { hasDepthMap: true, picture: "asset:abc" })).toEqual({ kind: "hidden" });
+  });
+
+  it("when the picture's map file is already on disk, offers to use it or to make a new one", () => {
+    const view = row(idle(), { existingMap: "/film/depth/s1/pic/depth.png" }) as { kind: string; note: string; existingMap?: string };
+    expect(view.kind).toBe("ready");
+    expect(view.existingMap).toBe("/film/depth/s1/pic/depth.png");
+    expect(view.note).toContain("already has a depth map file (/film/depth/s1/pic/depth.png). Use it, or make a new one.");
+    expect(view.note).toContain("The old file is not lost");
+    // no such file: the plain button
+    expect(row(idle())).not.toHaveProperty("existingMap");
   });
 
   it("waits while it asks, and says so when there is no server", () => {
@@ -902,12 +960,19 @@ describe("what the Make depth map row shows", () => {
     expect((shown as { caution: string }).caution).toContain("people");
     expect((shown as { caution: string }).caution).toContain("Make cutouts");
     // on another shot it is gone
-    expect(row(idle(ready(), { job: done }), { frameId: "f2", hasDepthMap: true })).toEqual({ kind: "hidden" });
+    expect(row(idle(ready(), { job: done }), { frameId: "f2", hasDepthMap: true })).toMatchObject({ kind: "redo" }); // not the job: the quiet offer
+  });
+
+  it("says a map made again was redone, and where the old file is kept", () => {
+    const done = job({ status: "done", applied: true, replace: true, result: { ok: true, map: "/film/depth/s1/pic/depth.png", width: 1920, height: 1080, provider: "gpu", seconds: 4.2, archived: "depth--v1.png" } });
+    expect((row(idle(ready(), { job: done }), { hasDepthMap: true }) as { text: string }).text).toBe(
+      "Depth map redone (1920×1080, 4.2 s on the GPU). The old file is kept as depth--v1.png. Turn on MAP in the Depth Maps lane to see it.",
+    );
   });
 
   it("says a map that was already there was attached, and does not claim it was made", () => {
     const text = (extra: Partial<DepthMakerJob>) => (row(idle(ready(), { job: job({ status: "done", existing: true, ...extra }) })) as { text: string }).text;
-    expect(text({ applied: true })).toBe("This picture already had a depth map. It is now this shot's.");
+    expect(text({ applied: true })).toBe("This picture already had a depth map. It is now this shot's. If it looks wrong, press OK and then Make a new one.");
     expect(text({ applied: false, note: "The picture changed." })).toBe("This picture already has a depth map.");
   });
 

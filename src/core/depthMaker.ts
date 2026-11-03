@@ -127,8 +127,9 @@ export async function fetchDepthFiles(fetchImpl: FetchLike = fetch): Promise<str
   }
 }
 
-export const startDepthJob = (picture: string, quality: DepthQuality, fetchImpl: FetchLike = fetch) =>
-  callApi<DepthJobView>(fetchImpl, "POST", "make", { picture, quality });
+/** `replace`: make a new map although the picture has one (the old file is kept beside it as depth--vN.png). */
+export const startDepthJob = (picture: string, quality: DepthQuality, replace: boolean, fetchImpl: FetchLike = fetch) =>
+  callApi<DepthJobView>(fetchImpl, "POST", "make", { picture, quality, ...(replace ? { replace: true } : {}) });
 export const startCutoutsJob = (picture: string, quality: DepthQuality, sourceMap: string | undefined, fetchImpl: FetchLike = fetch) =>
   callApi<DepthJobView>(fetchImpl, "POST", "cutouts", { picture, quality, ...(sourceMap ? { sourceMap } : {}) });
 export const startModelDownload = (ids: string[], fetchImpl: FetchLike = fetch) => callApi<DepthJobView>(fetchImpl, "POST", "models/download", { ids });
@@ -160,6 +161,8 @@ export interface DepthMakerJob {
   result: DepthMakeResult | null;
   /** The map was already on disk, so nothing was made. */
   existing: boolean;
+  /** A new map was asked for although one existed (the old file is kept beside it). */
+  replace: boolean;
   startedAt: number;
   /** A finished result is put on the shot; `applied` says it was, `note` why not when it was not. */
   applied: boolean;
@@ -188,8 +191,8 @@ export interface DepthMakerState {
   download: ModelDownload | null;
 }
 
-/** Puts the made map on the shot. Says whether it did, and why not otherwise. */
-export type ApplyDepthMap = (frameId: string, picture: string, mapRef: string) => { applied: true } | { applied: false; reason: string };
+/** Puts the made map on the shot. Says whether it did, and why not otherwise. `replaced`: the file at `mapRef` is a new one. */
+export type ApplyDepthMap = (frameId: string, picture: string, mapRef: string, replaced?: boolean) => { applied: true } | { applied: false; reason: string };
 
 /** The layers of a finished cut-out run, to put on the shot in one go. */
 export interface MadeCutouts {
@@ -218,8 +221,8 @@ export interface DepthMakerController {
   /** Ask what this computer can do. Does nothing when that is already known, unless `fresh`. */
   checkReady(fresh?: boolean): Promise<void>;
   setQuality(quality: DepthQuality): void;
-  /** Make the depth map of this shot's picture. */
-  start(frameId: string, picture: string): Promise<void>;
+  /** Make the depth map of this shot's picture. `replace`: make a new one although the picture has one (the old file is kept). */
+  start(frameId: string, picture: string, options?: { replace?: boolean }): Promise<void>;
   /** Cut the people out of this shot's picture (and make the plate and the depth map that go with them). */
   startCutouts(frameId: string, picture: string, sourceMap?: string): Promise<void>;
   /** Download these models (ids from the models list), one at a time. */
@@ -306,7 +309,7 @@ export function createDepthMaker(deps: DepthMakerDeps): DepthMakerController {
         });
         return;
       }
-      const outcome = deps.apply(job.frameId, job.picture, result.map ?? view.map);
+      const outcome = deps.apply(job.frameId, job.picture, result.map ?? view.map, job.replace && !view.existing);
       patchJob({
         ...base,
         status: "done",
@@ -355,7 +358,7 @@ export function createDepthMaker(deps: DepthMakerDeps): DepthMakerController {
     }, pollMs);
   };
 
-  const newJob = (kind: DepthMakerJob["kind"], frameId: string, picture: string): DepthMakerJob => ({
+  const newJob = (kind: DepthMakerJob["kind"], frameId: string, picture: string, replace = false): DepthMakerJob => ({
     kind,
     frameId,
     picture: plainPictureRef(picture),
@@ -368,6 +371,7 @@ export function createDepthMaker(deps: DepthMakerDeps): DepthMakerController {
     message: null,
     result: null,
     existing: false,
+    replace,
     startedAt: now(),
     applied: false,
     note: null,
@@ -414,9 +418,9 @@ export function createDepthMaker(deps: DepthMakerDeps): DepthMakerController {
       deps.onQualityChange?.(quality);
     },
 
-    start(frameId, picture) {
-      const job = newJob("depth", frameId, picture);
-      return begin(job, () => startDepthJob(job.picture, state.quality, fetchImpl));
+    start(frameId, picture, options) {
+      const job = newJob("depth", frameId, picture, Boolean(options?.replace));
+      return begin(job, () => startDepthJob(job.picture, state.quality, job.replace, fetchImpl));
     },
 
     startCutouts(frameId, picture, sourceMap) {
@@ -505,8 +509,13 @@ export type DepthRowView =
   | { kind: "unavailable" }
   /** Python or its packages are missing: one command to run once. */
   | { kind: "setup-needed"; command: string }
-  /** The button can be pressed. `note` says what will happen. */
-  | { kind: "ready"; note: string }
+  /**
+   * The button can be pressed. `note` says what will happen. `existingMap`: the picture's map file is already on disk, so the
+   * row offers two things: use it, or make a new one (the old file is kept beside it).
+   */
+  | { kind: "ready"; note: string; existingMap?: string }
+  /** The shot already has a depth map: a quiet offer to make a new one (the old file is kept beside it). */
+  | { kind: "redo"; note: string }
   /** Something else is running (for another shot, a download, or another page): one at a time. */
   | { kind: "busy"; note: string }
   | { kind: "running"; percent: number | null; phase: string; cancellable: boolean }
@@ -519,6 +528,10 @@ export function depthRowView(input: {
   frameId: string;
   picture: string | undefined;
   hasDepthMap: boolean;
+  /** The shot has cut-outs: their depth map goes with them, so it is not redone from here. */
+  hasCutouts?: boolean;
+  /** The picture's own map file (/film/depth/.../depth.png) when it is already on disk. */
+  existingMap?: string;
   state: DepthMakerState;
   now?: number;
 }): DepthRowView {
@@ -552,12 +565,13 @@ export function depthRowView(input: {
     const size = result?.width && result?.height ? `${result.width}×${result.height}` : null;
     const how = result?.provider ? ` on the ${result.provider === "gpu" ? "GPU" : "CPU"}` : "";
     const took = typeof result?.seconds === "number" ? `, ${result.seconds} s${how}` : "";
-    const made = `Depth map made${size ? ` (${size}${took})` : ""}.${gpuNotUsed(result)}`;
+    const kept = result?.archived ? ` The old file is kept as ${result.archived}.` : "";
+    const made = `Depth map ${job.replace ? "redone" : "made"}${size ? ` (${size}${took})` : ""}.${kept}${gpuNotUsed(result)}`;
     return {
       kind: "done",
       text: job.existing
         ? job.applied
-          ? "This picture already had a depth map. It is now this shot's."
+          ? "This picture already had a depth map. It is now this shot's. If it looks wrong, press OK and then Make a new one."
           : "This picture already has a depth map."
         : job.applied
           ? `${made} Turn on MAP in the Depth Maps lane to see it.`
@@ -567,7 +581,19 @@ export function depthRowView(input: {
     };
   }
 
-  if (!pictureCanHaveDepthMap(picture) || hasDepthMap) return { kind: "hidden" };
+  if (!pictureCanHaveDepthMap(picture)) return { kind: "hidden" };
+  if (hasDepthMap && input.hasCutouts) return { kind: "hidden" };
+
+  if (hasDepthMap) {
+    // Quietly offered, and only when everything is in order: nothing while checking, busy, or not set up.
+    const known = state.ready;
+    if (running(state.job?.status) || running(state.download?.status) || known === null || known === "unavailable") return { kind: "hidden" };
+    if (!known.python || !known.packages || known.busy) return { kind: "hidden" };
+    return {
+      kind: "redo",
+      note: `Replaces this picture's map with a new one from the model. ${KEPT_BESIDE} ${makeNote(known, state.quality)}${gpuSentence(known)}`,
+    };
+  }
 
   if (running(state.job?.status) || running(state.download?.status)) return { kind: "busy", note: busyNote(state, frameId) };
   const ready = state.ready;
@@ -576,9 +602,18 @@ export function depthRowView(input: {
   if (!ready.python || !ready.packages) return { kind: "setup-needed", command: DEPTH_SETUP_COMMAND };
   if (ready.busy) return { kind: "busy", note: "Something is already being made (started from another page). One thing at a time." };
 
-  const model = modelFor(ready, state.quality, "depth");
+  const existingMap = input.existingMap;
+  const lead = existingMap ? `This picture already has a depth map file (${existingMap}). Use it, or make a new one. ${KEPT_BESIDE} ` : "";
+  return { kind: "ready", note: `${lead}${makeNote(ready, state.quality)}${gpuSentence(ready)}`, ...(existingMap ? { existingMap } : {}) };
+}
+
+const KEPT_BESIDE = "The old file is not lost: it is kept next to the new one as depth--v1.png (the next free number).";
+
+/** What making a depth map will do: where it is made, with which model, what it must download first, whose licence. */
+function makeNote(ready: DepthReady, quality: DepthQuality): string {
+  const model = modelFor(ready, quality, "depth");
   const licence = model?.nonCommercial ? " Its licence is non-commercial." : "";
-  const note = !model
+  return !model
     ? "Made on this computer from this picture."
     : model.overridden
       ? model.cached
@@ -587,7 +622,6 @@ export function depthRowView(input: {
       : model.cached
         ? `Made on this computer from this picture (${model.title}).${licence}`
         : `Made on this computer from this picture. The first one downloads ${model.title} (${sizeText(model.bytes)}), once.${licence}`;
-  return { kind: "ready", note: `${note}${gpuSentence(ready)}` };
 }
 
 export type CutoutsRowView =
