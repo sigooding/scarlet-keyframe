@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { pngSize, pythonCandidates } from "./lib.mjs";
+import { RESULT_MARKER, parseResultLine, pngSize, pythonCandidates } from "./lib.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..", "..");
@@ -120,6 +120,55 @@ suite("npm run depth, end to end", () => {
     expect(sha(path.join(mapFolder, "depth.png"))).not.toBe(first);
     expect(fs.readdirSync(mapFolder).sort()).toEqual(["depth--v1.png", "depth.png"]);
   }, 90000);
+
+  describe("--json (what the editor's Make depth map button reads)", () => {
+    const lastLine = (text) => text.trim().split(/\r?\n/).pop();
+
+    beforeAll(() => {
+      fs.copyFileSync(path.join(publicDir, "film", "img", "t", "pic.jpg"), path.join(publicDir, "film", "img", "t", "pic2.jpg"));
+    });
+
+    it("ends with one @@result line that says where the map is and how big", () => {
+      const run = depth(["pic2", "--model-file", MODEL, "--json"]);
+      expect(run.status).toBe(0);
+      expect(lastLine(run.out).startsWith(RESULT_MARKER)).toBe(true);
+      const result = parseResultLine(run.out);
+      expect(result).toMatchObject({
+        ok: true,
+        mode: "make",
+        picture: "/film/img/t/pic2.jpg",
+        map: "/film/depth/t/pic2/depth.png",
+        written: true,
+        width: 1600,
+        height: 900,
+        provider: "cpu",
+        archived: null,
+      });
+      expect(result.bytes).toBe(fs.statSync(path.join(publicDir, "film", "depth", "t", "pic2", "depth.png")).size);
+      expect(typeof result.seconds).toBe("number");
+    }, 90000);
+
+    it("says so in the same line when it cannot, and still exits 1 with the message on stderr", () => {
+      const run = depth(["pic2", "--model-file", MODEL, "--json"]);
+      expect(run.status).toBe(1);
+      expect(run.err).toContain("already has a depth map");
+      const result = parseResultLine(run.out);
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain("already has a depth map");
+    }, 60000);
+
+    it("reports the copy it kept when it replaces a map", () => {
+      const run = depth(["pic2", "--replace", "--smooth", "0", "--model-file", MODEL, "--json"]);
+      expect(run.status).toBe(0);
+      expect(parseResultLine(run.out)).toMatchObject({ ok: true, written: true, archived: "depth--v1.png" });
+    }, 90000);
+
+    it("a plain run (no --json) prints no result line", () => {
+      const run = depth(["pic2", "--check", "--model-file", MODEL]);
+      expect(run.status).toBe(0);
+      expect(run.out).not.toContain(RESULT_MARKER);
+    }, 90000);
+  });
 
   it("--fit lines up a map of another shape and keeps the one that was there", () => {
     const original = path.join(work, "original.png");

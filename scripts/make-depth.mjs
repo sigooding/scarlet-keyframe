@@ -13,7 +13,7 @@
  * Needs Python with numpy, opencv-python-headless and onnxruntime: `npm run depth:setup` makes that. Node only for
  * the rest, so it runs on Windows.
  */
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -22,15 +22,17 @@ import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_MODEL, MODELS, modelCacheDir } from "./depth/models.mjs";
 import {
+  RESULT_MARKER,
   UserError,
   depthMapRefFor,
   fileForRef,
+  findPython,
   formatBytes,
   nextArchiveName,
   parseArgs,
   parseWorkerJson,
   pngSize,
-  pythonCandidates,
+  pythonHasPackages,
   resolvePicture,
 } from "./depth/lib.mjs";
 
@@ -55,27 +57,21 @@ const USAGE = `Usage:
   --model-file F   use this Depth Anything V2 .onnx file instead
   --smooth N       how soft the map is, 0-20 (a new map: default 3, as the film's own maps; --fit: default 0, detail kept)
   --gpu            use the NVIDIA GPU if onnxruntime-gpu can (npm run depth:setup -- --gpu)
+  --json           end with one line  @@result {...}  that a program can read (the editor's Make depth map button does)
 
 First time: npm run depth:setup`;
 
+// `--json`: the last line of the output is @@result {...}, for a program to read (see parseResultLine in depth/lib.mjs).
+const JSON_MODE = process.argv.slice(2).includes("--json");
+
+function emit(result) {
+  if (JSON_MODE) console.log(`${RESULT_MARKER}${JSON.stringify(result)}`);
+}
+
 function fail(message, code = 1) {
   console.error(`\n${message}\n`);
+  emit({ ok: false, message: String(message).trim() });
   process.exit(code);
-}
-
-function findPython() {
-  for (const candidate of pythonCandidates({ repoRoot: REPO_ROOT })) {
-    if (candidate.venv && !fs.existsSync(candidate.cmd)) continue;
-    const probe = spawnSync(candidate.cmd, [...candidate.args, "-c", "import sys; print(sys.version_info[0]*100+sys.version_info[1])"], {
-      encoding: "utf8",
-    });
-    if (probe.status === 0 && Number(probe.stdout.trim()) >= 309) return candidate;
-  }
-  return null;
-}
-
-function hasPackages(python) {
-  return spawnSync(python.cmd, [...python.args, "-c", "import cv2, numpy, onnxruntime"], { stdio: "ignore" }).status === 0;
 }
 
 async function sha256Of(file) {
@@ -205,11 +201,11 @@ async function main() {
     );
   }
 
-  const python = findPython();
+  const python = findPython({ repoRoot: REPO_ROOT });
   if (!python) {
     throw new UserError("Python 3.9 or newer was not found.\nInstall it from https://www.python.org/downloads/ (tick \"Add python.exe to PATH\"), then run: npm run depth:setup");
   }
-  if (!hasPackages(python)) {
+  if (!pythonHasPackages(python)) {
     throw new UserError(`The Python packages for depth maps are not installed (${python.label}).\nRun once: npm run depth:setup`);
   }
   const modelFile = await ensureModel(opts.model ?? DEFAULT_MODEL, opts.modelFile);
@@ -252,6 +248,7 @@ async function main() {
       );
     }
     if (!result.written) {
+      emit({ ok: true, mode, picture: picture.ref, map: mapRef, written: false, reason: result.reason ?? null });
       if (mode === "check") {
         const needs = result.reason !== "already-fits" && result.score_after - result.score_before >= 0.04;
         console.log(needs ? `\nThe map is out of line. Fix it with: npm run depth -- ${opts.picture} --fit` : "\nThe map already lines up with the picture. Nothing to do.");
@@ -276,6 +273,20 @@ async function main() {
     if (result.check_image) console.log(`Check it by eye (the map's edges in red, before and after): ${path.relative(REPO_ROOT, result.check_image)}`);
     console.log("Pictures with people in them also need cut-outs and a background plate, or they stretch as the camera moves (scarlett-witness tools/make-depth-layers.py).");
     if (!archived) console.log(`This picture had no map before: it only plays ${mapRef} once its look names it (the Inspector's depth map field).`);
+    emit({
+      ok: true,
+      mode,
+      picture: picture.ref,
+      map: mapRef,
+      written: true,
+      width: result.width,
+      height: result.height,
+      bytes: fs.statSync(mapFile).size,
+      model: result.model,
+      provider: result.provider === "CUDAExecutionProvider" ? "gpu" : "cpu",
+      seconds: result.seconds,
+      archived: archived || null,
+    });
     return 0;
   } finally {
     fs.rmSync(temporary, { force: true });

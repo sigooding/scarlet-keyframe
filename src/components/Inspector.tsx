@@ -35,6 +35,7 @@ import {
 import type { CinematicPatch } from "../core/lightsFlares";
 import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
 import { LightsFlaresPanel, type PointEditState } from "./LightsFlaresPanel";
+import { MakeDepthMapForShot, type DepthMakerBinding } from "./MakeDepthMapRow";
 import {
   CUTOUT_LAYER_COLORS,
   defaultDepthForCutoutLayer,
@@ -197,6 +198,8 @@ interface InspectorProps {
   /** The viewer is still dissolving into this shot, and a button to jump past the dissolve. */
   dissolvingIn?: boolean;
   onShowShot?: () => void;
+  /** "Make depth map" in the Picture section: the controller's state and what the row can ask for. */
+  depthMaker?: DepthMakerBinding;
   onApplyEffects?: (patch: CinematicPatch, label: string) => void;
   onPreviewEffects?: (patch: CinematicPatch) => void;
   onMove: (delta: -1 | 1) => void;
@@ -1050,6 +1053,14 @@ export function Inspector(props: InspectorProps) {
                   Remove picture
                 </button>
               </div>
+              {!beat.gap && frame.picture && props.depthMaker && (
+                <MakeDepthMapForShot
+                  frameId={frame.id}
+                  picture={frame.picture}
+                  hasDepthMap={Boolean(effectiveCin?.depthMap)}
+                  maker={props.depthMaker}
+                />
+              )}
               {beat.shotDescription !== undefined && (
                 <div className="storyboard-description-field">
                   <label className="control-label" htmlFor="shot-description">Shot description</label>
