@@ -203,6 +203,16 @@ export function pngSize(file) {
   }
 }
 
+/** The last few lines a worker printed to stderr, as a block to put after an error message ("" when it printed nothing). */
+export function lastWords(stderr, lines = 6) {
+  const kept = String(stderr ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim())
+    .slice(-lines);
+  return kept.length ? `\nIts last words:\n${kept.map((line) => `  ${line.length > 300 ? `${line.slice(0, 299)}…` : line}`).join("\n")}` : "";
+}
+
 export function formatBytes(bytes) {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
   if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;

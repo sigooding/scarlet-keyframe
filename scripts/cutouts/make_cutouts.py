@@ -39,7 +39,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "depth"))
-from make_depth import MEAN, STD, depth_of, fail, load_libraries, make_session, read_gray01, read_rgb, soften  # noqa: E402
+from make_depth import MEAN, STD, depth_of, fail, load_libraries, make_session, read_gray01, read_rgb, run_guarded, soften  # noqa: E402
 
 PAD = 0.06  # every box grows by this share of its size: hair and hems are not clipped
 SHARE = 0.15  # a figure must be at least this share of the largest to be cut out
@@ -452,4 +452,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    run_guarded(main)

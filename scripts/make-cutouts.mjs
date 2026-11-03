@@ -24,6 +24,7 @@ import {
   fileForRef,
   findPython,
   formatBytes,
+  lastWords,
   nextRunName,
   parseWorkerJson,
   pythonHasGpu,
@@ -94,13 +95,20 @@ export function parseCutoutArgs(argv) {
 
 function runWorker(python, args) {
   return new Promise((resolve) => {
-    const child = spawn(python.cmd, [...python.args, WORKER, ...args], { cwd: REPO_ROOT, stdio: ["ignore", "pipe", "inherit"] });
+    const child = spawn(python.cmd, [...python.args, WORKER, ...args], { cwd: REPO_ROOT, stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
+    let stderr = "";
     child.stdout.on("data", (chunk) => {
       stdout += chunk;
     });
-    child.on("error", (error) => resolve({ code: -1, stdout, error }));
-    child.on("close", (code) => resolve({ code, stdout }));
+    // The worker's messages still reach the terminal (and the editor's server); the last of them are kept so that a worker that
+    // dies without an answer can say why.
+    child.stderr.on("data", (chunk) => {
+      process.stderr.write(chunk);
+      stderr = (stderr + chunk).slice(-4000);
+    });
+    child.on("error", (error) => resolve({ code: -1, stdout, stderr, error }));
+    child.on("close", (code) => resolve({ code, stdout, stderr }));
   });
 }
 
@@ -156,10 +164,10 @@ async function main() {
     ...(source ? ["--source-depth", source.file] : ["--depth-model", files.depth]),
     ...(gpu ? ["--gpu"] : []),
   ];
-  const { code, stdout, error } = await runWorker(python, args);
+  const { code, stdout, stderr, error } = await runWorker(python, args);
   if (error) throw new UserError(`Could not run ${python.label}: ${error.message}`);
   const result = parseWorkerJson(stdout);
-  if (!result) throw new UserError(`The cut-out worker stopped without an answer (exit code ${code}).`);
+  if (!result) throw new UserError(`The cut-out worker stopped without an answer (exit code ${code}).${lastWords(stderr)}`);
   if (!result.ok) {
     if (result.error === "missing-python-packages") throw new UserError(`The Python package "${result.module}" is missing (${python.label}).\nRun once: npm run depth:setup`);
     throw new UserError(result.message || `The cut-out worker failed (${result.error}).`);
