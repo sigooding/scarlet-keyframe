@@ -156,7 +156,7 @@ import {
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
 import { savedStatusText } from "./core/saveLocation";
-import { plainPictureRef, type ApplyDepthMap } from "./core/depthMaker";
+import { plainPictureRef, type ApplyCutouts, type ApplyDepthMap } from "./core/depthMaker";
 import { useDepthMaker } from "./core/useDepthMaker";
 import { moveTo, pointMarkers as buildPointMarkers, sameTarget, targetExists, type CinematicPatch } from "./core/lightsFlares";
 import type { CinematicSettings } from "../vendor/scarlet-reel/types";
@@ -1996,9 +1996,10 @@ export default function App() {
     [previewProjectEdit, selectedFrame],
   );
 
-  // "Make depth map" (Clip tab, Picture section). The controller lives here, not in the Inspector, so a map being made is
-  // not lost when another shot is chosen. The finished map goes onto the shot it was started for, as one undo step and
-  // the same way a map chosen with Browse does (setFrameDepthMap), unless that shot's picture changed in the meantime.
+  // "Make depth map" and "Make cutouts" (Clip tab, Picture section). The controller lives here, not in the Inspector, so
+  // something being made is not lost when another shot is chosen. The finished layers go onto the shot they were started for,
+  // as one undo step and the same way a map chosen with Browse does (setFrameDepthMap), unless that shot's picture changed in
+  // the meantime. It is always ONE picture, the selected shot's: never a batch.
   const applyMadeDepthMap = useCallback<ApplyDepthMap>(
     (frameId, picture, mapRef) => {
       const frame = frames.find((item) => item.id === frameId);
@@ -2011,7 +2012,32 @@ export default function App() {
     },
     [editProject, frames],
   );
-  const depthMaker = useDepthMaker(applyMadeDepthMap);
+  const applyMadeCutouts = useCallback<ApplyCutouts>(
+    (frameId, picture, made) => {
+      const frame = frames.find((item) => item.id === frameId);
+      if (!frame) return { applied: false, reason: "That shot is no longer in the film." };
+      if (!frame.picture || plainPictureRef(frame.picture) !== picture) {
+        return { applied: false, reason: "This shot's picture changed while the cut-outs were being made." };
+      }
+      const cinematic = effectiveFrameCinematic(frame) as CinematicSettings | undefined;
+      // The depth map, its plate and the cut-outs go on together (they only work together), with the default amount a
+      // map gets when it is chosen with Browse.
+      const patch: CinematicPatch = {
+        depthMap: made.depthMap,
+        depthPlate: made.plate,
+        depthCutouts: made.cutouts.slice(0, 4).map(({ image, depth }) => ({ image, depth })),
+        ...(typeof cinematic?.depthAmount === "number" ? {} : { depthAmount: 0.4 }),
+      };
+      editProject((current) => setEffectFields(current, frameId, patch), "Cutouts made");
+      const mode = String(cinematic?.mode ?? "pan");
+      return {
+        applied: true,
+        caution: mode === "dolly" || mode === "dolly-zoom" ? "This shot's camera is a dolly, and the depth camera is not used with a dolly, so you will not see them move in 3D." : undefined,
+      };
+    },
+    [editProject, frames],
+  );
+  const depthMaker = useDepthMaker({ apply: applyMadeDepthMap, applyCutouts: applyMadeCutouts });
   const depthMakerBinding = useMemo(
     () => ({
       state: depthMaker.state,
@@ -2020,6 +2046,9 @@ export default function App() {
         void depthMaker.controller.checkReady(fresh);
       },
       onMake: (frameId: string, picture: string) => void depthMaker.controller.start(frameId, picture),
+      onMakeCutouts: (frameId: string, picture: string, sourceMap?: string) => void depthMaker.controller.startCutouts(frameId, picture, sourceMap),
+      onDownload: (ids: string[]) => void depthMaker.controller.downloadModels(ids),
+      onQuality: (quality: "best" | "fast") => depthMaker.controller.setQuality(quality),
       onCancel: () => void depthMaker.controller.cancel(),
       onDismiss: () => depthMaker.controller.dismiss(),
     }),

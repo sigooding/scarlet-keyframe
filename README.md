@@ -83,15 +83,15 @@ a 1920-wide picture) and `--fit` writes `exports/depth/<picture>-fit-check.jpg`:
 red, before and after, to look at.
 
 Nothing is overwritten without a copy: the map that was there is first copied to `depth--v1.png`, `depth--v2.png` ...
-in the same folder (copy one back over `depth.png` to undo). The model (`small` 99 MB, `base` 389 MB by default,
-`large` 1.3 GB; `--model large` for the most detail) is downloaded once into a cache folder outside the repository
-(`%LOCALAPPDATA%\scarlet-keyframe\models` on Windows; `SCARLET_KEYFRAME_MODELS` changes it) and checked against a
-pinned size and SHA-256. A new map is softened like the film's own (`--smooth`, default 3); a fitted map is not
+in the same folder (copy one back over `depth.png` to undo). The model (`small` 99 MB, Apache-2.0; `base` 389 MB by
+default and `large` 1.3 GB, both **CC-BY-NC-4.0, non-commercial use only**; `--model large` for the most detail) is
+downloaded once into a cache folder outside the repository (see *Models* below; `SCARLET_KEYFRAME_MODELS` changes it)
+and checked against a pinned size and SHA-256. A new map is softened like the film's own (`--smooth`, default 3); a fitted map is not
 (default 0) unless you ask, because softening trades the doubling for a rubbery smear.
 
 This makes the *depth-only* kind of map. A picture with **people** in it also needs cut-outs and a background plate,
-or they stretch as the camera moves (scarlett-witness `tools/make-depth-layers.py`). A map from a model is a
-relative guess: look at it in the app before it ships. `npm test` covers the command with a tiny stand-in model
+or they stretch as the camera moves: that is `npm run cutouts`, below. A map from a model is a relative guess: look at
+it in the app before it ships. `npm test` covers the command with a tiny stand-in model
 (`scripts/depth/fixtures/tiny-depth.onnx`), and `python scripts/depth/test_fit.py` checks the fitting maths alone.
 
 ### In the editor: Make depth map
@@ -102,12 +102,91 @@ from disk has none, and the button says so) to run `npm run depth` for that pict
 download the first time, then the making; **Cancel** stops it), and puts the finished map on the shot as one undo step,
 the same way Browse does. Run `npm run depth:setup` once first; the button tells you if it is missing. It uses your
 NVIDIA GPU when `npm run depth:setup -- --gpu` was run, otherwise the CPU; `SCARLET_KEYFRAME_DEPTH_MODEL_FILE` points
-it at a model file of your own.
+it at a model file of your own. Which depth model it uses follows the **Best / Fast** switch in the *Models* list
+(Best: Depth Anything V2 Large, Fast: Small).
 
 If the picture already has a map file, that one is used and nothing is made. The button never replaces a map (that is
 still `--replace` on the command line) and only answers requests from the editor page itself, one map at a time.
-Pictures with people in them still need cut-outs: the button says so when it is done. Turn on **MAP** in the Depth
-Maps lane to look at the greyscale map.
+Pictures with people in them still need cut-outs: the button says so when it is done, and **Make cutouts** (below)
+is the next button down. Turn on **MAP** in the Depth Maps lane to look at the greyscale map.
+
+## Cut-outs for people (`npm run cutouts`)
+
+A depth map alone stretches a person like rubber as the camera moves. A picture with people in it needs each person cut
+out as a layer of their own, what was behind them painted back in (the **plate**), and a depth map with the people
+painted out of it. `npm run cutouts` makes all of that for **one picture at a time** (there is no batch mode), on your
+own machine, with the same steps as scarlett-witness's `tools/make-depth-layers.py`:
+
+1. **YOLOX-X** finds the people (a box each; the film's size rule keeps real people and drops specks).
+2. **BiRefNet** cuts each one out: a soft matte at 1024x1024 from a square crop around the box.
+3. **LaMa** paints the background back in behind them: the plate.
+4. **Depth Anything V2** makes the depth map (or `--source-map` keeps a map you already have), with the people painted
+   out of it. Each person is given the depth at their feet, or at their body when their feet are out of the shot.
+5. A **review sheet** (`review.jpg`: the picture with its boxes, the cut-outs on green, the plate, the depth map) and a
+   list of things to look at: a cut-out clipped at the edge of its box, one nearly empty, a person-shaped thing still in
+   the plate, smaller people left out. The engine plays at most four cut-outs per shot.
+
+    npm run cutouts -- 75-one-desperate-blow                  # best models
+    npm run cutouts -- 75-one-desperate-blow --quality fast   # small models, permissive licences
+    npm run cutouts -- 75-one-desperate-blow --source-map /film/depth/s74/75-one-desperate-blow/depth.png
+
+Everything goes into a **new** folder beside the picture's depth map, `public/film/depth/<folder>/<picture>/people-1/`
+(`people-2` the next time): `depth.png`, `plate.jpg`, `cutout-1.png` ... and `review.jpg`. It is written under a
+`.part` name and renamed when whole, so a stop or a failure leaves nothing half-made, and nothing that was there before
+is overwritten or deleted. The command downloads any missing model first (after the same size and SHA-256 check as
+the depth command).
+
+**What it cannot do.** The finder looks for whole people. A close-up of a hand, a lone face, or an object is not found
+(use the film's own `people: true` workflow for those), and a face on a television or in a photograph can be counted as
+a person; the review sheet and the list are there to catch both. Nobody in the picture means nothing is written, and it
+says so. The models run on the CPU unless `npm run depth:setup -- --gpu` was run (onnxruntime-gpu, CUDA 12 + cuDNN 9);
+the code asks for the NVIDIA card and falls back to the CPU, but the GPU path has not been tried on a real card.
+
+### Models (`npm run models`)
+
+| What it does | Model | Best | Fast | Size | Licence |
+| --- | --- | --- | --- | --- | --- |
+| finds the people | YOLOX-X | yes | yes | 396 MB | Apache-2.0 |
+| cuts them out | BiRefNet general | full, 973 MB | light, 224 MB | | MIT |
+| paints the plate | LaMa | yes | yes | 93 MB | Apache-2.0 |
+| makes the depth map | Depth Anything V2 | Large, 1.3 GB | Small, 99 MB | | CC-BY-NC-4.0 (Large), Apache-2.0 (Small) |
+
+**Best** is 2.8 GB in all, **Fast** 0.8 GB. **Best includes a non-commercial licence** (Depth Anything V2 Large; the Base
+size is the same): fine for working out the look of a film, not for selling or showing it commercially, so the editor
+says so wherever Best is offered. Fast is permissive from top to bottom. The finder was chosen by trying it: on 45 of
+the film's pictures with 79 people boxes drawn by hand, YOLOX-X found 95% of them (U2-Net 86%, and scanning in tiles
+did not help); BiRefNet's full and light sizes came out nearly identical on a clean crop, the light one faster.
+
+    npm run models                        # every model: what for, size, licence, on this computer or not
+    npm run models -- best                # download what Best needs (or: fast)
+    npm run models -- matte-best inpaint  # or single models, by id
+
+Models are kept outside the repository: `%LOCALAPPDATA%\scarlet-keyframe\models` on Windows,
+`~/Library/Caches/scarlet-keyframe/models` on macOS, `$XDG_CACHE_HOME` (else `~/.cache`)`/scarlet-keyframe/models`
+elsewhere; `SCARLET_KEYFRAME_MODELS` changes it. You can also download a model yourself from its **Source** link and
+put the file there under its own name: it is checked once, then used. `SCARLET_KEYFRAME_CUTOUT_MODEL_FILES`
+(`{"people":"...","matte":"...","inpaint":"..."}`) and `SCARLET_KEYFRAME_DEPTH_MODEL_FILE` point the buttons at model
+files of your own, `SCARLET_KEYFRAME_PYTHON` at another Python.
+
+### In the editor: Make cutouts and Models
+
+Under **Make depth map**, a shot whose picture is one of the film's and that has no cut-outs yet shows **Make cutouts**.
+It works on **the selected shot only**: it asks the editor's server to run `npm run cutouts` for that one picture, shows
+the step it is on (1 of 5 finding the people ... 5 of 5 checking and writing the files; **Cancel** stops it and cleans
+up), and when it is done puts the depth map, the plate and the cut-outs on the shot as **one undo step**, with the
+review sheet shown under the button and the list of things to look at. Choosing another shot meanwhile is fine: the
+layers go to the shot they were made for, and the other shots' buttons wait ("one thing at a time", also across two open
+pages). If the shot's camera is a dolly it says that the depth camera is not used there.
+
+If a model is not on the computer yet, the button turns into **Download models (size)** and the **Models** list below it
+opens. For each model of the chosen quality the list shows what it is for, its size and licence, a **Source** link to
+the project it comes from, a **File** link to the file itself (to download by hand and put in the models folder), and a
+**Download** button of its own that has the editor's server fetch it (nothing is downloaded until a button is pressed;
+**Cancel** removes the half-downloaded file), plus **Download all that are missing** and the **Best / Fast** switch
+(remembered in this browser). The first time a model is used the command checks its checksum, which the button shows as
+"Checking ... (once)"; after that it is trusted while its size is unchanged. A shot that already has a depth map keeps
+it: the cut-outs paint the people out of that map instead of making a new one, and no depth model is needed. If nobody
+is found in the picture, nothing is written and the row says so.
 
 ## Miami Vice - Salt Water
 
