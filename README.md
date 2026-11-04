@@ -357,6 +357,13 @@ two-line cues balanced. Cues are timed across the words as they are spoken (the 
 skipped), in proportion to their length. Cues already authored in a cut that are too long are split across their own span.
 The CC lane, the viewer, the .srt/.vtt files and the MP4 burn-in all use the same cues. Code: `src/core/captionCues.ts`.
 
+**Who a caption is credited to.** In the Clip tab's Caption section the top row is the *shot's* speaker (from the voice line).
+Each caption below has its own **Speaker** field: type a name or choose one (the story's characters and NARRATOR), press Enter,
+and only that caption is credited to them in the viewer and the MP4 burn-in; clear the field, or type the shot's own speaker, to
+follow the shot again. **ALL** gives every caption of the shot the same speaker. **Narration** shows a caption in italics:
+NARRATOR turns it on, and a person speaking in a narration shot turns it off. Names are kept upper case, as the story shows them.
+Every change is one undo step. Code: `setCaptionSpeaker`, `setAllCaptionSpeakers`, `setCaptionNarration` in `src/core/captions.ts`.
+
 ## Track effects (reverb, delay, echo)
 
 Each audio track (Voice, SFX, Music, Ambience) has an **FX** button on its header. The panel has a preset list (Small room,

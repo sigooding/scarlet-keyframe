@@ -10,6 +10,11 @@ import {
 import {
   addCaptionInGap,
   captionMetrics,
+  isNarrationBeat,
+  normalizeSpeakerName,
+  setAllCaptionSpeakers,
+  setCaptionNarration,
+  setCaptionSpeaker,
   captionsDifferFromRecordedLine,
   effectiveCaptionsForBeat,
   hasAuthoredCaptions,
@@ -47,7 +52,7 @@ import {
 } from "../core/depthLanes";
 import { getEffectValue } from "../core/edits";
 import { pictureLabel } from "../core/helpers";
-import type { BeatAnimation, KeyEasing, Keyframe, ProjectState } from "../core/model";
+import { storySpeakerLabels, type BeatAnimation, type KeyEasing, type Keyframe, type ProjectState, type StoryLike } from "../core/model";
 import { formatTimecode, sceneProseFrames } from "../core/timing";
 import {
   ANIM_PROP_META,
@@ -1118,6 +1123,7 @@ export function Inspector(props: InspectorProps) {
 
             <CaptionInspectorSection
               frame={frame}
+              speakerOptions={storySpeakerLabels(project.story as StoryLike)}
               clipDurationFrames={clipDurationFrames}
               selectedCaptionIndices={props.selectedCaptionIndices}
               canMergeCaptions={Boolean(props.canMergeCaptions)}
@@ -2076,6 +2082,7 @@ function FieldToggle({
 
 function CaptionInspectorSection({
   frame,
+  speakerOptions,
   clipDurationFrames,
   selectedCaptionIndices,
   canMergeCaptions,
@@ -2085,6 +2092,8 @@ function CaptionInspectorSection({
   onMergeCaptions,
 }: {
   frame: Keyframe;
+  /** Everyone a caption can be credited to (the story's characters and NARRATOR), for the speaker field's suggestions. */
+  speakerOptions: string[];
   clipDurationFrames: number;
   selectedCaptionIndices?: number[];
   canMergeCaptions: boolean;
@@ -2102,6 +2111,10 @@ function CaptionInspectorSection({
   const captions = effectiveCaptionsForBeat(beat, clipDurationFrames);
   const differsFromRecorded = captionsDifferFromRecordedLine(beat, clipDurationFrames);
   const nextGapList = addCaptionInGap(beat, clipDurationFrames);
+  // who the captions of this shot are credited to unless one says otherwise
+  const shotSpeaker = frame.speaker || "NARRATOR";
+  const defaults = { speaker: shotSpeaker, isNarration: isNarrationBeat(beat) };
+  const listId = `caption-speakers-${frame.id}`;
 
   return (
     <section
@@ -2114,7 +2127,9 @@ function CaptionInspectorSection({
       />
 
       <div className="caption-speaker-row">
-        <span className="control-label">Speaker</span>
+        <span className="control-label" title="Who this shot is credited to. A caption can be credited to somebody else below.">
+          Shot speaker
+        </span>
         <output
           className="caption-speaker-readonly"
           data-testid="caption-speaker-readonly"
@@ -2122,6 +2137,11 @@ function CaptionInspectorSection({
           {frame.speaker || "Narrator"}
         </output>
       </div>
+      <datalist id={listId}>
+        {speakerOptions.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
 
       {differsFromRecorded && (
         <div
@@ -2217,6 +2237,45 @@ function CaptionInspectorSection({
                   }}
                 />
 
+                <div className="caption-card-speaker-row">
+                  <CaptionSpeakerBox
+                    index={idx}
+                    value={cap.speaker ?? ""}
+                    placeholder={shotSpeaker}
+                    listId={listId}
+                    onCommit={(name) => {
+                      const next = setCaptionSpeaker(beat, clipDurationFrames, idx, name, defaults);
+                      onCommitCaptions?.(next, "Caption speaker changed", [idx]);
+                    }}
+                  />
+                  <label className="caption-narration-toggle" title="Shown in italics, as narration">
+                    <input
+                      type="checkbox"
+                      data-testid={`inspector-caption-narration-${idx}`}
+                      checked={cap.isNarration ?? defaults.isNarration}
+                      onChange={(e) => {
+                        const next = setCaptionNarration(beat, clipDurationFrames, idx, e.target.checked, defaults);
+                        onCommitCaptions?.(next, "Caption narration changed", [idx]);
+                      }}
+                    />
+                    <span>Narration</span>
+                  </label>
+                  {captions.length >= 2 && cap.speaker !== undefined && (
+                    <button
+                      type="button"
+                      className="field-reset"
+                      data-testid={`inspector-caption-speaker-all-${idx}`}
+                      title={`Credit every caption of this shot to ${cap.speaker}`}
+                      onClick={() => {
+                        const next = setAllCaptionSpeakers(beat, clipDurationFrames, cap.speaker ?? "", defaults);
+                        onCommitCaptions?.(next, "Caption speakers changed", [idx]);
+                      }}
+                    >
+                      ALL
+                    </button>
+                  )}
+                </div>
+
                 <div className="caption-timecodes-row">
                   <CaptionTimecodeInput
                     label="In"
@@ -2297,6 +2356,75 @@ function CaptionInspectorSection({
         </button>
       </div>
     </section>
+  );
+}
+
+/** Who one caption is credited to. Empty means the shot's speaker (shown as the hint). Chosen from the list, or typed. */
+function CaptionSpeakerBox({
+  index,
+  value,
+  placeholder,
+  listId,
+  onCommit,
+}: {
+  index: number;
+  value: string;
+  placeholder: string;
+  listId: string;
+  onCommit: (name: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  // Enter and Escape end the edit by taking the focus away, which would commit once more (with the draft as it was before
+  // Escape threw it away): this says the next blur has already been dealt with.
+  const blurHandled = useRef(false);
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const commit = () => {
+    // the same name, however it was typed, is no change
+    if (normalizeSpeakerName(draft) === normalizeSpeakerName(value)) {
+      setDraft(value);
+      return;
+    }
+    onCommit(draft);
+  };
+
+  return (
+    <label className="caption-speaker-field">
+      <span className="control-label">Speaker</span>
+      <input
+        type="text"
+        className="text-control caption-speaker-input"
+        aria-label={`Caption ${index + 1} speaker`}
+        data-testid={`inspector-caption-speaker-${index}`}
+        list={listId}
+        value={draft}
+        placeholder={placeholder}
+        title={value ? "Credited to this person. Clear it to follow the shot's speaker again." : `Follows the shot's speaker (${placeholder}). Type or choose somebody else.`}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          if (blurHandled.current) {
+            blurHandled.current = false;
+            return;
+          }
+          commit();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+            blurHandled.current = true;
+            (e.target as HTMLInputElement).blur();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            setDraft(value);
+            blurHandled.current = true;
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+      />
+    </label>
   );
 }
 

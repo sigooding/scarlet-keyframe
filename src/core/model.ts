@@ -441,6 +441,19 @@ export function speakerLabel(story: StoryLike, characterId?: string): string {
   return characterId.replace(/^nw_/, "").replace(/[_-]+/g, " ").toUpperCase();
 }
 
+/** Every name a caption can be credited to: the story's characters as they are shown on screen, and NARRATOR (first). */
+export function storySpeakerLabels(story: StoryLike): string[] {
+  const names = new Set<string>(["NARRATOR"]);
+  const chars = story.characters;
+  const ids = Array.isArray(chars)
+    ? chars.map((item: AnyRecord) => (isRecord(item) ? String(item.id ?? "") : ""))
+    : isRecord(chars)
+      ? Object.keys(chars)
+      : [];
+  for (const id of ids) if (id) names.add(speakerLabel(story, id));
+  return [...names].sort((a, b) => (a === "NARRATOR" ? -1 : b === "NARRATOR" ? 1 : a.localeCompare(b)));
+}
+
 export function framePicture(frame: Keyframe): string | undefined {
   return frame.picture;
 }

@@ -9,12 +9,17 @@ import {
   makeCaptionsSrt,
   makeCaptionsVtt,
   mergeAdjacentCaptions,
+  normalizeSpeakerName,
+  resolveTimelineCaptions,
+  setAllCaptionSpeakers,
+  setCaptionNarration,
+  setCaptionSpeaker,
   splitCaptionAtCursor,
   splitCaptionAtFrame,
   updateCaptionText,
 } from "./captions";
 import { resetBeatCaptions, setBeatCaptions, setStoryCaptionStyle } from "./edits";
-import { buildKeyframes, createProjectState, type StoryLike } from "./model";
+import { buildKeyframes, createProjectState, storySpeakerLabels, type StoryLike } from "./model";
 
 function makeCaptionFixture(): StoryLike {
   return {
@@ -264,5 +269,91 @@ describe("caption-only playhead split", () => {
     for (const [index, cut] of [[0, 5], [0, 20], [1, 10]])
       expect(splitCaptionAtFrame(beat, 30, index, cut).didSplit).toBe(false);
     expect(splitCaptionAtFrame({ ...beat, captions: [{ text: "Hello", inFrame: 5, outFrame: 20 }] }, 30, 0, 10).didSplit).toBe(false);
+  });
+});
+
+
+describe("changing who a caption is credited to", () => {
+  const twoCaptions = (extra: Record<string, unknown> = {}) => ({
+    id: "b2",
+    characterId: "nw_daniel",
+    text: "ignored",
+    captions: [
+      { text: "The fire began in two places.", inFrame: 0, outFrame: 60, ...extra },
+      { text: "Fires don't do that.", inFrame: 60, outFrame: 120 },
+    ],
+  });
+  const person = { speaker: "DANIEL", isNarration: false };
+  const narration = { speaker: "NARRATOR", isNarration: true };
+
+  it("a speaker is shown the way the story shows them: trimmed, one space, upper case", () => {
+    expect(normalizeSpeakerName("  mrs.   noda ")).toBe("MRS. NODA");
+    expect(normalizeSpeakerName("")).toBe("");
+  });
+
+  it("credits one caption to somebody else and leaves the others alone", () => {
+    const next = setCaptionSpeaker(twoCaptions(), 120, 0, "ishida", person);
+    expect(next[0]).toEqual({ text: "The fire began in two places.", inFrame: 0, outFrame: 60, speaker: "ISHIDA" });
+    expect(next[1]).toEqual({ text: "Fires don't do that.", inFrame: 60, outFrame: 120 });
+  });
+
+  it("an empty name, or the shot's own speaker, goes back to following the shot (no override is kept)", () => {
+    const credited = twoCaptions({ speaker: "ISHIDA", isNarration: false });
+    expect(setCaptionSpeaker(credited, 120, 0, "", person)[0]).toEqual({ text: "The fire began in two places.", inFrame: 0, outFrame: 60 });
+    expect(setCaptionSpeaker(credited, 120, 0, "Daniel", person)[0]).not.toHaveProperty("speaker");
+    expect(setCaptionSpeaker(credited, 120, 0, "Daniel", person)[0]).not.toHaveProperty("isNarration");
+  });
+
+  it("NARRATOR is narration (italic); a person speaking in a narration shot is not", () => {
+    expect(setCaptionSpeaker(twoCaptions(), 120, 0, "Narrator", person)[0]).toMatchObject({ speaker: "NARRATOR", isNarration: true });
+    expect(setCaptionSpeaker(twoCaptions(), 120, 0, "Jack", narration)[0]).toMatchObject({ speaker: "JACK", isNarration: false });
+    // a person in a shot that is not narration needs no flag
+    expect(setCaptionSpeaker(twoCaptions(), 120, 0, "Jack", person)[0]).not.toHaveProperty("isNarration");
+    // back to the narrator's own shot: no override at all
+    expect(setCaptionSpeaker(twoCaptions({ speaker: "JACK", isNarration: false }), 120, 0, "narrator", narration)[0]).toEqual({ text: "The fire began in two places.", inFrame: 0, outFrame: 60 });
+  });
+
+  it("an index that is not there changes nothing", () => {
+    const base = effectiveCaptionsForBeat(twoCaptions(), 120);
+    expect(setCaptionSpeaker(twoCaptions(), 120, 5, "ISHIDA", person)).toEqual(base);
+    expect(setCaptionNarration(twoCaptions(), 120, -1, true, person)).toEqual(base);
+  });
+
+  it("credits every caption of the shot at once, and clears them all together", () => {
+    const all = setAllCaptionSpeakers(twoCaptions(), 120, "ishida", person);
+    expect(all.map((cap) => cap.speaker)).toEqual(["ISHIDA", "ISHIDA"]);
+    const cleared = setAllCaptionSpeakers({ ...twoCaptions(), captions: all }, 120, "", person);
+    expect(cleared.every((cap) => cap.speaker === undefined)).toBe(true);
+  });
+
+  it("shows one caption as narration or not; matching what the shot does anyway leaves no override", () => {
+    expect(setCaptionNarration(twoCaptions(), 120, 0, true, person)[0]).toMatchObject({ isNarration: true });
+    expect(setCaptionNarration(twoCaptions({ isNarration: true }), 120, 0, false, person)[0]).not.toHaveProperty("isNarration");
+    expect(setCaptionNarration(twoCaptions(), 120, 0, false, narration)[0]).toMatchObject({ isNarration: false });
+  });
+
+  it("a caption on a shot with no authored captions becomes authored, with the new speaker", () => {
+    const beat = { id: "b9", characterId: "nw_daniel", text: "The fire began in two places at once." };
+    const next = setCaptionSpeaker(beat, 120, 0, "Ishida", person);
+    expect(next).toHaveLength(1);
+    expect(next[0]).toMatchObject({ text: "The fire began in two places at once.", speaker: "ISHIDA" });
+  });
+
+  it("goes through a real project edit and the timeline shows the new speaker, only on that caption", () => {
+    const project = makeProject();
+    const beat = project.story.scenes[0].dialogueBeats![1];
+    const split = splitCaptionAtFrame(beat, 120, 0, 60).captions;
+    const base = setBeatCaptions(project, "b2", split, 120);
+    const credited = setBeatCaptions(base, "b2", setCaptionSpeaker(base.story.scenes[0].dialogueBeats![1], 120, 0, "Ishida", person), 120);
+    const frames = buildKeyframes(credited.story);
+    const daniel = frames.find((frame) => frame.id === "b2")!;
+    const resolved = resolveTimelineCaptions([{ keyframe: daniel, startFrame: 0, durationFrames: 120 }]);
+    expect(resolved.map((cap) => cap.speaker)).toEqual(["ISHIDA", daniel.speaker]);
+  });
+
+  it("the story's characters are offered as speakers, NARRATOR first", () => {
+    expect(storySpeakerLabels(makeCaptionFixture())).toEqual(["NARRATOR", "DANIEL"]);
+    expect(storySpeakerLabels({ id: "x", title: "x", startSceneId: "s", scenes: [], characters: { nw_jack: { name: "Jack" }, nw_vera: {} } } as StoryLike)).toEqual(["NARRATOR", "JACK", "VERA"]);
+    expect(storySpeakerLabels({ id: "x", title: "x", startSceneId: "s", scenes: [] } as StoryLike)).toEqual(["NARRATOR"]);
   });
 });

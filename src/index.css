@@ -9039,3 +9039,41 @@ kbd {
   display: inline-flex;
   gap: 6px;
 }
+
+/* A caption's own speaker (Inspector > Caption) */
+.caption-card-speaker-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.caption-speaker-field {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.caption-speaker-input {
+  width: 100%;
+  font-family: var(--mono);
+  text-transform: uppercase;
+}
+
+.caption-speaker-input::placeholder {
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.caption-narration-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 5px;
+  font-size: 11px;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
