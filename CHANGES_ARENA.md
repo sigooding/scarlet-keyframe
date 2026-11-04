@@ -266,3 +266,80 @@ surveillance van, the warehouse loading dock, the dog track, the rooftops, the m
 St. Vitus cabin, the Carlyle suite and street, the school, Gina's apartment, the alley, the
 Miramar corridor, Tubbs' car, the beach at dawn and the cemetery. Then the prop sheets,
 then two to three keyframes a scene.
+
+## Nobody's Witness — 359 "Eat. Then go." retake (4 November 2026)
+
+The director flagged `359-eat-then-go` (scene 17, beat `nw_b472`, "Kaneko sets a bowl of
+noodles in front of Jack"): Jack was standing on the wrong side of the counter, inside
+the kitchen workspace beside the stockpot and burner. The still was regenerated with the
+two-option vote, prompted from the flawed frame plus `358-the-empty-third-stool` (Jack's
+customer-side seating) and `187-you-got-old` (the scene's establishing staging). Option 2
+was selected: Jack seated on a stool on the customer side, the full counter between him
+and Kaneko, the bowl set down in front of him, the two old customers still at the far end.
+
+- Full-size voted original (2752x1536): `public/film/img/retakes_2026_11_04/359-eat-then-go-r1.jpg`.
+- Previous frame archived: `public/film/img/archive/s17/359-eat-then-go--v1.jpg`.
+- Installed at the original path `public/film/img/s17/359-eat-then-go.jpg` (1920x1080,
+  centre-cropped from the voted original, quality 90). Both media indexes list the new
+  archive and retake paths; the retake also shows as an alternative in the Media Bin's
+  scene 17 view (same leading shot number).
+- Beat `nw_b472` keeps its picture path, dolly, timing, captions and the bowl-set-down
+  SFX; no other cut or beat changed. The beat has no depth rig, so no depth map was needed.
+
+## Nobody's Witness — 275 "The kiss" retake (4 November 2026)
+
+The director flagged `275-the-kiss` (scene 53, beat `nw_b899`, "she kisses him. Or he
+kisses her"): the existing frame only touched foreheads and noses, not lips. A new frame
+was regenerated with the two-option vote, prompted from the existing still plus
+`219-pink-water` (the room and kneeling staging) and `474-careful-steady` (the plaster,
+the bloodied shoulder, the cloth). Option 1 was selected: an actual closed-mouth kiss,
+his hand cupping her jaw, same white-tiled bathroom, bowl of pink water on the floor.
+
+- **Added, nothing deleted.** The original `public/film/img/s53/275-the-kiss.jpg` is
+  untouched and stays in the scene folder as an alternative in the Media Bin.
+- Full-size voted original (1376x768): `public/film/img/retakes_2026_11_04/275-the-kiss-r1.jpg`.
+- Installed copy `public/film/img/s53/275-the-kiss-r1.jpg` (1920x1080, centre-cropped
+  from the voted original, quality 90); beat `nw_b899` now points at it.
+- Both media indexes list the two new paths. The beat keeps its zoom-hold, focal point,
+  timing and captions; no other beat or cut changed. The beat has no depth rig.
+
+## Nobody's Witness — 225 "Bring her" retake (4 November 2026)
+
+The director flagged `225-bring-her` (scene 58, beat `nw_b962`, "Vera eats. All of it. She
+laughs once, at nothing, wiping her eyes"): a pile of banknotes and coins sat on the
+counter, but the money is only put down later, at `nw_b966` ("Vera puts money on the
+counter. Too much.", still `476-too-much`). The frame was edited with the two-option vote
+to erase only the money and restore the bare wooden counter; option 2 was selected.
+Everything else is unchanged — Vera laughing and wiping her eye, her bowl and chopsticks,
+Kaneko at the steaming pot, the sign, steam, curtain and condiments.
+
+- **Added, nothing deleted.** The original `public/film/img/s58/225-bring-her.jpg` is
+  untouched and stays in the scene folder as an alternative in the Media Bin.
+- Full-size voted original (2096x1184): `public/film/img/retakes_2026_11_04/225-bring-her-r1.jpg`.
+- Installed copy `public/film/img/s58/225-bring-her-r1.jpg` (1920x1080, centre-cropped
+  from the voted original, quality 90). Both the scene `nw_s58` background and beat
+  `nw_b962` now point at it.
+- Both media indexes list the two new paths. The beat keeps its dolly, focal point,
+  timing and captions; no other beat or cut changed. The scene has no depth rig.
+
+## Nobody's Witness — 476 "Too much" retake (4 November 2026)
+
+The director flagged `476-too-much` (scene 58, beat `nw_b966`, "Vera puts money on the
+counter. Too much. Kaneko notices and says nothing"): the frame showed a huge mound of
+banknotes and dozens of coins, and the counter was a glossy orange wood that did not match
+the rest of the scene. The first edit vote was skipped (both candidates rejected); a fresh
+generation anchored to the scene's own counter (`225-bring-her-r1`, `475-the-chopsticks-stop`)
+and the same bar's modest overpayment (`s17/360-more-than-the-bowl-costs`) was then voted,
+and option 2 selected: a small overpayment of a couple of folded notes and about a dozen
+coins on the dark, matte, worn wooden counter, Vera's hand setting them down, Kaneko at the
+steaming pot, the empty bowl at right.
+
+- **Convention clarified by the director: keep the files, replace the frame.** The old
+  frame is archived (not deleted) and the new frame is installed at the original path, so
+  the beat keeps its picture path and no film JSON change is needed.
+- Old frame archived byte-for-byte: `public/film/img/archive/s58/476-too-much--v1.jpg`.
+- Full-size voted original (1360x768): `public/film/img/retakes_2026_11_04/476-too-much-r1.jpg`.
+- Installed at the original path `public/film/img/s58/476-too-much.jpg` (1920x1080,
+  centre-cropped from the voted original, quality 90). Beat `nw_b966` still points here.
+- Both media indexes list the new archive and retake paths. The beat keeps its zoom-hold,
+  focal point, timing and captions; no other beat or cut changed. The scene has no depth rig.
