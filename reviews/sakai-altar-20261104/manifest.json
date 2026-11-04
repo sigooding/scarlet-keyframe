@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-04",
+  "request": "Correct the altar photograph in every Sakai house frame to the established Sakai identity.",
+  "identityReference": "/film/img/s1_new/style-sheets/refs/sakai-face.jpg",
+  "portrait": "/film/img/props/sakai-altar-portrait.jpg",
+  "frames": [
+    {
+      "original": "/film/img/s29/204-the-tea-she-does-not-want-to-pour.jpg",
+      "generated": "/film/img/retakes_2026_11_04/204-the-tea-she-does-not-want-to-pour-sakai.jpg",
+      "archive": "/film/img/archive/s29/204-the-tea-she-does-not-want-to-pour--v3.jpg"
+    },
+    {
+      "original": "/film/img/s29/273-the-receipts.jpg",
+      "generated": "/film/img/retakes_2026_11_04/273-the-receipts-sakai.jpg",
+      "archive": "/film/img/archive/s29/273-the-receipts--v1.jpg"
+    },
+    {
+      "original": "/film/img/s29/354-the-altar-photograph.jpg",
+      "generated": "/film/img/retakes_2026_11_04/354-the-altar-photograph-sakai.jpg",
+      "archive": "/film/img/archive/s29/354-the-altar-photograph--v2.jpg"
+    },
+    {
+      "original": "/film/img/s29/357-heavier-than-me.jpg",
+      "generated": "/film/img/retakes_2026_11_04/357-heavier-than-me-sakai.jpg",
+      "archive": "/film/img/archive/s29/357-heavier-than-me--v1.jpg"
+    },
+    {
+      "original": "/film/img/s29/457-a-man-a-debt.jpg",
+      "generated": "/film/img/retakes_2026_11_04/457-a-man-a-debt-sakai.jpg",
+      "archive": "/film/img/archive/s29/457-a-man-a-debt--v1.jpg"
+    },
+    {
+      "original": "/film/img/s59/364-the-kotatsu.jpg",
+      "generated": "/film/img/retakes_2026_11_04/364-the-kotatsu-sakai.jpg",
+      "archive": "/film/img/archive/s59/364-the-kotatsu--v2.jpg"
+    },
+    {
+      "original": "/film/img/s59/365-the-altar.jpg",
+      "generated": "/film/img/retakes_2026_11_04/365-the-altar-sakai.jpg",
+      "archive": "/film/img/archive/s59/365-the-altar--v1.jpg"
+    },
+    {
+      "original": "/film/img/s59/367-the-phone-rings.jpg",
+      "generated": "/film/img/retakes_2026_11_04/367-the-phone-rings-sakai.jpg",
+      "archive": "/film/img/archive/s59/367-the-phone-rings--v2.jpg"
+    },
+    {
+      "original": "/film/img/retakes_2026_10_20/365-the-altar-r1.jpg",
+      "generated": "/film/img/retakes_2026_11_04/365-the-altar-r2.jpg",
+      "archive": "/film/img/archive/retakes_2026_10_20/365-the-altar-r1--v1.jpg"
+    }
+  ],
+  "depthPlate": {
+    "updated": "/film/depth/s29/354-the-altar-photograph/plate.jpg",
+    "archive": "/film/depth/archive/s29/354-the-altar-photograph/plate--v1.jpg",
+    "note": "364 and 367 have depth maps but no separate depth plate; FrameDepthParallax falls back to the corrected background picture."
+  }
+}

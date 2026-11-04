@@ -343,3 +343,35 @@ steaming pot, the empty bowl at right.
   centre-cropped from the voted original, quality 90). Beat `nw_b966` still points here.
 - Both media indexes list the new archive and retake paths. The beat keeps its zoom-hold,
   focal point, timing and captions; no other beat or cut changed. The scene has no depth rig.
+
+## Nobody's Witness — Sakai altar photograph identity fix (4 November 2026)
+
+The director flagged that every Sakai-house altar picture showed a photograph of a man
+who did not look like Sakai. The altar portrait is now locked to the established scene-1
+Sakai identity (`s1_new/style-sheets/refs/sakai-face.jpg` and `old-man-sakai.jpg`): grey
+tweed flat cap, narrow lined face, hooded eyes, white-grey stubble, gentle closed-mouth
+smile. A single memorial portrait was generated (`public/film/img/props/sakai-altar-portrait.jpg`)
+and used as the identity reference for every frame edit, so the photograph is the same
+man in every shot.
+
+Corrected frames (old files archived, frames replaced at their existing paths):
+
+- Scene 29: `204-the-tea-she-does-not-want-to-pour`, `273-the-receipts`,
+  `354-the-altar-photograph`, `357-heavier-than-me`, `457-a-man-a-debt`.
+- Scene 59: `364-the-kotatsu`, `365-the-altar`, `367-the-phone-rings`, and the active
+  `retakes_2026_10_20/365-the-altar-r1` take used by beat `nw_b972`.
+- Full-size corrected takes are under `public/film/img/retakes_2026_11_04/`; prior files
+  are preserved under `public/film/img/archive/…--vN.jpg`.
+- Depth: `354-the-altar-photograph` has a separate clean plate, so
+  `/film/depth/s29/354-the-altar-photograph/plate.jpg` was replaced with the corrected
+  frame and the old plate archived under `/film/depth/archive/…/plate--v1.jpg`. Its depth
+  map and the two character cutouts are unchanged because the room/people geometry was
+  preserved. `364` and `367` have depth maps but no separate plate; the parallax renderer
+  falls back to the corrected background picture, so no depth JSON change was needed.
+- No beat picture paths, timing, captions, audio or cuts changed. Both media indexes list
+  the new portrait, corrected takes and archives. Review notes and a contact sheet are in
+  `reviews/sakai-altar-20261104/`.
+
+Validation: `npm test` passed (647 passed, 24 skipped); both media indexes are sorted,
+unique and contain every corrected path; all active beat paths and depth references still
+resolve; `git diff --check` clean.
