@@ -303,6 +303,7 @@ describe("Turn 21 — Multi-Cut Director's Cuts (Creative, 1940s/1950s Noir, Neo
       "noir-1940s",
       "noir-1950s",
       "jack-noir",
+      "jack-narrated",
       "uncut",
     ]);
     for (const opt of DIRECTORS_CUT_OPTIONS) {

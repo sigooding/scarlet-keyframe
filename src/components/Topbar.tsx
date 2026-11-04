@@ -222,9 +222,11 @@ export function Topbar({
                         ? "is-noir-1950s"
                         : activeOption.id === "jack-noir"
                           ? "is-jack-noir"
-                          : activeOption.id === "uncut"
-                          ? "is-uncut"
-                          : ""
+                          : activeOption.id === "jack-narrated"
+                            ? "is-jack-narrated"
+                            : activeOption.id === "uncut"
+                              ? "is-uncut"
+                              : ""
                 }`}
               />
               <span>{activeOption.label}</span>
@@ -277,9 +279,11 @@ export function Topbar({
                                       ? "is-noir-1950s"
                                       : opt.id === "jack-noir"
                                         ? "is-jack-noir"
-                                        : opt.id === "uncut"
-                                          ? "is-uncut"
-                                          : ""
+                                        : opt.id === "jack-narrated"
+                                          ? "is-jack-narrated"
+                                          : opt.id === "uncut"
+                                            ? "is-uncut"
+                                            : ""
                               }`}
                             />
                             <span>{opt.label}</span>

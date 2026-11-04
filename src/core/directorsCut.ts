@@ -1,5 +1,6 @@
 import { addRecreatedUncutCoverage } from "./recreatedUncut";
 import { applyJackNoirTreatment } from "./jackNoirCut";
+import { applyJackNarration } from "./jackNarration";
 import {
   buildAudioClipsFromFilm,
   frameToMs,
@@ -44,8 +45,9 @@ export type DirectorsCutId =
   | "noir-1940s"
   | "noir-1950s"
   | "jack-noir"
+  | "jack-narrated"
   | "uncut";
-type EditorialCutVariant = Exclude<DirectorsCutId, "uncut" | "jack-noir">;
+type EditorialCutVariant = Exclude<DirectorsCutId, "uncut" | "jack-noir" | "jack-narrated">;
 
 export interface DirectorsCutOptionMeta {
   id: DirectorsCutId;
@@ -89,6 +91,13 @@ export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
     shortLabel: "Jack’s Noir",
     description:
       "Original Uncut in full, in classic noir colour, camera, light and sound, with tighter pacing after each line and J/L cuts. Existing pictures and sounds only; no narration.",
+  },
+  {
+    id: "jack-narrated",
+    label: "Jack’s Narrated Cut",
+    shortLabel: "Jack’s Narrated",
+    description:
+      "Jack’s Noir Cut with Jack’s own voice-over (JACK (V.O.), shown as captions) in place of the screenplay’s description, scene by scene: so far scene 10, Jack at his desk. Existing pictures and sounds only; the voice-over is text until it is recorded.",
   },
   {
     id: "uncut",
@@ -3815,7 +3824,7 @@ export function buildDirectorsCutById(
   )
     ? cutId
     : "neo-noir";
-  if (resolvedCutId === "uncut" || resolvedCutId === "jack-noir") {
+  if (resolvedCutId === "uncut" || resolvedCutId === "jack-noir" || resolvedCutId === "jack-narrated") {
     const uncutSnapshot: ProjectSnapshot = {
       id: "snapshot-uncut-original-import",
       name: "Uncut Original Import (1,584 raw beats)",
@@ -3824,6 +3833,9 @@ export function buildDirectorsCutById(
     };
     const story = clone(baseProject.originalStory);
     const assets = addRecreatedUncutCoverage(story, baseProject.assets);
+    // Jack's voice-over is written into the story before anything is timed or placed, so the audio clips and every
+    // later pass see the same beats the viewer plays. Text only: no picture or sound is added.
+    if (resolvedCutId === "jack-narrated") applyJackNarration(story);
     const audioClips = buildAudioClipsFromFilm(story, voiceDurations, musicDurations);
     const existingSnapshots = (baseProject.snapshots || []).filter(
       (s) => s.id !== uncutSnapshot.id,
@@ -3838,10 +3850,11 @@ export function buildDirectorsCutById(
       directorsCutId: "uncut",
       updatedAt: Date.now(),
     };
-    if (resolvedCutId === "jack-noir") {
+    if (resolvedCutId === "jack-noir" || resolvedCutId === "jack-narrated") {
       // The true source is Original Uncut; the treatment only adds look, camera, light and sound from existing files.
+      // Jack's Narrated Cut is the same treatment over a story that already carries his voice-over.
       const { project } = applyJackNoirTreatment(builtUncut, voiceDurations, musicDurations);
-      const jack: ProjectState = { ...project, directorsCutId: "jack-noir" };
+      const jack: ProjectState = { ...project, directorsCutId: resolvedCutId };
       return options ? applyCutOptionsToProject(jack, options) : jack;
     }
     return options ? applyCutOptionsToProject(builtUncut, options) : builtUncut;
