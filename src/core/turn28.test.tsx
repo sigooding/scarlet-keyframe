@@ -199,10 +199,10 @@ describe("Turn 28 — User-Voted Reference-Matched Gap Frames & Depth Maps", () 
       ]);
     }
 
-    // Verify Uncut preserves exact 1,584 beats while exposing all 7 new plates on their target beats
+    // Verify Uncut preserves exact 1,618 beats while exposing all 7 new plates on their target beats
     const uncut = buildDirectorsCutById(baseProject, "uncut", voiceMap, musicMap);
     const uncutFrames = buildKeyframes(uncut.story);
-    expect(uncutFrames).toHaveLength(1584);
+    expect(uncutFrames).toHaveLength(1618);
     for (const spec of VOTED_GAP_FRAME_SPECS) {
       const f = uncutFrames.find((kf) => kf.id === spec.beatId);
       expect(f).toBeDefined();

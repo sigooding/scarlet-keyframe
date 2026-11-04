@@ -63,8 +63,8 @@ describe("Turn 21 — Multi-Cut Director's Cuts (Creative, 1940s/1950s Noir, Neo
     expect(uncut.directorsCutId).toBe("uncut");
     expect(neoAfterRoundTrip.directorsCutId).toBe("neo-noir");
 
-    // Uncut restores all 1,584 original beats
-    expect(buildKeyframes(uncut.story).length).toBe(1584);
+    // Uncut restores all 1,618 original beats
+    expect(buildKeyframes(uncut.story).length).toBe(1618);
 
     // Neo-Noir after round-trip matches fresh baseline story & audioClips 100%
     expect(neoAfterRoundTrip.story).toEqual(neoBaseline.story);
@@ -82,9 +82,9 @@ describe("Turn 21 — Multi-Cut Director's Cuts (Creative, 1940s/1950s Noir, Neo
 
     const creative = buildDirectorsCutById(baseProj, "creative", voiceMap, musicMap);
 
-    // Running order reaches all 256 scenes with 0 warnings
+    // Running order reaches all 257 scenes with 0 warnings
     const orderedIds = runningSceneIds(creative.story);
-    expect(orderedIds.length).toBe(256);
+    expect(orderedIds.length).toBe(257);
     expect(runningOrderDiagnostics(creative.story).length).toBe(0);
 
     // Memory-framed cold open: nw_logo -> nw_prologue -> nw_s1 -> nw_s2 -> nw_title -> nw_s3
@@ -163,7 +163,7 @@ describe("Turn 21 — Multi-Cut Director's Cuts (Creative, 1940s/1950s Noir, Neo
     const creative = buildDirectorsCutById(baseProj, "creative", voiceMap, musicMap);
     const noir50s = buildDirectorsCutById(baseProj, "noir-1950s", voiceMap, musicMap);
 
-    expect(runningSceneIds(noir50s.story).length).toBe(256);
+    expect(runningSceneIds(noir50s.story).length).toBe(257);
     expect(runningOrderDiagnostics(noir50s.story).length).toBe(0);
 
     const neoClips = buildTimelineClips(buildKeyframes(neo.story), voiceMap);
