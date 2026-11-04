@@ -278,6 +278,74 @@ export function updateCaptionText(
   return base.map((cap, idx) => (idx === index ? { ...cap, text: newText } : { ...cap }));
 }
 
+/** Who the shot's captions are credited to unless a caption says otherwise. */
+export interface CaptionSpeakerDefaults {
+  /** The shot's speaker as shown on screen (ISHIDA, NARRATOR ...). */
+  speaker: string;
+  /** The shot is narration (shown in italics). */
+  isNarration: boolean;
+}
+
+/** A speaker as it is shown on screen: trimmed, one space between words, upper case (ISHIDA, MRS. NODA, NARRATOR). */
+export function normalizeSpeakerName(name: string): string {
+  return String(name ?? "").replace(/\s+/g, " ").trim().toLocaleUpperCase();
+}
+
+function withSpeaker(cap: BeatCaption, name: string, defaults: CaptionSpeakerDefaults): BeatCaption {
+  const { speaker: _speaker, isNarration: _narration, ...rest } = cap;
+  // empty, or the shot's own speaker: no override at all, the caption follows the shot again
+  if (!name || name === normalizeSpeakerName(defaults.speaker)) return rest;
+  // NARRATOR is narration (italic); a person speaking in a narration shot is not
+  if (name === "NARRATOR") return { ...rest, speaker: name, isNarration: true };
+  const wasNarration = cap.isNarration ?? defaults.isNarration;
+  return { ...rest, speaker: name, ...(wasNarration ? { isNarration: false } : {}) };
+}
+
+/**
+ * Credits one caption to somebody else (or, with an empty name or the shot's own speaker, back to the shot's speaker).
+ * Only that caption changes. NARRATOR makes it narration (italic); a person in a narration shot makes it not.
+ */
+export function setCaptionSpeaker(
+  beat: BeatLike,
+  clipDurationFrames: number,
+  index: number,
+  speaker: string,
+  defaults: CaptionSpeakerDefaults,
+): BeatCaption[] {
+  const base = effectiveCaptionsForBeat(beat, clipDurationFrames);
+  if (index < 0 || index >= base.length) return base;
+  const name = normalizeSpeakerName(speaker);
+  return base.map((cap, idx) => (idx === index ? withSpeaker(cap, name, defaults) : { ...cap }));
+}
+
+/** The same for every caption of the shot. */
+export function setAllCaptionSpeakers(
+  beat: BeatLike,
+  clipDurationFrames: number,
+  speaker: string,
+  defaults: CaptionSpeakerDefaults,
+): BeatCaption[] {
+  const name = normalizeSpeakerName(speaker);
+  return effectiveCaptionsForBeat(beat, clipDurationFrames).map((cap) => withSpeaker(cap, name, defaults));
+}
+
+/** Shows one caption in italics as narration, or not. Matching what the shot does anyway leaves no override. */
+export function setCaptionNarration(
+  beat: BeatLike,
+  clipDurationFrames: number,
+  index: number,
+  narration: boolean,
+  defaults: CaptionSpeakerDefaults,
+): BeatCaption[] {
+  const base = effectiveCaptionsForBeat(beat, clipDurationFrames);
+  if (index < 0 || index >= base.length) return base;
+  return base.map((cap, idx) => {
+    if (idx !== index) return { ...cap };
+    const { isNarration: _narration, ...rest } = cap;
+    return narration === defaults.isNarration ? rest : { ...rest, isNarration: narration };
+  });
+}
+
 export function dragCaptionEdge(
   beat: BeatLike,
   clipDurationFrames: number,
