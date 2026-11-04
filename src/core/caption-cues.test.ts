@@ -88,7 +88,7 @@ describe("caption cues: the real film", () => {
   const base = createProjectState({ ...imported, story: applyStudioMusicSync(imported.story, bundledEdits) }, [], bundledEdits);
   const musicMap = extractKnownMusicDurations(bundledEdits);
 
-  for (const cutId of ["uncut", "neo-noir", "jack-noir"] as const) {
+  for (const cutId of ["uncut", "neo-noir", "jack-noir", "jack-narrated"] as const) {
     it(`${cutId}: every cue fits two lines, is lossless, and starts with the voice`, () => {
       const project = buildDirectorsCutById(base, cutId, voiceMap, musicMap);
       const frames = buildKeyframes(project.story);

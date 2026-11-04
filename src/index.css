@@ -8389,6 +8389,12 @@ kbd {
   box-shadow: 0 0 0 1px rgba(193, 18, 31, 0.8);
 }
 
+/* Jack's Narrated Cut: Jack's Noir blue, with the warm ring of a voice in the dark. */
+.topbar-cut-trigger-dot.is-jack-narrated {
+  background: #5b7fa6;
+  box-shadow: 0 0 0 1px rgba(232, 162, 74, 0.9);
+}
+
 /* Track effects: FX button and panel */
 .track-ms-btn.is-fx {
   font-size: 9px;

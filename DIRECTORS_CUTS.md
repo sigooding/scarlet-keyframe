@@ -109,4 +109,26 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
 - **Lighting**: existing overlays only: venetian blinds (offices, interview rooms, hotel, apartments), backlight rim (wet streets), key slash (raid), eye light (emotive close lines), neon points.
 - **Sound** (existing files only): distant sirens on one wet night; a faint slap-back echo made from copies of the same clip on footsteps in stairwells, viaducts, rooftops and the Hive (never on voices); J-cuts lead the picture where there is room; L-cuts cut away up to 0.35 s before a line ends, only into a silent beat of the same scene. **The music is never dipped for sound effects or voice**: the only ducking is the engine's own, under spoken voice.
 - **Pacing**: Original Uncut leaves 0.54 s of silence after every spoken line and about 1.75 s after a scene's last line (`AFTER_VOICE_SECONDS` plus the scene transition). Jack's Noir cuts that to 0.25 s and about 1.15 s (room for the transition is kept); the last words are never clipped. Silent narrator beats keep their reading time.
-- **No narration**: an earlier version treated Jack's own recorded lines as pseudo voice-over (echo, music ducking, longer J/L cuts); that was removed. A real narration track needs new recordings and is not part of this cut.
+- **No narration**: an earlier version treated Jack's own recorded lines as pseudo voice-over (echo, music ducking, longer J/L cuts); that was removed. A real narration track needs new recordings and is not part of this cut. (Jack's Narrated Cut, section 7, adds Jack's voice-over as captions only.)
+
+---
+
+## 7. Jack's Narrated Cut (`"jack-narrated"`)
+- **What it is**: Jack's Noir Cut (section 6) with Jack's own voice-over, **JACK (V.O.)**, written in place of the screenplay's description, one scene at a time. **So far only scene 10** (Jack in his office, Vera's visit). Every other scene is exactly Jack's Noir (`src/core/jack-narration.test.ts` checks that scene by scene). Code: `src/core/jackNarration.ts`; the cut is built from Original Uncut like Jack's Noir, with the narration written into the story *before* anything is timed, so the audio clips, J/L cuts and camera all see the same beats the viewer plays.
+- **Text only, no new media**: the voice-over is shown as italic captions credited to `JACK (V.O.)` (a character `nw_jack_vo`, "Jack (V.O.)", added to the story's characters) until somebody records it. No picture and no sound is added: the pictures, camera moves, the lighter and the train stay on the beats they were on, every voice and sound effect keeps its picture, and everything after the narration moves later together (the test resolves every audio clip and checks it).
+- **How it is written**: `JACK_NARRATION` lists, per scene, three kinds of change to the film's silent narrator beats (they carry the pictures and sounds, so they are never deleted):
+  - `replace`: the beat's caption becomes a line of Jack's voice-over. The beat is held at least as long as the film held it, and long enough to say the line (about 2.3 words a second, never under 2 seconds: 37 words are about 16 seconds).
+  - `silence`: no caption on that beat; its picture, length and sound play on.
+  - `add`: a new silent voice-over beat after a named beat, on the picture that is showing. After a scene's *last* beat it takes over that beat's way on to the next scene and the scene's transition time (the running order follows the last beat).
+- **Scene 10 today**:
+
+  | Where | What |
+  | --- | --- |
+  | `nw_b229`, `nw_b230`, `nw_b231` ("JACK (48) sits at the desk…", the lighter, no cigarettes) | **V1**, one line to a beat: "I'd stopped buying cigarettes years ago." / "Still carried the lighter." / "It gave me something to do while I decided what not to say." |
+  | `nw_b232`, `nw_b236`, `nw_b238` (Vera's knock and arrival, Jack putting the rice ball down, her sitting) | no narration: Vera's arrival and their opening exchange play without it |
+  | after `nw_b248` ("He doesn't answer. Another train passes. The blinds shiver.") | **V2** (37 words, about 16 s): "There's a lie you tell for money and a lie you tell because the truth would take too long. I'd been in business long enough to know the difference. That afternoon I was charging her for both." |
+  | after `nw_b260` ("…sets it down, face up, and squares it to the edge of the desk.") | **V3**: "I said I was sorry. I was sorry. Just not about the thing she thought." (the photograph has landed on his desk and he has recognised Daniel; Jack's spoken "I'm sorry." follows) |
+
+  The scene's other description captions (the clip on the desk, the photographs, "A beat.", Vera at the door, "Jack sits very still.") are still the screenplay's own words.
+- **Moving V3 to the end of the scene** ("After Vera leaves. Jack remains seated."): change its `after` to `"nw_b278"`. A voice-over added after the last beat moves that beat's `afterBeat*` route and the dissolve time onto itself, so the film still runs on to scene 11 (`jack-narration.test.ts` covers that case on a small story).
+- **Narrating another scene**: add a `SceneNarration` to `JACK_NARRATION` with the beat ids from `src/data/nobodys-witness-film.json`. Ids that are not in the film are reported (`report.missing`) and skipped, and the test fails until the plan matches the film.
