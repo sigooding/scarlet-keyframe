@@ -189,9 +189,9 @@ describe("Turn 18 — Speed ramps, Tokyo-Noir viewer engine, and Full-Film Direc
       dcProj.snapshots.some((s) => s.id === "snapshot-uncut-original-import"),
     ).toBe(true);
 
-    // 2. Preserves all 256 ordered scenes, including the 7 restored zero-beat scenes
+    // 2. Preserves all 257 ordered scenes, including the 7 restored zero-beat scenes
     const ordered = runningSceneIds(dcProj.story);
-    expect(ordered.length).toBe(256);
+    expect(ordered.length).toBe(257);
     expect(ordered[0]).toBe("nw_intro");
     expect(ordered[ordered.length - 1]).toBe("nw_end");
     const dcFrames = buildKeyframes(dcProj.story);

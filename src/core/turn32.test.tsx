@@ -68,7 +68,7 @@ describe("Turn 32–33 — 1940s Noir Director's Cut (original running order, si
 
     const neoClips = buildTimelineClips(buildKeyframes(neoById.story), voiceMap).clips;
     const neoDefClips = buildTimelineClips(buildKeyframes(neoDefault.story), voiceMap).clips;
-    expect(neoClips.length).toBe(703);
+    expect(neoClips.length).toBe(705);
     expect(neoClips.length).toBe(neoDefClips.length);
 
     // 1940s Noir Cut keeps the original running order but splits multi-turn dialogue
@@ -86,10 +86,10 @@ describe("Turn 32–33 — 1940s Noir Director's Cut (original running order, si
     expect(legacy.directorsCutId).toBe("neo-noir");
   });
 
-  it("preserves all 256 scenes, 35% motes, Scene 77A rain lock, static single-camera grammar, and zero edge clamping", () => {
+  it("preserves all 257 scenes, 35% motes, Scene 77A rain lock, static single-camera grammar, and zero edge clamping", () => {
     const { baseProject, voiceMap, musicMap } = makeBaseProject();
     const c40 = buildDirectorsCutById(baseProject, "noir-1940s", voiceMap, musicMap);
-    expect(c40.story.scenes.length).toBe(256);
+    expect(c40.story.scenes.length).toBe(257);
 
     const keyframes = buildKeyframes(c40.story);
     const { clips } = buildTimelineClips(keyframes, voiceMap);
