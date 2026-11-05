@@ -21,9 +21,12 @@ import {
   type TrackMixMap,
 } from "../core/previewAudio";
 import {
+  audioLabelFromSrc,
   combineMarqueeSelections,
   EMPTY_MULTI_SELECTION,
   formatMsTimecode,
+  frameToMs,
+  MIN_AUDIO_CLIP_MS,
   hitTestMarqueeBox,
   type AudioClip,
   type AudioLaneId,
@@ -65,6 +68,8 @@ import { TrackFxPanel } from "./TrackFxPanel";
 import { isTrackFxActive, type TrackFx } from "../core/audioFx";
 import { decodeDraggedAsset } from "./MediaBin";
 import { Tracks } from "./Tracks";
+import type { AudioSpanTarget } from "./AudioClipTools";
+import { nextClipOnLane, type AudioClipTool } from "../core/audioEdits";
 import {
   ANIM_PROP_META,
   ANIM_PROPS,
@@ -175,6 +180,10 @@ export interface TimelineProps {
   onSetMultiSelection?: (selection: MultiLaneSelection, primaryFrameId?: string, targetFrame?: number) => void;
   onClearAllSelection?: () => void;
   onSelectAudioClip?: (clip: ResolvedAudioClip, additive: boolean, targetFrame?: number) => void;
+  /** Cut / trim / fill / crossfade one sound clip from its right-click menu on the lane. */
+  onAudioClipTool?: (clipId: string, tool: AudioClipTool) => void;
+  /** The shot and the scene under the playhead, for the menu's "fill" items. */
+  audioSpans?: AudioSpanTarget[];
   onPreviewUpdateAudioClip?: (clipId: string, updated: AudioClip) => void;
   onShiftSelectionPreview?: (deltaMs: number) => void;
   onCommitSelectionShift?: (deltaMs: number, copy: boolean, label?: string) => void;
@@ -184,6 +193,8 @@ export interface TimelineProps {
   showCaptions?: boolean;
   onToggleShowCaptions?: () => void;
   selectedCaption?: SelectedCaptionState | null;
+  /** What the ✂ button would cut when it is not a picture clip: "sound" when a sound clip is selected. */
+  splitTarget?: "clip" | "caption" | "sound";
   canMergeCaptions?: boolean;
   onSelectCaption?: (
     frameId: string,
@@ -345,6 +356,8 @@ export function Timeline({
   onSetMultiSelection,
   onClearAllSelection,
   onSelectAudioClip,
+  onAudioClipTool,
+  audioSpans = [],
   onPreviewUpdateAudioClip,
   onShiftSelectionPreview,
   onCommitSelectionShift,
@@ -354,6 +367,7 @@ export function Timeline({
   showCaptions = true,
   onToggleShowCaptions,
   selectedCaption = null,
+  splitTarget,
   canMergeCaptions = false,
   onSelectCaption,
   onClearCaptionSelection,
@@ -661,6 +675,22 @@ export function Timeline({
     clientY: number;
     isGap: boolean;
   } | null>(null);
+
+  /** The right-click menu on a sound clip: cut it, trim it to the playhead, fill a span, crossfade it. */
+  const [audioMenu, setAudioMenu] = useState<{ clipId: string; clientX: number; clientY: number } | null>(null);
+  useEffect(() => {
+    if (!audioMenu) return;
+    const close = () => setAudioMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAudioMenu(null);
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [audioMenu]);
   const pictureInputRef = useRef<HTMLInputElement | null>(null);
   const pictureInputTargetRef = useRef<string | null>(null);
 
@@ -1600,9 +1630,15 @@ export function Timeline({
             className="button button-quiet"
             onClick={onSplit}
             disabled={!canSplit}
-            title={selectedCaption ? "Split selected caption at playhead (S)" : "Split selected clip at playhead (S)"}
+            title={
+              splitTarget === "sound"
+                ? "Cut the selected sound clip in two at the playhead (S)"
+                : selectedCaption
+                  ? "Split selected caption at playhead (S)"
+                  : "Split selected clip at playhead (S)"
+            }
           >
-            ✂ {selectedCaption ? "Split CC" : "Split"} (S)
+            ✂ {splitTarget === "sound" ? "Cut sound" : selectedCaption ? "Split CC" : "Split"} (S)
           </button>
           {onMergeFrames && (
             <button
@@ -2958,6 +2994,11 @@ export function Timeline({
               )
             }
             onDropAudioAsset={onDropAudioAsset}
+            onOpenAudioClipMenu={
+              onAudioClipTool
+                ? (clip, clientX, clientY) => setAudioMenu({ clipId: clip.id, clientX, clientY })
+                : undefined
+            }
           />
 
           {marquee && (
@@ -3212,6 +3253,142 @@ export function Timeline({
       )}
 
       {/* Right-click context menu on video keyframes (picture clips & gaps) */}
+      {audioMenu &&
+        onAudioClipTool &&
+        (() => {
+          const clip = resolvedAudioClips.find((c) => c.id === audioMenu.clipId);
+          if (!clip) return null;
+          const playheadMs = frameToMs(playheadFrame);
+          const insideStart = playheadMs > clip.startMs + MIN_AUDIO_CLIP_MS;
+          const insideEnd = playheadMs < clip.endMs - MIN_AUDIO_CLIP_MS;
+          const next = nextClipOnLane(resolvedAudioClips, clip);
+          const run = (tool: AudioClipTool) => {
+            setAudioMenu(null);
+            onAudioClipTool(clip.id, tool);
+          };
+          return (
+            <div
+              className="diamond-easing-menu clip-context-menu audio-context-menu"
+              data-testid="audio-context-menu"
+              role="menu"
+              style={{
+                left: Math.min(
+                  typeof window !== "undefined" ? window.innerWidth - 260 : audioMenu.clientX,
+                  audioMenu.clientX,
+                ),
+                top: Math.min(
+                  typeof window !== "undefined" ? window.innerHeight - 420 : audioMenu.clientY,
+                  audioMenu.clientY,
+                ),
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="diamond-menu-head">
+                <span>
+                  {clip.lane.toUpperCase()} · {audioLabelFromSrc(clip.src)}
+                </span>
+                <small>
+                  {formatMsTimecode(clip.startMs)} ·{" "}
+                  {clip.durationMs >= 10000
+                    ? formatMsTimecode(clip.durationMs)
+                    : `${Math.round(clip.durationMs)} ms`}
+                </small>
+              </div>
+
+              <button
+                type="button"
+                className="diamond-menu-item is-primary"
+                data-testid="audio-menu-split"
+                disabled={!insideStart || !insideEnd}
+                onClick={() => run({ kind: "split" })}
+              >
+                <span>✂ Cut at playhead</span>
+                <small>S</small>
+              </button>
+              <button
+                type="button"
+                className="diamond-menu-item"
+                data-testid="audio-menu-trim-start"
+                disabled={!insideEnd || Math.abs(playheadMs - clip.startMs) < 1}
+                onClick={() => run({ kind: "trim", edge: "start" })}
+              >
+                <span>⇤ Start here</span>
+              </button>
+              <button
+                type="button"
+                className="diamond-menu-item"
+                data-testid="audio-menu-trim-end"
+                disabled={!insideStart || Math.abs(playheadMs - clip.endMs) < 1}
+                onClick={() => run({ kind: "trim", edge: "end" })}
+              >
+                <span>⇥ End here</span>
+              </button>
+
+              <div className="diamond-menu-sep" />
+
+              <button
+                type="button"
+                className="diamond-menu-item"
+                data-testid="audio-menu-duplicate"
+                onClick={() => run({ kind: "duplicate" })}
+              >
+                <span>⧉ Copy after</span>
+                <small>Alt-drag</small>
+              </button>
+              {audioSpans.map((span) => (
+                <button
+                  key={span.kind}
+                  type="button"
+                  className="diamond-menu-item"
+                  data-testid={`audio-menu-fit-${span.kind}`}
+                  onClick={() => run({ kind: "fit", span: span.kind })}
+                >
+                  <span>↔ Fill the {span.kind}</span>
+                  <small>
+                    {formatMsTimecode(span.startMs)} – {formatMsTimecode(span.endMs)}
+                  </small>
+                </button>
+              ))}
+              <button
+                type="button"
+                className="diamond-menu-item"
+                data-testid="audio-menu-crossfade"
+                disabled={!next}
+                onClick={() => run({ kind: "crossfade", ms: 1000 })}
+              >
+                <span>⤫ Crossfade 1 s</span>
+                <small>{next ? audioLabelFromSrc(next.src) : "nothing after"}</small>
+              </button>
+
+              <div className="diamond-menu-sep" />
+
+              {(["in", "out"] as const).map((edge) => (
+                <div
+                  className="diamond-menu-row"
+                  key={edge}
+                  data-testid={`audio-menu-fade-${edge}-row`}
+                >
+                  <span>Fade {edge}</span>
+                  <div className="audio-preset-buttons">
+                    {[0, 500, 1000, 2000].map((ms) => (
+                      <button
+                        key={ms}
+                        type="button"
+                        className={`audio-preset-btn ${Math.round(edge === "in" ? clip.fadeInMs : clip.fadeOutMs) === ms ? "is-active" : ""}`}
+                        data-testid={`audio-menu-fade-${edge}-${ms}`}
+                        title={`Fade ${edge} over ${ms} ms — the handle on the clip drags any length`}
+                        onClick={() => run({ kind: "fade", edge, ms })}
+                      >
+                        {ms === 0 ? "none" : `${ms / 1000}s`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
       {clipMenu &&
         (() => {
           const targetClip = clips.find((c) => c.keyframe.id === clipMenu.frameId);

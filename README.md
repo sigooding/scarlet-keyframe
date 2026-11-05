@@ -364,6 +364,31 @@ follow the shot again. **ALL** gives every caption of the shot the same speaker.
 NARRATOR turns it on, and a person speaking in a narration shot turns it off. Names are kept upper case, as the story shows them.
 Every change is one undo step. Code: `setCaptionSpeaker`, `setAllCaptionSpeakers`, `setCaptionNarration` in `src/core/captions.ts`.
 
+## Cutting and shaping a sound clip
+
+**Right-click a clip on any sound lane** (Voice, SFX, Music, Ambience) in the timeline: its menu carries the jobs that
+dragging cannot do, beside the ones it can (the lane already drags the fade handles, the trim edges and Alt-drag to copy).
+The same buttons, with the exact millisecond fields, are on that lane's Inspector tab under **Cut & trim**. Nothing here
+touches a file on disk: a cut only moves the clip's in-point, so the recording is never rewritten.
+
+- **✂ Cut at playhead (S)** splits the clip in two where the playhead is. Both halves play the same recording straight
+  through the join — the second half picks it up exactly where the first stops — so a cue can be cut and the halves moved,
+  deleted or re-levelled on their own. No fade is put at the cut; a fade the clip already had stays on the side it belongs
+  to, and a volume curve is split so neither half's shape changes. The **S** key and the timeline's ✂ button do the same
+  when a sound clip is selected (they still split a caption or a picture clip otherwise).
+- **⇤ Start here / ⇥ End here** move that edge to the playhead. The start edge takes the recording with it, so the sound
+  stays in step with the picture; the end edge just stops the clip sooner, or later when the recording has more to play.
+- **⧉ Copy after** lays a copy of the clip down where it ends, to carry a cue on.
+- **↔ Fill the shot / Fill the scene** lay the clip across the shot or the scene under the playhead. A recording too short
+  for the span is looped.
+- **Fade in / Fade out** are one-click ramps (none, ½ s, 1 s, 2 s); the ms fields above still take any value.
+- **⤫ Crossfade** holds this cue over the start of the next one on the same lane and ramps one into the other. The overlap
+  comes from the first cue's tail where the recording has more to play, otherwise by starting the second cue early; when
+  neither has anything spare the two meet and the ramps become a fade-out into a fade-in, which the status line says.
+
+Every button is one undo step and names itself in the undo list. Code: `src/core/audioEdits.ts`, the menu in
+`src/components/Timeline.tsx`, the tab's panel in `src/components/AudioClipTools.tsx`.
+
 ## Track effects (reverb, delay, echo)
 
 Each audio track (Voice, SFX, Music, Ambience) has an **FX** button on its header. The panel has a preset list (Small room,

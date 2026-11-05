@@ -81,6 +81,8 @@ export interface SyncedAudioLanesProps {
   onShiftAudioDragPreview: (deltaMs: number, primaryClipId: string) => void;
   onCommitAudioDrag: (deltaMs: number, copy: boolean, primaryClipId: string) => void;
   onDropAudioAsset?: (lane: AudioLaneId, ref: string, dropStartMs: number) => void;
+  /** Right-click on a sound clip: opens its cut / trim / crossfade menu. */
+  onOpenAudioClipMenu?: (clip: ResolvedAudioClip, clientX: number, clientY: number) => void;
   laneHeights?: Partial<Record<AudioLaneId, number>>;
   hiddenLanes?: ReadonlySet<string>;
 }
@@ -109,6 +111,7 @@ export function Tracks({
   onShiftAudioDragPreview,
   onCommitAudioDrag,
   onDropAudioAsset,
+  onOpenAudioClipMenu,
   laneHeights,
   hiddenLanes,
 }: SyncedAudioLanesProps) {
@@ -203,6 +206,7 @@ export function Tracks({
                 onPreviewUpdate={onPreviewUpdateAudioClip}
                 onShiftDragPreview={onShiftAudioDragPreview}
                 onCommitDrag={onCommitAudioDrag}
+                onOpenMenu={onOpenAudioClipMenu}
               />
             ))}
           </div>
@@ -236,6 +240,8 @@ interface AudioClipItemProps {
   onPreviewUpdate: (clipId: string, updated: AudioClip) => void;
   onShiftDragPreview: (deltaMs: number, primaryClipId: string) => void;
   onCommitDrag: (deltaMs: number, copy: boolean, primaryClipId: string) => void;
+  /** Right-click on the clip: the cut / trim / crossfade menu for it. */
+  onOpenMenu?: (clip: ResolvedAudioClip, clientX: number, clientY: number) => void;
 }
 
 function AudioClipItem({
@@ -262,6 +268,7 @@ function AudioClipItem({
   onPreviewUpdate,
   onShiftDragPreview,
   onCommitDrag,
+  onOpenMenu,
 }: AudioClipItemProps) {
   const [liveBadge, setLiveBadge] = useState<string | null>(null);
   const [dragTranslatePx, setDragTranslatePx] = useState<number>(0);
@@ -520,7 +527,14 @@ function AudioClipItem({
         left: leftPx + dragTranslatePx,
         width: widthPx,
       }}
-      title={`${label} · Start ${formatMsTimecode(clip.startMs)} (${Math.round(clip.startMs)} ms) · Len ${Math.round(clip.durationMs)} ms · Gain ${Math.round(clip.gain * 100)}%`}
+      title={`${label} · Start ${formatMsTimecode(clip.startMs)} (${Math.round(clip.startMs)} ms) · Len ${Math.round(clip.durationMs)} ms · Gain ${Math.round(clip.gain * 100)}% · right-click to cut, trim or crossfade`}
+      onContextMenu={(e) => {
+        if (!onOpenMenu) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isSelected) onSelect(clip, false);
+        onOpenMenu(clip, e.clientX, e.clientY);
+      }}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
         const target = e.target as HTMLElement;

@@ -7,6 +7,8 @@ import {
   type AudioLaneId,
   type ResolvedAudioClip,
 } from "../core/audioClips";
+import { nextClipOnLane, type AudioClipTool } from "../core/audioEdits";
+import { AudioClipTools, type AudioSpanTarget } from "./AudioClipTools";
 import {
   addCaptionInGap,
   captionMetrics,
@@ -222,6 +224,10 @@ interface InspectorProps {
   onMoveAudioClipStartMs?: (clipId: string, newStartMs: number) => void;
   onAddAudioClipOnLane?: (lane: AudioLaneId) => void;
   onPreviewAudioClip?: (clip: ResolvedAudioClip) => void;
+  /** The cut / trim / crossfade buttons in the sound tabs ask for one of these jobs on one clip. */
+  onAudioClipTool?: (clipId: string, tool: AudioClipTool) => void;
+  /** The shot and the scene under the playhead, for the "fill the shot / scene" buttons. */
+  audioSpans?: AudioSpanTarget[];
   onRebuildSoundFromFilm?: () => void;
   selectedCaptionIndices?: number[];
   canMergeCaptions?: boolean;
@@ -513,6 +519,8 @@ export function Inspector(props: InspectorProps) {
             onPreviewAudioClip={props.onPreviewAudioClip}
             onExecuteDelete={props.onExecuteDelete}
             onRebuildSoundFromFilm={props.onRebuildSoundFromFilm}
+            onAudioClipTool={props.onAudioClipTool}
+            audioSpans={props.audioSpans}
           />
         )}
 
@@ -2548,6 +2556,8 @@ function FreeAudioClipTabPanel({
   onPreviewAudioClip,
   onExecuteDelete,
   onRebuildSoundFromFilm,
+  onAudioClipTool,
+  audioSpans,
 }: {
   lane: AudioLaneId;
   frame: Keyframe;
@@ -2565,6 +2575,8 @@ function FreeAudioClipTabPanel({
   onPreviewAudioClip?: (clip: ResolvedAudioClip) => void;
   onExecuteDelete?: (ripple: boolean) => void;
   onRebuildSoundFromFilm?: () => void;
+  onAudioClipTool?: (clipId: string, tool: AudioClipTool) => void;
+  audioSpans?: AudioSpanTarget[];
 }) {
   const laneClips = resolvedAudioClips.filter((rc) => rc.lane === lane);
   const selectedOnLane = laneClips.find((rc) => selectedAudioClipIds.includes(rc.id));
@@ -2820,6 +2832,17 @@ function FreeAudioClipTabPanel({
             </div>
           )}
         </section>
+      )}
+
+      {active && onAudioClipTool && (
+        <AudioClipTools
+          clip={active}
+          lane={lane}
+          playheadMs={playheadMs}
+          nextClip={nextClipOnLane(resolvedAudioClips, active)}
+          spans={audioSpans ?? []}
+          onTool={onAudioClipTool}
+        />
       )}
 
       {(lane === "music" || lane === "ambience") && onSetDuckDepth && (

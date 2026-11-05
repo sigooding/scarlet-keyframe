@@ -34,7 +34,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "Edit",
     rows: [
-      { keys: "S", label: "Split selected caption or clip at playhead" },
+      { keys: "S", label: "Cut the selected sound clip, caption or clip at the playhead" },
       { keys: "Delete", label: "Lift picture to black gap" },
       { keys: "Shift + Delete", label: "Ripple delete shot & anchored sounds" },
       { keys: "Ctrl/⌘ + A", label: "Select all image frames" },

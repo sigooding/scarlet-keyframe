@@ -39,7 +39,7 @@ describe("ShortcutsOverlay", () => {
       }
     }
     // The real hotkeys promised by the editor
-    expect(html).toContain("Split selected caption or clip at playhead");
+    expect(html).toContain("Cut the selected sound clip, caption or clip at the playhead");
     expect(html).toContain("Toggle magnetic snap");
     expect(html).toContain("Hold to Compare with a reference cut");
     expect(html).toContain("Add a volume automation point");
