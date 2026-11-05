@@ -22,10 +22,16 @@ The earlier generated images were lost in a workspace reset. These are **new gen
 | nw_b1573 | Empty chair |
 | nw_b1637 | Vera goes still |
 | nw_b1671 | Winter light |
+| nw_b1678 | The evening news: Kurose between his lawyers |
+| nw_b1679 | The photograph of Ishida in uniform |
 
 ## Still to recreate
 
-Quality-rejected options (do not install, retry with improved prompts): nw_b1157, nw_b997, nw_b1322, nw_b16, nw_b19, nw_b727, nw_b745. Other earlier selected images still to recreate: nw_b918, nw_b900, nw_b1678, nw_b1679. The last two must be separate sequential TV frames: Kurose first, Ishida's police portrait second; Kaneko and Jack are present in the shop, Vera arrives afterwards.
+Quality-rejected options (do not install, retry with improved prompts): nw_b1157, nw_b997, nw_b1322, nw_b16, nw_b19, nw_b727, nw_b745. Other earlier selected images still to recreate: nw_b918, nw_b900.
+
+`nw_b1678` and `nw_b1679` are done (2026-11-04). They are two sequential TV frames as required — Kurose walking in between lawyers first, then Ishida's police portrait — with Kaneko and Jack at the counter in the background and Vera still to arrive. Each is on its own beat with its own depth camera, and together they split the hold `nw_b1678` already owned (4.71 s + 7.00 s). Prompts, votes, digests and the gallery are in [`reviews/tv-news-20261104/`](reviews/tv-news-20261104/index.html); the superseded two-in-one frame `s100/320-the-news-nobody-watches.jpg` is archived as `--v2` and now runs on no beat.
+
+The same pass repaired the invented Japanese chyron (耕ニンヌ) on the four wide frames of the same shop — `158`, `159`, `160`, `161` — by locally defocusing each frame's own pixels in the lettering area; archives are `--v4`. The shop's 金子 sign and the other Japanese on screen (the investigations card, ジャック・探偵社 / 東京都千代田区神田1-2-3) were checked and are correct. No depth map covered those four frames, so none needed re-tracing. See the [chyron notes](reviews/tv-news-20261104/README.md#the-chyron-and-the-rest-of-the-on-screen-japanese).
 
 ## Voted depth maps for recreated stills (2026-10-31)
 

@@ -1,0 +1,276 @@
+{
+  "date": "2026-11-04",
+  "project": "Original Uncut",
+  "request": "The closing TV news beat contradicts IMAGE_RECOVERY.md: nw_b1678 carried both Kurose and Ishida's portrait in one screen and nw_b1679 had no picture at all. Rebuild them as two sequential TV frames, voted; then pass over on-screen Japanese signage, starting with the gibberish chyron (\u8015\u30cb\u30f3\u30cc).",
+  "selection": "The two closing-news beats, plus the broadcast lower-third lettering on the four wide shop frames of the same scene.",
+  "generation": {
+    "provider": "vote (offer_options, 2 candidates per image)",
+    "plates": {
+      "attempts": 2,
+      "selected": 2,
+      "skipped": 0
+    },
+    "depthMaps": {
+      "attempts": 2,
+      "selected": 2,
+      "skipped": 0
+    },
+    "method": "generate_image with offer_options: true; both plates of a pair offered in the same response so the vote is between two candidates for each. References: the shop plate for set and wardrobe, and the character's identity lock only for the face."
+  },
+  "installation": "Both beats live on nw_s100 in src/data/nobodys-witness-film.json; plates and their inline copies are bundled for the single-file build. Timing, dialogue, captions, audio and every other beat are unchanged: the two frames split the hold that nw_b1678 already owned (113 + 168 frames, 4.71 s + 7.00 s).",
+  "cutModified": true,
+  "frameRate": 24,
+  "reviewPage": "index.html",
+  "readme": "README.md",
+  "shots": [
+    {
+      "number": 1,
+      "scene": "nw_s100",
+      "sceneTitle": "100 \u2014 The shop",
+      "targetBeat": "nw_b1678",
+      "shot": "On a shelf above the door, a small old television with the sound down: the evening news.",
+      "targetText": "On a shelf above the door, a small old television with the sound down: the evening news.",
+      "status": "selected",
+      "voteOption": 2,
+      "voteResult": "option 2 accepted",
+      "references": [
+        {
+          "order": 1,
+          "role": "Shop plate: the same shelf, set, doorway and wardrobe",
+          "sourceFilmPath": "/film/img/s100/158-the-third-stool.jpg",
+          "reviewPreview": "context/01-shop-plate-third-stool.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Kurose identity lock",
+          "sourceFilmPath": "/film/img/kurose_new/03-s94-door-stands-open.jpg",
+          "reviewPreview": "context/02-kurose-identity-ref.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness: the epilogue, inside Kaneko's tiny noodle bar under a brick railway arch at night. The first reference shows the same shop, the same elderly Kaneko behind the counter and the same small old television on the wooden shelf above the door; use it only for the room, the shelf, the lighting and the wardrobe. Compose a slightly closer shot on that shelf, seen at a three-quarter angle from the counter side: a small old dusty CRT television, sound off, on the wooden shelf above the dark blue noren curtain. On its small screen, the evening news: the composed Japanese politician KUROSE \u2014 matching the exact face, age, swept-back silver hair and heavy-lidded calm of the man in the second reference \u2014 in a dark navy suit and tie, walking toward a building entrance between two suited lawyers, press photographers' flashbulbs flaring white around him, cool grey daylight behind them on the screen. Foreground and lower edge stay soft: the warm bare bulb, the brick arch, drifting steam, and behind them Kaneko at the counter and a dark-coated man on a stool with an empty space beside him. Warm tungsten light on the set's dusty plastic casing against the cold grey-blue light of its own screen, muted midnight-teal palette, restrained 35mm film grain, true 16:9 landscape frame with comfortable headroom. The screen's lower third is only a plain soft bar with no lettering; no captions, subtitles, chyrons, readable or invented text, logos or watermarks anywhere.",
+      "reviewedImage": {
+        "file": "images/01-nw-b1678-kurose.jpg",
+        "width": 1920,
+        "height": 1080,
+        "colorspace": "sRGB",
+        "type": "TrueColor",
+        "sha256": "ff964dc8b711b07b8ffc49b96cfbd3516b34dac99fd281f71f54da2d30d54dbb"
+      },
+      "reviewedImageFull": {
+        "file": "images/full/01-nw-b1678-kurose.png",
+        "width": 2048,
+        "height": 1152,
+        "colorspace": "sRGB",
+        "type": "TrueColor",
+        "sha256": "91f1c7286fb263fc125a109ff9e19c5d2f1a77c0bca88205bc3dafc9063b206d"
+      },
+      "installedPlate": {
+        "file": "public/film/img/s100/1678-the-evening-news-kurose.jpg",
+        "width": 1920,
+        "height": 1080,
+        "colorspace": "sRGB",
+        "type": "TrueColor",
+        "sha256": "ff964dc8b711b07b8ffc49b96cfbd3516b34dac99fd281f71f54da2d30d54dbb"
+      },
+      "bundledPlate": {
+        "file": "src/assets/recreated-uncut/1678-the-evening-news-kurose.jpg",
+        "sha256": "ff964dc8b711b07b8ffc49b96cfbd3516b34dac99fd281f71f54da2d30d54dbb"
+      },
+      "camera": "static \u00b7 push \u00b7 amount 0.22 \u00b7 10 s \u00b7 focal 68% 32%",
+      "depth": {
+        "voteOption": 1,
+        "voteResult": "option 1 accepted",
+        "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still \u2014 not a photograph, not a shaded render. Use the reference only to trace exactly what is where: keep the identical framing, crop and 16:9 aspect, and align every silhouette edge precisely to the reference with clean, crisp, unfeathered boundaries. Luminance encodes distance only: no texture, no colour, no lighting, no highlights, no brick pattern, no screen picture detail, no steam, no grain, no vignette, no border, no text, no signature.\n\nNearest surfaces, near-white (about 0.92-0.98): the wooden slab running along the very bottom edge of frame beneath the television, and the dark brick pier filling the frame's far-left edge from top to bottom.\n\nSecond nearest, light grey (about 0.72-0.85): the small old television set itself in the upper centre-right \u2014 its front plastic bezel, its dusty speaker grille and control buttons along the bottom, and its curved cabinet sides \u2014 one continuous readable block proud of everything behind it.\n\nMid-ground, mid grey (about 0.52-0.66): the television's glass screen and the flat news picture on it (the suited man, the lawyers and the photographers' flash), treated as one smooth recessed panel inside the bezel, marginally darker than the bezel around it.\n\nFarther, dark grey (about 0.30-0.44): the pale cardboard box standing to the right of the set (roughly the right fifth of frame, upper half) and the low stack of newspapers and boards below it.\n\nDeeper, darker grey (about 0.16-0.28): the dark blue noren curtain panels hanging in the doorway on the right, and the shop's brick arch and dark ceiling across the top of frame.\n\nBackground, near-black (about 0.03-0.10): the dim interior of the shop behind and below the shelf \u2014 the far counter with the elderly woman and the man seated on a stool, the bare bulb's glow and the steam \u2014 all read only as very dark, barely separated masses at the bottom left and centre. Corner recesses darkest.\n\nEvery surface a smooth continuous gradient across the object, each object marginally lighter toward its near edge, with hard clean separation where one object occludes another. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+        "reviewedImage": {
+          "file": "depth/01-nw-b1678-evening-news-depth.jpg",
+          "width": 1434,
+          "height": 810,
+          "colorspace": "sRGB",
+          "type": "TrueColor",
+          "sha256": "529f11422b8c83a018d6386f668d5eb0e7f0162175fe09f4544d01f8604820dc"
+        },
+        "reviewedImageFull": {
+          "file": "depth/full/01-nw-b1678-evening-news-depth.png",
+          "width": 2096,
+          "height": 1184,
+          "colorspace": "sRGB",
+          "type": "TrueColor",
+          "sha256": "ade5d8292cbe0fe533193f68c68bb756f15710d55fd35edb8c3eee8a467e0a00"
+        },
+        "installedDepthMap": {
+          "file": "public/film/depth/recreated-uncut/1678-evening-news-depth.jpg",
+          "width": 960,
+          "height": 540,
+          "colorspace": "Gray",
+          "type": "Grayscale",
+          "sha256": "629fa037e4ebf147b0e1299f546915a925309e7bf503d488bbc306edea136184"
+        },
+        "bundledDepthMap": {
+          "file": "src/assets/recreated-uncut/depth/1678-evening-news-depth.jpg",
+          "sha256": "629fa037e4ebf147b0e1299f546915a925309e7bf503d488bbc306edea136184"
+        },
+        "postProcessing": "trimmed the generator's margin where present, converted to genuine 8-bit greyscale, resized to 960x540, JPEG quality 88 to match the film's other maps. No blur, no inversion, no relighting."
+      }
+    },
+    {
+      "number": 2,
+      "scene": "nw_s100",
+      "sceneTitle": "100 \u2014 The shop",
+      "targetBeat": "nw_b1679",
+      "shot": "KUROSE walking into a building between lawyers, cameras flashing\u2026 A photograph of ISHIDA in uniform.",
+      "targetText": "KUROSE walking into a building between lawyers, cameras flashing, his face composed. A photograph of ISHIDA in uniform. Then the weather.",
+      "status": "selected",
+      "voteOption": 2,
+      "voteResult": "option 2 accepted",
+      "references": [
+        {
+          "order": 1,
+          "role": "Shop plate: the same shelf, set, doorway and wardrobe",
+          "sourceFilmPath": "/film/img/s100/158-the-third-stool.jpg",
+          "reviewPreview": "context/01-shop-plate-third-stool.jpg"
+        },
+        {
+          "order": 2,
+          "role": "Ishida identity lock",
+          "sourceFilmPath": "/film/img/jack_ishida_new/style-sheets/refs/ishida-face.jpg",
+          "reviewPreview": "context/03-ishida-identity-ref.jpg"
+        }
+      ],
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness: the epilogue, in Kaneko's tiny noodle bar under a brick railway arch at night. The first reference shows the same old television standing on the wooden shelf above the door in that shop; keep the same set, shelf, brickwork and warm bulb so this reads as the very next moment on the same screen. Compose a closer shot of the small old dusty CRT television, angled toward the counter, its dark plastic bezel with a dusty speaker grille and worn dials filling the frame edges. On the screen: a formal police press portrait, head and shoulders, of ISHIDA \u2014 matching the exact face, brow, nose, jawline and neatly combed salt-and-pepper hair of the man in the second reference \u2014 now composed and unsmiling in a dark navy Japanese police uniform with silver collar insignia and a peaked cap, lit flatly against a plain pale grey studio background, framed with a thin light border like a photograph shown on air. The image is slightly soft, faintly scan-lined and cool, as a small television broadcast would be; the glass carries a faint reflection of the shop's warm bulb. Around the set the shot stays dark and soft: brick arch, noren, steam, the wooden shelf edge. Warm tungsten spill on the casing against the cold screen glow, muted midnight-teal palette, restrained 35mm film grain, true 16:9 landscape frame. No lettering on the screen's lower third; no captions, subtitles, chyrons, readable or invented text, logos or watermarks anywhere.",
+      "reviewedImage": {
+        "file": "images/02-nw-b1679-ishida.jpg",
+        "width": 1890,
+        "height": 1080,
+        "colorspace": "sRGB",
+        "type": "TrueColor",
+        "sha256": "18b792995cc5aa933aed31be622bad28d49f57b10c1a57de2f45ec6cc0ae8d31"
+      },
+      "reviewedImageFull": {
+        "file": "images/full/02-nw-b1679-ishida.png",
+        "width": 1344,
+        "height": 768,
+        "colorspace": "sRGB",
+        "type": "TrueColor",
+        "sha256": "2a8fc67800f358f179d69d5622f0828e470aa815f46179bd537dc30bbad5f269"
+      },
+      "installedPlate": {
+        "file": "public/film/img/s100/1679-the-photograph-of-ishida.jpg",
+        "width": 1920,
+        "height": 1080,
+        "colorspace": "sRGB",
+        "type": "TrueColor",
+        "sha256": "bfdd5d06c78f7d845c6f0c1483d43b54be6cae410c29e5ed1d787a3ede9d8675"
+      },
+      "bundledPlate": {
+        "file": "src/assets/recreated-uncut/1679-the-photograph-of-ishida.jpg",
+        "sha256": "bfdd5d06c78f7d845c6f0c1483d43b54be6cae410c29e5ed1d787a3ede9d8675"
+      },
+      "camera": "static \u00b7 push \u00b7 amount 0.22 \u00b7 10 s \u00b7 focal 44% 44%",
+      "depth": {
+        "voteOption": 2,
+        "voteResult": "option 2 accepted",
+        "prompt": "Create a pure greyscale DEPTH MAP (a Z-pass render) for the supplied 16:9 cinematic film still \u2014 not a photograph, not a shaded render. Use the reference only to trace exactly what is where: keep the identical framing, crop and 16:9 aspect, and align every silhouette edge precisely to the reference with clean, crisp, unfeathered boundaries. Luminance encodes distance only: no texture, no colour, no lighting, no highlights, no scan lines, no broadcast picture detail, no grain, no vignette, no border, no text, no signature.\n\nNearest surfaces, near-white (about 0.92-0.98): the wooden shelf edge running along the bottom of frame below the set, and the dark brickwork filling the frame's far-left edge.\n\nSecond nearest, light grey (about 0.72-0.85): the old television set's cabinet across the centre of frame \u2014 the thick front plastic bezel, the two large round channel and volume dials standing proud at the upper right of the set, the vertical speaker grille below them, and the control strip with its small sockets and buttons along the bottom of the cabinet.\n\nMid-ground, mid grey (about 0.52-0.66): the television's curved glass screen and its blue broadcast picture \u2014 the pale studio background and the thin light frame around the portrait.\n\nFarther, slightly darker grey (about 0.42-0.52): the flat photograph on the screen itself, the head-and-shoulders police portrait with its cap and uniform, a shallow panel recessed a touch inside the screen's glass.\n\nFarther again, dark grey (about 0.26-0.40): the pale wooden cabinet face standing behind the set at the right of frame, and the small dark cased object resting at the lower right corner.\n\nBackground, near-black (about 0.03-0.12): the unlit brickwork and dim room above and to the right of the set, the deep shadow in the top right corner, and the faint steam haze at the right edge. Every corner and the top of frame darkest.\n\nEvery surface a smooth continuous gradient across the object, each object marginally lighter toward its near edge, with hard clean separation where one object occludes another. Single flat greyscale depth map, full-bleed 16:9, no colour anywhere.",
+        "reviewedImage": {
+          "file": "depth/02-nw-b1679-ishida-photograph-depth.jpg",
+          "width": 1440,
+          "height": 810,
+          "colorspace": "Gray",
+          "type": "Grayscale",
+          "sha256": "2ea6cc8cd8fbdadc77f5470b2fd5104e48968cefb57a57843813ad7e1bf05813"
+        },
+        "reviewedImageFull": {
+          "file": "depth/full/02-nw-b1679-ishida-photograph-depth.png",
+          "width": 2730,
+          "height": 1536,
+          "colorspace": "Gray",
+          "type": "Grayscale",
+          "sha256": "ab0051f1d6a42589c95b3ae5ce789e8ebadeb17f4ce9f8dc70279f4497cfc78f"
+        },
+        "installedDepthMap": {
+          "file": "public/film/depth/recreated-uncut/1679-ishida-photograph-depth.jpg",
+          "width": 960,
+          "height": 540,
+          "colorspace": "Gray",
+          "type": "Grayscale",
+          "sha256": "a07652712e82d203abea8c028e92c52c2b5588d0c13acc8c69fb2c2cffe1f762"
+        },
+        "bundledDepthMap": {
+          "file": "src/assets/recreated-uncut/depth/1679-ishida-photograph-depth.jpg",
+          "sha256": "a07652712e82d203abea8c028e92c52c2b5588d0c13acc8c69fb2c2cffe1f762"
+        },
+        "postProcessing": "trimmed the generator's margin where present, converted to genuine 8-bit greyscale, resized to 960x540, JPEG quality 88 to match the film's other maps. No blur, no inversion, no relighting."
+      }
+    }
+  ],
+  "chyronRepair": {
+    "problem": "The third-person wide shop frames each carried the same invented broadcast chyron on the inset television \u2014 illegible Japanese-like glyphs with a station badge.",
+    "method": "Each frame's own pixels in the lettering area were locally defocused (60% downscale, back up, blur), applied through a feathered mask. No pixel was copied from another frame, nothing was redrawn or lettered, and the rest of each picture is untouched.",
+    "sidecar": "studio-edits.json pictureLook['320-the-news-nobody-watches'] is a filename-keyed look for a picture that now runs on no beat. It is left as-is rather than retargeted, because keying a look by filename cannot distinguish the two new beats.",
+    "frames": [
+      {
+        "frame": "public/film/img/s100/158-the-third-stool.jpg",
+        "usedBy": "nw_b1675, nw_b1676, nw_b1677 (the shop, before the news)",
+        "archivedAs": "public/film/img/archive/s100/158-the-third-stool--v4.jpg",
+        "letteringBox": {
+          "x": 1370,
+          "y": 186,
+          "w": 126,
+          "h": 44
+        },
+        "before": "chyron/before-158-the-third-stool.jpg",
+        "after": "chyron/after-158-the-third-stool.jpg",
+        "cropBefore": "chyron/crop-before-158-the-third-stool.jpg",
+        "cropAfter": "chyron/crop-after-158-the-third-stool.jpg",
+        "sha256": "cc0c1e0d23de40a68bf8671ee98f8fcc750a8f7e57c19b21005f6b43b07e123f"
+      },
+      {
+        "frame": "public/film/img/s100/159-she-doesnt-turn.jpg",
+        "usedBy": "nw_b1687 (the three of them in the steam)",
+        "archivedAs": "public/film/img/archive/s100/159-she-doesnt-turn--v4.jpg",
+        "letteringBox": {
+          "x": 1362,
+          "y": 190,
+          "w": 160,
+          "h": 44
+        },
+        "before": "chyron/before-159-she-doesnt-turn.jpg",
+        "after": "chyron/after-159-she-doesnt-turn.jpg",
+        "cropBefore": "chyron/crop-before-159-she-doesnt-turn.jpg",
+        "cropAfter": "chyron/crop-after-159-she-doesnt-turn.jpg",
+        "sha256": "d68c648dd5d71f76dc310554aedcf4e380da45b757c3d39c44876affed924788"
+      },
+      {
+        "frame": "public/film/img/s100/160-the-clip.jpg",
+        "usedBy": "nw_b1684 (Kaneko sets a bowl down)",
+        "archivedAs": "public/film/img/archive/s100/160-the-clip--v4.jpg",
+        "letteringBox": {
+          "x": 1370,
+          "y": 186,
+          "w": 126,
+          "h": 44
+        },
+        "before": "chyron/before-160-the-clip.jpg",
+        "after": "chyron/after-160-the-clip.jpg",
+        "cropBefore": "chyron/crop-before-160-the-clip.jpg",
+        "cropAfter": "chyron/crop-after-160-the-clip.jpg",
+        "sha256": "8a0294a3acf78d480bb4f8a60fcbe87de25da3faa4e72d5d7a6c0af7f97eda01"
+      },
+      {
+        "frame": "public/film/img/s100/161-stool-three.jpg",
+        "usedBy": "nw_b1683 (she sits down beside him)",
+        "archivedAs": "public/film/img/archive/s100/161-stool-three--v4.jpg",
+        "letteringBox": {
+          "x": 1382,
+          "y": 178,
+          "w": 130,
+          "h": 48
+        },
+        "before": "chyron/before-161-stool-three.jpg",
+        "after": "chyron/after-161-stool-three.jpg",
+        "cropBefore": "chyron/crop-before-161-stool-three.jpg",
+        "cropAfter": "chyron/crop-after-161-stool-three.jpg",
+        "sha256": "853c8ead359b8e4ebc75eaedd0c243c2e70e00fb4b181e569c1213d45a993ae3"
+      }
+    ]
+  }
+}
