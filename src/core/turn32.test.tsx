@@ -69,7 +69,9 @@ describe("Turn 32–33 — 1940s Noir Director's Cut (original running order, si
 
     const neoClips = buildTimelineClips(buildKeyframes(neoById.story), voiceMap).clips;
     const neoDefClips = buildTimelineClips(buildKeyframes(neoDefault.story), voiceMap).clips;
-    expect(neoClips.length).toBe(705);
+    // 706 since the epilogue's news beat became two sequential TV frames
+    // (nw_b1678 the evening news, nw_b1679 Ishida's police portrait).
+    expect(neoClips.length).toBe(706);
     expect(neoClips.length).toBe(neoDefClips.length);
 
     // 1940s Noir Cut keeps the original running order but splits multi-turn dialogue

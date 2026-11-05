@@ -183,13 +183,15 @@ describe("Turn 28 — User-Voted Reference-Matched Gap Frames & Depth Maps", () 
       expect(vossCap).toBeDefined();
       expect(vossCap!.text).toBe("DANIEL VOSS.");
 
-      // Verify Scene 100 complete 8-shot epilogue progression
+      // Verify Scene 100 complete 9-shot epilogue progression. The closing
+      // news beat is two sequential TV frames: Kurose, then Ishida's portrait.
       const s100Pics = clips
         .filter((c) => c.keyframe.sceneId === "nw_s100")
         .map((c) => c.keyframe.picture);
       expect(s100Pics).toEqual([
         "/film/img/s100/1676-the-kaneko-sign.jpg",
-        "/film/img/s100/320-the-news-nobody-watches.jpg",
+        "/film/img/s100/1678-the-evening-news-kurose.jpg",
+        "/film/img/s100/1679-the-photograph-of-ishida.jpg",
         "/film/img/s100/158-the-third-stool.jpg",
         "/film/img/s100/1682-the-curtain-moves.jpg",
         "/film/img/s100/161-stool-three.jpg",

@@ -375,3 +375,35 @@ Corrected frames (old files archived, frames replaced at their existing paths):
 Validation: `npm test` passed (647 passed, 24 skipped); both media indexes are sorted,
 unique and contain every corrected path; all active beat paths and depth references still
 resolve; `git diff --check` clean.
+
+## The closing news is two frames again, and the invented chyron is gone
+
+`IMAGE_RECOVERY.md` requires `nw_b1678` and `nw_b1679` to be **two sequential TV frames — Kurose first, then
+Ishida's police portrait**. As shipped, `nw_b1678` used one picture with both men crammed onto a single screen and
+`nw_b1679` fell back to that same picture, so the epilogue showed no second frame at all.
+
+Two plates were generated from the shop's own set plate (`s100/158-the-third-stool.jpg`) plus one identity
+reference each, offered as a two-candidate vote, and installed as `s100/1678-the-evening-news-kurose.jpg` and
+`s100/1679-the-photograph-of-ishida.jpg`, each with a voted depth map (`/film/depth/recreated-uncut/`,
+960x540 greyscale, `push`, amount 0.22). The two beats **split the hold `nw_b1678` already owned** — 4.71 s for
+the news, 7.00 s for the portrait, held through `nw_b1680` — so beat count, total duration, captions, voice and
+music are unchanged; Neo-Noir simply gains one clip (705 -> 706). The superseded two-in-one frame is archived as
+`archive/s100/320-the-news-nobody-watches--v2.jpg` and now runs on no beat. Its depth folder and the filename-keyed
+`pictureLook` entry in `studio-edits.json` are deliberately left alone: one filename cannot carry two cameras.
+
+The same request asked for a pass over on-screen Japanese signage. The gibberish (耕ニンヌ) was a broadcast chyron
+drawn on the inset television in **all four** wide shop frames — `158`, `159`, `160` and `161` — not only the news
+beat. Each frame's own pixels in the lettering area were locally defocused through a feathered mask (60% downscale
+and back up, small blur): no pixels copied between frames, nothing redrawn or lettered, everything else untouched.
+Archives are `archive/s100/<name>--v4.jpg`. The shop's 金子 sign, the investigations card (ジャック・探偵社 /
+東京都千代田区神田1-2-3), the cassette label, the clipping and the letter were checked and are correct, so they were
+left alone; no depth map covered the four repaired frames, so none needed re-tracing.
+
+Playback bookkeeping: the closing shot (`320`) is now the only picture in `public/film/img/s100/` that no beat
+uses. `src/core/closing-news.test.ts` pins the two-frame rule, the order, the holds, the 1920x1080 plates, both
+indexes and the archives. `src/core/turn28.test.tsx` and `src/core/turn32.test.tsx` were updated for the 9-picture
+epilogue and the 706-clip Neo-Noir cut.
+
+Validation: `npm test` passed (654 passed, 24 skipped); both media indexes are sorted, unique and contain every
+new path; `git diff --check` clean. Prompts, votes, digests, before/after chyron crops and a numbered review
+gallery are in `reviews/tv-news-20261104/`.
