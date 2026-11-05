@@ -38,6 +38,7 @@ import {
   EMPTY_MULTI_SELECTION,
   frameToMs,
   isMultiSelectionEmpty,
+  MIN_AUDIO_CLIP_MS,
   reanchorAudioClipToMs,
   resolveAudioClips,
   type AudioClip,
@@ -46,6 +47,17 @@ import {
   type ResolvedAudioClip,
   type SelectedKeyframeDiamond,
 } from "./core/audioClips";
+import {
+  crossfadeAudioClips,
+  duplicateAudioClip,
+  fitAudioClipToSpanMs,
+  nextClipOnLane,
+  plainAudioClip,
+  splitAudioClipAtMs,
+  trimAudioClipEdgeToMs,
+  type AudioClipTool,
+} from "./core/audioEdits";
+import type { AudioSpanTarget } from "./components/AudioClipTools";
 import {
   activeTimelineCaptionAtFrame,
   buildMp4FfmetadataChapters,
@@ -2981,6 +2993,148 @@ export default function App() {
     [applyProject],
   );
 
+  /** The shot and the scene under the playhead: what "fill the shot / scene" lays a cue across. */
+  const audioSpans = useMemo<AudioSpanTarget[]>(() => {
+    const here = clipAtFrame(clips, playheadFrame) ?? selectedClip;
+    if (!here) return [];
+    const sceneClips = clips.filter((c) => c.keyframe.sceneId === here.keyframe.sceneId);
+    const sceneStart = Math.min(...sceneClips.map((c) => c.startFrame));
+    const sceneEnd = Math.max(...sceneClips.map((c) => c.endFrame));
+    return [
+      {
+        kind: "shot",
+        label: `shot ${here.keyframe.number} of scene ${here.keyframe.mark}`,
+        startMs: frameToMs(here.startFrame),
+        endMs: frameToMs(here.endFrame),
+      },
+      {
+        kind: "scene",
+        label: `scene ${here.keyframe.mark}`,
+        startMs: frameToMs(sceneStart),
+        endMs: frameToMs(sceneEnd),
+      },
+    ];
+  }, [clips, playheadFrame, selectedClip]);
+
+  /** Cut, trim, copy, fill or crossfade one sound clip (the buttons in the Voice / SFX / Music / Ambience tabs). */
+  const handleAudioClipTool = useCallback(
+    (clipId: string, tool: AudioClipTool) => {
+      const current = projectRef.current;
+      if (!current) return;
+      const resolved = resolvedAudioClips.find((c) => c.id === clipId);
+      if (!resolved) return;
+      const stored = current.audioClips ?? [];
+      const fileMs = fileDurationMap.get(resolved.src);
+      const put = (next: AudioClip[], label: string, selectIds?: string[]) => {
+        applyProject(setAudioClips(current, next), label);
+        if (selectIds) {
+          setMultiSelection({ pictureIds: [], captions: [], audioClipIds: selectIds, keyframes: [] });
+        }
+      };
+      const swap = (clip: AudioClip) => stored.map((c) => (c.id === clip.id ? clip : c));
+      const lane = resolved.lane.toUpperCase();
+
+      if (tool.kind === "split") {
+        const split = splitAudioClipAtMs(resolved, frameToMs(playheadRef.current), clips, {
+          newId: `ac-${resolved.lane}-${crypto.randomUUID().slice(0, 8)}`,
+          fileDurationMs: fileMs,
+        });
+        if (!split) {
+          setEditLabel("Put the playhead inside the clip to cut it");
+          return;
+        }
+        const index = stored.findIndex((c) => c.id === clipId);
+        const next = swap(split.left);
+        next.splice(index + 1, 0, split.right);
+        put(next, `${lane} clip cut at ${formatTimecode(playheadRef.current)}`, [split.right.id]);
+        return;
+      }
+
+      if (tool.kind === "trim") {
+        const trimmed = trimAudioClipEdgeToMs(
+          resolved,
+          tool.edge,
+          frameToMs(playheadRef.current),
+          clips,
+          fileMs,
+        );
+        if (!trimmed) {
+          setEditLabel(`Nothing to trim: the ${tool.edge} is already there`);
+          return;
+        }
+        put(swap(trimmed), `${lane} clip ${tool.edge === "start" ? "starts" : "ends"} at the playhead`, [clipId]);
+        return;
+      }
+
+      if (tool.kind === "duplicate") {
+        const copy = duplicateAudioClip(resolved, clips, {
+          newId: `ac-${resolved.lane}-${crypto.randomUUID().slice(0, 8)}`,
+        });
+        const index = stored.findIndex((c) => c.id === clipId);
+        const next = [...stored];
+        next.splice(index + 1, 0, copy);
+        put(next, `${lane} clip copied after itself`, [copy.id]);
+        return;
+      }
+
+      if (tool.kind === "fit") {
+        const span = audioSpans.find((s) => s.kind === tool.span);
+        if (!span) return;
+        const fitted = fitAudioClipToSpanMs(resolved, span.startMs, span.endMs, clips, {
+          fileDurationMs: fileMs,
+        });
+        const note = fitted.looped ? " (looped to reach the end)" : fitted.short ? " (the recording runs out first)" : "";
+        put(swap(fitted.clip), `${lane} clip fills ${span.label}${note}`, [clipId]);
+        return;
+      }
+
+      if (tool.kind === "fade") {
+        const room = Math.max(
+          0,
+          resolved.durationMs - (tool.edge === "in" ? resolved.fadeOutMs : resolved.fadeInMs),
+        );
+        const ms = Math.max(0, Math.min(room, tool.ms));
+        put(
+          swap({ ...plainAudioClip(resolved), ...(tool.edge === "in" ? { fadeInMs: ms } : { fadeOutMs: ms }) }),
+          `${lane} fade ${tool.edge} ${ms} ms`,
+          [clipId],
+        );
+        return;
+      }
+
+      if (tool.kind === "crossfade") {
+        const next = nextClipOnLane(resolvedAudioClips, resolved);
+        if (!next) {
+          setEditLabel(`Nothing after this clip on the ${lane} lane`);
+          return;
+        }
+        const result = crossfadeAudioClips(resolved, next, tool.ms, clips, {
+          outgoingFileMs: fileMs,
+          incomingFileMs: fileDurationMap.get(next.src),
+        });
+        if (!result) return;
+        const updated = stored.map((c) =>
+          c.id === result.outgoing.id ? result.outgoing : c.id === result.incoming.id ? result.incoming : c,
+        );
+        const how =
+          result.from === "none"
+            ? "faded at the join (neither recording had anything spare)"
+            : `${Math.round(result.overlapMs)} ms overlap`;
+        put(updated, `${lane} crossfade: ${how}`, [clipId]);
+      }
+    },
+    [applyProject, audioSpans, clips, fileDurationMap, resolvedAudioClips],
+  );
+
+  /** The sound clip the ✂ button and the S key would cut: one selected, with the playhead inside it. */
+  const splitAudioTarget = useMemo<ResolvedAudioClip | undefined>(() => {
+    if (multiSelection.audioClipIds.length !== 1) return undefined;
+    const clip = resolvedAudioClips.find((c) => c.id === multiSelection.audioClipIds[0]);
+    if (!clip) return undefined;
+    const ms = frameToMs(playheadFrame);
+    return ms > clip.startMs + MIN_AUDIO_CLIP_MS && ms < clip.endMs - MIN_AUDIO_CLIP_MS ? clip : undefined;
+  }, [multiSelection.audioClipIds, resolvedAudioClips, playheadFrame]);
+
   const canSplit = useMemo(() => {
     if (selectedCaption) {
       if (selectedCaption.indices.length !== 1) return false;
@@ -2989,12 +3143,18 @@ export default function App() {
       return splitCaptionAtFrame(clip.keyframe.beat, clip.durationFrames,
         selectedCaption.indices[0], playheadFrame - clip.startFrame).didSplit;
     }
+    if (splitAudioTarget) return true;
+    if (multiSelection.audioClipIds.length === 1) return false; // a sound clip is selected, but not under the playhead
     return Boolean(selectedClip && playheadFrame > selectedClip.startFrame && playheadFrame < selectedClip.endFrame);
-  }, [selectedCaption, selectedClip, clips, playheadFrame]);
+  }, [selectedCaption, selectedClip, clips, playheadFrame, splitAudioTarget, multiSelection.audioClipIds]);
 
   const splitAtPlayhead = useCallback(() => {
     const current = projectRef.current;
     if (!current) return;
+    if (!selectedCaptionRef.current && splitAudioTarget) {
+      handleAudioClipTool(splitAudioTarget.id, { kind: "split" });
+      return;
+    }
     const selected = selectedCaptionRef.current;
     if (selected) {
       if (selected.indices.length !== 1) return;
@@ -3022,7 +3182,7 @@ export default function App() {
     setSelectedFrameId(result.rightId);
     setSelectedFrameIds([result.rightId]);
     setMultiSelection({ pictureIds: [result.rightId], captions: [], audioClipIds: [], keyframes: [] });
-  }, [applyProject, clips, selectedClip, voiceDurations]);
+  }, [applyProject, clips, selectedClip, voiceDurations, splitAudioTarget, handleAudioClipTool]);
 
   const captionStyle = useMemo<CaptionStyle>(
     () => normalizeCaptionStyle(project?.story.captionStyle ?? DEFAULT_CAPTION_STYLE),
@@ -5946,6 +6106,8 @@ export default function App() {
               webAudioEngine.previewClip(clip, resolveMedia)
             }
             onRebuildSoundFromFilm={handleRebuildSoundFromFilm}
+            onAudioClipTool={handleAudioClipTool}
+            audioSpans={audioSpans}
           />
         </div>
 
@@ -6025,6 +6187,9 @@ export default function App() {
             noteMarkers={noteMarkers}
             editingMarkerId={editingMarkerId}
             canSplit={canSplit}
+            splitTarget={splitAudioTarget ? "sound" : selectedCaption ? "caption" : "clip"}
+            onAudioClipTool={handleAudioClipTool}
+            audioSpans={audioSpans}
             hasClipboard={
               copiedClips.length > 0 ||
               Boolean(multiClipboard) ||

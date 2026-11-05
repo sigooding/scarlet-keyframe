@@ -9083,3 +9083,112 @@ kbd {
   white-space: nowrap;
   cursor: pointer;
 }
+
+/* Cut & trim: the sound-clip tools under the Voice / SFX / Music / Ambience tabs */
+.audio-tools-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.audio-tools-head small {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.audio-preset-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 26px;
+}
+
+.audio-preset-buttons {
+  display: inline-flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.audio-preset-btn {
+  min-width: 38px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--line-mid);
+  background: var(--bg-950);
+  color: var(--ink-secondary);
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.audio-preset-btn:hover:not(:disabled) {
+  border-color: var(--accent-amber);
+  color: var(--accent-amber);
+}
+
+.audio-preset-btn.is-active {
+  border-color: var(--accent-amber);
+  background: var(--accent-amber-soft);
+  color: var(--accent-amber);
+}
+
+.audio-preset-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.audio-crossfade {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-mid);
+}
+
+.audio-crossfade .button-wide {
+  margin-top: 8px;
+}
+
+/* The right-click menu on a sound clip in the timeline */
+.audio-context-menu {
+  min-width: 248px;
+}
+
+.audio-context-menu .diamond-menu-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.audio-context-menu .diamond-menu-head > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audio-context-menu .diamond-menu-head small {
+  flex-shrink: 0;
+}
+
+.audio-context-menu .diamond-menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 10px 4px;
+}
+
+.audio-context-menu .diamond-menu-row > span:first-child {
+  font-size: 11px;
+  color: var(--ink-muted);
+  min-width: 34px;
+}
+
+.audio-context-menu .audio-preset-btn {
+  min-width: 34px;
+  padding: 2px 5px;
+}
