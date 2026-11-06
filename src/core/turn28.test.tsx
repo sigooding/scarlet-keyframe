@@ -204,7 +204,7 @@ describe("Turn 28 — User-Voted Reference-Matched Gap Frames & Depth Maps", () 
     // Verify Uncut preserves exact 1,618 beats while exposing all 7 new plates on their target beats
     const uncut = buildDirectorsCutById(baseProject, "uncut", voiceMap, musicMap);
     const uncutFrames = buildKeyframes(uncut.story);
-    expect(uncutFrames).toHaveLength(1618);
+    expect(uncutFrames).toHaveLength(1621); // +3: scene 1's nw_b1722/nw_b1723 refusal frames and nw_b1724 puddle insert
     for (const spec of VOTED_GAP_FRAME_SPECS) {
       const f = uncutFrames.find((kf) => kf.id === spec.beatId);
       expect(f).toBeDefined();

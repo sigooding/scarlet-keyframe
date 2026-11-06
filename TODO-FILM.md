@@ -3,9 +3,12 @@
 The director's notes, written down and **not yet done**. No picture has been generated, no line re-recorded and nothing
 in `src/data/nobodys-witness-film.json` changed for anything on this page.
 
+**Status 5 November 2026: §1 is done** — every picture below was generated, voted and installed, and the beats were
+rewired; see the note at the end of §1 and `reviews/s1-blood-and-refusal-20261105/`. **§2 is still not done.**
+
 ---
 
-## 1. Scene 1 — Sakai's refusal, and the blood (5 November 2026)
+## 1. Scene 1 — Sakai's refusal, and the blood (5 November 2026) — DONE
 
 The director, in their own words:
 
@@ -23,6 +26,25 @@ exactly on the shooting and what follows, so that is how they are written out he
 | 20 | `s1/14-she-kneels.jpg` | `nw_b39` (beat 34) — "Mara runs to the old man. Her bag slides off her shoulder and spills across the wet street." | Mara kneeling at Sakai | **blood under Mara's hand** |
 | 21 | `s1/15-the-grip.jpg` | `nw_b42` (beat 37) — "His hand comes out of his coat with something small and brass in it. He presses it into her hand." | his hand pressing the key into hers | **a stream of blood in the water** |
 | 22 → 23/24 | after `s1/16-the-key.jpg` (`nw_b46`, beat 41) — so on `s1/17-she-runs.jpg` (`nw_b47`) and/or `s1/18-the-flashlight.jpg` (`nw_b48`) | the key in her hand, then Mara running, then her purse open in the rain | **just a puddle of rainwater on the pavement, leaking blood** — no body, nothing else in frame |
+
+### What was installed (5 November 2026)
+
+- **The shake, two frames cut together:** `s1/384-he-half-turns.jpg` (head half-turned, eyes already leaving her) plays
+  `nw_b25` on "Then he shakes his head. Barely."; inserted `nw_b1722` plays `s1/385-he-turns-the-other-way.jpg` (head
+  fully to the other side, near-profile) on "A man refusing a stranger."; inserted `nw_b1723` carries the old wide
+  `331-he-refuses.jpg`, still playing, on "And he turns his back on her, slowly, to face the road." The old line is
+  only split at sentence boundaries. Lane geometry kept as noted (barbershop left, vending machine right, bar glow far).
+- **Blood under Mara's hand:** `14-she-kneels.jpg` retaken on `nw_b39` — glossy dark dye seeping from under her palm
+  (the director picked the black dye over a scarlet variant). Old picture archived `archive/s1/14-she-kneels--v5.jpg`;
+  the beat's depth plate and cut-out carry the same stain through a difference mask, old layers under
+  `depth/archive/s1/14-she-kneels/…--v1`; `depth.png` untouched.
+- **Stream of blood in the water:** `15-the-grip.jpg` retaken on `nw_b42`, old picture archived
+  `archive/s1/15-the-grip--v4.jpg` (v1–v3 are older takes).
+- **The puddle:** `s1/386-the-puddle-leaking-blood.jpg`, ground-level, nothing else in frame, inserted as `nw_b1724`
+  after the key (`nw_b46`) on the director's own words: "On the pavement: a puddle of rainwater, leaking blood."
+  She-runs and the open bag follow as pictures 24/25.
+- Both media indexes list the new pictures and archives; thumbnails regenerated; `turn21`/`turn28`/`turn32` count pins
+  moved (1618→1621 frames, 706→709 Neo-Noir clips). Prompts, votes and digests: `reviews/s1-blood-and-refusal-20261105/`.
 
 Rules that still hold for any of this work: a retake is installed with
 `FFMPEG=… node tools/install-film-picture.mjs <source> public/film/img/s1/<name>.jpg`, which archives the picture it
