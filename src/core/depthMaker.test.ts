@@ -846,17 +846,19 @@ describe("what the Make depth map row shows", () => {
     expect(row(idle(), { picture: undefined })).toEqual({ kind: "hidden" });
   });
 
-  it("a shot that already has a depth map offers, quietly, to make a new one: only when everything is in order", () => {
+  it("a shot that already has a depth map offers to make a new one, cut-outs or no cut-outs", () => {
     expect(row(idle(), { hasDepthMap: true })).toMatchObject({ kind: "redo", note: expect.stringContaining("The old file is not lost") });
     expect((row(idle(ready({ here: ["depth-large"] })), { hasDepthMap: true }) as { note: string }).note).toContain("Made on this computer from this picture (Depth Anything V2 Large).");
-    // nothing for a shot whose depth map goes with its cut-outs, or while the computer is not ready
-    expect(row(idle(), { hasDepthMap: true, hasCutouts: true })).toEqual({ kind: "hidden" });
-    expect(row(idle(null), { hasDepthMap: true })).toEqual({ kind: "hidden" });
-    expect(row(idle("unavailable"), { hasDepthMap: true })).toEqual({ kind: "hidden" });
-    expect(row(idle(ready({ packages: false })), { hasDepthMap: true })).toEqual({ kind: "hidden" });
-    expect(row(idle(ready({ busy: "other" })), { hasDepthMap: true })).toEqual({ kind: "hidden" });
-    expect(row(idle(ready(), { job: job({ frameId: "f2" }) }), { hasDepthMap: true })).toEqual({ kind: "hidden" });
-    expect(row(idle(ready(), { download: download() }), { hasDepthMap: true })).toEqual({ kind: "hidden" });
+    // a shot that has been done once can be done again: having cut-outs too does not take the offer away
+    expect(row(idle(), { hasDepthMap: true, hasCutouts: true })).toMatchObject({ kind: "redo" });
+    // the row says what is in the way instead of disappearing, exactly as it does for a shot with no map
+    expect(row(idle(null), { hasDepthMap: true })).toEqual({ kind: "checking" });
+    expect(row(idle("unavailable"), { hasDepthMap: true })).toEqual({ kind: "unavailable" });
+    expect(row(idle(ready({ packages: false })), { hasDepthMap: true })).toEqual({ kind: "setup-needed", command: DEPTH_SETUP_COMMAND });
+    expect(row(idle(ready({ busy: "other" })), { hasDepthMap: true })).toMatchObject({ kind: "busy" });
+    expect(row(idle(ready(), { job: job({ frameId: "f2" }) }), { hasDepthMap: true })).toMatchObject({ kind: "busy" });
+    expect(row(idle(ready(), { download: download() }), { hasDepthMap: true })).toMatchObject({ kind: "busy" });
+    // only a picture that can never have a depth map is left with nothing
     expect(row(idle(), { hasDepthMap: true, picture: "asset:abc" })).toEqual({ kind: "hidden" });
   });
 
@@ -1021,10 +1023,18 @@ describe("which models the cut-outs need", () => {
 });
 
 describe("what the Make cutouts row shows", () => {
-  it("nothing for a picture that cannot have one, or a shot that already has cut-outs", () => {
+  it("nothing for a picture that cannot have one; a shot that has cut-outs is offered another set", () => {
     expect(cutRow(idle(), { picture: "asset:abc" })).toEqual({ kind: "hidden" });
     expect(cutRow(idle(), { picture: undefined })).toEqual({ kind: "hidden" });
-    expect(cutRow(idle(), { hasCutouts: true })).toEqual({ kind: "hidden" });
+    const again = cutRow(idle(ready({ here: BEST })), { hasCutouts: true }) as { kind: string; again?: boolean; note: string };
+    expect(again.kind).toBe("ready");
+    expect(again.again).toBe(true);
+    expect(again.note).toContain("already has cut-outs");
+    expect(again.note).toContain("kept on disk");
+    // a shot with none says nothing about another set
+    const first = cutRow(idle(ready({ here: BEST }))) as { again?: boolean; note: string };
+    expect(first.again).toBeUndefined();
+    expect(first.note).not.toContain("already has cut-outs");
   });
 
   it("waits while it asks, says so when there is no server, and offers the one-time setup", () => {
@@ -1162,8 +1172,10 @@ describe("what the Make cutouts row shows", () => {
     expect((cutRow(idle(ready(), { job: single }), { hasCutouts: true }) as { text: string }).text).toBe(
       "1 cut-out, a plate and a depth map made in 140 s on the CPU. This shot now uses them (one undo step).",
     );
-    // on another shot it is gone
-    expect(cutRow(idle(ready(), { job: done }), { frameId: "f2", hasCutouts: true })).toEqual({ kind: "hidden" });
+    // on another shot the finished message is gone; that shot gets its own offer instead
+    const elsewhere = cutRow(idle(ready({ here: BEST }), { job: done }), { frameId: "f2", hasCutouts: true });
+    expect(elsewhere.kind).not.toBe("done");
+    expect(elsewhere).toMatchObject({ kind: "ready", again: true });
   });
 
   it("says where the layers are when they could not go on the shot", () => {

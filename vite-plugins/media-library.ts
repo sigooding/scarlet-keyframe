@@ -40,14 +40,72 @@ export interface MediaLibraryOptions {
   repoRoot: string;
 }
 
-function resolveLocalMediaFile(repoRoot: string, relUrlPath: string): string | null {
-  const roots = [
+/** Everywhere a film picture, depth map or sound may be read from, in the order they win. */
+function mediaRoots(repoRoot: string): string[] {
+  return [
     process.env.SCARLETT_WITNESS_PUBLIC,
     path.join(repoRoot, "public"),
     path.resolve(repoRoot, "..", "scarlett-witness", "public"),
     "/tmp/scarlett-witness/public",
     "/tmp/scarlett-witness-cache",
   ].filter((dir): dir is string => Boolean(dir));
+}
+
+/**
+ * The editor only offers a picture whose path it knows, and that list used to be two files written by a script:
+ * `src/data/media-index.json`, baked into the build, and `public/examples/media-index.json`, fetched at startup. A
+ * picture added after the last build was therefore invisible under `npm run serve` while `npm run dev` (which reads
+ * the first file from disk every time) showed it — and a picture in neither file was invisible in both.
+ *
+ * So the servers answer that fetch from the disk instead: everything under the media roots, as it is right now. A
+ * scan of ~8,000 files takes about 10 ms, and the answer is cached for a moment because the page asks once at
+ * startup and the depth API asks again after it writes.
+ */
+export const MEDIA_INDEX_PATH = "/examples/media-index.json";
+const SCAN_CACHE_MS = 2000;
+let scanCache: { at: number; key: string; paths: string[] } | null = null;
+
+function walkMedia(root: string, out: Set<string>): void {
+  const stack: Array<{ dir: string; rel: string }> = [{ dir: root, rel: "" }];
+  while (stack.length) {
+    const here = stack.pop()!;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(here.dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue;
+      const rel = `${here.rel}/${entry.name}`;
+      if (entry.isDirectory()) {
+        stack.push({ dir: path.join(here.dir, entry.name), rel });
+      } else if (entry.isFile() && MEDIA_EXT_MIME[path.extname(entry.name).toLowerCase()]) {
+        out.add(rel);
+      }
+    }
+  }
+}
+
+/** Every media file the servers can hand over, as site paths (`/film/img/s1/01-backstreet.jpg`). */
+export function scanMediaPaths(repoRoot: string, now = Date.now()): string[] {
+  const roots = mediaRoots(repoRoot);
+  const key = roots.join("|");
+  if (scanCache && scanCache.key === key && now - scanCache.at < SCAN_CACHE_MS) return scanCache.paths;
+  const found = new Set<string>();
+  for (const root of roots) walkMedia(path.resolve(root), found);
+  const paths = [...found].sort();
+  scanCache = { at: now, key, paths };
+  return paths;
+}
+
+/** Forgets the cached scan, so the next request walks the disk again (a new file has just been written). */
+export function forgetMediaScan(): void {
+  scanCache = null;
+}
+
+function resolveLocalMediaFile(repoRoot: string, relUrlPath: string): string | null {
+  const roots = mediaRoots(repoRoot);
 
   let decoded = relUrlPath;
   try {
@@ -125,6 +183,16 @@ export function createMediaLibraryMiddleware({ repoRoot }: MediaLibraryOptions):
       return;
     }
     const urlPath = req.url.split("?")[0];
+    if (urlPath === MEDIA_INDEX_PATH) {
+      const body = JSON.stringify(scanMediaPaths(repoRoot));
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      // What is on disk changes while the editor is open (a depth map is made, a retake is installed).
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Content-Length", Buffer.byteLength(body));
+      res.end(req.method === "HEAD" ? undefined : body);
+      return;
+    }
     const ext = path.extname(urlPath).toLowerCase();
     if (!MEDIA_EXT_MIME[ext]) {
       next();

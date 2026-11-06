@@ -501,7 +501,7 @@ function busyNote(state: DepthMakerState, frameId: string): string {
 }
 
 export type DepthRowView =
-  /** Nothing to offer: no suitable picture, or the shot already has a depth map. */
+  /** Nothing to offer: this picture can never have a depth map (a gap, a video, a gradient). */
   | { kind: "hidden" }
   /** Asking the server what this computer can do. */
   | { kind: "checking" }
@@ -582,25 +582,22 @@ export function depthRowView(input: {
   }
 
   if (!pictureCanHaveDepthMap(picture)) return { kind: "hidden" };
-  if (hasDepthMap && input.hasCutouts) return { kind: "hidden" };
 
-  if (hasDepthMap) {
-    // Quietly offered, and only when everything is in order: nothing while checking, busy, or not set up.
-    const known = state.ready;
-    if (running(state.job?.status) || running(state.download?.status) || known === null || known === "unavailable") return { kind: "hidden" };
-    if (!known.python || !known.packages || known.busy) return { kind: "hidden" };
-    return {
-      kind: "redo",
-      note: `Replaces this picture's map with a new one from the model. ${KEPT_BESIDE} ${makeNote(known, state.quality)}${gpuSentence(known)}`,
-    };
-  }
-
+  // A shot that has been done once can still be done again: the row never disappears on a picture that could have a
+  // depth map, whatever is already on it. Only the offer changes — "Make a new one" instead of "Make depth map".
   if (running(state.job?.status) || running(state.download?.status)) return { kind: "busy", note: busyNote(state, frameId) };
   const ready = state.ready;
   if (ready === null) return { kind: "checking" };
   if (ready === "unavailable") return { kind: "unavailable" };
   if (!ready.python || !ready.packages) return { kind: "setup-needed", command: DEPTH_SETUP_COMMAND };
   if (ready.busy) return { kind: "busy", note: "Something is already being made (started from another page). One thing at a time." };
+
+  if (hasDepthMap) {
+    return {
+      kind: "redo",
+      note: `Replaces this picture's map with a new one from the model. ${KEPT_BESIDE} ${makeNote(ready, state.quality)}${gpuSentence(ready)}`,
+    };
+  }
 
   const existingMap = input.existingMap;
   const lead = existingMap ? `This picture already has a depth map file (${existingMap}). Use it, or make a new one. ${KEPT_BESIDE} ` : "";
@@ -632,7 +629,8 @@ export type CutoutsRowView =
   /** The models are not all on this computer: download them (one at a time or all) before cutting out. */
   | { kind: "models-missing"; missing: ModelStatus[]; bytes: number; nonCommercial: boolean }
   | { kind: "downloading"; phase: string; percent: number | null; cancellable: boolean }
-  | { kind: "ready"; note: string; keepsMap: boolean }
+  /** `again`: this shot already has cut-outs, so a run makes another set beside them (nothing is overwritten). */
+  | { kind: "ready"; note: string; keepsMap: boolean; again?: boolean }
   | { kind: "busy"; note: string }
   | { kind: "running"; phase: string; progress: number | null; cancellable: boolean }
   | { kind: "failed"; message: string; cancelled: boolean }
@@ -695,7 +693,7 @@ export function cutoutsRowView(input: {
     };
   }
 
-  if (!pictureCanHaveDepthMap(picture) || hasCutouts) return { kind: "hidden" };
+  if (!pictureCanHaveDepthMap(picture)) return { kind: "hidden" };
 
   if (running(state.download?.status)) {
     const download = state.download as ModelDownload;
@@ -718,7 +716,8 @@ export function cutoutsRowView(input: {
   return {
     kind: "ready",
     keepsMap,
-    note: `Finds the people in this picture, cuts each one out, paints in what was behind them, and ${keepsMap ? "paints them out of the depth map you have (kept as it is)" : "makes the depth map"}, so they do not stretch when the camera moves. ${where}`,
+    ...(hasCutouts ? { again: true } : {}),
+    note: `${hasCutouts ? "This shot already has cut-outs; a new run makes another set beside them and puts those on the shot (the ones it has are kept on disk). " : ""}Finds the people in this picture, cuts each one out, paints in what was behind them, and ${keepsMap ? "paints them out of the depth map you have (kept as it is)" : "makes the depth map"}, so they do not stretch when the camera moves. ${where}`,
   };
 }
 
