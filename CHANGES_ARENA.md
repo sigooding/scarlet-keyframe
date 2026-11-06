@@ -407,3 +407,39 @@ epilogue and the 706-clip Neo-Noir cut.
 Validation: `npm test` passed (654 passed, 24 skipped); both media indexes are sorted, unique and contain every
 new path; `git diff --check` clean. Prompts, votes, digests, before/after chyron crops and a numbered review
 gallery are in `reviews/tv-news-20261104/`.
+
+## Scene 1's refusal reads at last, and the blood is where the director counted it
+
+`TODO-FILM.md` §1, done in full: four pictures, each picked by the director from a two-option vote, and the beats
+rewired around them. Review notes, prompts, votes and digests live in `reviews/s1-blood-and-refusal-20261105/`.
+
+- **The head shake, two frames cut together.** `nw_b25` now plays the new `s1/384-he-half-turns.jpg` (head half-turned,
+  eyes already leaving her) on "Then he shakes his head. Barely."; an inserted beat `nw_b1722` plays
+  `s1/385-he-turns-the-other-way.jpg` (head fully to the other side, near-profile) on "A man refusing a stranger.";
+  a second inserted beat `nw_b1723` carries the old wide `331-he-refuses.jpg` — still playing, untouched — on "And he
+  turns his back on her, slowly, to face the road.", keeping its depth camera. The beat's line is only split at sentence
+  boundaries; no words changed. Both new pictures keep the lane's geometry (barbershop left, vending machine right,
+  bar glow far) and Sakai's locked face, cap and cheap raincoat, and carry no depth map, so no cut-outs were needed.
+- **Blood under Mara's hand (`14-she-kneels.jpg`, `nw_b39`).** Every model refused eight edit attempts on this frame
+  (full frame, 1920 copy, face-free crops; "red dye", "scarlet dye", "dark thick red liquid", paint-packet phrasing);
+  the colourless "the hand is leaking dye" passed on a palm-only crop and the director voted it. The dye came out
+  glossy black; a hue-shifted scarlet variant was built for comparison and refused ("never mind i like the black one").
+  Because the edit re-rendered the crop's folds, only the dye pixels were lifted (strict luminance mask, closed,
+  boxed, feathered) onto the original coat under her palm — the rest of the frame is pixel-identical. The old picture
+  is archived `archive/s1/14-she-kneels--v5.jpg`; the beat's depth plate and cut-out carry the same stain through a
+  difference mask split by the cut-out alpha, archived as `depth/archive/s1/14-she-kneels/plate--v1.jpg` and
+  `cutout-1--v1.png`; `depth.png` unchanged (geometry unchanged).
+- **A stream of blood in the water (`15-the-grip.jpg`, `nw_b42`).** A clean pixel edit, voted option 1; hands, key and
+  ripples untouched. Old picture archived `archive/s1/15-the-grip--v4.jpg` (v1–v3 are older takes).
+- **The puddle (`s1/386-the-puddle-leaking-blood.jpg`).** Three vote pairs were skipped; the director set the framing
+  by question (ground-level, low) and the phrasing ("dark thick red liquid"). Installed as an inserted beat `nw_b1724`
+  after the key (`nw_b46`) on the director's own words, "On the pavement: a puddle of rainwater, leaking blood.";
+  she-runs and the open bag follow as pictures 24/25. Nothing else in frame, as noted.
+- House rules kept: nothing overwritten without an archive, nothing downscaled (the 1672×941 and 2048×2048 votes were
+  cropped to 16:9 and enlarged to house size, the 2730-wide takes kept their size), new pictures got new file names,
+  both media indexes list every new picture and archive, and `npm run thumbs` regenerated the 400 px thumbnails.
+  An early command in the session briefly clobbered the historic `--v1` archives of both retakes; they were restored
+  from git before archiving continued at the right numbers.
+- Validation: `npx vitest run` green after moving three count pins (uncut frames 1618→1621 in `turn21`/`turn28`,
+  Neo-Noir clips 706→709 in `turn32`) for the three inserted beats; indexes sorted and unique; `git diff --check` clean.
+- `TODO-FILM.md` §1 is marked done with an install note; §2 (Mara knows the driver by his voice) remains open.
