@@ -72,3 +72,13 @@ by the cut-out's alpha (plate gets the stain where no cut-out covers, cut-out wh
 `npx vitest run` green after updating three count pins (1618→1621 uncut frames, 706→709 Neo-Noir
 clips) in `turn21`/`turn28`/`turn32`; both media indexes sorted, unique and listing every new
 picture and archive; thumbnails regenerated with `npm run thumbs`.
+
+## Alternatives kept (6 November 2026)
+
+The rejected vote candidates were not persisted by the generator in this environment (no `Unselected files`
+folder landed), so the only unused takes are the session's own variants; per the house convention they are
+kept beside the playing picture as `--altN` and listed in both media indexes:
+
+- `s1/14-she-kneels--alt1.jpg` — the scarlet hue-shifted extraction of the voted dye (the director kept the black).
+- `s1/14-she-kneels--alt2.jpg` / `--alt3.jpg` — the two hand-painted red seep drafts (subtle / heavier), superseded
+  by the voted take.
