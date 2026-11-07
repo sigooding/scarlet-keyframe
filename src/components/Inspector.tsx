@@ -44,6 +44,8 @@ import type { CinematicSettings } from "../../vendor/scarlet-reel/types";
 import { LightsFlaresPanel, type PointEditState } from "./LightsFlaresPanel";
 import { keepableDepthMap } from "../core/depthMaker";
 import { DepthToolsForShot, type DepthMakerBinding } from "./MakeDepthMapRow";
+import { CameraDrivePanel, DEFAULT_HANDHELD, type HandheldSettings } from "./CameraDrivePanel";
+import type { CameraDriveBinding } from "../core/useCameraDrive";
 import {
   CUTOUT_LAYER_COLORS,
   defaultDepthForCutoutLayer,
@@ -166,6 +168,11 @@ interface InspectorProps {
   localFrame: number;
   clipDurationFrames: number;
   canSplit: boolean;
+  /** Driving the camera by hand, and the generated handheld, in the Clip tab. */
+  cameraDrive?: CameraDriveBinding;
+  handheld?: HandheldSettings;
+  onChangeHandheld?: (next: HandheldSettings) => void;
+  onApplyHandheld?: () => void;
   pictureSrc?: string;
   selectedCount: number;
   copied: boolean;
@@ -1067,6 +1074,16 @@ export function Inspector(props: InspectorProps) {
                   Remove picture
                 </button>
               </div>
+              {!beat.gap && frame.picture && props.cameraDrive && (
+                <CameraDrivePanel
+                  drive={props.cameraDrive}
+                  handheld={props.handheld ?? DEFAULT_HANDHELD}
+                  onChangeHandheld={(next) => props.onChangeHandheld?.(next)}
+                  onApplyHandheld={() => props.onApplyHandheld?.()}
+                  canDrive={Boolean(frame.picture) && !beat.gap}
+                  shotSeconds={props.clipDurationFrames / 24}
+                />
+              )}
               {!beat.gap && frame.picture && props.depthMaker && (
                 <DepthToolsForShot
                   frameId={frame.id}

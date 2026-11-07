@@ -39,9 +39,17 @@ import {
   type EvaluatedPose,
 } from "../sequence/animate";
 import type { ActiveTransition } from "../sequence/transitions";
+import { sampleDrive, type DriveOffset } from "../core/cameraDrive";
 
 export interface CinematicPreviewProps {
   frame: Keyframe;
+  /** Driving the camera by hand: armed, where the hand has it, and the way back to the app. */
+  driveArmed?: boolean;
+  driveOffset?: DriveOffset;
+  driveLive?: boolean;
+  onToggleDrive?: () => void;
+  onDriveDrag?: (drag: { dx: number; dy: number; width: number; height: number; roll?: boolean } | null) => void;
+  onDriveWheel?: (deltaY: number) => void;
   localFrame?: number;
   presetFrame?: number;
   shotKeyId?: string;
@@ -127,6 +135,12 @@ type KBCorner = "nw" | "ne" | "sw" | "se";
 
 export function CinematicPreview({
   frame,
+  driveArmed = false,
+  driveOffset,
+  driveLive = false,
+  onToggleDrive,
+  onDriveDrag,
+  onDriveWheel,
   localFrame = 0,
   presetFrame,
   shotKeyId,
@@ -196,6 +210,8 @@ export function CinematicPreview({
 }: CinematicPreviewProps) {
   const previewRef = useRef<HTMLDivElement | null>(null);
   const placeSessionRef = useRef<number | null>(null);
+  /** The drag that is driving the camera: where it started and how big the viewer is. */
+  const driveSessionRef = useRef<{ pointerId: number; startX: number; startY: number; width: number; height: number } | null>(null);
   const isPlacingPoint = Boolean(placingPoint && onPlacePoint && !renderMode);
   const pointerPercent = (event: { clientX: number; clientY: number; currentTarget: HTMLElement }) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -562,7 +578,28 @@ export function CinematicPreview({
       data-transition-kind={transition?.kind || "none"}
       data-transition-progress={transition ? p.toFixed(4) : undefined}
       data-placing-point={isPlacingPoint ? "true" : undefined}
+      onWheel={(event) => {
+        if (!driveArmed || !onDriveWheel) return;
+        event.preventDefault();
+        onDriveWheel(event.deltaY);
+      }}
       onPointerDown={(event) => {
+        if (driveArmed && onDriveDrag && event.button === 0) {
+          const target = event.target as HTMLElement | null;
+          if (target?.closest("button, .cin-kb-trigger-wrap, .cin-corner-toggles")) return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) return;
+          event.preventDefault();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          driveSessionRef.current = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            width: rect.width,
+            height: rect.height,
+          };
+          return;
+        }
         if (isPlacingPoint && event.button === 0) {
           // Placing a light or flare: the press (and a drag) sets its position; the shot is not panned.
           if ((event.target as HTMLElement | null)?.closest("button, .cin-kb-trigger-wrap, .cin-corner-toggles")) return;
@@ -598,6 +635,17 @@ export function CinematicPreview({
         };
       }}
       onPointerMove={(event) => {
+        const driving = driveSessionRef.current;
+        if (driving && driving.pointerId === event.pointerId) {
+          onDriveDrag?.({
+            dx: event.clientX - driving.startX,
+            dy: event.clientY - driving.startY,
+            width: driving.width,
+            height: driving.height,
+            roll: event.altKey,
+          });
+          return;
+        }
         if (placeSessionRef.current === event.pointerId) {
           const at = pointerPercent(event);
           if (at) onPlacePoint?.(at.x, at.y, "move");
@@ -676,6 +724,11 @@ export function CinematicPreview({
         onPreviewAnimation(nextAnim);
       }}
       onPointerUp={(event) => {
+        if (driveSessionRef.current?.pointerId === event.pointerId) {
+          driveSessionRef.current = null;
+          onDriveDrag?.(null); // the camera stays where the hand let go
+          return;
+        }
         if (placeSessionRef.current === event.pointerId) {
           placeSessionRef.current = null;
           const at = pointerPercent(event);
@@ -830,6 +883,7 @@ export function CinematicPreview({
                 shotDurationFrames={item.shotDurationFrames}
                 presetFrame={item.shotPresetFrame}
                 carriedStartPose={item.shotCarriedStartPose}
+                driveOffset={driveArmed ? driveOffset : undefined}
                 imageSrc={item.shotImageSrc}
                 imagePosition={item.shotImagePosition}
                 resolveMedia={resolveMedia}
@@ -1435,6 +1489,23 @@ export function CinematicPreview({
               Ken Burns
             </button>
           )}
+          {onToggleDrive && (
+            <button
+              type="button"
+              className={`cin-corner-btn ${driveArmed ? "is-active is-driving" : ""}`}
+              data-testid="viewer-drive-btn"
+              disabled={!hasEditablePicture}
+              aria-pressed={driveArmed}
+              title={
+                driveArmed
+                  ? "Driving: drag to move the camera, Alt-drag to roll it, the wheel to push in. Press play and it is recorded; stop and it is written to the shot."
+                  : "Drive the camera by hand while the film plays"
+              }
+              onClick={onToggleDrive}
+            >
+              {driveArmed ? (driveLive ? "● Driving" : "● Drive: on") : "Drive"}
+            </button>
+          )}
           {onToggleCompare && (
             <button
               type="button"
@@ -1663,6 +1734,7 @@ function ShotLayer({
   showDepthMapOverlay = false,
   showCutouts = true,
   mutedCutoutLayers,
+  driveOffset,
 }: {
   frame: Keyframe;
   seedId: string;
@@ -1680,13 +1752,18 @@ function ShotLayer({
   showDepthMapOverlay?: boolean;
   showCutouts?: boolean;
   mutedCutoutLayers?: ReadonlySet<number>;
+  /** Where the hand has the camera right now, while it is being driven. */
+  driveOffset?: DriveOffset;
 }) {
   const cinematic = (effectiveFrameCinematic(frame) || {}) as Record<string, any>;
   const anim = frame.beat.animation;
   const speedRamp = typeof cinematic.speedRamp === "string" ? cinematic.speedRamp : undefined;
   const remappedLocalFrame = remapLocalFrameWithSpeedRamp(localFrame, shotDurationFrames, speedRamp);
   const rawPose = evaluate(frame, remappedLocalFrame, carriedStartPose);
-  const clampedPose = clampPoseToPictureEdges(rawPose);
+  // Armed, the viewer shows where the hand has the camera: the keys are not written until the take is over.
+  const clampedPose = driveOffset
+    ? { ...sampleDrive(rawPose, driveOffset), clamped: false }
+    : clampPoseToPictureEdges(rawPose);
   const timeSec = presetFrame / FPS;
   const particleSeed = seedId || frame.id;
   const videoRef = useRef<HTMLVideoElement | null>(null);

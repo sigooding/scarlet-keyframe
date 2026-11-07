@@ -171,6 +171,9 @@ import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProje
 import { savedStatusText } from "./core/saveLocation";
 import { depthMapRefForPicture, fetchDepthFiles, plainPictureRef, type ApplyCutouts, type ApplyDepthMap } from "./core/depthMaker";
 import { useDepthMaker } from "./core/useDepthMaker";
+import { useCameraDrive } from "./core/useCameraDrive";
+import { handheldAnimation } from "./core/cameraDrive";
+import { DEFAULT_HANDHELD, type HandheldSettings } from "./components/CameraDrivePanel";
 import { moveTo, pointMarkers as buildPointMarkers, sameTarget, targetExists, type CinematicPatch } from "./core/lightsFlares";
 import type { CinematicSettings } from "../vendor/scarlet-reel/types";
 import type { PointEditState } from "./components/LightsFlaresPanel";
@@ -580,6 +583,7 @@ export default function App() {
   const [uploadIntent, setUploadIntent] = useState<UploadIntent | null>(null);
   const [cropState, setCropState] = useState<CropState | null>(null);
   const [playback, setPlayback] = useState(false);
+  const drive = useCameraDrive();
   const [direction, setDirection] = useState<1 | -1>(1);
   const [playSpeed, setPlaySpeed] = useState(1);
   const renderParams = useMemo(() => {
@@ -3135,6 +3139,91 @@ export default function App() {
     return ms > clip.startMs + MIN_AUDIO_CLIP_MS && ms < clip.endMs - MIN_AUDIO_CLIP_MS ? clip : undefined;
   }, [multiSelection.audioClipIds, resolvedAudioClips, playheadFrame]);
 
+  // Driving the camera: one sample per frame while it plays, and the take written to the shots when it stops.
+  const driveRef = useRef(drive);
+  driveRef.current = drive;
+  useEffect(() => {
+    if (!drive.armed || !playback) return;
+    const here = clipAtFrame(clips, playheadFrame);
+    if (!here) return;
+    const localFrame = playheadFrame - here.startFrame;
+    const pose = evaluate(here.keyframe, localFrame, here.carriedStartPose);
+    driveRef.current.sample(here.keyframe.id, localFrame, {
+      zoom: pose.zoom,
+      x: pose.x,
+      y: pose.y,
+      rotation: pose.rotation,
+    });
+  }, [drive.armed, playback, playheadFrame, clips]);
+
+  const [handheld, setHandheld] = useState<HandheldSettings>(DEFAULT_HANDHELD);
+
+  /** Writes a generated handheld onto the selected shot, over its own move or in place of it. */
+  const applyHandheld = useCallback(() => {
+    const current = projectRef.current;
+    const frameId = selectedFrameIdRef.current;
+    if (!current || !frameId) return;
+    const here = clips.find((clip) => clip.keyframe.id === frameId);
+    if (!here || here.keyframe.beat.gap || !here.keyframe.picture) return;
+    const keep = driveRef.current.mode === "add";
+    const animation = handheldAnimation({
+      durationFrames: here.durationFrames,
+      ...handheld,
+      seed: frameId,
+      smooth: driveRef.current.smooth,
+      base: keep ? here.keyframe.beat.animation : undefined,
+      basePoseAt: keep
+        ? (frame) => {
+            const pose = evaluate(here.keyframe, frame, here.carriedStartPose);
+            return { zoom: pose.zoom, x: pose.x, y: pose.y, rotation: pose.rotation };
+          }
+        : undefined,
+    });
+    if (!animation) return;
+    applyProject(
+      setBeatAnimation(current, frameId, animation),
+      `Handheld camera on ${here.keyframe.mark} · ${here.keyframe.number}`,
+    );
+  }, [applyProject, clips, handheld]);
+
+  const commitDrive = useCallback(() => {
+    const current = projectRef.current;
+    const taken = driveRef.current.take((frameId) => {
+      for (const scene of current?.story.scenes ?? []) {
+        for (const beat of scene.dialogueBeats ?? []) {
+          if (beat.id === frameId) return beat.animation;
+        }
+      }
+      return undefined;
+    });
+    if (!current || !taken.length) {
+      driveRef.current.clear();
+      return;
+    }
+    let next = current;
+    for (const shot of taken) next = setBeatAnimation(next, shot.frameId, shot.animation);
+    const keys = taken.reduce((sum, shot) => sum + shot.keys, 0);
+    const frames = taken.reduce((sum, shot) => sum + shot.frames, 0);
+    applyProject(
+      next,
+      `Camera driven by hand: ${keys} key${keys === 1 ? "" : "s"} over ${taken.length} shot${taken.length === 1 ? "" : "s"} (${frames} frames)`,
+    );
+    driveRef.current.clear();
+  }, [applyProject]);
+
+  // Playback stopped with a take in hand: write it.
+  const wasPlayingWhileArmedRef = useRef(false);
+  useEffect(() => {
+    if (drive.armed && playback) {
+      wasPlayingWhileArmedRef.current = true;
+      return;
+    }
+    if (wasPlayingWhileArmedRef.current && !playback) {
+      wasPlayingWhileArmedRef.current = false;
+      if (drive.armed) commitDrive();
+    }
+  }, [drive.armed, playback, commitDrive]);
+
   const canSplit = useMemo(() => {
     if (selectedCaption) {
       if (selectedCaption.indices.length !== 1) return false;
@@ -5592,6 +5681,12 @@ export default function App() {
                 style={viewerZoom !== 1 ? { transform: `scale(${viewerZoom})` } : undefined}
               >
                 <CinematicPreview
+                  driveArmed={drive.armed}
+                  driveOffset={drive.offset}
+                  driveLive={drive.live}
+                  onToggleDrive={() => drive.arm(!drive.armed)}
+                  onDriveDrag={drive.onDrag}
+                  onDriveWheel={drive.onWheel}
                   frame={comparePreviewState ? comparePreviewState.frame : viewerFrame}
                   localFrame={comparePreviewState ? comparePreviewState.localFrame : viewerLocalFrame}
                   presetFrame={comparePreviewState ? comparePreviewState.presetFrame : viewerPresetFrame}
@@ -6010,6 +6105,10 @@ export default function App() {
               kenBurnsDrawStep !== null ||
               (Boolean(selectedFrame.beat.animation?.kenBurns) && !kenBurnsSuppressed)
             }
+            cameraDrive={drive}
+            handheld={handheld}
+            onChangeHandheld={setHandheld}
+            onApplyHandheld={applyHandheld}
             onToggleKenBurns={handleToggleKenBurns}
             onEdgeClamped={() => setEdgeWarningToken((t) => t + 1)}
             onMove={(delta) => {
