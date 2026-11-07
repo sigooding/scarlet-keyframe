@@ -364,6 +364,22 @@ follow the shot again. **ALL** gives every caption of the shot the same speaker.
 NARRATOR turns it on, and a person speaking in a narration shot turns it off. Names are kept upper case, as the story shows them.
 Every change is one undo step. Code: `setCaptionSpeaker`, `setAllCaptionSpeakers`, `setCaptionNarration` in `src/core/captions.ts`.
 
+## What the editor can see in public/
+
+The editor offers a picture, a depth map or a sound only when it knows the path. Both servers — `npm run dev` and
+`npm run serve` — answer that list (`examples/media-index.json`) from a **live scan of the disk**: everything under
+`public/`, plus the other media roots, as it is at that moment. So a retake installed, a depth map made or a file
+dropped into `public/film/img/` is usable on the next reload, with no rebuild and no script to run. The committed
+`src/data/media-index.json` is the fallback for a single-file page opened from disk (`file:`), which has no server.
+
+Before this, the list came from two files a script wrote, and `src/data/media-index.json` was baked into the build:
+a picture added after the last `npm run serve` build was invisible there while `npm run dev` showed it. The scan is
+cached for two seconds (about 10 ms for 8,000 files) and the depth API drops that cache as soon as it writes.
+Code: `scanMediaPaths` in `vite-plugins/media-library.ts`.
+
+Two notes on `npm run serve`: it rebuilds every time unless you pass `--no-build`, and it serves on port 4173 while
+`npm run dev` serves on 5173 — saves live in the browser per address, so a workspace saved in one is not in the other.
+
 ## Cutting and shaping a sound clip
 
 **Right-click a clip on any sound lane** (Voice, SFX, Music, Ambience) in the timeline: its menu carries the jobs that
@@ -395,6 +411,15 @@ Each audio track (Voice, SFX, Music, Ambience) has an **FX** button on its heade
 Stairwell, Large hall, Slapback, Echo, Tape delay), **Reverb** (mix, size, pre-delay, damping) and **Delay / Echo** (mix, time,
 repeats, tone). It plays live and is part of the MP4 export (the export renders the tails across its chunk boundaries). The
 settings are remembered in this browser. The reverb room is generated, not a sound file. Code: `src/core/audioFx.ts`.
+
+### The tools stay on a shot that has been done
+
+The **Depth map** and **Cutouts** rows never disappear from a shot whose picture could have a depth map. A shot that
+already has a map is offered **Make a new one** (the old file is kept beside it as `depth--v1.png`), and a shot that
+already has cut-outs is offered **Make cutouts again** — a new set is made beside the ones it has, which stay on disk,
+since nothing in the depth folder is ever overwritten. Only a picture that can never have a depth map (a gap, a video,
+a gradient, an upload) leaves the rows out, and anything in the way (no server, Python not set up, something else
+running) is said in the row rather than hiding it.
 
 ## MP4 export
 

@@ -34,9 +34,13 @@ export function MakeCutoutsRow({ view, onMake, onCancel, onDismiss, onCheckAgain
             data-testid="make-cutouts-button"
             disabled={waiting}
             onClick={onMake}
-            title="Cut the people out of this picture so they do not stretch when the camera moves"
+            title={
+              view.kind === "ready" && view.again
+                ? "Cut the people out again: a new set is made beside the ones this shot has, which are kept on disk"
+                : "Cut the people out of this picture so they do not stretch when the camera moves"
+            }
           >
-            Make cutouts
+            {view.kind === "ready" && view.again ? "Make cutouts again" : "Make cutouts"}
           </button>
         )}
         {view.kind === "models-missing" && (

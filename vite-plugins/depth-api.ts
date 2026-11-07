@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import type { IncomingMessage } from "node:http";
 import path from "node:path";
+import { forgetMediaScan } from "./media-library";
 import type { Connect, Plugin } from "vite";
 import type {
   DepthApiError,
@@ -388,6 +389,9 @@ export function createDepthMiddleware(options: DepthApiOptions): Connect.NextHan
     job.timer = null;
     job.child = null;
     if (status !== "done") cleanUp(job);
+    // A depth map or a set of cut-outs has just been written (or a half-made one removed), so the media index the
+    // editor asks for must walk the disk again rather than answer from the scan it has.
+    forgetMediaScan();
     prune();
   };
 

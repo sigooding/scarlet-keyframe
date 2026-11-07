@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import sirv from "sirv";
 import type { Plugin } from "vite";
+import { MEDIA_INDEX_PATH } from "./media-library";
 
 /**
  * Serves the repository's `public/` folder in `vite preview` (`npm run serve`)
@@ -112,7 +113,9 @@ export function publicPreviewAssetsPlugin({ publicDir }: PublicPreviewAssetsOpti
         }
         const rawUrl = req.url || "/";
         const urlPath = rawUrl.split("?")[0].split("#")[0];
-        if (!urlPath || urlPath === "/" || urlPath.startsWith("/__api/")) {
+        // The media index is answered from a live scan of the disk (media-library), never from the file in public/,
+        // which a script wrote at some point in the past.
+        if (!urlPath || urlPath === "/" || urlPath.startsWith("/__api/") || urlPath === MEDIA_INDEX_PATH) {
           next();
           return;
         }

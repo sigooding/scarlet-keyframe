@@ -528,14 +528,21 @@ describe("the rows for a shot", () => {
     expect(tools({ state: idle(ready({ here: BEST })) })).toContain('data-testid="make-depth-button"');
   });
 
-  it("offers only the depth map when the shot already has cut-outs", () => {
+  it("offers both on a shot that already has cut-outs: a depth map, and another set of cut-outs", () => {
     const html = tools({ state: idle(ready({ here: BEST })), hasCutouts: true });
     expect(stateOf(html, "make-depth-row")).toBe("ready");
-    expect(html).not.toContain('data-testid="make-cutouts-row"');
+    expect(stateOf(html, "make-cutouts-row")).toBe("ready");
+    expect(html).toContain("Make cutouts again");
+    expect(html).toContain("already has cut-outs");
   });
 
-  it("says nothing when the shot has both", () => {
-    expect(tools({ state: idle(ready({ here: BEST })), hasDepthMap: true, hasCutouts: true })).toBe("");
+  it("still offers both on a shot that has been done: a new map, and another set of cut-outs", () => {
+    const html = tools({ state: idle(ready({ here: BEST })), hasDepthMap: true, hasCutouts: true });
+    expect(html).not.toBe("");
+    expect(stateOf(html, "make-depth-row")).toBe("redo");
+    expect(html).toContain("Make a new one");
+    expect(stateOf(html, "make-cutouts-row")).toBe("ready");
+    expect(html).toContain("Make cutouts again");
   });
 
   it("says nothing for a picture that is not one of the film's (an upload, a gradient, nothing)", () => {
@@ -575,7 +582,8 @@ describe("the rows for a shot", () => {
     const html = tools({ state: idle(ready({ here: BEST }), { job: done }), hasDepthMap: true, hasCutouts: true });
     expect(stateOf(html, "make-cutouts-row")).toBe("done");
     expect(html).toContain('data-testid="make-cutouts-review"');
-    expect(html).not.toContain('data-testid="make-depth-row"');
+    // the depth row is still there beside it, offering a new map for the shot
+    expect(stateOf(html, "make-depth-row")).toBe("redo");
   });
 
   it("shows a model download on the cut-outs row, with the depth map button waiting and the list open", () => {
