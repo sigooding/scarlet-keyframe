@@ -2370,7 +2370,15 @@ export default function App() {
 
   async function handleImportFile(file: File): Promise<void> {
     const startingProjectId = projectRef.current?.id;
-    const raw = await file.text();
+    let raw: string;
+    try {
+      raw = await file.text();
+    } catch {
+      // A bundle past about 512 MB cannot be read into one string at all.
+      throw new Error(
+        `${file.name} is too big for the browser to read (${(file.size / 1024 / 1024).toFixed(0)} MB). A bundle that carries every picture cannot be opened; export a new one, which points at public/ instead.`,
+      );
+    }
     if (switchingProjectRef.current || projectRef.current?.id !== startingProjectId) {
       throw new Error("The film changed during import. Please import the file again.");
     }
@@ -4725,10 +4733,26 @@ export default function App() {
     setExportMessage("Bundling referenced files from the linked public folder…");
     try {
       const bundle = await buildPortableBundle(project, folderFiles, publicPaths);
+      setExportProgress(90);
+      setExportMessage("Writing the file…");
+      let text: string;
+      try {
+        text = JSON.stringify(bundle);
+      } catch {
+        // One JSON string cannot pass about 512 MB in a browser; the budget is meant to keep it well under.
+        setExportMessage("The bundle came out too big for the browser to write. Tell Claude: the embed budget is too high.");
+        return;
+      }
       setExportProgress(100);
-      downloadText(JSON.stringify(bundle), `${slug(project.title)}.reel.json`, "application/json");
+      downloadText(text, `${slug(project.title)}.reel.json`, "application/json");
+      const megabytes = (text.length / 1024 / 1024).toFixed(1);
+      const pointed = bundle.kept?.length ?? 0;
       setExportMessage(
-        `${bundle.assets.length} assets embedded · ${bundle.missing.length} unresolved media path(s) retained and listed.`,
+        `${bundle.assets.length} file${bundle.assets.length === 1 ? "" : "s"} carried in the bundle (${megabytes} MB)` +
+          (pointed
+            ? ` · ${pointed} more are pointed at where the film keeps them in public/, so open this beside the repository`
+            : "") +
+          (bundle.missing.length ? ` · ${bundle.missing.length} unresolved path(s) listed` : ""),
       );
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : "Could not build the PortableStoryBundle.");

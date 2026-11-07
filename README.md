@@ -380,6 +380,20 @@ Code: `scanMediaPaths` in `vite-plugins/media-library.ts`.
 Two notes on `npm run serve`: it rebuilds every time unless you pass `--no-build`, and it serves on port 4173 while
 `npm run dev` serves on 5173 — saves live in the browser per address, so a workspace saved in one is not in the other.
 
+## Export → Portable Bundle, and opening one
+
+The bundle is one `.reel.json`: the story, the sound clips, and the files that would otherwise be lost — uploads, and
+anything from a linked folder that is not in the film's own `public/`. Everything else it **points at** by path.
+
+That is not a shortcut. A bundle is a single JSON string, a browser cannot hold a string past about 512 MB, and
+base64 is a third bigger than the file it carries; Nobody's Witness alone references about 460 MB of pictures and
+sound. A bundle that embedded them all could not be written, and could not be read back either — it failed with
+`RangeError: Invalid string length` after minutes of reading files. So embedding stops at
+`DEFAULT_EMBED_BUDGET_BYTES` (64 MB), the rest stay paths, and the export says how many of each. Open such a bundle
+beside the repository and every path resolves as usual.
+
+A small project (Sweet Jesus, Miami Vice) stays fully self-contained: it never reaches the budget.
+
 ## A shot that plays a video
 
 A shot's picture is a reference, and one that begins with `video:` plays a film clip instead of showing a still: it
