@@ -23,7 +23,23 @@ export interface PortableStoryBundle {
     dataUrl: string;
   }>;
   missing: string[];
+  /**
+   * Files the bundle points at rather than carries: they are in `public/`, where the film keeps them, and
+   * embedding them would make a file no browser could write. Opened beside the repository they resolve as usual.
+   */
+  kept?: string[];
 }
+
+/**
+ * How many bytes of media a bundle may carry. A bundle is ONE JSON string, and a browser cannot hold a string past
+ * about 512 MB; base64 is a third bigger again than the file it carries. Nobody's Witness alone references about
+ * 460 MB of pictures and sound, so embedding everything cannot work and never could: it throws
+ * `RangeError: Invalid string length` after several minutes of reading files.
+ *
+ * So the bundle carries what would otherwise be lost — uploads, and anything from a linked folder that is not in
+ * the film's own `public/` — and points at the rest, which is what "back up real work" actually needs.
+ */
+export const DEFAULT_EMBED_BUDGET_BYTES = 64 * 1024 * 1024;
 
 interface WritableRef {
   value: string;
@@ -34,12 +50,17 @@ export async function buildPortableBundle(
   project: ProjectState,
   folderFiles: Map<string, File>,
   publicPaths: Set<string>,
+  options: { embedBudgetBytes?: number } = {},
 ): Promise<PortableStoryBundle> {
+  const budget = Math.max(0, options.embedBudgetBytes ?? DEFAULT_EMBED_BUDGET_BYTES);
+  let embeddedBytes = 0;
+  const kept = new Set<string>();
   const story = JSON.parse(JSON.stringify(project.story)) as StoryLike;
   const assets = new Map<string, PortableStoryBundle["assets"][number]>();
   for (const asset of project.assets) {
     const dataUrl = asset.dataUrl || (asset.blob ? await blobToDataUrl(asset.blob) : undefined);
     if (!dataUrl) continue;
+    embeddedBytes += asset.size || 0;
     assets.set(asset.id, {
       id: asset.id,
       name: asset.name,
@@ -67,9 +88,14 @@ export async function buildPortableBundle(
     const path = referencedPath(raw);
     if (!path) continue;
     const file = folderFiles.get(path);
+    if (file && embeddedBytes + file.size > budget && !fileAssetIds.has(path)) {
+      kept.add(path); // no room: the bundle points at it instead of carrying it
+      continue;
+    }
     if (file) {
       let id = fileAssetIds.get(path);
       if (!id) {
+        embeddedBytes += file.size;
         id = nextId();
         fileAssetIds.set(path, id);
         assets.set(id, {
@@ -87,6 +113,11 @@ export async function buildPortableBundle(
     }
 
     if (hasPublicMediaPath(publicPaths, path)) {
+      if (embeddedBytes >= budget) {
+        // The film keeps these in public/; the bundle names them and stays a file a browser can actually write.
+        kept.add(path);
+        continue;
+      }
       const encoded = encodeMediaPath(path);
       const urls =
         typeof window !== "undefined" && window.location.protocol === "file:"
@@ -99,6 +130,12 @@ export async function buildPortableBundle(
           const contentType = response.headers.get("content-type") || "";
           if (response.ok && !contentType.includes("text/html")) {
             const blob = await response.blob();
+            if (embeddedBytes + blob.size > budget) {
+              kept.add(path);
+              embedded = true; // not carried, but not missing either: it is where the film keeps it
+              break;
+            }
+            embeddedBytes += blob.size;
             const id = fileAssetIds.get(path) || nextId();
             fileAssetIds.set(path, id);
             assets.set(id, {
@@ -134,6 +171,7 @@ export async function buildPortableBundle(
     ...(audioClips ? { audioClips } : {}),
     assets: [...assets.values()],
     missing: [...missing].sort(),
+    ...(kept.size ? { kept: [...kept].sort() } : {}),
   };
 }
 
