@@ -380,6 +380,23 @@ Code: `scanMediaPaths` in `vite-plugins/media-library.ts`.
 Two notes on `npm run serve`: it rebuilds every time unless you pass `--no-build`, and it serves on port 4173 while
 `npm run dev` serves on 5173 — saves live in the browser per address, so a workspace saved in one is not in the other.
 
+## A shot that plays a video
+
+A shot's picture is a reference, and one that begins with `video:` plays a film clip instead of showing a still: it
+follows the playhead, plays muted, and the shot's camera move (and the drive, and the handheld) still applies over
+the top. Three ways to put one on a shot:
+
+- **Upload…** in the Clip tab takes an `.mp4` or `.webm` as well as a still. It is filed like any other upload and
+  the `video:` is written for you. (A depth map, a clean plate and a cut-out are always stills, so a video is
+  refused there.)
+- **Choose picture…** lists the videos under `public/` beside the stills, marked **VIDEO · it plays**; they have no
+  thumbnail, since making one would mean decoding the clip.
+- The **Picture path** box takes any reference by hand: `/film/img/…`, `video:/film/video/….mp4`, or a `gradient:`.
+
+What a video shot does not get: the depth camera and cut-outs (there is nothing to displace — the parallax layer is
+for stills), and its own thumbnail in the lanes. MP4 export renders it by seeking the clip frame by frame, which is
+slower than a still, so try a short range before committing a sequence of them.
+
 ## Cutting and shaping a sound clip
 
 **Right-click a clip on any sound lane** (Voice, SFX, Music, Ambience) in the timeline: its menu carries the jobs that

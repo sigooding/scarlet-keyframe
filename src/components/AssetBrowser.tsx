@@ -12,6 +12,8 @@ export interface BrowserAsset {
   size?: number;
   missing?: boolean;
   source?: string;
+  /** "video" for a shot that plays a film clip instead of a still. */
+  kind?: "image" | "video";
 }
 
 interface AssetBrowserProps {
@@ -132,10 +134,10 @@ export function AssetBrowser({ title, kind, items, onSelect, onClose }: AssetBro
                             // Rows list pictures: the 400 px thumbnail. The hover
                             // preview on the right keeps the original.
                             <img src={thumbFor(asset.src)} alt="" loading="lazy" decoding="async" />
-                          ) : <i>STILL</i>}
+                          ) : <i>{asset.kind === "video" ? "VIDEO" : "STILL"}</i>}
                         </span>
                       ) : <span className="asset-audio-icon">♫</span>}
-                      <span className="asset-row-copy"><strong>{asset.name}</strong><small>{asset.folder || "Project media"}{asset.missing ? " · NOT LINKED" : ""}</small></span>
+                      <span className="asset-row-copy"><strong>{asset.name}</strong><small>{asset.folder || "Project media"}{asset.kind === "video" ? " · VIDEO, it plays" : ""}{asset.missing ? " · NOT LINKED" : ""}</small></span>
                       <span className="asset-row-action">{asset.missing ? "!" : kind === "image" ? "USE" : "▶"}</span>
                     </button>
                   );
