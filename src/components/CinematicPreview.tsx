@@ -1824,17 +1824,20 @@ function ShotLayer({
       String(cinematic.mode ?? "pan") !== "dolly",
   );
 
+  // These read the pose the viewer is about to show, not the one the keys alone give: while the camera is being
+  // driven the hand is in `clampedPose`, and a shot with no move of its own would otherwise render no transform at
+  // all and sit still under the hand.
   const hasRotation =
     Boolean(anim?.rotation?.length) ||
     typeof anim?.values?.rotation === "number" ||
-    rawPose.rotation !== 0;
+    clampedPose.rotation !== 0;
 
   const hasCameraMove =
     hasCustomTransform(frame) ||
     hasRotation ||
-    rawPose.zoom !== 1 ||
-    rawPose.x !== 0 ||
-    rawPose.y !== 0;
+    clampedPose.zoom !== 1 ||
+    clampedPose.x !== 0 ||
+    clampedPose.y !== 0;
 
   // Apply the camera transform ONCE:
   // - Non-depth shots: wrapper carries translate/scale/rotate; plate & missing card stay `transform: none`.
@@ -2052,9 +2055,9 @@ function ShotLayer({
         <FrameDepthParallaxLayer
           cinematic={resolvedCinematic}
           picture={plateUrl || imageSrc || ""}
-          zoom={Math.max(1, rawPose.zoom)}
-          x={rawPose.x}
-          y={rawPose.y}
+          zoom={Math.max(1, clampedPose.zoom)}
+          x={clampedPose.x}
+          y={clampedPose.y}
           depthAmount={currentDepthAmount}
           authoredDepthAmount={authoredDepthAmount}
           gradeClassName={gradeClass}

@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { CameraDrivePanel, DEFAULT_HANDHELD, type HandheldSettings } from "../components/CameraDrivePanel";
 import { NO_OFFSET } from "./cameraDrive";
 import type { CameraDriveBinding } from "./useCameraDrive";
+import { CinematicPreview } from "../components/CinematicPreview";
+import { buildKeyframes, type Keyframe } from "./model";
 
 const noop = () => {};
 const buttonTag = (html: string, testId: string) => new RegExp(`<button[^>]*data-testid="${testId}"[^>]*>`).exec(html)?.[0] ?? "";
@@ -95,5 +97,57 @@ describe("the camera-by-hand panel", () => {
     const html = render({ canDrive: false });
     expect(isDisabled(html, "drive-arm-btn")).toBe(true);
     expect(isDisabled(html, "handheld-apply")).toBe(true);
+  });
+});
+
+describe("the viewer while the camera is driven", () => {
+  const shot = (): Keyframe =>
+    buildKeyframes({
+      id: "t",
+      startSceneId: "a",
+      characters: [],
+      scenes: [
+        {
+          id: "a",
+          title: "A",
+          dialogueBeats: [{ id: "b1", characterId: "nw_narrator", text: "Still.", silent: true, background: "/film/img/s1/01-backstreet.jpg" }],
+        },
+      ],
+    })[0];
+
+  const view = (driveOffset?: { x: number; y: number; zoom: number; rotation: number }) =>
+    renderToStaticMarkup(
+      <CinematicPreview
+        frame={shot()}
+        imageSrc="/film/img/s1/01-backstreet.jpg"
+        resolveMedia={(v) => v}
+        playing={false}
+        soundOn={false}
+        showCaption={false}
+        showMark={false}
+        driveArmed={Boolean(driveOffset)}
+        driveOffset={driveOffset}
+      />,
+    );
+
+  /** The transform on the element the camera move is written to. */
+  const cameraTransform = (html: string): string => {
+    const tag = /<div[^>]*data-testid="cinematic-camera"[^>]*>/.exec(html)?.[0] ?? "";
+    return /transform:\s*([^;"]*)/.exec(tag)?.[1]?.trim() ?? "";
+  };
+
+  it("a shot with no move of its own still follows the hand", () => {
+    // It used to decide whether to write a transform at all from the keys alone, so driving a still shot moved
+    // nothing on screen while recording perfectly well.
+    expect(cameraTransform(view())).toBe("none");
+    expect(cameraTransform(view({ x: 6, y: -3, zoom: 1, rotation: 0 }))).toContain("translate(");
+  });
+
+  it("the hand pushes in as well as across", () => {
+    expect(cameraTransform(view({ x: 0, y: 0, zoom: 1.4, rotation: 0 }))).toContain("scale(1.4");
+  });
+
+  it("and rolls", () => {
+    expect(cameraTransform(view({ x: 0, y: 0, zoom: 1, rotation: 3 }))).toContain("rotate(3deg)");
   });
 });
