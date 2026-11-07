@@ -83,11 +83,18 @@ The director:
 
 ### What that touches
 
+**The casting is already right — checked, 5 November 2026.** The masked man and the driver are one voice already:
+`IUNPSr7i3o1XsExH6IGv` in PlayFrame's `docs/neonoire/voice/voices.json`, where MASKED MAN carries the note "the hit team
+leader / the man who says 'Shitsurei shimasu' (sc 1, 2, 24, 70 driver)" and DRIVER is that same id, borrowed on purpose.
+So "use the same voice performer for both men" needs nothing done; the manifest's `s2-maskedman-shitsurei-shimasu` and
+`s70-driver-excuse-me` are the same voice today. What is left is the words, and the delivery.
+
 **Scene 2 (`nw_s2`), to establish the voice.** The masked man says `Shitsurei shimasu. (Excuse me.)` on `nw_b58`
 (`/film/voice/s2/25-maskedman-shitsurei-shimasu.mp3`) and `Second position done.` on `nw_b65`
 (`27-maskedman-second-position-done.mp3`). Both are the voice the audience must remember: flat, unhurried, slightly
-hoarse. If the take does not already carry that, it is re-recorded with that direction — one word of direction, which is
-the standing rule for short lines — and the old take is archived before the new one goes over it.
+hoarse. **Nobody has listened to either take**, and the manifest records no direction for them, so whether they already
+read as flat and hoarse is unknown. Listen first; re-record with that direction only if they do not, archiving the old
+take before the new one goes over it (one-word directions on short lines, the standing rule).
 
 **Scene 70 (`nw_s70`), the beats as they stand:**
 
@@ -103,9 +110,14 @@ the standing rule for short lines — and the old take is archived before the ne
 | `nw_b1136` | narrator | "The driver lifts his wrist to his mouth and murmurs into his sleeve, very quietly:" | shorten to "The driver lifts his wrist toward his mouth." |
 | `nw_b1137` | DRIVER | "Position." | keep |
 
-Both masked men and the driver then share one voice, which `voices.json` must say in as many words so nobody re-casts
-them apart later. The subtitle rule for the Japanese line stays: the manifest carries `sub: "Excuse me."`, the viewer
-shows it under the words.
+The subtitle rule for the Japanese line stays: the manifest carries `sub: "Excuse me."`, the viewer shows it under the
+words. `voices.json` already ties the driver to the masked man; leave that note in place so nobody re-casts them apart.
+
+**The two takes to re-record** are Mara's, both in her saved voice `2NE3noNVoL0UyxXHLs7w`:
+`/film/voice/s70/239-mara-that-s-them.mp3` ("That's them." → **"That's him."**) and
+`/film/voice/s70/239-mara-that-s-what-he-said-before.mp3` ("That's what he said. Before he shot him. \"Excuse me.\"" →
+**"The bar. His voice."**). Both are short, so they take one-word directions; archive each old take before installing
+the new one. Jack's "What?" and the driver's two lines are untouched. That is the whole recording job: two lines.
 
 Afterwards: the screenplay and the boards carry the new lines, the two Mara takes are recorded (old takes archived
 first), and the film is re-imported into both games.
