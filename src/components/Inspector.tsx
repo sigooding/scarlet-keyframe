@@ -1074,6 +1074,23 @@ export function Inspector(props: InspectorProps) {
                   Remove picture
                 </button>
               </div>
+              <label className="control-label" htmlFor="clip-picture-path">
+                Picture path
+              </label>
+              <input
+                id="clip-picture-path"
+                className="text-control"
+                data-testid="clip-picture-path"
+                aria-label="Picture path"
+                value={String(beat.background ?? "")}
+                placeholder="/film/img/… · video:/film/video/….mp4 · gradient:…"
+                onChange={(event) => props.onSetPicture(event.target.value || undefined)}
+              />
+              <small className="inspector-note">
+                A path under <code>public/</code>, or an uploaded file. Begin it with <code>video:</code> and the shot
+                plays that film clip instead of a still — it follows the playhead and the camera move still applies.
+              </small>
+
               {!beat.gap && frame.picture && props.cameraDrive && (
                 <CameraDrivePanel
                   drive={props.cameraDrive}

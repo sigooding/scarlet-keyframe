@@ -2284,7 +2284,9 @@ export default function App() {
   async function saveUploadedFile(file: File, intent: UploadIntent): Promise<void> {
     const current = projectRef.current;
     if (!current) return;
-    if (intent.kind === "image" && !file.type.startsWith("image/")) return;
+    const isVideoUpload = intent.kind === "image" && file.type.startsWith("video/");
+    if (intent.kind === "image" && !file.type.startsWith("image/") && !isVideoUpload) return;
+    if (isVideoUpload && intent.target !== "picture") return; // a depth map or a cut-out is always a still
     if (intent.kind === "audio" && !file.type.startsWith("audio/")) return;
     const asset = await createUploadAsset(file);
     const latest = projectRef.current;
@@ -2293,8 +2295,9 @@ export default function App() {
       return;
     }
     let next: ProjectState = { ...latest, assets: [...latest.assets, asset], updatedAt: Date.now() };
-    const assetRef = `asset:${asset.id}`;
-    let historyLabel = `${intent.kind === "image" ? "Picture" : "Sound"} uploaded`;
+    // The viewer plays a shot whose picture begins with `video:`; everything else treats it as any other reference.
+    const assetRef = isVideoUpload ? `video:asset:${asset.id}` : `asset:${asset.id}`;
+    let historyLabel = isVideoUpload ? "Video uploaded" : `${intent.kind === "image" ? "Picture" : "Sound"} uploaded`;
     if (intent.target === "picture") {
       next = setPicture(next, intent.frameId, assetRef);
     } else if (intent.target === "depthMap") {
@@ -2501,6 +2504,22 @@ export default function App() {
       }
     }
     for (const path of publicPaths) {
+      // A shot can play a video instead of a still: it is offered here with `video:` already on it.
+      if (/\.(?:mp4|webm)$/i.test(path)) {
+        const ref = `video:/${path}`;
+        if (!output.has(ref)) {
+          output.set(ref, {
+            id: ref,
+            ref,
+            name: path.split("/").pop() || path,
+            folder: path.split("/").slice(0, -1).join("/"),
+            src: undefined, // a still of it would have to be decoded; the name and the VIDEO mark say what it is
+            source: "Video",
+            kind: "video",
+          });
+        }
+        continue;
+      }
       if (!/\.(?:jpe?g|png|webp|gif|avif|bmp|svg)$/i.test(path)) continue;
       const ref = `/${path}`;
       if (!output.has(ref)) {
@@ -5277,7 +5296,7 @@ export default function App() {
         ref={imageInputRef}
         className="hidden-input"
         type="file"
-        accept="image/*"
+        accept="image/*,video/mp4,video/webm"
         onChange={(event) => onUploadInput(event, "image")}
       />
       <input
