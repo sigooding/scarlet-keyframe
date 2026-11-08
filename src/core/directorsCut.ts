@@ -721,13 +721,43 @@ function classifySilentNarratorText(
 }
 
 /**
+ * The film's own opening and ending, rather than the screenplay's: the seven scenes in
+ * `nobodys-witness-film.json` that carry no beats of their own and are built by the cut
+ * (`populateZeroBeatScenes`). A scene with no beats plays nothing, so before they are filled a cut opens cold on
+ * scene 1.
+ */
+/**
+ * The film's opening and its ending. These are the ones every cut wants: the Black Cove video, the studio logo, the
+ * main titles, the credits and the end card. (`nw_m18` and `nw_m53` are the Neo-Noir cut's own montages, in the
+ * middle of the film, and belong to the editorial cuts alone — dropping them into Original Uncut would move every
+ * shot after them.)
+ */
+export const OPENING_AND_ENDING_SCENE_IDS: readonly string[] = [
+  "nw_intro",
+  "nw_logo",
+  "nw_title",
+  "nw_credits",
+  "nw_end",
+];
+
+export const STRUCTURAL_SCENE_IDS: readonly string[] = [
+  "nw_intro",
+  "nw_logo",
+  "nw_title",
+  "nw_m18",
+  "nw_m53",
+  "nw_credits",
+  "nw_end",
+];
+
+/**
  * Synthesizes real playable shots for the 7 scenes in `nobodys-witness-film.json`
- * that originally had `dialogueBeats: []` (`nw_intro`, `nw_logo`, `nw_title`,
- * `nw_m18`, `nw_m53`, `nw_credits`, `nw_end`).
+ * that originally had `dialogueBeats: []` (`STRUCTURAL_SCENE_IDS`).
  */
 function populateZeroBeatScenes(
   story: StoryLike,
   variant: EditorialCutVariant = "neo-noir",
+  only?: readonly string[],
 ): void {
   const is1950s = variant === "noir-1950s";
   const is1940s = variant === "noir-1940s";
@@ -737,6 +767,7 @@ function populateZeroBeatScenes(
 
   for (const scene of story.scenes) {
     if (scene.dialogueBeats && scene.dialogueBeats.length > 0) continue;
+    if (only && !only.includes(scene.id)) continue;
 
     if (scene.id === "nw_intro") {
       scene.dialogueBeats = [
@@ -3833,6 +3864,12 @@ export function buildDirectorsCutById(
     };
     const story = clone(baseProject.originalStory);
     const assets = addRecreatedUncutCoverage(story, baseProject.assets);
+    // The film's opening and its ending are scenes with no beats of their own (`nw_intro`, `nw_logo`, `nw_title`,
+    // `nw_credits`, `nw_end`), and a scene with no beats plays nothing at all. Only the editorial cuts used to fill
+    // them, so Original Uncut and Jack's cuts opened cold on scene 1, with no Black Cove, no logo, no main titles
+    // and no credits. They get the same opening as the rest, in the plain colour look; Jack's Noir then grades it
+    // with everything else.
+    populateZeroBeatScenes(story, "neo-noir", OPENING_AND_ENDING_SCENE_IDS);
     // Jack's voice-over is written into the story before anything is timed or placed, so the audio clips and every
     // later pass see the same beats the viewer plays. Text only: no picture or sound is added.
     if (resolvedCutId === "jack-narrated") applyJackNarration(story);

@@ -13,6 +13,7 @@ import {
   VOTED_GAP_DEPTH_MAP_BY_BEAT_ID,
   VOTED_GAP_FRAME_SPECS,
   type DirectorsCutId,
+  STRUCTURAL_SCENE_IDS,
 } from "./directorsCut";
 import {
   applyStudioMusicSync,
@@ -204,7 +205,10 @@ describe("Turn 28 — User-Voted Reference-Matched Gap Frames & Depth Maps", () 
     // Verify Uncut preserves exact 1,618 beats while exposing all 7 new plates on their target beats
     const uncut = buildDirectorsCutById(baseProject, "uncut", voiceMap, musicMap);
     const uncutFrames = buildKeyframes(uncut.story);
-    expect(uncutFrames).toHaveLength(1621); // +3: scene 1's nw_b1722/nw_b1723 refusal frames and nw_b1724 puddle insert
+    // +3: scene 1's nw_b1722/nw_b1723 refusal frames and nw_b1724 puddle insert. The film's own opening and ending
+    // (titles, logo, credits) play beside the story in every cut, so they are counted apart.
+    const structuralScenes = new Set(STRUCTURAL_SCENE_IDS);
+    expect(uncutFrames.filter((f) => !structuralScenes.has(f.sceneId))).toHaveLength(1621);
     for (const spec of VOTED_GAP_FRAME_SPECS) {
       const f = uncutFrames.find((kf) => kf.id === spec.beatId);
       expect(f).toBeDefined();
