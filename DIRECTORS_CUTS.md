@@ -79,6 +79,15 @@ Scarlet Keyframe Studio provides six non-destructive selectable film versions vi
 ---
 
 ## 5. Original Uncut Import (`"uncut"`)
+- **The film's opening and ending play here too** (8 November 2026). `nw_intro`, `nw_logo`, `nw_title`, `nw_credits`
+  and `nw_end` carry no beats of their own in `nobodys-witness-film.json`, and a scene with no beats plays nothing:
+  only the editorial cuts used to fill them, so Original Uncut — and Jack's Noir and Jack's Narrated with it — opened
+  cold on scene 1, with no Black Cove, no studio logo, no main titles and no credits. They are filled for every cut
+  now (`OPENING_AND_ENDING_SCENE_IDS`). The two mid-film montages (`nw_m18`, `nw_m53`) stay the editorial cuts' own:
+  dropping those into the Uncut would move every shot after them.
+- The main titles play **between scene 1 and the prologue**, where the film puts them, not at the very top: scene 1's
+  murder is the cold open. So the story's shots sit 44 seconds later than they used to in these cuts, while keeping
+  every length and every gap between them (`src/core/recreated-uncut.test.ts` checks exactly that).
 - Restores the raw `1,584`-beat source assembly from `project.originalStory` prior to editorial consolidation, camera authoring, or optical grading.
 
 ---

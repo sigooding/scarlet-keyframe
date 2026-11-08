@@ -5,7 +5,7 @@ import film from "../data/nobodys-witness-film.json";
 import audioDurations from "../data/audio-durations.json";
 import mediaIndex from "../data/media-index.json";
 import { buildKeyframes, createProjectState, parseImportPayload } from "./model";
-import { buildDirectorsCutById } from "./directorsCut";
+import { buildDirectorsCutById, STRUCTURAL_SCENE_IDS } from "./directorsCut";
 import { RECREATED_DEPTH_MAP_BY_BEAT, addRecreatedUncutCoverage, upgradeSavedRecreatedUncut } from "./recreatedUncut";
 import { buildTimelineClips } from "../sequence/animate";
 
@@ -124,12 +124,27 @@ vi.mock("../assets/recreated-uncut/1177-no-messages.jpg?url&inline", () => ({ de
 vi.mock("../assets/recreated-uncut/148-how-did-she-seem.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,bg==" }));
 vi.mock("../assets/recreated-uncut/716-sea-wall-road.jpg?url&inline", () => ({ default: "data:image/jpeg;base64,bw==" }));
 
+const STRUCTURAL = new Set(STRUCTURAL_SCENE_IDS);
+/** The screenplay's own shots: the film's opening and ending are built by the cut and are not what these tests check. */
+const storyOnly = <T extends { keyframe: { sceneId: string } }>(clips: T[]): T[] =>
+  clips.filter((clip) => !STRUCTURAL.has(clip.keyframe.sceneId));
+
+/**
+ * How long each story shot runs and in what order — not where it sits in the film. The main titles play between
+ * scene 1 and the prologue, so absolute start frames move for everything after them; what the coverage pass must
+ * never change is a shot's own length or its place in the line.
+ */
+const shape = <T extends { durationFrames: number; keyframe: { id: string } }>(
+  clips: T[],
+  extra: (clip: T) => unknown[] = () => [],
+): unknown[][] => clips.map((clip) => [clip.keyframe.id, clip.durationFrames, ...extra(clip)]);
+
 describe("recreated Original Uncut plates", () => {
   it("adds the selected votes while preserving all other shots, text, audio and duration", () => {
     const source = base();
     const result = buildDirectorsCutById(source, "uncut", new Map());
     const old = buildTimelineClips(buildKeyframes(source.originalStory)).clips;
-    const next = buildTimelineClips(buildKeyframes(result.story)).clips;
+    const next = storyOnly(buildTimelineClips(buildKeyframes(result.story)).clips);
     const selected = ["nw_b31", "nw_b1573", "nw_b1637", "nw_b28", "nw_b1037", "nw_b1351", "nw_b17", "nw_b1671", "nw_b27", "nw_b1054", "nw_b1467", "nw_b1020", "nw_b1177", "nw_b148", "nw_b716", "nw_b99", "nw_b1358", "nw_b1565", "nw_b38", "nw_b893", "nw_b1073", "nw_b128", "nw_b1686", "nw_b284", "nw_b1360", "nw_b300", "nw_b1383", "nw_b980", "nw_b1349", "nw_b773", "nw_b1316", "nw_b1076", ...v15BeatIds, ...v16BeatIds];
     expect(next.map(c => [c.keyframe.id, c.keyframe.text, c.durationFrames, c.keyframe.beat.audioUrl]))
       .toEqual(old.map(c => [c.keyframe.id, c.keyframe.text, c.durationFrames, c.keyframe.beat.audioUrl]));
@@ -146,9 +161,9 @@ describe("recreated Original Uncut plates", () => {
     const result = buildDirectorsCutById(source, "uncut", new Map());
     const durations = new Map(Object.entries(audioDurations));
     const before = buildTimelineClips(buildKeyframes(source.originalStory), durations).clips;
-    const after = buildTimelineClips(buildKeyframes(result.story), durations).clips;
-    expect(after.map(c => [c.keyframe.id, c.startFrame, c.durationFrames, c.keyframe.text, c.keyframe.beat.audioUrl]))
-      .toEqual(before.map(c => [c.keyframe.id, c.startFrame, c.durationFrames, c.keyframe.text, c.keyframe.beat.audioUrl]));
+    const after = storyOnly(buildTimelineClips(buildKeyframes(result.story), durations).clips);
+    expect(shape(after, (c) => [c.keyframe.text, c.keyframe.beat.audioUrl]))
+      .toEqual(shape(before, (c) => [c.keyframe.text, c.keyframe.beat.audioUrl]));
     for (const [start, inserted, next] of [["nw_b98", "nw_b99", "nw_b100"], ["nw_b1357", "nw_b1358", "nw_b1359"], ["nw_b1564", "nw_b1565", "nw_b1566"], ["nw_b37", "nw_b38", "nw_b39"], ["nw_b892", "nw_b893", "nw_b894"], ["nw_b1072", "nw_b1073", "nw_b1074"], ["nw_b127", "nw_b128", "nw_b129"], ["nw_b1685", "nw_b1686", "nw_b1687"], ["nw_b283", "nw_b284", "nw_b285"], ["nw_b1359", "nw_b1360", "nw_b1361"], ["nw_b114", "nw_b115", "nw_b116"], ["nw_b313", "nw_b314", "nw_b315"], ["nw_b417", "nw_b418", "nw_b419"]]) {
       const oldStart = before.find(c => c.keyframe.id === start)!;
       const oldInsert = before.find(c => c.keyframe.id === inserted)!;
@@ -160,7 +175,8 @@ describe("recreated Original Uncut plates", () => {
       expect(newStart.keyframe.picture).toBe(oldStart.keyframe.picture);
       expect(newInsert.keyframe.picture).not.toBe(oldInsert.keyframe.picture);
       expect(after.find(c => c.keyframe.id === next)!.keyframe.picture).toBe(before.find(c => c.keyframe.id === next)!.keyframe.picture);
-      expect(newInsert.startFrame).toBe(oldInsert.startFrame);
+      // the break lands exactly where it did, measured from the shot it was broken out of
+      expect(newInsert.startFrame - newStart.startFrame).toBe(oldInsert.startFrame - oldStart.startFrame);
       expect(newInsert.durationFrames).toBe(oldInsert.durationFrames);
     }
     const oldWait = before.find(c => c.keyframe.id === "nw_b1175")!;
@@ -179,9 +195,9 @@ describe("recreated Original Uncut plates", () => {
     const result = buildDirectorsCutById(source, "uncut", new Map());
     const durations = new Map(Object.entries(audioDurations));
     const before = buildTimelineClips(buildKeyframes(source.originalStory), durations).clips;
-    const after = buildTimelineClips(buildKeyframes(result.story), durations).clips;
-    expect(after.map(c => [c.keyframe.id, c.startFrame, c.durationFrames, c.keyframe.text, c.keyframe.beat.audioUrl, c.keyframe.beat.captions]))
-      .toEqual(before.map(c => [c.keyframe.id, c.startFrame, c.durationFrames, c.keyframe.text, c.keyframe.beat.audioUrl, c.keyframe.beat.captions]));
+    const after = storyOnly(buildTimelineClips(buildKeyframes(result.story), durations).clips);
+    expect(shape(after, (c) => [c.keyframe.text, c.keyframe.beat.audioUrl, c.keyframe.beat.captions]))
+      .toEqual(shape(before, (c) => [c.keyframe.text, c.keyframe.beat.audioUrl, c.keyframe.beat.captions]));
     for (const [id, asset] of [["nw_b300", "duplicate-uncut-300"], ["nw_b1383", "duplicate-uncut-1383-wide"], ["nw_b980", "duplicate-uncut-980"], ["nw_b1349", "duplicate-uncut-1349"], ["nw_b773", "duplicate-uncut-773"], ["nw_b1316", "duplicate-uncut-1316"], ["nw_b1076", "duplicate-uncut-1076"], ...v15Plates, ["nw_b115", "duplicate-uncut-115"], ["nw_b314", "duplicate-uncut-314"], ["nw_b418", "duplicate-uncut-418"]] as const) {
       const index = before.findIndex(c => c.keyframe.id === id);
       expect(index).toBeGreaterThan(0);
@@ -265,7 +281,7 @@ describe("recreated Original Uncut plates", () => {
   it("breaks the carried dress image at the second scene's beat without shifting its neighbours", () => {
     const project = base();
     const before = buildTimelineClips(buildKeyframes(project.originalStory), new Map(Object.entries(audioDurations))).clips;
-    const after = buildTimelineClips(buildKeyframes(buildDirectorsCutById(project, "uncut", new Map()).story), new Map(Object.entries(audioDurations))).clips;
+    const after = storyOnly(buildTimelineClips(buildKeyframes(buildDirectorsCutById(project, "uncut", new Map()).story), new Map(Object.entries(audioDurations))).clips);
     const old = (id: string) => before.find(c => c.keyframe.id === id)!;
     const current = (id: string) => after.find(c => c.keyframe.id === id)!;
     expect(old("nw_b1074").keyframe.sceneId).toBe("nw_s65");
@@ -276,8 +292,10 @@ describe("recreated Original Uncut plates", () => {
     expect(current("nw_b1075").keyframe.picture).toBe(old("nw_b1075").keyframe.picture);
     expect(current("nw_b1076").keyframe.picture).toBe("asset:duplicate-uncut-1076");
     expect(current("nw_b1077").keyframe.picture).toBe(old("nw_b1077").keyframe.picture);
-    expect(current("nw_b1076").startFrame).toBe(old("nw_b1076").startFrame);
     expect(current("nw_b1076").durationFrames).toBe(old("nw_b1076").durationFrames);
+    // it still follows nw_b1075 by exactly the same gap: nothing was inserted around it
+    expect(current("nw_b1076").startFrame - current("nw_b1075").startFrame)
+      .toBe(old("nw_b1076").startFrame - old("nw_b1075").startFrame);
   });
   it("upgrades v14 active and stashed Uncut without changing custom pictures, looks, or timing", () => {
     const project = base();

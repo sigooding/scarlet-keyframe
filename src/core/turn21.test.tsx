@@ -17,6 +17,7 @@ import {
   buildDirectorsCutProject,
   DIRECTORS_CUT_OPTIONS,
   getDirectorsCutLabel,
+  STRUCTURAL_SCENE_IDS,
 } from "./directorsCut";
 import {
   applyStudioMusicSync,
@@ -63,9 +64,12 @@ describe("Turn 21 — Multi-Cut Director's Cuts (Creative, 1940s/1950s Noir, Neo
     expect(uncut.directorsCutId).toBe("uncut");
     expect(neoAfterRoundTrip.directorsCutId).toBe("neo-noir");
 
-    // Uncut restores all 1,621 beats (1,618 original + scene 1's two extra
-    // refusal frames nw_b1722/nw_b1723 and the puddle insert nw_b1724)
-    expect(buildKeyframes(uncut.story).length).toBe(1621);
+    // Uncut restores all 1,621 beats of the story (1,618 original + scene 1's two extra refusal frames
+    // nw_b1722/nw_b1723 and the puddle insert nw_b1724), and carries the film's own opening and ending beside them.
+    const uncutFrames = buildKeyframes(uncut.story);
+    const structural = new Set(STRUCTURAL_SCENE_IDS);
+    expect(uncutFrames.filter((f) => !structural.has(f.sceneId)).length).toBe(1621);
+    expect(uncutFrames.some((f) => f.sceneId === "nw_title")).toBe(true);
 
     // Neo-Noir after round-trip matches fresh baseline story & audioClips 100%
     expect(neoAfterRoundTrip.story).toEqual(neoBaseline.story);
