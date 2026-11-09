@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>nw_b166 — A frame before the cup breaks</title>
+  <style>
+    :root { color-scheme: dark; font-family: Georgia, "Times New Roman", serif; background: #121817; color: #e8e6dc; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: clamp(20px, 4vw, 56px); }
+    main { max-width: 1500px; margin: 0 auto; }
+    .eyebrow { color: #9fb6ad; font: 600 12px/1.4 system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 10px 0 8px; font-size: clamp(30px, 5vw, 56px); font-weight: 400; }
+    .intro { max-width: 760px; color: #b5beb9; font: 16px/1.65 system-ui, sans-serif; }
+    .frames { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 34px 0 24px; }
+    figure { margin: 0; padding: 12px; border: 1px solid #35433e; background: #19211f; }
+    img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #080b0a; }
+    figcaption { padding: 12px 3px 2px; font: 14px/1.55 system-ui, sans-serif; color: #c6cec9; }
+    figcaption strong { display: block; margin-bottom: 3px; color: #f0eee5; font-weight: 600; }
+    .selected { border-color: #cba875; box-shadow: 0 0 0 1px #cba875 inset; }
+    .selected figcaption strong { color: #e4c48f; }
+    .note { padding: 14px 17px; border-left: 2px solid #cba875; background: #1b2421; color: #c6cec9; font: 14px/1.6 system-ui, sans-serif; }
+    a { color: #d9bb89; }
+    details { margin-top: 22px; color: #bbc4bf; font: 14px/1.7 system-ui, sans-serif; }
+    summary { cursor: pointer; color: #e5e2d8; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; color: #c7d0ca; }
+    @media (max-width: 850px) { .frames { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">Nobody's Witness · Original Uncut · Scene 6 · nw_b166 · Vote option 2</div>
+    <h1>A frame before the cup breaks</h1>
+    <p class="intro">The interview-room two-shot repeats across Vera's question, Ishida's answer and her reaction. The selected frame gives her line a close-up, then the film cuts to the cup breaking.</p>
+    <section class="frames" aria-label="First frame, voted bridge, and last frame">
+      <figure>
+        <img src="../../public/film/img/s6/59-is-she-dead.jpg" alt="Vera and Ishida facing one another across the interview-room table">
+        <figcaption><strong>First frame · nw_b163–nw_b165</strong>The repeated wide two-shot: “Is she dead?”</figcaption>
+      </figure>
+      <figure class="selected">
+        <img src="images/nw-b166-stop-saying-that.jpg" alt="Vera leans toward Ishida, gripping an upright paper cup as she begins to answer">
+        <figcaption><strong>Selected option 2 · nw_b166</strong>Vera says, “Stop saying that.” The cup is still intact.</figcaption>
+      </figure>
+      <figure>
+        <img src="../../public/film/img/s6/60-the-crushed-cup.jpg" alt="Vera's hand crushes a paper cup as tea spills across the table">
+        <figcaption><strong>Last frame · nw_b167</strong>The next moment: the cup crumples and tea spills.</figcaption>
+      </figure>
+    </section>
+    <p class="note">The new image occupies the existing 147-frame (6.125-second) beat. Dialogue, captions, audio, scene order and total timing stay unchanged. <a href="README.md">Vote and installation notes</a>.</p>
+    <details>
+      <summary>Generation prompt</summary>
+      <pre>Create ONE standalone photorealistic widescreen 16:9 cinematic film still for the Tokyo noir drama Nobody's Witness, as a new intermediate shot at the moment Vera says, “Stop saying that.” Use BOTH supplied frames as continuity references: the first establishes the exact two characters, wardrobe, interview room, and muted lighting; the last shows the paper cup and the action that happens immediately afterward. Show the instant just before that final close-up: a medium close-up from Ishida's side of the table, looking across at Vera seated on the left. Match Vera's same face, straight shoulder-length blonde hair, charcoal wool coat over an ivory turtleneck. She leans forward with controlled pain turning to anger, eyes fixed on Ishida, her mouth just opening to speak. Her near hand, with the cream ribbed cuff and simple ring from the last reference, tightens around the same small paper cup; it has only begun to dent and remains upright, with all the tea still inside and no spill yet. Let Ishida's dark suit shoulder sit softly out of focus at the right edge. Keep the small frosted window, pale green-grey interview-room walls, tabletop and restrained midnight-teal fluorescent color consistent. The following shot is the crushed cup spilling tea, so this is a clearly earlier moment. Natural face and hands, quiet 35mm film realism, no extra people, no captions, no text, no watermark, no split screen or collage.</pre>
+    </details>
+  </main>
+</body>
+</html>

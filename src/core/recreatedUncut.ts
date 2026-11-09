@@ -31,6 +31,7 @@ import heHangsUp from "../assets/recreated-uncut/115-he-hangs-up.jpg?url&inline"
 import reconstructingIt from "../assets/recreated-uncut/314-reconstructing-it.jpg?url&inline";
 import umbrellaSwings from "../assets/recreated-uncut/418-umbrella-swings.jpg?url&inline";
 import somethingSlow from "../assets/recreated-uncut/1176-something-slow.jpg?url&inline";
+import stopSayingThat from "../assets/recreated-uncut/166-stop-saying-that.jpg?url&inline";
 import dinner from "../assets/recreated-uncut/1020-dinner-with-me.jpg?url&inline";
 import noMessages from "../assets/recreated-uncut/1177-no-messages.jpg?url&inline";
 import headlights from "../assets/recreated-uncut/027-headlights.jpg?url&inline";
@@ -108,8 +109,9 @@ const plates = [
   { id: "duplicate-uncut-314", beat: "nw_b314", scene: "nw_s12", source: "/film/img/s12/168-the-strap.jpg", name: "Reconstructing it.jpg", data: reconstructingIt, version: 16 },
   { id: "duplicate-uncut-418", beat: "nw_b418", scene: "nw_s14a", source: "/film/img/s14a/340-the-shuttered-door.jpg", name: "The umbrella swings.jpg", data: umbrellaSwings, version: 16 },
   { id: "duplicate-uncut-1176", beat: "nw_b1176", scene: "nw_s72", source: "/film/img/s72/69-the-wait.jpg", name: "Something slow.jpg", data: somethingSlow, version: 16 },
+  { id: "duplicate-uncut-166", beat: "nw_b166", scene: "nw_s6", source: "/film/img/s6/59-is-she-dead.jpg", name: "Stop saying that.jpg", data: stopSayingThat, version: 19 },
 ] as const;
-const COVERAGE_VERSION = 16;
+const COVERAGE_VERSION = 19;
 /** Depth maps are added separately so earlier saved Uncut projects pick them up. */
 const DEPTH_VERSION = 18;
 const UPGRADE_VERSION = Math.max(COVERAGE_VERSION, DEPTH_VERSION);
