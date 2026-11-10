@@ -1,0 +1,482 @@
+{
+  "date": "2026-11-09",
+  "project": "Original Uncut",
+  "outputDirectory": "reviews/uncut-no-vote-20261109",
+  "selection": "All Original Uncut duplicate-image holds (identical still shared by two or more consecutive beats) after scene 30 in timeline order, excluding every beat voted or installed in earlier batches. Worked in timeline order starting at nw_s31.",
+  "request": "\"in the film find where duplicate images are used. Use the first and last frame to fill in the gap with a new image. Using vote option. start after scene 30\" — one new bridge image per duplicated-image gap, generated with two candidates per image and the user picking (offer_options vote).",
+  "generation": {
+    "provider": "vote (offer_options, 2 candidates per image)",
+    "attempts": 12,
+    "saved": 8,
+    "skipped": 4,
+    "notes": "Every shot voted by the user between two candidates; skipped shots are kept in the manifest but no image was saved for them."
+  },
+  "cutModified": false,
+  "frameRate": 24,
+  "shots": [
+    {
+      "number": 1,
+      "title": "The crooked pickup",
+      "scene": "nw_s31",
+      "sceneTitle": "31 — The only car",
+      "targetBeat": "nw_b741",
+      "precedingBeat": "nw_b740",
+      "nextBeat": "nw_b742",
+      "targetText": "A pickup truck, older than the building's paint, is parked crooked behind it.",
+      "holdTotal": "16.46s",
+      "holdSplit": "16.46s -> 12.29s + 4.17s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/01-nw-b741-crooked-pickup.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 2,
+      "voteResult": "option 2 of 2 selected",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b741, bridging the two supplied rainy highway-inn night references. Compose a distinct closer low three-quarter view from the wet gravel of the old white pickup truck - plainly older than the building's paint - parked crooked at the far left edge of the lot against the inn: nose angled out, sagging suspension, faded primer patches, rust along the wheel arches. Keep the same two-storey weathered inn, rusted tin roof, warm glowing windows, red vending machine and cold night rain of the references. No people and no other cars in frame. Match the inn's wood, the gravel lot, wet reflections and subdued night lighting exactly. Grounded 35mm film photography, Tokyo-noir palette, true 16:9 landscape framing. No captions, subtitles, added readable text or watermark.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261109/images/01-nw-b741-crooked-pickup.jpg",
+        "sha256": "f7bb60b3e83e34078d1e95a5c3a4b206931b18496c9937accabe3ad7a3128d43",
+        "width": 2048,
+        "height": 1152,
+        "bytes": 348252
+      },
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s31/31-00-the-inn-before-he-arrives.jpg",
+          "reviewPreview": "context/01-nw-b741-before.jpg",
+          "sha256": "2a07052fdae75fd18a5f8f134e1041ab6bec57d598f00c75d17faca2bc39ab6a"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s31/169-the-only-car.jpg",
+          "reviewPreview": "context/01-nw-b741-after.jpg",
+          "sha256": "dbe0e948866dad06e3092f04be6f880deaac729a0c7f98248320618e37f586da"
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "Just one.",
+      "scene": "nw_s32",
+      "sceneTitle": "32 — Just one night",
+      "targetBeat": "nw_b747",
+      "precedingBeat": "nw_b746",
+      "nextBeat": "nw_b748",
+      "targetText": "Just one.",
+      "holdTotal": "21.96s",
+      "holdSplit": "21.96s -> 20.38s + 1.58s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/02-nw-b747-just-one.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 1,
+      "voteResult": "option 1 of 2 selected",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b747, bridging the two supplied inn-lobby references. In the same small, warm, faded lobby - pink payphone and key case on the left wall, CRT television showing night baseball on the shelf, Mr. Noda asleep with his back to the room, stairs at the back, Mrs. Noda behind the wooden counter - compose a distinct closer medium two-shot over the counter of the heavy old key on its wooden tag passing from Mrs. Noda's hands to Jack, the dark-haired Western man in his dark coat and pale shirt, as he answers quietly that it will be just one night. Mrs. Noda (70s, grey hair in a low bun, dark teal work shirt, beige apron) hands the key over with a drying cloth still in her other hand. Match both exact faces, the counter, key case, televisions and humid warm light. Natural hands, restrained 35mm realism, complete 16:9 landscape frame with headroom. No captions, subtitles, added readable text or watermark.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261109/images/02-nw-b747-just-one.jpg",
+        "sha256": "9b0b570133a068c354e38ee27bc11ad59851c225609870f128b91e146e15cb42",
+        "width": 2048,
+        "height": 1152,
+        "bytes": 308334
+      },
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s32/32-00-the-faded-lobby.jpg",
+          "reviewPreview": "context/02-nw-b747-before.jpg",
+          "sha256": "481939f35af725369845817c27600f477c4e615a016e9338e1446152150cdeb2"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s32/170-just-one-night.jpg",
+          "reviewPreview": "context/02-nw-b747-after.jpg",
+          "sha256": "214acf10faba74ea44487ff2d4d01bb6df1f81f931aa85d562f322831cc97e48"
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "The bathroom door",
+      "scene": "nw_s33",
+      "sceneTitle": "33 — The window swollen shut",
+      "targetBeat": "nw_b754",
+      "precedingBeat": "nw_b753",
+      "nextBeat": "nw_b755",
+      "targetText": "She opens a door: a small tiled bathroom, a deep wooden tub, one high window over it, fogged with steam.",
+      "holdTotal": "28.29s",
+      "holdSplit": "28.29s -> 21.29s + 7.00s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/03-nw-b754-the-bathroom.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 1,
+      "voteResult": "option 1 of 2 selected",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b754, bridging the two supplied inn-corridor references. Compose a distinct closer over-the-shoulder view past Mrs. Noda's shoulder into the small tiled bathroom as she opens the wooden door: the deep wooden tub exhaling steam, one high frosted window swollen shut in its timber frame over it, fogged with condensation, cream wall tiles, a bare tap and a wooden bucket. Mrs. Noda (70s, grey hair in a low bun, dark teal work shirt, beige apron) holds the door open; Jack, the dark-haired Western man in his dark coat, stands a step behind her in the narrow dark-timber corridor taking it in, kitchen glimpsed behind them on the right. Match the cream tiles, fogged glass, weathered wood and warm dim bulb light of the references exactly. Natural proportions, restrained Tokyo-noir photographic realism, true 16:9 landscape framing with headroom. No captions, subtitles, added readable text or watermark.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261109/images/03-nw-b754-the-bathroom.jpg",
+        "sha256": "f7b36c4429db246a1dfd3e20e1ea51a2bed017064cb5adfa408d4c6ef343bb21",
+        "width": 2720,
+        "height": 1536,
+        "bytes": 365730
+      },
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s33/458-the-back-door-sticks.jpg",
+          "reviewPreview": "context/03-nw-b754-before.jpg",
+          "sha256": "8a3dbc40f201e18573077ae71a6ed048c75ff0faa2508bb739c4fda77241fc5f"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s33/206-the-window-swollen-shut.jpg",
+          "reviewPreview": "context/03-nw-b754-after.jpg",
+          "sha256": "d3901e2e682708b1b13cce2b5500afa3882ba195cce18470620b790e7152b471"
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "Jack notices the window",
+      "scene": "nw_s33",
+      "sceneTitle": "33 — The window swollen shut",
+      "targetBeat": "nw_b756",
+      "precedingBeat": "nw_b755",
+      "nextBeat": "nw_b757",
+      "targetText": "Jack notices the window. He notices everything. That is the point of the scene, and nobody in it knows it.",
+      "holdTotal": "12.21s",
+      "holdSplit": "12.21s -> 5.71s + 6.50s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/04-nw-b756-jack-notices-window.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 1,
+      "voteResult": "option 1 of 2 selected",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b756, bridging the two supplied references. Continue from the first reference, the inn corridor where Mrs. Noda holds the bathroom door open: compose a distinct tight close-up on Jack, the dark-haired Western man in his dark coat, his eyes drifted up to the high frosted window above the steaming wooden tub, swollen shut in its timber frame and fogged opaque. He studies the warped frame and its loose hardware the way a carpenter would, unnoticed - this is the point of the scene and nobody in it knows it. Mrs. Noda remains a soft blurred presence at the edge of frame; the cream tiled bathroom and steam drift behind him. Match his exact face, the cream tiles, the fogged glass and the warm dim bulb light. Grounded 35mm film photography, restrained noir realism, shallow depth of field, complete 16:9 landscape frame. No captions, subtitles, added readable text or watermark.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261109/images/04-nw-b756-jack-notices-window.jpg",
+        "sha256": "0c0dad0a329f5ba73b160b220e3d4f5b3473e51812893763d652f463a8c35d2c",
+        "width": 2048,
+        "height": 1152,
+        "bytes": 239326
+      },
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s33/206-the-window-swollen-shut.jpg",
+          "reviewPreview": "context/04-nw-b756-before.jpg",
+          "sha256": "d3901e2e682708b1b13cce2b5500afa3882ba195cce18470620b790e7152b471"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s34/172-twenty-years-of-januaries.jpg",
+          "reviewPreview": "context/04-nw-b756-after.jpg",
+          "sha256": "acb685aa937c82302c10be5c3f921fa9ae14c9ed147406740f1add023c9af7f6"
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "title": "Receipts under the lamp",
+      "scene": "nw_s34",
+      "sceneTitle": "34 — Twenty years of Januaries",
+      "targetBeat": "nw_b758",
+      "precedingBeat": "nw_b757",
+      "nextBeat": "nw_b759",
+      "targetText": "Jack sits at the table with Sakai's receipts spread out in front of him under the lamp.",
+      "holdTotal": "10.46s",
+      "holdSplit": "10.46s -> 5.79s + 4.67s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/05-nw-b758-receipts-under-lamp.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 1,
+      "voteResult": "option 1 of 2 selected",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b758, bridging the two supplied tatami-room references. In the same room - low wooden table, warm shaded lamp, thin futon already laid out, rain lashing the tin roof - compose a distinct closer side angle on Jack, the dark-haired Western man now in a pale shirt with his dark coat thrown over the tatami, seated cross-legged as he spreads out Sakai's yellowed rental-locker receipts under the lamp, one hand pressing a curling sheet flat, a small cassette recorder at the far edge of the table. Match his exact face, the lamp, the fusuma doors, the receipts and the lashing rain beyond the shoji. Grounded 35mm film photography, restrained noir realism, complete 16:9 landscape frame with headroom. No captions, subtitles, added readable text or watermark.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261109/images/05-nw-b758-receipts-under-lamp.jpg",
+        "sha256": "eadf222e37d11506bd0de0cee2eb8c26f761651247f2dc2ec098568d17813ac8",
+        "width": 2816,
+        "height": 1584,
+        "bytes": 495071
+      },
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s34/172-twenty-years-of-januaries.jpg",
+          "reviewPreview": "context/05-nw-b758-before.jpg",
+          "sha256": "acb685aa937c82302c10be5c3f921fa9ae14c9ed147406740f1add023c9af7f6"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s34/173-no-114.jpg",
+          "reviewPreview": "context/05-nw-b758-after.jpg",
+          "sha256": "216ee461cd20ae5783b91c5669081e43fafb2ac8897a6694641dfeb61372421c"
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "title": "Did you find anything?",
+      "scene": "nw_s36",
+      "sceneTitle": "36 — Come back safe anyway",
+      "targetBeat": "nw_b769",
+      "precedingBeat": "nw_b768",
+      "nextBeat": "nw_b770",
+      "targetText": "Did you find anything?",
+      "holdTotal": "25.71s",
+      "holdSplit": "25.71s -> 22.21s + 3.50s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/06-nw-b769-did-you-find-anything.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "voteResult": "skipped - both candidates rejected, nothing saved",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b769, bridging the two supplied phone references. In the same dark apartment - bed with a rumpled quilt, low table, great rain-blurred window going blue with night - compose a distinct closer medium shot on Vera, blonde, in the same cream knit sweater, sitting against the bed with her knees up, phone pressed hard to her ear with one hand, her free hand flat on the floorboards, as she asks through the line whether he found anything. Her face holds fear and practiced steadiness; the cold window light rims her hair. Match her face, the sweater, the room and the blue rain light. Grounded 35mm film photography, restrained noir realism, complete 16:9 landscape frame with headroom. No captions, subtitles, added readable text or watermark.",
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s36/208-come-back-safe-anyway.jpg",
+          "reviewPreview": "context/06-nw-b769-before.jpg",
+          "sha256": "fb6e1286551105c5cd81b2df7ef05386f34002d9edf17a76357ba7841d9c8772"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s36/538-the-receipts-in-his-hand.jpg",
+          "reviewPreview": "context/06-nw-b769-after.jpg",
+          "sha256": "bbeb96dae38bf3e152241cd2b959962c5655b6beee567719a96316977920b722"
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "title": "Then you'll understand why",
+      "scene": "nw_s37",
+      "sceneTitle": "37 — The keys are always in it",
+      "targetBeat": "nw_b782",
+      "precedingBeat": "nw_b781",
+      "nextBeat": "nw_b783",
+      "targetText": "Then you'll understand why I don't want him to know.",
+      "holdTotal": "7.88s",
+      "holdSplit": "7.88s -> 4.00s + 3.88s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/07-nw-b782-then-youll-understand.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 2,
+      "voteResult": "option 2 of 2 selected",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b782, bridging the two supplied night-in-the-rain references. In the same rain-lashed inn doorway - kitchen glow to the left, muddy yard, gate and the old black pickup parked crooked at the right - compose a distinct closer medium shot on Mrs. Noda (70s, grey hair in a low bun, dark teal work shirt, beige apron) seated on the wooden engawa with her cigarette burnt almost to the filter, looking up at Jack as she tells him he will understand why she doesn't want her husband to know. Kitchen warmth behind her, rain hissing off the eaves, cold blue yard beyond. Jack, the dark-haired Western man in his dark coat, is a dark shoulder in the near foreground, partly in frame. Match her face, the engawa boards, the ashtray and the two references' light. Grounded 35mm film photography, restrained noir realism, complete 16:9 landscape frame. No captions, subtitles, added readable text or watermark.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261109/images/07-nw-b782-then-youll-understand.jpg",
+        "sha256": "2ea1f87133075ccb46af3eae5368f6e483a7cbc3e02a7d6a6740994bcabd9709",
+        "width": 1536,
+        "height": 1024,
+        "bytes": 186613
+      },
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s37/542-dont-tell-my-husband.jpg",
+          "reviewPreview": "context/07-nw-b782-before.jpg",
+          "sha256": "048180c820a101c27fa25fd1f7f470c5d73b043fe9656e27f098596f0b4ea49c"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s37/460-parked-crooked.jpg",
+          "reviewPreview": "context/07-nw-b782-after.jpg",
+          "sha256": "17eb68493863c5058d70263f0705ce925ef705781fb82b9b5a8abf8b36662ad4"
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "title": "Jack looks at the truck",
+      "scene": "nw_s37",
+      "sceneTitle": "37 — The keys are always in it",
+      "targetBeat": "nw_b786",
+      "precedingBeat": "nw_b785",
+      "nextBeat": "nw_b787",
+      "targetText": "Jack looks at the truck. He says nothing.",
+      "holdTotal": "22.04s",
+      "holdSplit": "22.04s -> 18.79s + 3.25s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/08-nw-b786-jack-looks-at-truck.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 1,
+      "voteResult": "option 1 of 2 selected",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b786, bridging the two supplied rain references. Hold on the same moment as the first reference - Jack, the dark-haired Western man in his dark coat, standing in the inn's lit doorway looking out at the muddy yard - and compose a distinct tight close-up on his face: rain on his hair and shoulders, his eyes fixed on the old black pickup parked crooked across the path, expression unreadable and calculating. Warm kitchen light catches one side of his face, cold blue rain the other; beyond him the porch falls away to dark bokeh with the truck's mass barely suggested at the frame edge. Match his exact face and the two references' palette. Grounded 35mm film photography, restrained noir realism, shallow depth of field, complete 16:9 landscape frame. No captions, subtitles, added readable text or watermark.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261109/images/08-nw-b786-jack-looks-at-truck.jpg",
+        "sha256": "6033c8367cc90dc100a2923c0d24842d1c146e8aff4baad2a532252040bb9d8c",
+        "width": 2752,
+        "height": 1536,
+        "bytes": 618024
+      },
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s37/460-parked-crooked.jpg",
+          "reviewPreview": "context/08-nw-b786-before.jpg",
+          "sha256": "17eb68493863c5058d70263f0705ce925ef705781fb82b9b5a8abf8b36662ad4"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/roadside/s38/38-01-headlights-on-the-highway.jpg",
+          "reviewPreview": "context/08-nw-b786-after.jpg",
+          "sha256": "c1aabd76410e56c5e5886448cc921121e62cc74b095c3f2fdc3d5698bfa65253"
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "title": "It catches. Roars.",
+      "scene": "nw_cut_inn-raid_30",
+      "sceneTitle": "The raid on the inn (30)",
+      "targetBeat": "nw_cut_inn-raid_b33",
+      "precedingBeat": "nw_b847",
+      "nextBeat": "nw_cut_inn-raid_b34",
+      "targetText": "It catches. Roars.",
+      "holdTotal": "9.67s",
+      "holdSplit": "9.67s -> 7.88s + 1.79s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/09-raid-b33-it-catches.jpg",
+      "status": "selected",
+      "installed": false,
+      "voteOption": 2,
+      "voteResult": "option 2 of 2 selected",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_cut_inn-raid_b33, bridging the two supplied mid-raid references. Continue from the first reference - Jack alone in the black pickup under fire, windscreen starred, his wet fist dragging the keys in the ignition - and compose a distinct macro insert on his knuckles and the keys as the engine finally catches: worn ignition switch, rain dripping off the steering wheel, amber dash glow, the cabin shuddering to life. Through the cracked windscreen beyond, out-of-focus headlights loom closer through the rain. Match the soaked black leather, the starred glass and the cold blue-black palette of the references. Grounded 35mm film photography, restrained noir realism, complete 16:9 landscape frame. No captions, subtitles, added readable text or watermark.",
+      "selectedImage": {
+        "file": "reviews/uncut-no-vote-20261109/images/09-raid-b33-it-catches.jpg",
+        "sha256": "00cbe83d63d4be24aa76d804ab6af8aea148ba1a42ae07391509a67f5e403059",
+        "width": 1376,
+        "height": 768,
+        "bytes": 104939
+      },
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s48/214-come-on-come-on.jpg",
+          "reviewPreview": "context/09-inn-raid-b33-before.jpg",
+          "sha256": "ef351ad5327a8b93f4e8b304e68e76a0c4a4136a1b97f92b2d36eafc4341ae8b"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s49/463-through-the-farm-gate.jpg",
+          "reviewPreview": "context/09-inn-raid-b33-after.jpg",
+          "sha256": "27eb54cdbfdfc0cfe6c997c05e20e09b53fd8a2b33ca5eee68080f82800104ea"
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "title": "The payphone is still ringing",
+      "scene": "nw_cut_inn-raid_35",
+      "sceneTitle": "The raid on the inn (35)",
+      "targetBeat": "nw_cut_inn-raid_b37",
+      "precedingBeat": "nw_b854",
+      "nextBeat": "nw_b856",
+      "targetText": "Inside, the payphone is still ringing.",
+      "holdTotal": "10.21s",
+      "holdSplit": "10.21s -> 7.42s + 2.79s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/10-raid-b37-payphone-ringing.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "voteResult": "skipped - both candidates rejected, nothing saved",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_cut_inn-raid_b37, bridging the two supplied raid-aftermath references. Cut back inside the inn from the first reference's rain-lashed road: compose a distinct static shot of the empty lobby, the pink rotary payphone on the wall still ringing, its receiver shuddering on the hook, lights on, everything else untouched - the key case, the stairs, the CRT television showing the baseball game - nobody there. Fine rain hisses through the open front doors behind. Match the inn's faded paint, pink phone, humid light and worn furnishings established in this location. Grounded 35mm film photography, restrained noir realism, complete 16:9 landscape frame. No people, no captions, subtitles, added readable text or watermark.",
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s49/215-no-need-to-chase.jpg",
+          "reviewPreview": "context/10-raid-b37-before.jpg",
+          "sha256": "4a3da4e004047e139f326aa6f7cec489035b400bd75fe42cb2a255f47f1cd7c2"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s50/216-hand-starts-to-shake.jpg",
+          "reviewPreview": "context/10-raid-b37-after.jpg",
+          "sha256": "2b4af54c8b098443b8467282c4429d7aab368645e0170577db5f215869afbd94"
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "title": "And Vera.",
+      "scene": "nw_s50",
+      "sceneTitle": "50 — Hand starts to shake",
+      "targetBeat": "nw_b864",
+      "precedingBeat": "nw_b863",
+      "nextBeat": "nw_b865",
+      "targetText": "And Vera. He called her from a pink payphone and told her it was just an inn.",
+      "holdTotal": "20.50s",
+      "holdSplit": "20.50s -> 16.33s + 4.17s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/11-nw-b864-the-payphone-call.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "voteResult": "skipped - both candidates rejected, nothing saved",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b864, bridging the two supplied night-driving references. Continue from the first reference - Jack bloodied at the wheel, the soaked creased receipts crumpled in one fist, wet highway ahead - and compose a distinct close-up on his face from the passenger side: the cold dash glow catching his cheekbone, eyes fixed on the road but his mind elsewhere, remembering the pink payphone he used and the words he told Vera, that it was just an inn. Blood at his temple, rain-pebbled glass, the highway striping sliding past. He knows what he has just done by saying that. Match his exact face, the blood, the cracked windscreen and the cold blue-black palette. Grounded 35mm film photography, restrained noir realism, complete 16:9 landscape frame. No captions, subtitles, added readable text or watermark.",
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/s50/464-soaked-and-creased.jpg",
+          "reviewPreview": "context/11-nw-b864-before.jpg",
+          "sha256": "d7a1e5be36102cc959d14acd4f5c4176f3d35d0db300fd9ffdbeee66d2f3b31f"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s50/the-pickup-drives-on.jpg",
+          "reviewPreview": "context/11-nw-b864-after.jpg",
+          "sha256": "7d00520375c7317bc4d0f7fe40979b6b91ef0d4bd17873e7098bc80b3f039d07"
+        }
+      ]
+    },
+    {
+      "number": 12,
+      "title": "He lifts the Hive",
+      "scene": "nw_s51",
+      "sceneTitle": "51 — The model, corrected",
+      "targetBeat": "nw_b870",
+      "precedingBeat": "nw_b869",
+      "nextBeat": "nw_b871",
+      "targetText": "A man's hand, clean, with an expensive watch, lifts the Hive out of the model and sets it on a tray beside a cup of tea.",
+      "holdTotal": "26.83s",
+      "holdSplit": "26.83s -> 20.54s + 6.29s",
+      "intendedOutput": "reviews/uncut-no-vote-20261109/images/12-nw-b870-lifts-the-hive.jpg",
+      "status": "skipped",
+      "installed": false,
+      "voteOption": null,
+      "voteResult": "skipped - both candidates rejected, nothing saved",
+      "prompt": "Create ONE horizontal widescreen 16:9 photorealistic cinematic film still for the Tokyo noir drama Nobody's Witness at beat nw_b870, bridging the two supplied model-room references. Compose a distinct closer low detail across the model's plaza: white towers and broad white pavement with the round fountain, and at the plaza's edge the one small dark patched block - the Hive - shot from its own level, the glass towers soaring behind it. A man's clean hand with an expensive silver watch enters from the top of frame toward it, fingers spread, just before it closes on the rooftop. The metal tray with the cup of tea waits at the edge of frame, blurred; grey dawn city haze presses at the windows. Match the model's white acrylic, patched dark block, the tray, the watch and the cold grey-blue dawn light exactly. Grounded 35mm film photography, restrained noir realism, complete 16:9 landscape frame. No captions, subtitles, added readable text or watermark.",
+      "references": [
+        {
+          "order": 1,
+          "role": "Preceding shared still",
+          "sourceFilmPath": "/film/img/retakes_2026_10_20/310-the-model-at-dawn-r1.jpg",
+          "reviewPreview": "context/12-nw-b870-before.jpg",
+          "sha256": "32a9964daf58accb20f8a504f721efc8d7249773329baac0a1f371faf2ff9b17"
+        },
+        {
+          "order": 2,
+          "role": "Following still",
+          "sourceFilmPath": "/film/img/s51/311-the-hand-on-the-model.jpg",
+          "reviewPreview": "context/12-nw-b870-after.jpg",
+          "sha256": "2ee907bb8a2eb48e0750ff5e9b022d532add470f749cd8ee75c3990f5dd4c20a"
+        }
+      ]
+    }
+  ]
+}
