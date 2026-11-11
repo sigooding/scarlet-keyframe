@@ -4,7 +4,14 @@ The director's notes, written down and **not yet done**. No picture has been gen
 in `src/data/nobodys-witness-film.json` changed for anything on this page.
 
 **Status 5 November 2026: §1 is done** — every picture below was generated, voted and installed, and the beats were
-rewired; see the note at the end of §1 and `reviews/s1-blood-and-refusal-20261105/`. **§2 is still not done.**
+rewired; see the note at the end of §1 and `reviews/s1-blood-and-refusal-20261105/`.
+
+**Status 11 November 2026: §2's words and Mara's two takes are done here** — `nw_b1132`, `nw_b1133`, `nw_b1135` and
+`nw_b1136` carry the new text; Mara's lines play `/film/voice/s70/239-mara-that-s-him.mp3` (`[Frightened]`) and
+`239-mara-the-bar-his-voice.mp3` (`[Urgent]`), new files, the old takes untouched beside them; the second take of each is
+in `public/film/voice/alternates/2026-11-11/`. Picked by measured level, **nobody has listened**. **Still open:** listen
+to scene 2's two masked-man takes (flat, slightly hoarse?), carry the new lines into PlayFrame's screenplay and boards and
+scarlett-witness (a `npm run import:film` from there would bring the old lines back until then).
 
 ---
 
