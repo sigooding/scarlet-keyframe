@@ -97,7 +97,7 @@ export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
     label: "Jack’s Narrated Cut",
     shortLabel: "Jack’s Narrated",
     description:
-      "Jack’s Noir Cut with Jack’s own voice-over (JACK (V.O.), shown as captions) in place of the screenplay’s description, scene by scene: so far scene 10, Jack at his desk. Existing pictures and sounds only; the voice-over is text until it is recorded.",
+      "Jack’s Noir Cut with Jack’s own voice-over (JACK (V.O.), shown as captions) in place of the screenplay’s description, scene by scene: so far scene 10, Jack at his desk. Existing pictures and sounds, plus Jack’s recorded voice-over.",
   },
   {
     id: "uncut",
