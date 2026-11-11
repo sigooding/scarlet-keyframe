@@ -106,7 +106,7 @@ export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
     label: "The Witness Cut",
     shortLabel: "Witness Cut",
     description:
-      "Original Uncut directed as a grown-up procedural nocturne — fast through procedure, held through consequence: reaction holds on heavy lines, a dread hold and aftermath hold around violence, creeping confession push-ins, motivated practical light, and dissolves only where time passes. Existing pictures and sounds only.",
+      "Original Uncut directed as a grown-up procedural nocturne — fast through procedure, held through consequence: reaction holds on heavy lines, a dread hold and aftermath hold around violence, creeping confession push-ins, motivated practical light, dissolves only where time passes, and one shot per picture (consecutive beats on the same picture merged into one frame). Existing pictures and sounds only.",
   },
   {
     id: "uncut",

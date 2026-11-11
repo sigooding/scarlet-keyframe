@@ -1,5 +1,24 @@
 # Changes in this branch
 
+## The Witness Cut: one shot per picture
+
+Consecutive beats of a scene that show the same picture are now merged into one frame on the timeline, so the
+Witness Cut plays as 740 shots instead of 1,642 beats, with the same running time (154,825 frames).
+
+- `src/core/witnessCut.ts`: new last pass, `mergeSamePictureShots`. The first beat of each run carries the run:
+  its length is the sum of the beats, the later lines' captions are placed on the frames they are spoken (with their
+  speaker), every sound anchored to a folded beat is re-anchored to the shot at the same millisecond, and the scene
+  route moves onto the shot that now ends the scene. `mergedBeatIds` lists the folded beats.
+- The camera runs on as one move: each beat keeps its move, but a move that used to reset at the old cut is eased
+  in from the previous end pose (fading to zero over that beat, so nothing accumulates). The impact settle on violent
+  beats stays a jolt.
+- Only same-scene runs are merged; gaps, title cards and `video:` pictures stay separate.
+  `applyWitnessTreatment(..., { mergeSamePictures: false })` gives the one-beat-per-frame cut.
+- `src/core/witness-cut.test.ts`: the merged cut is checked frame by frame against the unmerged one: same length,
+  same picture at every frame, every sound at the same millisecond, identical captions, every Uncut beat accounted
+  for in order, no two neighbouring frames of a scene on the same picture, no camera reset inside a shot and no
+  picture edge shown.
+
 ## Thumbnails for the timeline, the Media Bin and the picture lists
 
 Scrolling the timeline and opening the Media Bin used to pull the full-size pictures: 8.49 MB of the first
