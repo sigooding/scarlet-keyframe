@@ -69,7 +69,7 @@ export interface CaptionMetrics {
 
 export function isNarrationBeat(beat: Pick<BeatLike, "characterId" | "audioUrl" | "silent">): boolean {
   const cid = String(beat.characterId || "");
-  return cid === "narrator" || /(^|_)narrator$/i.test(cid) || (!beat.audioUrl && Boolean(beat.silent));
+  return cid === "narrator" || /(^|_)narrator$/i.test(cid) || cid === "nw_jack_vo" || (!beat.audioUrl && Boolean(beat.silent));
 }
 
 export function hasAuthoredCaptions(beat: BeatLike): boolean {

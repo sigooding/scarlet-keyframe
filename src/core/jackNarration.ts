@@ -1,6 +1,7 @@
 // "Jack's Narrated Cut": Jack's Noir with Jack's own voice-over written in place of the screenplay's description,
-// scene by scene. The voice-over is TEXT ONLY (a caption "JACK (V.O.)", in italics) until somebody records it: nothing
-// new is generated, and every picture, camera move and sound the film already has stays where it is.
+// scene by scene. Each voice-over line is a caption "JACK (V.O.)" (in italics) and, where `audioUrl` is given, Jack's
+// recorded voice ("Narrator Lead", ElevenLabs eleven_v4, public/film/voice/narrated-jack/): every picture, camera move
+// and sound the film already has stays where it is.
 //
 // In Original Uncut the screenplay's description ("JACK (48) sits at the desk ...") is a run of silent narrator beats shown
 // as captions. Those beats also carry the shot's picture, camera move and sound effect, so they are never removed: a
@@ -17,11 +18,11 @@ export const JACK_VO_NAME = "Jack (V.O.)";
 
 export type NarrationOp =
   /** The beat keeps its picture, camera and sound; its caption becomes this line of Jack's voice-over. */
-  | { op: "replace"; beatId: string; text: string }
+  | { op: "replace"; beatId: string; text: string; audioUrl?: string; audioSeconds?: number }
   /** No caption on this beat: the picture, camera and sound play on without narration. */
   | { op: "silence"; beatId: string }
   /** A new voice-over beat after this one, on the picture that is showing. */
-  | { op: "add"; after: string; id: string; text: string };
+  | { op: "add"; after: string; id: string; text: string; audioUrl?: string; audioSeconds?: number };
 
 export interface SceneNarration {
   sceneId: string;
@@ -37,9 +38,9 @@ export const JACK_NARRATION: SceneNarration[] = [
     ops: [
       // JACK (48) sits at the desk: his own words in place of the description (the picture, the lighter's sound and the
       // camera stay, one line to each beat).
-      { op: "replace", beatId: "nw_b229", text: "I'd stopped buying cigarettes years ago." },
-      { op: "replace", beatId: "nw_b230", text: "Still carried the lighter." },
-      { op: "replace", beatId: "nw_b231", text: "It gave me something to do while I decided what not to say." },
+      { op: "replace", beatId: "nw_b229", text: "I'd stopped buying cigarettes years ago.", audioUrl: "/film/voice/narrated-jack/nw_b229-id-stopped-buying-cigarettes.mp3", audioSeconds: 2.64 },
+      { op: "replace", beatId: "nw_b230", text: "Still carried the lighter.", audioUrl: "/film/voice/narrated-jack/nw_b230-still-carried-the-lighter.mp3", audioSeconds: 1.76 },
+      { op: "replace", beatId: "nw_b231", text: "It gave me something to do while I decided what not to say.", audioUrl: "/film/voice/narrated-jack/nw_b231-something-to-do.mp3", audioSeconds: 3.84 },
       // Vera's arrival and their opening exchange play without narration.
       { op: "silence", beatId: "nw_b232" },
       { op: "silence", beatId: "nw_b236" },
@@ -50,6 +51,8 @@ export const JACK_NARRATION: SceneNarration[] = [
         after: "nw_b248",
         id: "nw_b248_vo",
         text: "There's a lie you tell for money and a lie you tell because the truth would take too long. I'd been in business long enough to know the difference. That afternoon I was charging her for both.",
+        audioUrl: "/film/voice/narrated-jack/nw_b248_vo-a-lie-you-tell.mp3",
+        audioSeconds: 11.36,
       },
       // V3, after "...sets it down, face up, and squares it to the edge of the desk." (the old photograph has landed on his
       // desk and he has recognised Daniel), just before he says "I'm sorry." out loud.
@@ -60,10 +63,17 @@ export const JACK_NARRATION: SceneNarration[] = [
         after: "nw_b260",
         id: "nw_b260_vo",
         text: "I said I was sorry. I was sorry. Just not about the thing she thought.",
+        audioUrl: "/film/voice/narrated-jack/nw_b260_vo-i-said-i-was-sorry.mp3",
+        audioSeconds: 5.28,
       },
     ],
   },
 ];
+
+/** A recorded line is held for its whole take and half a second of air. */
+function recordedFrames(seconds: number | undefined): number {
+  return seconds ? Math.ceil((seconds + 0.5) * FPS) : 0;
+}
 
 /** How long a line of voice-over is held: about 2.3 words a second (37 words are about 16 seconds), never under 2 seconds. */
 export const VO_WORDS_PER_SECOND = 37 / 16;
@@ -83,7 +93,7 @@ export interface JackNarrationReport {
 
 function ensureJackVoiceOver(story: StoryLike): void {
   const chars = story.characters;
-  const entry = { id: JACK_VO_CHARACTER_ID, name: JACK_VO_NAME, role: "Jack's voice-over (text until it is recorded)", avatarUrl: "", trustMeter: 0 };
+  const entry = { id: JACK_VO_CHARACTER_ID, name: JACK_VO_NAME, role: "Jack's voice-over", avatarUrl: "", trustMeter: 0 };
   if (Array.isArray(chars)) {
     if (!chars.some((item: AnyRecord) => item?.id === JACK_VO_CHARACTER_ID)) chars.push(entry);
   } else if (chars && typeof chars === "object") {
@@ -125,7 +135,8 @@ export function applyJackNarration(story: StoryLike, plan: readonly SceneNarrati
           continue;
         }
         const voiceFrames = Math.round(voiceOverSeconds(op.text) * FPS);
-        beat.durationFrames = Math.max(originalFrames.get(op.beatId) ?? 0, voiceFrames);
+        beat.durationFrames = Math.max(originalFrames.get(op.beatId) ?? 0, voiceFrames, recordedFrames(op.audioSeconds));
+        if (op.audioUrl) beat.audioUrl = op.audioUrl;
         beat.characterId = JACK_VO_CHARACTER_ID;
         beat.text = op.text;
         beat.silent = true;
@@ -159,8 +170,9 @@ export function applyJackNarration(story: StoryLike, plan: readonly SceneNarrati
         characterId: JACK_VO_CHARACTER_ID,
         text: op.text,
         silent: true,
-        durationFrames: Math.round(voiceOverSeconds(op.text) * FPS),
+        durationFrames: Math.max(Math.round(voiceOverSeconds(op.text) * FPS), recordedFrames(op.audioSeconds)),
       };
+      if (op.audioUrl) added.audioUrl = op.audioUrl;
       if (last) {
         // The scene now ends on the voice-over: it takes over what happens after the scene's last beat (the way on to the next
         // scene, and the time for the scene's transition).
