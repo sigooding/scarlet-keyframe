@@ -9192,3 +9192,9 @@ kbd {
   min-width: 34px;
   padding: 2px 5px;
 }
+
+/* The Witness Cut: slate-teal of a city watched at night, ringed in bone silver. */
+.topbar-cut-trigger-dot.is-witness {
+  background: #3f6f6a;
+  box-shadow: 0 0 0 1px rgba(216, 222, 233, 0.55);
+}

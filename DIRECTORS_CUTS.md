@@ -1,6 +1,6 @@
 # Editorial Cuts — Project Notes (`Nobody's Witness`)
 
-Scarlet Keyframe Studio provides six non-destructive selectable film versions via the topbar cut selector dropdown (`data-testid="topbar-directors-cut-btn"`). Every cut is constructed deterministically from `project.originalStory` without mutating any underlying `beat.text`, story dialogue, or existing snapshots, and switching between cuts preserves undo/redo history as well as the current narrative beat/scene under the playhead.
+Scarlet Keyframe Studio provides non-destructive selectable film versions via the topbar cut selector dropdown (`data-testid="topbar-directors-cut-btn"`). Every cut is constructed deterministically from `project.originalStory` without mutating any underlying `beat.text`, story dialogue, or existing snapshots, and switching between cuts preserves undo/redo history as well as the current narrative beat/scene under the playhead.
 
 ---
 
@@ -141,3 +141,41 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
   The scene's other description captions (the clip on the desk, the photographs, "A beat.", Vera at the door, "Jack sits very still.") are still the screenplay's own words.
 - **Moving V3 to the end of the scene** ("After Vera leaves. Jack remains seated."): change its `after` to `"nw_b278"`. A voice-over added after the last beat moves that beat's `afterBeat*` route and the dissolve time onto itself, so the film still runs on to scene 11 (`jack-narration.test.ts` covers that case on a small story).
 - **Narrating another scene**: add a `SceneNarration` to `JACK_NARRATION` with the beat ids from `src/data/nobodys-witness-film.json`. Ids that are not in the film are reported (`report.missing`) and skipped, and the test fails until the plan matches the film.
+
+---
+
+## 8. The Witness Cut (`"witness"`)
+- **Editorial Vision**: a grown-up procedural nocturne — Lumet's procedure, Mann's city at night. The camera is a
+  witness: it never anticipates, it reacts late, and it stays on consequence. Built non-destructively from
+  `project.originalStory` the same way as Jack's cuts (Original Uncut in full, all beats in the original running
+  order), **no new pictures and no new sounds** (`src/core/witness-cut.test.ts` checks this). Code:
+  `src/core/witnessCut.ts`.
+- **Timing — fast through procedure, slow through consequence**:
+  - Ordinary spoken tails are cut from the Uncut's `0.54 s` to `0.33 s`; a scene's last line keeps room for its
+    transition. The last words of a line are never clipped (always `>= 5` frames of air after the voice ends).
+  - **Reaction holds**: lines that carry weight (grief, a confession, a lie owned up to) hold `~1.15 s` before the
+    cut — the witness stays on the face while the line lands. A heavy *last* line of a scene stays half a second
+    longer still.
+  - **Hold-then-hit violence**: the silent beat before a violence effect is extended `+0.66 s` and locked off
+    (dread); the violent beat itself cuts in hard; the silent beat after is held `+1.0 s` (aftermath). The cut is
+    still shorter than the Uncut overall despite the holds.
+- **Camera — eye-level and patient** (keyframes; only treated beats get their move replaced, every other beat
+  keeps the film's own):
+  - Creeping push-ins (`1.00 -> 1.06`) on confession and grief lines; a slow lateral drift at a slight standoff
+    (`1.05x`, `x: -1.4 -> 1.4`) on silent observation beats; a locked tripod in front of violence; an impact
+    settle (`1.05 -> 1.005` in six frames) on the violent beat; a slow pull-back (`1.06 -> 1.00`) on the
+    aftermath; and a handful of sub-`2°` cants in danger scenes, zoom raised past the frame edge
+    (`minZoomForRotation`). No whips, no speed ramps, no zoom machinery.
+- **Light & grade — motivated practicals only**, from the existing overlays, by a per-scene setting read from
+  what the scene already carries (title, heading, ambience, effects): `danger` and interiors in restrained
+  `tokyo-noir`, wet night exteriors in `midnight-teal` with street rim light, muted daylight aftermath in
+  `nolan-imax`; venetian slats in offices, a key slash in danger, volumetric shafts where the room rings, and the
+  eye light reserved for confession close-ups (with `dofOnTalk`). Grain `0.035`, vignettes `0.26–0.5`, no neon
+  circus.
+- **Transitions — nothing decorative**: hard cuts everywhere, except a `dissolve` (`0.85`) into scenes where time
+  demonstrably passes (dawn, mornings, "days later") and a `dip-to-black` (`0.8`) into the elegiac scenes
+  (funeral, memorial, ashes). The film's own transitions are left untouched.
+- **Sound**: `-200 ms` J-cuts lead about half the eligible lines, only where `>= 600 ms` of clear air precedes
+  (zero voice overlap); the score sits at `90%` with `>= 1,200 ms` fade-ins and `>= 1,800 ms` fade-outs,
+  volume keys untouched, and is **never dipped for sound effects** (the engine's own ducking under spoken voice
+  is the only ducking). No echo, no fabricated sound: every audio clip is an Uncut clip.

@@ -224,9 +224,11 @@ export function Topbar({
                           ? "is-jack-noir"
                           : activeOption.id === "jack-narrated"
                             ? "is-jack-narrated"
-                            : activeOption.id === "uncut"
-                              ? "is-uncut"
-                              : ""
+                            : activeOption.id === "witness"
+                              ? "is-witness"
+                              : activeOption.id === "uncut"
+                                ? "is-uncut"
+                                : ""
                 }`}
               />
               <span>{activeOption.label}</span>
@@ -281,9 +283,11 @@ export function Topbar({
                                         ? "is-jack-noir"
                                         : opt.id === "jack-narrated"
                                           ? "is-jack-narrated"
-                                          : opt.id === "uncut"
-                                            ? "is-uncut"
-                                            : ""
+                                          : opt.id === "witness"
+                                            ? "is-witness"
+                                            : opt.id === "uncut"
+                                              ? "is-uncut"
+                                              : ""
                               }`}
                             />
                             <span>{opt.label}</span>
