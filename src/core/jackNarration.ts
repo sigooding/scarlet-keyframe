@@ -38,9 +38,9 @@ export const JACK_NARRATION: SceneNarration[] = [
     ops: [
       // JACK (48) sits at the desk: his own words in place of the description (the picture, the lighter's sound and the
       // camera stay, one line to each beat).
-      { op: "replace", beatId: "nw_b229", text: "I'd stopped buying cigarettes years ago.", audioUrl: "/film/voice/narrated-jack/nw_b229-id-stopped-buying-cigarettes.mp3", audioSeconds: 2.64 },
-      { op: "replace", beatId: "nw_b230", text: "Still carried the lighter.", audioUrl: "/film/voice/narrated-jack/nw_b230-still-carried-the-lighter.mp3", audioSeconds: 1.76 },
-      { op: "replace", beatId: "nw_b231", text: "It gave me something to do while I decided what not to say.", audioUrl: "/film/voice/narrated-jack/nw_b231-something-to-do.mp3", audioSeconds: 3.84 },
+      { op: "replace", beatId: "nw_b229", text: "I'd stopped buying cigarettes years ago.", audioUrl: "/film/voice/narrated-jack/nw_b229-id-stopped-buying-cigarettes.mp3", audioSeconds: 2.691 },
+      { op: "replace", beatId: "nw_b230", text: "Still carried the lighter.", audioUrl: "/film/voice/narrated-jack/nw_b230-still-carried-the-lighter.mp3", audioSeconds: 1.489 },
+      { op: "replace", beatId: "nw_b231", text: "It gave me something to do while I decided what not to say.", audioUrl: "/film/voice/narrated-jack/nw_b231-something-to-do.mp3", audioSeconds: 3.396 },
       // Vera's arrival and their opening exchange play without narration.
       { op: "silence", beatId: "nw_b232" },
       { op: "silence", beatId: "nw_b236" },
@@ -52,7 +52,7 @@ export const JACK_NARRATION: SceneNarration[] = [
         id: "nw_b248_vo",
         text: "There's a lie you tell for money and a lie you tell because the truth would take too long. I'd been in business long enough to know the difference. That afternoon I was charging her for both.",
         audioUrl: "/film/voice/narrated-jack/nw_b248_vo-a-lie-you-tell.mp3",
-        audioSeconds: 11.36,
+        audioSeconds: 10.736,
       },
       // V3, after "...sets it down, face up, and squares it to the edge of the desk." (the old photograph has landed on his
       // desk and he has recognised Daniel), just before he says "I'm sorry." out loud.
@@ -64,7 +64,7 @@ export const JACK_NARRATION: SceneNarration[] = [
         id: "nw_b260_vo",
         text: "I said I was sorry. I was sorry. Just not about the thing she thought.",
         audioUrl: "/film/voice/narrated-jack/nw_b260_vo-i-said-i-was-sorry.mp3",
-        audioSeconds: 5.28,
+        audioSeconds: 4.78,
       },
     ],
   },
