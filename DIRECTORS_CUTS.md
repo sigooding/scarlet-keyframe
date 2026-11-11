@@ -164,7 +164,7 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
   - Creeping push-ins (`1.00 -> 1.06`) on confession and grief lines; a slow lateral drift at a slight standoff
     (`1.05x`, `x: -1.4 -> 1.4`) on silent observation beats; a locked tripod in front of violence; an impact
     settle (`1.05 -> 1.005` in six frames) on the violent beat; a slow pull-back (`1.06 -> 1.00`) on the
-    aftermath; and a handful of sub-`2°` cants in danger scenes, zoom raised past the frame edge
+    aftermath; and a handful of sub-`2°` cants on spoken threat lines (never in daylight), zoom raised past the frame edge
     (`minZoomForRotation`). No whips, no speed ramps, no zoom machinery.
 - **Light & grade — motivated practicals only**, from the existing overlays, by a per-scene setting read from
   what the scene already carries (title, heading, ambience, effects): `danger` and interiors in restrained

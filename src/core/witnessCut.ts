@@ -63,7 +63,7 @@ const TENSE =
   /\b(gun|knife|blood|run|don'?t move|behind you|they know|follow(ed|ing)?|watch(ing)? (us|you|the)|threat|danger)\b/i;
 
 const TIME_JUMP = /\b(DAWN|MORNING|DAYS? LATER|NEXT (DAY|MORNING)|THREE DAYS|FIVE DAYS|LATER|EPILOGUE)\b/i;
-const ELEGIAC = /funeral|memorial|service|grave|cemetery|altar|ashes|condolence/i;
+const ELEGIAC = /\b(funeral|memorial|graveside|grave|cemetery|ashes|condolence|mourn(ing|ers)?)\b/i;
 
 function hashInt(seed: string): number {
   let h = 2166136261;
@@ -359,7 +359,7 @@ function applyCamera(
       anim.zoom = [key(0, 1.05), key(lastF, 1.05, "linear")];
       anim.x = [key(0, -1.4), key(lastF, 1.4)];
       report.drifts += 1;
-    } else if (look?.setting === "danger" && voiced && TENSE.test(text) && h % 3 === 0) {
+    } else if (look?.setting !== "daylight" && voiced && TENSE.test(text)) {
       // A restrained cant, under 2°, zoomed past the frame edge.
       const deg = (1.2 + (h % 9) / 10) * cantFlip;
       cantFlip = -cantFlip;
