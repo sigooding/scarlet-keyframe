@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import bundledAudioDurations from "../data/audio-durations.json";
 import bundledFilm from "../data/nobodys-witness-film.json";
 import bundledEdits from "../data/studio-edits.json";
-import { buildTimelineClips } from "../sequence/animate";
+import { buildTimelineClips, clipAtFrame, evaluate, minZoomForRotation } from "../sequence/animate";
 import { resolveAudioClips } from "./audioClips";
+import { resolveTimelineCaptions } from "./captions";
 import { buildDirectorsCutById, DIRECTORS_CUT_OPTIONS } from "./directorsCut";
 import { applyWitnessTreatment, classifyWitnessScene } from "./witnessCut";
-import { applyStudioMusicSync, buildKeyframes, createProjectState, parseImportPayload } from "./model";
+import { applyStudioMusicSync, buildKeyframes, createProjectState, parseImportPayload, runningSceneIds } from "./model";
 import { extractKnownMusicDurations } from "./previewAudio";
 
 const voiceMap = new Map(Object.entries(bundledAudioDurations as Record<string, number>));
@@ -20,6 +21,9 @@ const musicMap = extractKnownMusicDurations(bundledEdits);
 
 const uncut = buildDirectorsCutById(baseProject, "uncut", voiceMap, musicMap);
 const witness = buildDirectorsCutById(baseProject, "witness", voiceMap, musicMap);
+// The same cut one beat per frame (before same-picture beats are merged into one shot): timing, camera and
+// light are checked per line here; the merge itself is checked against it below.
+const witnessBeats = applyWitnessTreatment(uncut, voiceMap, musicMap, { mergeSamePictures: false }).project;
 
 const picturesOf = (story: typeof uncut.story) =>
   new Set(buildKeyframes(story).map((f) => f.picture).filter((p): p is string => Boolean(p)));
@@ -45,9 +49,15 @@ describe("The Witness Cut", () => {
     expect(DIRECTORS_CUT_OPTIONS.map((o) => o.id)).toContain("witness");
     expect(witness.directorsCutId).toBe("witness");
     const a = buildKeyframes(uncut.story);
-    const b = buildKeyframes(witness.story);
+    const b = buildKeyframes(witnessBeats.story);
     expect(b.length).toBe(a.length);
     expect(b.map((f) => f.id)).toEqual(a.map((f) => f.id));
+    // Merged: every Uncut beat is still there, in order, either as a shot or folded into the shot before it.
+    const merged = buildKeyframes(witness.story).flatMap((f) => [
+      f.id,
+      ...((f.beat.mergedBeatIds as string[] | undefined) ?? []),
+    ]);
+    expect(merged).toEqual(a.map((f) => f.id));
   });
 
   it("adds no new pictures and no new sounds", () => {
@@ -65,7 +75,7 @@ describe("The Witness Cut", () => {
     for (const setting of ["danger", "night-ext", "interior", "daylight"] as const)
       expect(report.scenesBySetting[setting]).toBeGreaterThan(3);
     const grades = new Set(["tokyo-noir", "midnight-teal", "nolan-imax"]);
-    const graded = buildKeyframes(witness.story).filter((f) => f.beat.cinematic?.colorGrade);
+    const graded = buildKeyframes(witnessBeats.story).filter((f) => f.beat.cinematic?.colorGrade);
     expect(graded.length).toBeGreaterThan(1000);
     for (const f of graded)
       expect(grades.has(String(f.beat.cinematic!.colorGrade)) || f.sceneId === "nw_logo").toBe(true);
@@ -103,7 +113,7 @@ describe("The Witness Cut", () => {
 
   it("replaces the camera only on treated beats, cants under 2 degrees, and never makes tiny clips", () => {
     const before = new Map(buildKeyframes(uncut.story).map((f) => [f.id, JSON.stringify(f.beat.animation ?? null)]));
-    const frames = buildKeyframes(witness.story);
+    const frames = buildKeyframes(witnessBeats.story);
     const unchanged = frames.filter((f) => JSON.stringify(f.beat.animation ?? null) === before.get(f.id)).length;
     expect(unchanged / frames.length).toBeGreaterThan(0.6); // the film's own moves stay for the bulk
     for (const f of frames) {
@@ -139,7 +149,7 @@ describe("The Witness Cut", () => {
 
   it("is fast through procedure and slow through consequence: tight plain tails, held heavy lines", () => {
     const before = tailsOf(uncut);
-    const after = tailsOf(witness);
+    const after = tailsOf(witnessBeats);
     expect(before.plain).toBeGreaterThan(0.5);
     expect(after.plain).toBeLessThan(0.4); // ordinary lines cut sooner than the Uncut's 0.54 s
     expect(after.heavy).toBeGreaterThan(1.0); // heavy lines hold for the reaction
@@ -148,7 +158,7 @@ describe("The Witness Cut", () => {
   });
 
   it("never clips the last words of a line", () => {
-    const { clips } = buildTimelineClips(buildKeyframes(witness.story), voiceMap);
+    const { clips } = buildTimelineClips(buildKeyframes(witnessBeats.story), voiceMap);
     for (const c of clips) {
       if (!c.keyframe.beat.audioUrl || c.voiceFrames <= 0) continue;
       expect(c.durationFrames).toBeGreaterThanOrEqual(12);
@@ -174,13 +184,13 @@ describe("The Witness Cut", () => {
   });
 
   it("never dips the music: each clip is the Uncut clip at 90% with longer fades and untouched volume keys", () => {
-    const keyOf = (c: { src: string; anchorId: string }) => `${c.src}@${c.anchorId}`;
-    const before = new Map((uncut.audioClips ?? []).filter((c) => c.lane === "music").map((c) => [keyOf(c), c]));
+    const before = new Map((uncut.audioClips ?? []).filter((c) => c.lane === "music").map((c) => [c.id, c]));
     const music = (witness.audioClips ?? []).filter((c) => c.lane === "music");
     expect(music.length).toBeGreaterThan(0);
     for (const c of music) {
-      const was = before.get(keyOf(c));
-      expect(was, `music ${keyOf(c)} exists in Original Uncut`).toBeDefined();
+      const was = before.get(c.id);
+      expect(was, `music ${c.id} exists in Original Uncut`).toBeDefined();
+      expect(c.src).toBe(was!.src);
       expect(c.volumeKeys ?? []).toEqual(was!.volumeKeys ?? []);
       expect(c.gain).toBeCloseTo(was!.gain * 0.9, 6);
       expect(Number(c.fadeInMs)).toBeGreaterThanOrEqual(1200);
@@ -191,6 +201,69 @@ describe("The Witness Cut", () => {
   it("leads some lines with a 200 ms J-cut only where there is clear air", () => {
     const { report } = applyWitnessTreatment(uncut, voiceMap, musicMap);
     expect(report.jCuts).toBeGreaterThan(20);
+  });
+
+  describe("one shot per picture", () => {
+    const beats = buildTimelineClips(buildKeyframes(witnessBeats.story), voiceMap);
+    const shots = buildTimelineClips(buildKeyframes(witness.story), voiceMap);
+
+    it("merges consecutive beats of a scene that show the same picture into one frame", () => {
+      const { report } = applyWitnessTreatment(uncut, voiceMap, musicMap);
+      expect(report.mergedShots).toBeGreaterThan(200);
+      expect(report.absorbedBeats).toBeGreaterThan(500);
+      expect(shots.clips.length).toBe(beats.clips.length - report.absorbedBeats);
+      for (let i = 1; i < shots.clips.length; i += 1) {
+        const a = shots.clips[i - 1].keyframe;
+        const b = shots.clips[i].keyframe;
+        if (a.sceneId !== b.sceneId || a.beat.gap || b.beat.gap || a.beat.titleCard || b.beat.titleCard) continue;
+        if (String(a.picture ?? "").startsWith("video:")) continue;
+        expect(b.picture === a.picture && Boolean(a.picture), `${a.id} -> ${b.id} show the same picture`).toBe(false);
+      }
+      expect(runningSceneIds(witness.story)).toEqual(runningSceneIds(witnessBeats.story));
+    });
+
+    it("moves nothing in time: same length, same picture at every frame", () => {
+      expect(shots.totalFrames).toBe(beats.totalFrames);
+      for (let f = 0; f < beats.totalFrames; f += 1) {
+        if (clipAtFrame(shots.clips, f)!.keyframe.picture !== clipAtFrame(beats.clips, f)!.keyframe.picture)
+          throw new Error(`picture differs at frame ${f}`);
+      }
+    });
+
+    it("keeps every sound at the same millisecond and every caption on the same frames", () => {
+      const before = new Map(resolveAudioClips(witnessBeats.audioClips, beats.clips).map((c) => [c.id, c]));
+      const after = resolveAudioClips(witness.audioClips, shots.clips);
+      expect(after.length).toBe(before.size);
+      for (const c of after) expect(Math.abs(c.startMs - before.get(c.id)!.startMs)).toBeLessThan(0.01);
+      const cue = (c: ReturnType<typeof resolveTimelineCaptions>[number]) =>
+        `${c.globalInFrame}-${c.globalOutFrame}|${c.speaker}|${c.isNarration}|${c.text}`;
+      expect(resolveTimelineCaptions(shots.clips).map(cue)).toEqual(resolveTimelineCaptions(beats.clips).map(cue));
+    });
+
+    it("runs the camera on as one move: no resets inside a shot, no picture edge shown", () => {
+      let jumps = 0;
+      for (const clip of shots.clips) {
+        if (!clip.keyframe.beat.mergedBeatIds) continue;
+        let prev = evaluate(clip, 0);
+        expect(prev.zoom).toBeGreaterThanOrEqual(minZoomForRotation(prev.rotation) - 1e-3);
+        for (let f = 1; f < clip.durationFrames; f += 1) {
+          const pose = evaluate(clip, f);
+          expect(pose.zoom).toBeGreaterThanOrEqual(minZoomForRotation(pose.rotation) - 1e-3);
+          const step = Math.abs(pose.zoom - prev.zoom) + Math.abs(pose.x - prev.x) / 100 + Math.abs(pose.rotation - prev.rotation) / 50;
+          if (step > 0.02) jumps += 1;
+          prev = pose;
+        }
+      }
+      // The impact settle on a violent beat is the only deliberate jolt.
+      const { report } = applyWitnessTreatment(uncut, voiceMap, musicMap);
+      expect(jumps).toBeLessThanOrEqual(report.impactBeats);
+    });
+
+    it("can be switched off", () => {
+      const { report } = applyWitnessTreatment(uncut, voiceMap, musicMap, { mergeSamePictures: false });
+      expect(report.mergedShots).toBe(0);
+      expect(buildKeyframes(witnessBeats.story).length).toBe(buildKeyframes(uncut.story).length);
+    });
   });
 
   it("leaves Original Uncut itself untouched", () => {

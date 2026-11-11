@@ -179,3 +179,22 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
   (zero voice overlap); the score sits at `90%` with `>= 1,200 ms` fade-ins and `>= 1,800 ms` fade-outs,
   volume keys untouched, and is **never dipped for sound effects** (the engine's own ducking under spoken voice
   is the only ducking). No echo, no fabricated sound: every audio clip is an Uncut clip.
+- **One shot per picture** (11 November 2026): consecutive beats of a scene that show the same picture are merged
+  into one frame on the timeline — the 1,642 beats play as **740 shots** (323 merged shots carrying 902 folded
+  beats). The first beat of a run carries the whole run (`mergedBeatIds` lists the beats folded into it):
+  - **Nothing moves in time.** The shot's length is the sum of its beats, so the running time is unchanged
+    (`154,825` frames) and the picture at every frame is the one it was. Every voice, effect, music and ambience
+    clip anchored to a folded beat is re-anchored to the shot at the same millisecond, and each line's captions
+    sit on the frames it is spoken (with its own speaker), as explicit captions on the shot.
+  - **The camera runs on as one move.** Each beat keeps its own move at its own place in the shot; where a move
+    used to reset at the old cut, it is eased in from the previous end pose, the difference fading to zero over
+    that beat, so every beat still ends where it did and nothing accumulates. The impact settle on a violent beat
+    is kept as the one deliberate jolt. No picture edge is shown at any frame.
+  - **Light**: the shot keeps its first beat's set-up; a confession anywhere in it gives the whole shot the eye
+    light, and depth maps / lights carried by a later beat are kept.
+  - Only beats of the **same scene** are merged (scenes stay whole for the running order); gaps, title cards and
+    moving pictures (`video:`) stay on their own. The scene route (`afterBeatTargetSceneId`, …) moves onto the
+    shot that now ends the scene.
+  - Code: `mergeSamePictureShots` in `src/core/witnessCut.ts` (the last pass);
+    `applyWitnessTreatment(..., { mergeSamePictures: false })` builds the cut one beat per frame, which the tests
+    compare the merged cut against frame by frame.

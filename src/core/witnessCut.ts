@@ -17,24 +17,38 @@
 //    black into the elegiac scenes. Nothing decorative.
 //  - Sound: J-cuts lead the next line by 200 ms where there is clear air; the score sits slightly lower
 //    with longer fades and is never dipped for effects (the engine's own voice ducking is the only ducking).
+//  - One shot per picture: consecutive beats of a scene that show the same picture are merged into one
+//    frame on the timeline. Every line, caption and sound stays at the exact same time; the camera runs on
+//    as one continuous move instead of resetting at each line.
 
 import {
   buildAudioClipsFromFilm,
+  frameToMs,
   resolveAudioClips,
   roundMicros,
   type AudioClip,
 } from "./audioClips";
-import { isNarrationBeat } from "./captions";
+import { effectiveCaptionsForBeat, isNarrationBeat, normalizeCaptions, type BeatCaption } from "./captions";
 import {
   buildKeyframes,
   type AnyRecord,
   type BeatAnimation,
+  type BeatLike,
+  type Key,
   type ProjectState,
   type SceneLike,
   type StoryLike,
 } from "./model";
 import { clipFrames, FPS, sceneProseFrames } from "./timing";
-import { buildTimelineClips, minZoomForRotation } from "../sequence/animate";
+import {
+  ANIM_PROPS,
+  buildTimelineClips,
+  defaultValueForProp,
+  evaluate,
+  minZoomForRotation,
+  type AnimProp,
+  type TimelineClip,
+} from "../sequence/animate";
 
 export type WitnessSetting = "danger" | "night-ext" | "interior" | "daylight";
 
@@ -126,6 +140,15 @@ export interface WitnessReport {
   dissolves: number;
   dips: number;
   jCuts: number;
+  /** Shots made by merging consecutive beats that show the same picture. */
+  mergedShots: number;
+  /** Beats folded into the shot before them (their lines, captions and sounds play inside that shot). */
+  absorbedBeats: number;
+}
+
+export interface WitnessOptions {
+  /** Merge consecutive beats of a scene that show the same picture into one frame (default true). */
+  mergeSamePictures?: boolean;
 }
 
 function newReport(): WitnessReport {
@@ -143,6 +166,8 @@ function newReport(): WitnessReport {
     dissolves: 0,
     dips: 0,
     jCuts: 0,
+    mergedShots: 0,
+    absorbedBeats: 0,
   };
 }
 
@@ -313,7 +338,8 @@ function applyCamera(
   voiceDurations: ReadonlyMap<string, number>,
   looks: Map<string, WitnessSceneLook>,
   report: WitnessReport,
-): void {
+): Set<string> {
+  const jolts = new Set<string>();
   const frames = buildKeyframes(story);
   const { clips } = buildTimelineClips(frames, voiceDurations);
   const durationByBeat = new Map<string, number>();
@@ -342,6 +368,7 @@ function applyCamera(
     if (violent.has(i)) {
       // Impact settle: the frame jolts in and settles — the witness flinched, then steadied.
       anim.zoom = [key(0, 1.05), key(Math.min(6, lastF), 1.005, "ease-out"), key(lastF, 1.005, "linear")];
+      jolts.add(String(beat.id));
       report.impactBeats += 1;
     } else if (violent.has(i + 1) && sameScene(i + 1) && !voiced) {
       // Dread: a locked tripod in front of what is about to happen.
@@ -372,6 +399,7 @@ function applyCamera(
     }
     beat.animation = withCamera(beat.animation, anim);
   }
+  return jolts;
 }
 
 /** Pass 5: sound. J-cuts where there is clear air; the score sits lower with longer fades and is never dipped. */
@@ -429,11 +457,222 @@ function polishAudio(
   return out;
 }
 
+/** Fields that route the film on from a scene's last beat: they move onto the shot that now ends the scene. */
+const ROUTE_KEYS = ["afterBeatMode", "afterBeatTargetSceneId", "afterBeatSceneId", "afterBeatDelaySeconds", "nextSceneId"];
+const TRANSFORM_PROPS: ReadonlySet<AnimProp> = new Set<AnimProp>(["zoom", "x", "y", "rotation"]);
+
+/** Can this beat be folded into (or start) a merged shot? Gaps, title cards and moving pictures stay on their own. */
+function mergeable(clip: TimelineClip): boolean {
+  const kf = clip.keyframe;
+  const pic = String(kf.picture ?? "");
+  return Boolean(pic) && !kf.beat.gap && !kf.beat.titleCard && !pic.startsWith("video:") && clip.durationFrames > 0;
+}
+
+const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
+
+/**
+ * One continuous camera move over a merged shot. Each beat keeps its own move at its own place in the shot
+ * (the pose it actually showed at its first and last frame, plus its keys in between); where a beat's move
+ * started somewhere other than where the previous one ended (the camera "reset" at the old cut), the move is
+ * eased in from the previous end pose so the shot never jumps. The difference fades to zero over that beat,
+ * so every beat still ends exactly where it used to and nothing accumulates. The impact settle on a violent
+ * beat is the one deliberate jolt and is kept as authored.
+ */
+function mergeShotAnimation(
+  segments: ReadonlyArray<{ clip: TimelineClip; offset: number; jolt: boolean }>,
+): BeatAnimation | undefined {
+  const out: BeatAnimation = {};
+  for (const prop of ANIM_PROPS) {
+    const poses = segments.map(({ clip }) => {
+      const last = Math.max(0, clip.durationFrames - 1);
+      return { start: evaluate(clip, 0)[prop], end: evaluate(clip, last)[prop] };
+    });
+    const anyKeys = segments.some(({ clip }) => Boolean(clip.keyframe.beat.animation?.[prop]?.length));
+    const fallback = defaultValueForProp(prop);
+    const moves =
+      prop !== "depthAmount" &&
+      poses.some((p) => Math.abs(p.start - fallback) > 1e-6 || Math.abs(p.end - fallback) > 1e-6);
+    if (!anyKeys && !moves) continue;
+
+    const keys: Key[] = [];
+    let prevEnd: number | undefined;
+    segments.forEach(({ clip, offset, jolt }, k) => {
+      const dur = Math.max(1, clip.durationFrames);
+      const last = dur - 1;
+      const own = [...(clip.keyframe.beat.animation?.[prop] ?? [])].sort((a, b) => a.frame - b.frame);
+      const { start, end } = poses[k];
+      // Ease in from wherever the previous beat left the camera (transform channels only, never on the jolt).
+      const delta =
+        prevEnd !== undefined && TRANSFORM_PROPS.has(prop) && !jolt && last > 0 && Math.abs(prevEnd - start) > 1e-6
+          ? prevEnd - start
+          : 0;
+      const shifted = (local: number, value: number) => round6(value + delta * (1 - local / Math.max(1, last)));
+      const firstOwn = own[0];
+      const startEasing =
+        firstOwn && firstOwn.frame <= 0
+          ? { easing: firstOwn.easing, ...(firstOwn.bezier ? { bezier: firstOwn.bezier } : {}) }
+          : firstOwn && clip.carriedStartPose
+            ? { easing: firstOwn.easing === "hold" ? ("hold" as const) : ("ease-in-out" as const) }
+            : { easing: "linear" as const };
+      keys.push({ frame: offset, value: shifted(0, start), ...startEasing });
+      for (const key of own) {
+        if (key.frame <= 0 || key.frame >= last) continue;
+        keys.push({ ...key, frame: offset + key.frame, value: shifted(key.frame, key.value) });
+      }
+      if (last > 0) keys.push({ frame: offset + last, value: round6(end), easing: "linear" });
+      prevEnd = end;
+    });
+
+    // Drop the middle of flat runs so the lane shows the moves, not a key on every old cut.
+    const tidy = keys.filter((key, i) => {
+      if (i === 0 || i === keys.length - 1) return true;
+      const a = keys[i - 1];
+      const b = keys[i + 1];
+      return !(a.value === key.value && key.value === b.value && a.easing !== "hold");
+    });
+    if (!anyKeys && tidy.every((key) => key.value === fallback)) continue;
+    out[prop] = tidy;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * Pass 6: one shot per picture. Consecutive beats of a scene that show the same picture become one frame on
+ * the timeline: the first beat of the run carries the whole run. Its length is the sum of theirs, the later
+ * lines' captions are placed at the frames they were spoken, every sound clip anchored to a folded beat is
+ * re-anchored to the shot at the same millisecond, and the camera runs on as one move. Nothing moves in time:
+ * the picture, the words and the sound at every frame of the film are what they were before the merge.
+ */
+function mergeSamePictureShots(
+  story: StoryLike,
+  audioClips: AudioClip[],
+  voiceDurations: ReadonlyMap<string, number>,
+  jolts: ReadonlySet<string>,
+  report: WitnessReport,
+): AudioClip[] {
+  const frames = buildKeyframes(story);
+  const { clips } = buildTimelineClips(frames, voiceDurations);
+
+  // Runs of the same picture inside one scene.
+  const groups: TimelineClip[][] = [];
+  for (const clip of clips) {
+    const run = groups[groups.length - 1];
+    const prev = run?.[run.length - 1];
+    if (
+      prev &&
+      mergeable(prev) &&
+      mergeable(clip) &&
+      prev.keyframe.sceneId === clip.keyframe.sceneId &&
+      prev.keyframe.picture === clip.keyframe.picture
+    ) {
+      run.push(clip);
+    } else {
+      groups.push([clip]);
+    }
+  }
+
+  // Where each old anchor now lives: the beat that carries it and how many frames into that beat it starts.
+  const homeByOldId = new Map<string, { beat: BeatLike; offsetFrames: number }>();
+  const absorbed = new Set<BeatLike>();
+
+  for (const group of groups) {
+    const primaryClip = group[0];
+    const primary = primaryClip.keyframe.beat;
+    if (group.length === 1) {
+      homeByOldId.set(primaryClip.keyframe.id, { beat: primary, offsetFrames: 0 });
+      continue;
+    }
+    // Captions are read while each beat still has its own clip window (set by buildTimelineClips above).
+    const captions: BeatCaption[] = [];
+    const segments: Array<{ clip: TimelineClip; offset: number; jolt: boolean }> = [];
+    let offset = 0;
+    for (const clip of group) {
+      const kf = clip.keyframe;
+      homeByOldId.set(kf.id, { beat: primary, offsetFrames: offset });
+      for (const cap of effectiveCaptionsForBeat(kf.beat, clip.durationFrames)) {
+        captions.push({
+          ...cap,
+          inFrame: offset + cap.inFrame,
+          outFrame: offset + cap.outFrame,
+          speaker: cap.speaker ?? kf.speaker,
+          isNarration: cap.isNarration ?? isNarrationBeat(kf.beat),
+        });
+      }
+      segments.push({ clip, offset, jolt: jolts.has(String(kf.beat.id ?? "")) });
+      offset += clip.durationFrames;
+    }
+
+    const others = group.slice(1).map((c) => c.keyframe.beat);
+    const tail = others[others.length - 1];
+    const animation = mergeShotAnimation(segments);
+
+    // Light: the shot keeps its first beat's set-up; a confession anywhere in it earns the eye light for the
+    // whole shot, and depth / lights carried by a later beat are not lost.
+    const cinematic: AnyRecord = { ...(primary.cinematic ?? {}) };
+    const confession = others.find((b) => b.cinematic?.hitchcockLighting === "eye-light");
+    if (confession && cinematic.hitchcockLighting !== "eye-light") {
+      cinematic.hitchcockLighting = "eye-light";
+      cinematic.dofOnTalk = true;
+      cinematic.vignetteStrength = Math.max(
+        Number(cinematic.vignetteStrength) || 0,
+        Number(confession.cinematic?.vignetteStrength) || 0,
+      );
+    }
+    for (const b of others) {
+      const c = b.cinematic;
+      if (!c) continue;
+      if (c.depthMap && !cinematic.depthMap) {
+        cinematic.depthMap = c.depthMap;
+        if (c.depthPlate !== undefined) cinematic.depthPlate = c.depthPlate;
+        if (c.depthCutouts !== undefined) cinematic.depthCutouts = c.depthCutouts;
+      }
+      if (c.lights && !cinematic.lights) cinematic.lights = c.lights;
+    }
+
+    primary.durationFrames = offset;
+    primary.captions = normalizeCaptions(captions, offset);
+    primary.cinematic = cinematic;
+    if (animation) primary.animation = animation;
+    else delete primary.animation;
+    primary.mergedBeatIds = others.map((b, i) => String(b.id ?? group[i + 1].keyframe.id));
+    for (const routeKey of ROUTE_KEYS) {
+      if (tail[routeKey] !== undefined) primary[routeKey] = tail[routeKey];
+      else delete primary[routeKey];
+    }
+    if (tail.background && tail.backgroundHold === false) {
+      primary.background = String(primaryClip.keyframe.picture);
+      primary.backgroundHold = false;
+    }
+    others.forEach((b) => absorbed.add(b));
+    report.mergedShots += 1;
+    report.absorbedBeats += others.length;
+  }
+
+  if (!absorbed.size) return audioClips;
+  for (const scene of story.scenes) {
+    if (scene.dialogueBeats?.some((b) => absorbed.has(b))) {
+      scene.dialogueBeats = scene.dialogueBeats.filter((b) => !absorbed.has(b));
+    }
+  }
+
+  // Re-anchor every sound to the shot that now carries its beat, at the same millisecond.
+  const newIdByBeat = new Map<BeatLike, string>();
+  for (const kf of buildKeyframes(story)) newIdByBeat.set(kf.beat, kf.id);
+  return audioClips.map((clip) => {
+    const home = homeByOldId.get(clip.anchorId);
+    const newId = home ? newIdByBeat.get(home.beat) : undefined;
+    if (!home || !newId) return clip;
+    if (newId === clip.anchorId && home.offsetFrames === 0) return clip;
+    return { ...clip, anchorId: newId, offsetMs: roundMicros(clip.offsetMs + frameToMs(home.offsetFrames)) };
+  });
+}
+
 /** Builds the cut from an Original Uncut project (the true source). Pure: the input project is not changed. */
 export function applyWitnessTreatment(
   uncut: ProjectState,
   voiceDurations: ReadonlyMap<string, number>,
   musicDurations?: ReadonlyMap<string, number>,
+  options: WitnessOptions = {},
 ): { project: ProjectState; report: WitnessReport } {
   const report = newReport();
   const story: StoryLike = JSON.parse(JSON.stringify(uncut.story));
@@ -441,8 +680,11 @@ export function applyWitnessTreatment(
   const looks = applyLook(story, report);
   applyTransitions(story, looks, report);
   applyPacing(story, voiceDurations, report);
-  applyCamera(story, voiceDurations, looks, report);
-  const audioClips = polishAudio(story, voiceDurations, musicDurations, report);
+  const jolts = applyCamera(story, voiceDurations, looks, report);
+  let audioClips = polishAudio(story, voiceDurations, musicDurations, report);
+  if (options.mergeSamePictures !== false) {
+    audioClips = mergeSamePictureShots(story, audioClips, voiceDurations, jolts, report);
+  }
   return {
     project: { ...uncut, story, audioClips, updatedAt: Date.now() },
     report,
