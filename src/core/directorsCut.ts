@@ -1,6 +1,7 @@
 import { addRecreatedUncutCoverage } from "./recreatedUncut";
 import { applyJackNoirTreatment } from "./jackNoirCut";
 import { applyJackNarration } from "./jackNarration";
+import { applyWitnessTreatment } from "./witnessCut";
 import {
   buildAudioClipsFromFilm,
   frameToMs,
@@ -46,8 +47,9 @@ export type DirectorsCutId =
   | "noir-1950s"
   | "jack-noir"
   | "jack-narrated"
+  | "witness"
   | "uncut";
-type EditorialCutVariant = Exclude<DirectorsCutId, "uncut" | "jack-noir" | "jack-narrated">;
+type EditorialCutVariant = Exclude<DirectorsCutId, "uncut" | "jack-noir" | "jack-narrated" | "witness">;
 
 export interface DirectorsCutOptionMeta {
   id: DirectorsCutId;
@@ -98,6 +100,13 @@ export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
     shortLabel: "Jack’s Narrated",
     description:
       "Jack’s Noir Cut with Jack’s own voice-over (JACK (V.O.), shown as captions) in place of the screenplay’s description, scene by scene: so far scene 10, Jack at his desk. Existing pictures and sounds, plus Jack’s recorded voice-over.",
+  },
+  {
+    id: "witness",
+    label: "The Witness Cut",
+    shortLabel: "Witness Cut",
+    description:
+      "Original Uncut directed as a grown-up procedural nocturne — fast through procedure, held through consequence: reaction holds on heavy lines, a dread hold and aftermath hold around violence, creeping confession push-ins, motivated practical light, and dissolves only where time passes. Existing pictures and sounds only.",
   },
   {
     id: "uncut",
@@ -3855,7 +3864,12 @@ export function buildDirectorsCutById(
   )
     ? cutId
     : "neo-noir";
-  if (resolvedCutId === "uncut" || resolvedCutId === "jack-noir" || resolvedCutId === "jack-narrated") {
+  if (
+    resolvedCutId === "uncut" ||
+    resolvedCutId === "jack-noir" ||
+    resolvedCutId === "jack-narrated" ||
+    resolvedCutId === "witness"
+  ) {
     const uncutSnapshot: ProjectSnapshot = {
       id: "snapshot-uncut-original-import",
       name: "Uncut Original Import (1,584 raw beats)",
@@ -3893,6 +3907,13 @@ export function buildDirectorsCutById(
       const { project } = applyJackNoirTreatment(builtUncut, voiceDurations, musicDurations);
       const jack: ProjectState = { ...project, directorsCutId: resolvedCutId };
       return options ? applyCutOptionsToProject(jack, options) : jack;
+    }
+    if (resolvedCutId === "witness") {
+      // Same contract as Jack's cuts: Original Uncut is the true source, the treatment adds look, timing,
+      // camera, light and sound from existing files only.
+      const { project } = applyWitnessTreatment(builtUncut, voiceDurations, musicDurations);
+      const witness: ProjectState = { ...project, directorsCutId: resolvedCutId };
+      return options ? applyCutOptionsToProject(witness, options) : witness;
     }
     return options ? applyCutOptionsToProject(builtUncut, options) : builtUncut;
   }
