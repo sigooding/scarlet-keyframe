@@ -1,5 +1,69 @@
 # Changes in this branch
 
+## The Witness Cut: no narration (11 November 2026)
+
+The Witness Cut no longer shows the screenplay's description. Original Uncut shows the text of 1,031 silent
+narrator beats as italic captions and holds each picture for as long as the caption takes to read; in the
+Witness Cut the picture now has to tell it. The cut runs 1 h 20 min 04 s (`115,291` frames) instead of
+1 h 47 min 31 s, in 754 shots. Every beat, picture change and sound of Original Uncut is still there, in order.
+
+- **Captions**: `captions: []` on every narrator beat without a voice (1,052 beats; 21 already had none). Spoken lines and dialogue that was never recorded keep theirs.
+- **Cues** (`WITNESS_CUES`, 42 entries; audit in `reviews/witness-cut-cues-20261111/`): where a narration line told
+  the audience something it needs, the picture tells it.
+  - 24 are legible in the film's own picture: the camera pushes to the writing or the clock and the beat is given
+    the time to read it.
+  - 3 beats show a picture from elsewhere in the film: two 1.6 s flashes of what Jack is counting (`nw_b863`,
+    `nw_b864`), and the avenue before dawn on `nw_b1290`, which the film plays on a black frame.
+  - 6 beats show one of **three new pictures**, each voted by the director and used by this cut only:
+    `s4/623-the-sign-behind-them.jpg` (the 金子 sign in the family photograph: `nw_b81`, `nw_b260`, flash on
+    `nw_b357`), `s11/624-the-same-sign.jpg` (the same sign behind Jack and Daniel Voss: `nw_b285–287`, flash on
+    `nw_b360`), `s27a/625-the-journalists-card.jpg` (TOTO SHIMBUN / コンドウ: `nw_b712`). The film's old
+    photographs did not show the sign the sketchbook and the shop do, and it never showed the card Okada puts on
+    the counter.
+  - 1 beat shows a fourth new picture that was not generated: `s18/626-the-letter-under-the-lamp.jpg` on
+    `nw_b483` is the film's prop sheet of Sakai's letter (`props/sakai-letter.jpg`) graded to the desk lamp,
+    held 6 s. In the film's own picture of the letter (`s18/283`) not a word can be read; narration read it out.
+    283 follows as the look at the name on the envelope.
+  - Both media indexes list the four pictures; the film JSON is unchanged.
+  - 3 jumps in time get a title over the picture (THREE DAYS LATER, FIVE DAYS LATER, WEEKS LATER); 5 "later" beats
+    dissolve in.
+- **Timing** (`WITNESS_SILENCE`): a silent picture is held for what is in it: `2.3 s` for a new picture, `3.4 s`
+  for the first of a scene, more for what the screenplay saw there, less when the picture runs on under a line;
+  a silent beat between two lines is a breath of `0.7–1.6 s`. Writing to be read and short sound effects are
+  never cut off. Pictures nobody speaks over: median `3.6 s` (was `5.3 s`), nine in ten at `6 s` or under (was
+  `15.5 s`). The spoken-line rules (tight tails, reaction holds, the holds around violence) are unchanged.
+- **On the beat**: in scenes 1 and 2 the 31 cuts to a new picture in the steady part of *Glimmering Haze* land
+  on a beat (`scene.musicSync`, the director's note of 21 October, which the editor itself does not act on).
+- **Sequences cut to music keep the film's lengths.** The cut used to tighten 19 lines inside *Hounds*, *Bad Guy*
+  and *Coins Measure Time*, which moved every later cut of those sequences `0.3–5 s` off the song. It no longer
+  re-times anything there.
+- **Camera** (`WITNESS_CAMERA`): one continuous move per shot (559 shots), sized to the shot: toward the cue, a
+  creep-in on confession, a drift on observation, a pull-back on a scene's last silent picture, otherwise the
+  film's kind of move at this cut's speed. The film's moves were timed for the narration and did not finish in
+  the shorter shots. Violence keeps its lock, its impact settle and its step back.
+- **Transitions**: the film's `0.9 s` crossfade into every narrated picture (481 beats) is a hard cut outside the
+  sequences cut to music. Dissolves where time passes and dips to black into elegy are as before.
+- **Watched on screen** (production build in the bundled Chromium; every cue behind the 2.35:1 bars the cut is
+  screened in, the flashes played in real time; details in the review folder). Two things the measurements
+  could not show were fixed: the bar covered 金 on the board of `623`, so the installed file sets the voted
+  picture lower in a larger frame (`2144×1206`, the people and the board untouched); and the letter could not be
+  read (`626`, above). Two things stay under a bar in 2.35:1 and show in the 16:9 and 1.37:1 gates: the "1:07"
+  in the corner of Mara's drawing (`nw_b609`) and the 12 on the clock at 11:52 (`nw_b1174`; the hands read).
+- `src/core/witness-cut.test.ts` (25 tests): no narration caption in the beat-per-frame or the merged cut and
+  every spoken caption unchanged; every narrator beat keeps its picture (or shows a listed cue picture) and its
+  sound effect; cue pictures are indexed 16:9 files and cue points are clear of the 2.35:1 bars and the 1.37:1
+  pillars; reading times, flashes and titles; silent-shot lengths; cuts on the beat; music sequences
+  frame-identical to the film; camera speed, cants and picture edges.
+- `DIRECTORS_CUTS.md` §8 is rewritten, and the cut's description in the cut menu.
+
+To see it in a project that already has the Witness Cut saved, use `Reset The Witness Cut to factory`
+(`DIRECTORS_CUT_VERSION` was not raised: that would rebuild the open cut of every saved project).
+Thumbnails are derived: `npm run thumbs` makes the four new ones.
+
+Validation: `npm test` passed (780 passed, 24 skipped); `npx tsc --noEmit` is clean; `npm run build:local` builds.
+Not checked: the film shot by shot on screen beyond the cues (its timing and camera rules are pinned by the
+tests), the sound (nothing was listened to) and the MP4 export.
+
 ## The Witness Cut: one shot per picture
 
 Consecutive beats of a scene that show the same picture are now merged into one frame on the timeline, so the
