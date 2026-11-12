@@ -148,48 +148,122 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
 - **Editorial Vision**: a grown-up procedural nocturne — Lumet's procedure, Mann's city at night. The camera is a
   witness: it never anticipates, it reacts late, and it stays on consequence. Built non-destructively from
   `project.originalStory` the same way as Jack's cuts (Original Uncut in full, all beats in the original running
-  order), **no new pictures and no new sounds** (`src/core/witness-cut.test.ts` checks this). Code:
-  `src/core/witnessCut.ts`.
-- **Timing — fast through procedure, slow through consequence**:
-  - Ordinary spoken tails are cut from the Uncut's `0.54 s` to `0.33 s`; a scene's last line keeps room for its
-    transition. The last words of a line are never clipped (always `>= 5` frames of air after the voice ends).
-  - **Reaction holds**: lines that carry weight (grief, a confession, a lie owned up to) hold `~1.15 s` before the
-    cut — the witness stays on the face while the line lands. A heavy *last* line of a scene stays half a second
-    longer still.
-  - **Hold-then-hit violence**: the silent beat before a violence effect is extended `+0.66 s` and locked off
-    (dread); the violent beat itself cuts in hard; the silent beat after is held `+1.0 s` (aftermath). The cut is
-    still shorter than the Uncut overall despite the holds.
-- **Camera — eye-level and patient** (keyframes; only treated beats get their move replaced, every other beat
-  keeps the film's own):
-  - Creeping push-ins (`1.00 -> 1.06`) on confession and grief lines; a slow lateral drift at a slight standoff
-    (`1.05x`, `x: -1.4 -> 1.4`) on silent observation beats; a locked tripod in front of violence; an impact
-    settle (`1.05 -> 1.005` in six frames) on the violent beat; a slow pull-back (`1.06 -> 1.00`) on the
-    aftermath; and a handful of sub-`2°` cants on spoken threat lines (never in daylight), zoom raised past the frame edge
-    (`minZoomForRotation`). No whips, no speed ramps, no zoom machinery.
+  order). **No narration and no new sounds**; a picture the film does not show at that point is used only where a
+  cue needs it (`src/core/witness-cut.test.ts` checks all three). Code: `src/core/witnessCut.ts`.
+- **No narration** (11 November 2026): the screenplay's description — the narrator beats with no recorded voice,
+  which Original Uncut shows as italic captions — is not shown. `1,031` captions are gone
+  (`isWitnessNarration(beat)`: the narrator, with no voice). The beats themselves stay, with `captions: []`: they
+  carry the picture change, the look and the sound effect, and their text is still their label in the editor.
+  Spoken lines keep their captions, and so does dialogue that was never recorded (Kurose and Jack on the avenue,
+  Mara's message).
+- **Cues — the picture tells what the line told**: `WITNESS_CUES` lists the `42` narration lines that told the
+  audience something it needs (writing in the scene, a clock, a name, what a man is remembering, a jump in time)
+  and how the picture tells it now. The whole audit, with the lines that were knowingly left, is in
+  `reviews/witness-cut-cues-20261111/`.
+  - **In the film's own picture** (`24` cues): the shot's camera move pushes to where the cue is (`focus`) and
+    arrives before the shot ends, and the beat is given the time to read it (`read`, `2.2–4.6 s`): VERA on the
+    phone, the scrap, the tag `114`, MARA VOSS on the monitor, the clipping, KUROSE DEVELOPMENT, VERA VOSS on the
+    envelope, Sakai's letter smoothed flat, EXCUSE ME, the receipts, the locker-room sign, SHIOHAMA, DANIEL
+    VOSS, the clocks at 10:00, 8:52 and 11:52.
+  - **A picture from elsewhere in the film, cut in** (`3` beats): what Jack is counting when "only two people
+    knew" is two flashes of `1.6 s` (`s23/352-the-address` on `nw_b863`, `s36/208-come-back-safe-anyway` on
+    `nw_b864`), and the avenue before dawn (`s77a/1290-predawn-avenue`) is on `nw_b1290`, which the film plays on
+    a black frame.
+  - **Four new pictures** (`7` beats), used by this cut only. Three were voted by the director:
+    `s4/623-the-sign-behind-them` (the family photograph, closer: the 金子 sign behind them) on `nw_b81`, on
+    `nw_b260` when Jack looks at the print, and as a flash on `nw_b357` when he sees the same sign in the
+    sketchbook; `s11/624-the-same-sign` (Jack and Daniel Voss under that sign) in place of
+    `s11/167-two-men-laughing` on `nw_b285–287`, and as a flash on `nw_b360` when Vera asks why he wants the book
+    and he does not answer; `s27a/625-the-journalists-card` (TOTO SHIMBUN / コンドウ) on `nw_b712`. An `insert`
+    is cut in for its beat only: the next beat shows what the film shows there. The fourth was not generated:
+    `s18/626-the-letter-under-the-lamp` on `nw_b483` is the film's prop sheet of Sakai's letter
+    (`props/sakai-letter`) graded to the desk lamp, held `6 s`, because not a word can be read in the film's own
+    picture of the letter (`s18/283`, which follows as the look at the name on the envelope).
+  - **Framed for the gate**: the cut is screened behind the 2.35:1 bars unless the screening options say
+    otherwise, and the bars cover `12 %` of the height at the top and at the bottom. Every cue point is clear of
+    them and of the 1.37:1 pillars (test). The voted `623` had the board against the top edge, under the bar: the
+    installed file sets the same picture lower in a larger frame (`2144×1206`). Two things stay under a bar in
+    2.35:1 and show in the other gates: the "1:07" in the corner of Mara's drawing (`nw_b609`) and the 12 on
+    the clock at 11:52 (`nw_b1174`, the hands read). All of this is from watching the cut in the app: see
+    "Watched on screen" in the review folder.
+  - **Time**: a title over the picture, lower left, `4 s`, on the three jumps no picture could tell (THREE DAYS
+    LATER `nw_b71`, FIVE DAYS LATER `nw_b1610`, WEEKS LATER `nw_b1661`); a `dissolve` into the beats the
+    screenplay marked "later" (`nw_b390`, `nw_b430`, `nw_b787`, `nw_b1076`, `nw_b1671`).
+- **Timing — a silent picture is held for what is in it, not for the time its caption took to read**
+  (`WITNESS_SILENCE`). Consecutive narrator beats on one picture are one stretch of silence; its length is shared
+  between its beats in the film's proportions, so a sound effect still falls at the same point of the shot.
+  - **A new picture**: `2.3 s`, or `3.4 s` for the first picture of a scene; `+0.045 s` for each word the
+    screenplay spent on it (up to `+1.6 s`) and `+0.35 s` for each further beat; at most `5 s` (`6 s` for a scene's
+    first). When the picture runs on under the next line it gets `62 %` of that. Scenes with violence in them run
+    at `×0.85`, elegiac scenes at `×1.2`, scenes with no dialogue at all at `×1.15`. `+0.4 s` on a death or tears,
+    `+1.0 s` where the screenplay looks "for a long time", `+0.5 s` on a scene's last silent picture.
+  - **A silent beat between two lines** on a picture that is already up: `0.7 s` (plus up to `0.4 s` for what
+    happens in it); `1.0 s` where the screenplay marks it ("A beat.", "He doesn't answer.", "The honest answer is
+    in the pause."); `1.6 s` for "a long pause"; at most `2.6 s` in a row; `+0.4 s` after a line that carries
+    weight.
+  - **Never cut off**: writing that has to be read, a short sound effect (its length `+0.2 s`, up to `2 s`; a
+    longer one runs on over the cut after `1.5 s`), and nothing under `10` frames.
+  - **Result**: the pictures nobody speaks over (316 shots) run `20.8` min instead of `36.0`, median `3.6 s`
+    (`5.3 s` in Original Uncut), nine in ten at `6 s` or under (`15.5 s`); the longest this cut times is `7.8 s`
+    (Original Uncut holds one picture for `28.4 s` of captions).
+  - **Spoken lines** as before: ordinary tails cut from the Uncut's `0.54 s` to `0.33 s`; **reaction holds** of
+    `~1.15 s` on lines that carry weight (grief, a confession, a lie owned up to), half a second more on a heavy
+    last line of a scene; the last words of a line are never clipped (`>= 5` frames of air). **Hold-then-hit
+    violence**: the silent beat before a violence effect is `+0.66 s` and locked off, the violent beat cuts in
+    hard, the silent beat after is `+1.0 s`.
+  - **On the beat**: in scenes 1 and 2 (`scene.musicSync`, the director's note of 21 October) every cut to a new
+    picture in the steady part of *Glimmering Haze* lands on a beat (`31` cuts, within half a frame), by giving or
+    taking time on the silent shot before it; a line is only ever given air.
+  - **Sequences cut to music keep the film's lengths** (the songs, the raid on the inn, and a scene that plays
+    inside one): no tail is tightened and no hold added there, so every cut stays where the film put it on the
+    song. (Before this, 19 tightened lines moved the later cuts of *Hounds*, *Bad Guy* and *Coins Measure Time* by
+    `0.3–5 s`.)
+  - **Running time**: `115,291` frames, 1 h 20 min 04 s (Original Uncut: `157,044`, 1 h 49 min 03 s).
+- **Camera — eye-level and patient, one move per shot** (`WITNESS_CAMERA`). A shot is a run of beats on one
+  picture; it gets a single continuous move sized to its length, shared by its beats, so nothing resets where a
+  line begins (the film's moves were timed for narration and would not finish in a shorter shot):
+  - **Toward a cue** (`31` shots): zoom about the cue at `0.022`/s up to `1.12`, arriving at `72 %` of the shot.
+  - **Creep-in** on confession and grief (`45`): `0.016`/s up to `1.12`. **Cant** on a spoken threat (`3`, never
+    in daylight): under `2°`, zoom raised past the frame edge (`minZoomForRotation`).
+  - **Drift** on silent observation and on pictures the film gave a lateral move (`149`): at a `1.06×` standoff,
+    `0.55 %` of the frame a second, up to `3.6 %`. **Pull-back** on a scene's last silent picture (`41`).
+  - Otherwise the kind of move the film gave the picture, at this cut's speed: **push** `0.013`/s up to `1.10`
+    (`188`), or a **breath** of `0.006`/s on pictures the film left still (`100`). A shot under `30` frames holds.
+  - Pictures with a depth map are re-projected rather than scaled: far-plane push `0.012`/s within
+    `0.12 × depthAmount`, parallax `0.9`/s within `8 × depthAmount`; on a cue the push is centred on the cue.
+  - **Violence** keeps its three beats: a locked tripod on the silent beat before (the move stops there and goes on
+    after), an impact settle (`1.05 -> 1.005` in six frames) on the violent beat, a slow pull-back
+    (`1.06 -> 1.00`) after.
+  - Sequences cut to music keep the film's camera, except where a line in them earns a move. No whips, no speed
+    ramps: as it plays, no shot zooms faster than `0.06`/s or slides faster than `2.5 %`/s outside the impact, and
+    no picture edge is shown.
 - **Light & grade — motivated practicals only**, from the existing overlays, by a per-scene setting read from
   what the scene already carries (title, heading, ambience, effects): `danger` and interiors in restrained
   `tokyo-noir`, wet night exteriors in `midnight-teal` with street rim light, muted daylight aftermath in
   `nolan-imax`; venetian slats in offices, a key slash in danger, volumetric shafts where the room rings, and the
   eye light reserved for confession close-ups (with `dofOnTalk`). Grain `0.035`, vignettes `0.26–0.5`, no neon
-  circus.
-- **Transitions — nothing decorative**: hard cuts everywhere, except a `dissolve` (`0.85`) into scenes where time
-  demonstrably passes (dawn, mornings, "days later") and a `dip-to-black` (`0.8`) into the elegiac scenes
-  (funeral, memorial, ashes). The film's own transitions are left untouched.
+  circus. The look is laid over what each beat already shows, so a line spoken over a held picture keeps that
+  picture's depth map and focal point.
+- **Transitions — nothing decorative**: hard cuts. The film's crossfade into nearly every narrated picture
+  (`481` beats, `0.9 s`) reads as a page turning under a caption and as a slideshow without one, so it is not
+  used outside the sequences cut to music. What is left: a `dissolve` (`0.85`) where time demonstrably passes
+  (scenes that open at dawn, in the morning or "days later", and the five "later" beats), a `dip-to-black`
+  (`0.8`) into the elegiac scenes, and any other transition the film itself put on a beat.
 - **Sound**: `-200 ms` J-cuts lead about half the eligible lines, only where `>= 600 ms` of clear air precedes
   (zero voice overlap); the score sits at `90%` with `>= 1,200 ms` fade-ins and `>= 1,800 ms` fade-outs,
   volume keys untouched, and is **never dipped for sound effects** (the engine's own ducking under spoken voice
-  is the only ducking). No echo, no fabricated sound: every audio clip is an Uncut clip.
-- **One shot per picture** (11 November 2026): consecutive beats of a scene that show the same picture are merged
-  into one frame on the timeline — the 1,642 beats play as **740 shots** (323 merged shots carrying 902 folded
-  beats). The first beat of a run carries the whole run (`mergedBeatIds` lists the beats folded into it):
+  is the only ducking). No echo, no fabricated sound: every audio clip is an Uncut clip, and every sound effect
+  is still on the beat that carried it.
+- **One shot per picture**: consecutive beats of a scene that show the same picture are merged into one frame on
+  the timeline — the 1,642 beats play as **754 shots** (324 merged shots carrying 888 folded beats). The first
+  beat of a run carries the whole run (`mergedBeatIds` lists the beats folded into it):
   - **Nothing moves in time.** The shot's length is the sum of its beats, so the running time is unchanged
-    (`154,825` frames) and the picture at every frame is the one it was. Every voice, effect, music and ambience
+    (`115,291` frames) and the picture at every frame is the one it was. Every voice, effect, music and ambience
     clip anchored to a folded beat is re-anchored to the shot at the same millisecond, and each line's captions
     sit on the frames it is spoken (with its own speaker), as explicit captions on the shot.
-  - **The camera runs on as one move.** Each beat keeps its own move at its own place in the shot; where a move
-    used to reset at the old cut, it is eased in from the previous end pose, the difference fading to zero over
-    that beat, so every beat still ends where it did and nothing accumulates. The impact settle on a violent beat
-    is kept as the one deliberate jolt. No picture edge is shown at any frame.
+  - **The camera runs on as one move.** The beats of a shot already share one move; where two moves still meet
+    (the impact settle, a sequence cut to music), the second is eased in from the first's end pose. The impact
+    settle on a violent beat is kept as the one deliberate jolt. No picture edge is shown at any frame.
   - **Light**: the shot keeps its first beat's set-up; a confession anywhere in it gives the whole shot the eye
     light, and depth maps / lights carried by a later beat are kept.
   - Only beats of the **same scene** are merged (scenes stay whole for the running order); gaps, title cards and
@@ -198,3 +272,6 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
   - Code: `mergeSamePictureShots` in `src/core/witnessCut.ts` (the last pass);
     `applyWitnessTreatment(..., { mergeSamePictures: false })` builds the cut one beat per frame, which the tests
     compare the merged cut against frame by frame.
+- **A project that already has the Witness Cut saved** keeps the cut it saved (the editor keeps each cut's
+  working state). `Reset The Witness Cut to factory` rebuilds it; a project that has never opened the cut gets the
+  new one when the cut is chosen.

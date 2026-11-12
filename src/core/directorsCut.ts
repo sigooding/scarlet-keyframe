@@ -106,7 +106,7 @@ export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
     label: "The Witness Cut",
     shortLabel: "Witness Cut",
     description:
-      "Original Uncut directed as a grown-up procedural nocturne — fast through procedure, held through consequence: reaction holds on heavy lines, a dread hold and aftermath hold around violence, creeping confession push-ins, motivated practical light, dissolves only where time passes, and one shot per picture (consecutive beats on the same picture merged into one frame). Existing pictures and sounds only.",
+      "Original Uncut directed as a grown-up procedural nocturne, with no narration: the picture tells what the screenplay's description told. Silent pictures are held for what is in them, writing and clocks get a push and the time to be read, each shot has one slow camera move, heavy lines get a reaction hold, violence a dread hold and an aftermath hold, the light is motivated and practical, cuts are hard with dissolves only where time passes, and consecutive beats on the same picture play as one shot. Four pictures were added for cues the film's own pictures could not tell; no new sounds.",
   },
   {
     id: "uncut",
