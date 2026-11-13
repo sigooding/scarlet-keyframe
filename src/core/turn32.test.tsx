@@ -73,8 +73,9 @@ describe("Turn 32–33 — 1940s Noir Director's Cut (original running order, si
     // 706 since the epilogue's news beat became two sequential TV frames
     // (nw_b1678 the evening news, nw_b1679 Ishida's police portrait);
     // 709 since scene 1's refusal became three frames (nw_b25, nw_b1722,
-    // nw_b1723) and the puddle insert nw_b1724 joined the cut.
-    expect(neoClips.length).toBe(709);
+    // nw_b1723) and the puddle insert nw_b1724 joined the cut; 719 since scene 68's storeroom exchange
+    // (nw_b1706, nw_b1713-nw_b1719) and scene 76's message (nw_b1698, nw_b1701) got their own pictures.
+    expect(neoClips.length).toBe(719);
     expect(neoClips.length).toBe(neoDefClips.length);
 
     // 1940s Noir Cut keeps the original running order but splits multi-turn dialogue
