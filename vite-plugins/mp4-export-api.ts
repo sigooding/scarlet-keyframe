@@ -4,6 +4,7 @@ import fs from "node:fs";
 import type { IncomingMessage } from "node:http";
 import path from "node:path";
 import type { Connect, Plugin } from "vite";
+import { clampExportWorkers } from "../scripts/export-workers.mjs";
 
 /**
  * The MP4 export API (`/__api/export/*`).
@@ -107,7 +108,7 @@ export function createMp4ExportMiddleware(options: Mp4ExportOptions): Connect.Ne
         const quality = body.quality === "draft" ? "draft" : "master";
         const capture =
           body.capture === "jpeg" || body.capture === "png" ? body.capture : "auto";
-        const workers = Math.max(1, Math.min(6, Math.round(Number(body.workers) || 1)));
+        const workers = clampExportWorkers(body.workers);
         const gpu = body.gpu !== false;
         const encoder =
           typeof body.encoder === "string" && body.encoder.trim()

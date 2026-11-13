@@ -4,7 +4,7 @@ import { ExportModal } from "../components/ExportModal";
 import { buildKeyframes, createProjectState } from "./model";
 import filmData from "../data/nobodys-witness-film.json";
 
-describe("ExportModal GPU acceleration & up to 6 workers", () => {
+describe("ExportModal GPU acceleration & up to 10 workers", () => {
   const project = createProjectState({
     story: structuredClone(filmData) as any,
     sourceName: "nobodys-witness-film.json",
@@ -63,8 +63,9 @@ describe("ExportModal GPU acceleration & up to 6 workers", () => {
     expect(html).toContain(">4 workers<");
     expect(html).toContain(">5 workers<");
     expect(html).toContain(">6 workers<");
-    expect(html).not.toContain(">7 workers<");
-    expect(html).not.toContain(">8 workers<");
+    expect(html).toContain(">7 workers<");
+    expect(html).toContain(">10 workers<");
+    expect(html).not.toContain(">11 workers<");
     expect(html).toContain('data-testid="export-opt-gpu"');
     expect(html).toContain("--workers 6");
     expect(html).toContain("--gpu");

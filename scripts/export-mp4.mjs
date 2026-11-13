@@ -50,7 +50,7 @@ Options:
   --draft                 Shorthand for --quality draft (1280x720 fast review render)
   --capture <auto|png|jpeg> Frame capture format (default: auto = png for master, jpeg for draft)
   --capture-quality <1..100> JPEG capture quality when --capture jpeg (default: 97)
-  --workers <1..6>        Parallel headless Chromium + ffmpeg segment workers (default: 1)
+  --workers <1..10>       Parallel headless Chromium + ffmpeg segment workers (default: 1)
   --gpu                   Enable GPU WebGL/compositor rendering + hardware H.264 encoding (default: on)
   --no-gpu                Force CPU SwiftShader rendering and libx264 software encoding
   --encoder <name>        H.264 encoder: auto, nvenc, videotoolbox, amf, qsv, vaapi, libx264 (default: auto)
@@ -753,7 +753,7 @@ async function main() {
     const tempVideoPath = path.join(tmpDir, "picture.mp4");
     const tempWavPath = path.join(tmpDir, "sound.wav");
 
-    // 1. Partition [fromFrame..toFrame] across W workers (1..6, exact sum == expectedFrames)
+    // 1. Partition [fromFrame..toFrame] across W workers (1..10, exact sum == expectedFrames)
     const workerCount = Math.max(
       1,
       Math.min(clampExportWorkers(opts.workers), Math.ceil(expectedFrames / 2)),
