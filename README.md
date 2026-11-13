@@ -471,7 +471,7 @@ the preview server provide. When `npm run serve` is running, the CLI renders fro
 
 GPU acceleration is enabled by default (`--gpu`, or disable with `--no-gpu`): Chromium renders WebGL depth parallax,
 2D canvas overlays, and compositing on the hardware GPU, and FFmpeg automatically probes hardware H.264 encoders
-(`h264_nvenc`, `h264_videotoolbox`, `h264_amf`, `h264_qsv`, `h264_vaapi`) across up to 6 parallel segment workers
+(`h264_nvenc`, `h264_videotoolbox`, `h264_amf`, `h264_qsv`, `h264_vaapi`) across up to 10 parallel segment workers
 before falling back to `libx264` when no hardware encoder is available. Install a system `ffmpeg` (for example via
 `winget`, Homebrew, or `apt`) if you want hardware H.264 encoding instead of the minimal bundled `@ffmpeg-installer`
 binary; you can also force a specific encoder with `--encoder <auto|nvenc|videotoolbox|amf|qsv|vaapi|libx264>`.

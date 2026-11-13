@@ -59,6 +59,29 @@ export async function blobToDataUrl(blob: Blob): Promise<string> {
   return `data:${blob.type || "application/octet-stream"};base64,${btoa(binary)}`;
 }
 
+/**
+ * The project as the MP4 renderer needs it. The renderer gets the project as JSON, and a Blob does not survive JSON
+ * (it arrives as `{}`, which crashed the render page before it was ready: "createObjectURL … Overload resolution
+ * failed"). So every asset the film uses is sent as a data URL, assets it does not use are left out, and so are the
+ * snapshots and the other cuts' saved states, which the renderer never reads.
+ */
+export async function projectForRender(project: ProjectState): Promise<ProjectState> {
+  const used = new Set<string>();
+  for (const ref of collectMediaReferences(project.story, project.audioClips)) {
+    const id = assetIdFromReference(ref);
+    if (id) used.add(id);
+  }
+  const assets: ProjectAsset[] = [];
+  for (const asset of project.assets) {
+    if (!used.has(asset.id)) continue;
+    const { blob, ...rest } = asset;
+    if (rest.dataUrl) assets.push(rest);
+    else if (blob instanceof Blob) assets.push({ ...rest, dataUrl: await blobToDataUrl(blob) });
+  }
+  const { savedCutStates: _saved, ...rest } = project;
+  return { ...rest, assets, snapshots: [] };
+}
+
 export const SCARLETT_WITNESS_REPO_URL = "https://github.com/sigooding/scarlett-witness";
 export const SCARLETT_WITNESS_RAW_BASE =
   "https://raw.githubusercontent.com/sigooding/scarlett-witness/main/public";

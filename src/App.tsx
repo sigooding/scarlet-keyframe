@@ -161,6 +161,7 @@ import {
   dataUrlToBlob,
   encodeMediaPath,
   evaluateMissingMedia,
+  projectForRender,
   folderFilePath,
   hasPublicMediaPath,
   normalizeMediaPath,
@@ -1139,7 +1140,8 @@ export default function App() {
   useEffect(() => {
     const next = new Map<string, string>();
     project?.assets.forEach((asset) => {
-      if (asset.blob) next.set(`asset:${asset.id}`, URL.createObjectURL(asset.blob));
+      // A project that came through JSON (a render job) can hold `{}` where a Blob was; skip it, never crash.
+      if (asset.blob instanceof Blob) next.set(`asset:${asset.id}`, URL.createObjectURL(asset.blob));
       else if (asset.dataUrl) next.set(`asset:${asset.id}`, asset.dataUrl);
     });
     folderFiles.forEach((file, path) => next.set(path, URL.createObjectURL(file)));
@@ -4842,11 +4844,12 @@ export default function App() {
     });
 
     try {
+      const renderProject = await projectForRender(project);
       const resp = await fetch("/__api/export/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          project,
+          project: renderProject,
           trackMix,
           duckDepth,
           fromFrame: fromF,

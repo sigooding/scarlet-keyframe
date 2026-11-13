@@ -5,6 +5,7 @@ import { sceneLabel } from "../core/model";
 import { makeStudioPatchReport, writeStudioPatch, type StudioPatchResult } from "../core/patch";
 import { clipFrames, FPS, formatTimecode } from "../core/timing";
 import { downloadText, slug } from "../core/helpers";
+import { clampExportWorkers, MAX_EXPORT_WORKERS } from "../../scripts/export-workers.mjs";
 import type { TimelineClip } from "../sequence/animate";
 
 export type ExportTab = "bundle" | "patch" | "mp4";
@@ -228,7 +229,7 @@ export function ExportModal({
     if (quality === "draft") args.push("--draft");
     if (capture === "jpeg") args.push("--capture jpeg --capture-quality 97");
     else if (capture === "png") args.push("--capture png");
-    if (workers > 1) args.push(`--workers ${Math.min(6, workers)}`);
+    if (workers > 1) args.push(`--workers ${clampExportWorkers(workers)}`);
     args.push(gpu ? "--gpu" : "--no-gpu");
     if (effectiveLoudness === "-16") args.push("--loudnorm -16");
     else if (effectiveLoudness === "-14") args.push("--loudnorm -14");
@@ -470,7 +471,7 @@ export function ExportModal({
             <div className="export-pane">
               <p className="export-copy">
                 Renders 1920×1080 24 fps H.264 video using the exact viewer drawing (<code>/?render=1</code> via
-                GPU-accelerated Chromium and hardware H.264 encoding across up to 6 parallel workers, with automatic CPU
+                GPU-accelerated Chromium and hardware H.264 encoding across up to 10 parallel workers, with automatic CPU
                 fallback) and mixes voices, SFX, music with fades &amp; ducking, and ambience into AAC.
               </p>
 
@@ -733,16 +734,15 @@ export function ExportModal({
                       <select
                         data-testid="export-workers-select"
                         disabled={isRunningMp4}
-                        value={Math.max(1, Math.min(6, workers))}
-                        onChange={(event) => setWorkers(Math.max(1, Math.min(6, Number(event.target.value) || 1)))}
-                        title="Split frame range across up to 6 parallel headless Chromium + ffmpeg segment workers"
+                        value={clampExportWorkers(workers)}
+                        onChange={(event) => setWorkers(clampExportWorkers(event.target.value))}
+                        title="Split frame range across up to 10 parallel headless Chromium + ffmpeg segment workers"
                       >
-                        <option value={1}>1 worker</option>
-                        <option value={2}>2 workers</option>
-                        <option value={3}>3 workers</option>
-                        <option value={4}>4 workers</option>
-                        <option value={5}>5 workers</option>
-                        <option value={6}>6 workers</option>
+                        {Array.from({ length: MAX_EXPORT_WORKERS }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>
+                            {n === 1 ? "1 worker" : `${n} workers`}
+                          </option>
+                        ))}
                       </select>
                     </label>
                   )}

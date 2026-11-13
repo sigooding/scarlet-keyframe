@@ -47,19 +47,21 @@ function makeMockAsyncSpawner(maxAllowedConcurrent = Infinity) {
   });
 }
 
-describe("MP4 export GPU video encoder selection & up to 6 workers", () => {
-  it("supports up to 6 workers and clamps out-of-range worker counts", () => {
-    expect(MAX_EXPORT_WORKERS).toBe(6);
+describe("MP4 export GPU video encoder selection & up to 10 workers", () => {
+  it("supports up to 10 workers and clamps out-of-range worker counts", () => {
+    expect(MAX_EXPORT_WORKERS).toBe(10);
     expect(clampExportWorkers(1)).toBe(1);
     expect(clampExportWorkers(4)).toBe(4);
     expect(clampExportWorkers(5)).toBe(5);
     expect(clampExportWorkers(6)).toBe(6);
-    expect(clampExportWorkers(8)).toBe(6);
+    expect(clampExportWorkers(8)).toBe(8);
+    expect(clampExportWorkers(10)).toBe(10);
+    expect(clampExportWorkers(12)).toBe(10);
     expect(clampExportWorkers(0)).toBe(1);
     expect(clampExportWorkers(NaN)).toBe(1);
   });
 
-  it("parses CLI --workers (1..6), --gpu / --no-gpu, and --encoder flags", () => {
+  it("parses CLI --workers (1..10), --gpu / --no-gpu, and --encoder flags", () => {
     const defaults = parseCliArgs([]);
     expect(defaults.workers).toBe(1);
     expect(defaults.gpu).toBe(true);
@@ -70,8 +72,11 @@ describe("MP4 export GPU video encoder selection & up to 6 workers", () => {
     expect(sixGpu.gpu).toBe(true);
     expect(sixGpu.encoder).toBe("h264_nvenc");
 
-    const clamped = parseCliArgs(["--workers=10", "--no-gpu", "--encoder=libx264"]);
-    expect(clamped.workers).toBe(6);
+    const ten = parseCliArgs(["--workers", "10"]);
+    expect(ten.workers).toBe(10);
+
+    const clamped = parseCliArgs(["--workers=16", "--no-gpu", "--encoder=libx264"]);
+    expect(clamped.workers).toBe(10);
     expect(clamped.gpu).toBe(false);
     expect(clamped.encoder).toBe("libx264");
 
@@ -372,7 +377,7 @@ describe("capture CLI options and worker sizing", () => {
     expect(suggestExportWorkers(6)).toBe(3);
     expect(suggestExportWorkers(8)).toBe(4);
     expect(suggestExportWorkers(16)).toBe(6);
-    expect(suggestExportWorkers(64)).toBe(MAX_EXPORT_WORKERS);
+    expect(suggestExportWorkers(64)).toBe(6); // the suggestion stops at six; up to ten can be chosen
     expect(suggestExportWorkers(undefined)).toBeGreaterThanOrEqual(1);
     expect(suggestExportWorkers(Number.NaN)).toBeGreaterThanOrEqual(1);
     expect(suggestExportWorkers(8)).toBeLessThanOrEqual(MAX_EXPORT_WORKERS);
