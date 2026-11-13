@@ -394,6 +394,12 @@ beside the repository and every path resolves as usual.
 
 A small project (Sweet Jesus, Miami Vice) stays fully self-contained: it never reaches the budget.
 
+**Opening a Nobody's Witness bundle** puts it in the cut menu as the **Director's Export**, exactly as exported (every
+caption and sound clip), and the bundled film stays the source the other cuts are built from, so it survives a reload
+and a trip through the other cuts. To make an export the built-in Director's Export that every copy of the editor
+has, with no import, put it at `exports/nobodys-witness.reel.json` and run `npm run hardwire:export` (see
+`DIRECTORS_CUTS.md`, section 9).
+
 ## A shot that plays a video
 
 A shot's picture is a reference, and one that begins with `video:` plays a film clip instead of showing a still: it

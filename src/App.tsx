@@ -150,6 +150,8 @@ import {
   DIRECTORS_CUT_VERSION,
   getDirectorsCutLabel,
   normalizeCutOptions,
+  openImportedFilmCut,
+  repairImportedCutSource,
   switchDirectorsCutWithState,
   type DirectorsCutId,
 } from "./core/directorsCut";
@@ -920,7 +922,21 @@ export default function App() {
             assets: saved.assets || [],
             snapshots: saved.snapshots || [],
           };
-          if (
+          const repairedSaved = repairImportedCutSource(normalizedSaved, () =>
+            applyStudioMusicSync(
+              parseImportPayload(bundledFilm, "nobodys-witness-film.json", {
+                voiceDurations: initialVoiceDurations,
+              }).story,
+              normalizedSaved.sourceEdits ?? sourceEdits,
+            ),
+          );
+          if (repairedSaved !== normalizedSaved) {
+            // The old Import made an imported cut the film's source; the bundled film is the source again and the
+            // project opens on the Director's Export (the damaged edit is kept as a snapshot).
+            initialProject = repairedSaved;
+            void saveActiveProject(initialProject).catch(() => {});
+            statusLabel = getDirectorsCutLabel(initialProject.directorsCutId).toUpperCase();
+          } else if (
             normalizedSaved.story.id === "nobodys-witness-film" &&
             (normalizedSaved.directorsCutVersion ?? 0) < DIRECTORS_CUT_VERSION
           ) {
@@ -2417,6 +2433,14 @@ export default function App() {
         ),
       };
     }
+    // A Nobody's Witness bundle is a cut: it opens as the Director's Export, and the bundled film stays the source
+    // the other cuts are built from (it used to become the source, and the next load rebuilt it as Neo-Noir).
+    next = openImportedFilmCut(next, () =>
+      applyStudioMusicSync(
+        parseImportPayload(bundledFilm, "nobodys-witness-film.json", { voiceDurations }).story,
+        sourceEdits ?? (bundledEdits as AnyRecord),
+      ),
+    );
     next.missing = evaluateMissingMedia(next, folderFiles, publicPaths);
     const previous = projectRef.current;
     if (previous) {
