@@ -9,7 +9,7 @@ All **9 previously missing storyboard slots** in the Neo-Noir / *Tokyo Story* Di
 | **03** | `SHOT 03 · 77A Avenue` | `nw_s77a` (*77 — The black glass*) | `nw_b1290` | `83155 – 83256` | `57:44:19` | `102f` (`4.25s`) | `/film/img/s77a/1290-predawn-avenue.jpg` | `1920×1080` |
 | **04** | `SHOT 04 · 77A Sedan` | `nw_s77a` (*77 — The black glass*) | `nw_b1293` | `83257 – 83340` | `57:49:01` | `84f` (`3.50s`) | `/film/img/s77a/1293-sedan-keeps-pace.jpg` | `1920×1080` |
 | **05** | `SHOT 05 · 77A Window` | `nw_s77a` (*77 — The black glass*) | `nw_b1294` | `83341 – 83418` | `57:52:13` | `78f` (`3.25s`) | `/film/img/s77a/1294-hand-and-watch-on-sill.jpg` | `2730×1536` |
-| **06** | `SHOT 06 · 77A Exchange` | `nw_s77a` (*77 — The black glass*) | `nw_b1296` | `83419 – 83842` | `57:55:19` | `424f` (`17.67s`) | `/film/img/s77a/1296-everyone-is-allowed-one.jpg` | `1920×1080` |
+| **06** | `SHOT 06 · 77A Exchange` | `nw_s77a` (*77 — The black glass*) | `nw_b1296` | `83419 – 83870` | `57:55:19` | `452f` (`18.83s`) | `/film/img/s77a/1296-everyone-is-allowed-one.jpg` | `1920×1080` |
 | **07** | `SHOT 07 · 77A Glass` | `nw_s77a` (*77 — The black glass*) | `nw_b1303` | `83843 – 83920` | `58:13:11` | `78f` (`3.25s`) | `/film/img/s77a/1303-reflection-in-black-glass.jpg` | `1920×1080` |
 | **08** | `SHOT 08 · 77A Taillights` | `nw_s77a` (*77 — The black glass*) | `nw_b1304` | `83921 – 84028` | `58:16:17` | `108f` (`4.50s`) | `/film/img/s77a/1304-sedan-turns-off.jpg` | `2844×1600` |
 | **09** | `SHOT 09 · S78 Door` | `nw_s78` (*78 — No name*) | `nw_b1309` | `84250 – 84327` | `58:30:10` | `78f` (`3.25s`) | `/film/img/s78/1309-vera-opens-door-dawn.jpg` | `2844×1600` |
@@ -48,10 +48,10 @@ All **9 previously missing storyboard slots** in the Neo-Noir / *Tokyo Story* Di
 - **Sound Sync**: Soft electric window motor + rain patter against glass.
 - **Lighting & Palette**: Passing streetlamp catchlight on wet glass edge and watch bezel; cavernous interior black (`#07090d`).
 
-### 6. `GAP 06` — `nw_s77a` / `nw_b1296` (`57:55:19`, `424f`)
+### 6. `GAP 06` — `nw_s77a` / `nw_b1296` (`57:55:19`, `452f`)
 - **Shot Size & Lens**: Composed medium two-plane frame (`40mm`) moving at walking pace alongside the curb.
 - **Action**: Foreground silhouette edge of the open rear sedan window framing Jack in medium-close profile walking steadily in the rain, looking straight ahead rather than down into the car, right hand still guarding the envelope inside his coat during the entire six-line exchange (*“Detective.” / “Not any more.” … “Everyone is allowed one.”*).
-- **Sound Sync**: Carries all 6 timed subtitle cues (`KUROSE` / `JACK`) across `17.67s` over steady rain and wet tyres.
+- **Sound Sync**: Carries all 6 timed subtitle cues (`KUROSE` / `JACK`) over steady rain and wet tyres, voiced since 13 November 2026 as one recording (`/film/voice/s77a/s77a-avenue-exchange.mp3`, `17.97s`; ElevenLabs v4, the film's Kurose and Jack voices); the shot is `452f` in Neo-Noir and Creative so the last line is not clipped.
 - **Lighting & Palette**: Cold pre-dawn rain key on Jack’s wet temple and coat collar; deep black foreground frame of the car roof and B-pillar.
 
 ### 7. `GAP 07` — `nw_s77a` / `nw_b1303` (`58:13:11`, `78f`)

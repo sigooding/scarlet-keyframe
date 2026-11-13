@@ -231,12 +231,12 @@ describe("Turn 18 — Speed ramps, Tokyo-Noir viewer engine, and Full-Film Direc
       }
     }
 
-    // 5. Preserves 100% of spoken voice clips (560) with zero overlaps, millisecond J-cuts, and sound bridges
+    // 5. Preserves 100% of spoken voice clips (585) with zero overlaps, millisecond J-cuts, and sound bridges
     const resolvedAudio = resolveAudioClips(dcProj.audioClips || [], clips);
     const voices = resolvedAudio
       .filter((a) => a.lane === "voice")
       .sort((a, b) => a.startMs - b.startMs);
-    expect(voices.length).toBe(560);
+    expect(voices.length).toBe(585);
     for (let i = 1; i < voices.length; i += 1) {
       expect(voices[i].startMs).toBeGreaterThanOrEqual(voices[i - 1].endMs - 5);
     }

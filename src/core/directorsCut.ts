@@ -327,7 +327,7 @@ export const MISSING_FRAME_SPECS: readonly MissingFrameSpec[] = [
     sceneId: "nw_s77a",
     sceneTitle: "77 — The black glass",
     beatId: "nw_b1296",
-    durationFrames: 424,
+    durationFrames: 452,
     suggestedPath: "/film/img/s77a/1296-everyone-is-allowed-one.jpg",
     shotSize: "Medium tracking two-plane composition",
     description:
@@ -1196,6 +1196,8 @@ function populateZeroBeatScenes(
   }
 }
 
+export const SCENE_77A_EXCHANGE_AUDIO = "/film/voice/s77a/s77a-avenue-exchange.mp3";
+
 /**
  * Restructures Scene 77A ("77 — The black glass") from 16 unpictured `gradient:#000` beats
  * into 6 composed cinematic gap slots (`GAP 03`..`GAP 08`), preserving all 6 Kurose/Jack
@@ -1288,44 +1290,47 @@ function structureScene77AGaps(
     [],
   );
 
-  // 6 spoken/silent-acted lines between Kurose and Jack (<16 c/s on every cue)
+  // The six Kurose/Jack lines play as one recording (the source beats that carry them separately are dropped
+  // here), so each caption's frames are where its line falls in that file.
   configurePlate(
     g4,
     "/film/img/s77a/1296-everyone-is-allowed-one.jpg",
-    isCreative ? 448 : isMonoClassical ? 468 : 424,
+    isMonoClassical ? 468 : 452,
     [
-      { text: "Detective.", inFrame: 8, outFrame: 44, speaker: "KUROSE", isNarration: false },
-      { text: "Not any more.", inFrame: 52, outFrame: 92, speaker: "JACK", isNarration: false },
+      { text: "Detective.", inFrame: 6, outFrame: 34, speaker: "KUROSE", isNarration: false },
+      { text: "Not any more.", inFrame: 39, outFrame: 69, speaker: "JACK", isNarration: false },
       {
         text: "No. I was sorry to hear about the girl.",
-        inFrame: 104,
-        outFrame: 180,
+        inFrame: 74,
+        outFrame: 168,
         speaker: "KUROSE",
         isNarration: false,
       },
       {
         text: "You were a sensible policeman, I'm told. You always knew when to stop.",
-        inFrame: 194,
-        outFrame: 310,
+        inFrame: 178,
+        outFrame: 326,
         speaker: "KUROSE",
         isNarration: false,
       },
       {
         text: "Maybe that was a mistake.",
-        inFrame: 320,
-        outFrame: 368,
+        inFrame: 331,
+        outFrame: 380,
         speaker: "JACK",
         isNarration: false,
       },
       {
         text: "Everyone is allowed one.",
-        inFrame: 376,
-        outFrame: 420,
+        inFrame: 389,
+        outFrame: 439,
         speaker: "KUROSE",
         isNarration: false,
       },
     ],
   );
+  g4.audioUrl = SCENE_77A_EXCHANGE_AUDIO;
+  delete g4.silent;
 
   configurePlate(
     g5,
