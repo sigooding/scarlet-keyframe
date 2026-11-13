@@ -47,6 +47,7 @@ function makeBaseProject(): {
 describe("Turn 32–33 — 1940s Noir Director's Cut (original running order, silver-print monochrome & five reels)", () => {
   it("registers 'noir-1940s' in DIRECTORS_CUT_OPTIONS without mutating Neo-Noir, Creative, 1950s Noir, or Uncut", () => {
     expect(DIRECTORS_CUT_OPTIONS.map((o) => o.id)).toEqual([
+      "director-export",
       "neo-noir",
       "creative",
       "noir-1940s",

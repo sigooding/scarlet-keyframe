@@ -1,4 +1,5 @@
-import { addRecreatedUncutCoverage } from "./recreatedUncut";
+import { addRecreatedUncutCoverage, recreatedUncutAssets } from "./recreatedUncut";
+import directorExportData from "../data/director-export.json";
 import { applyJackNoirTreatment } from "./jackNoirCut";
 import { applyJackNarration } from "./jackNarration";
 import { applyWitnessTreatment } from "./witnessCut";
@@ -41,6 +42,7 @@ import {
 export const DIRECTORS_CUT_VERSION = 5;
 
 export type DirectorsCutId =
+  | "director-export"
   | "neo-noir"
   | "creative"
   | "noir-1940s"
@@ -49,7 +51,10 @@ export type DirectorsCutId =
   | "jack-narrated"
   | "witness"
   | "uncut";
-type EditorialCutVariant = Exclude<DirectorsCutId, "uncut" | "jack-noir" | "jack-narrated" | "witness">;
+type EditorialCutVariant = Exclude<
+  DirectorsCutId,
+  "director-export" | "uncut" | "jack-noir" | "jack-narrated" | "witness"
+>;
 
 export interface DirectorsCutOptionMeta {
   id: DirectorsCutId;
@@ -59,6 +64,13 @@ export interface DirectorsCutOptionMeta {
 }
 
 export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
+  {
+    id: "director-export",
+    label: "Director’s Export",
+    shortLabel: "Director’s Export",
+    description:
+      "Your own edit, exactly as you exported it (exports/nobodys-witness.reel.json), with Mara, Jack and Kurose voiced in scenes 68, 76 and 77A. Built in: nothing is re-cut, re-graded or re-timed. A Nobody’s Witness bundle opened with Import also opens here.",
+  },
   {
     id: "neo-noir",
     label: "Neo-Noir Director’s Cut",
@@ -3839,6 +3851,89 @@ function buildEditorialCut(
   };
 }
 
+interface DirectorExportData {
+  source: string;
+  story: StoryLike;
+  audioClips: AudioClip[];
+}
+
+/** The director's exported edit, built in by `npm run hardwire:export` (scripts/hardwire-export.mjs). */
+const DIRECTOR_EXPORT = directorExportData as unknown as DirectorExportData;
+
+/** The bundle the built-in Director's Export was made from. */
+export const DIRECTOR_EXPORT_SOURCE = DIRECTOR_EXPORT.source;
+
+/**
+ * The Director's Export cut: the exported story and every one of its sound clips exactly as exported. Its voices
+ * mostly live in the sound clips (a merged shot carries several lines), so the clips are never rebuilt from the
+ * story. The project's source (`originalStory`) is left as it is, so every other cut is still built from the film.
+ */
+export function buildDirectorExportProject(baseProject: ProjectState): ProjectState {
+  return {
+    ...baseProject,
+    story: clone(DIRECTOR_EXPORT.story),
+    audioClips: clone(DIRECTOR_EXPORT.audioClips),
+    assets: recreatedUncutAssets(baseProject.assets),
+    directorsCutVersion: DIRECTORS_CUT_VERSION,
+    directorsCutId: "director-export",
+    updatedAt: Date.now(),
+  };
+}
+
+/**
+ * True for a Nobody's Witness story that is a cut rather than the film's source: a cut merges beats into shots
+ * (`mergedBeatIds`) and fills the opening and ending with its own beats (`nw_dc_…`). The source has neither.
+ */
+export function isCutStory(story: StoryLike | undefined): boolean {
+  if (!story || story.id !== "nobodys-witness-film") return false;
+  return story.scenes.some((scene) =>
+    (scene.dialogueBeats ?? []).some(
+      (beat) => Array.isArray(beat.mergedBeatIds) || String(beat.id ?? "").startsWith("nw_dc_"),
+    ),
+  );
+}
+
+/**
+ * A Nobody's Witness bundle opened with Import is a cut, not the film's source. It opens as the Director's Export
+ * with the bundle's own story and sound clips, keeps the bundled film as its source (so the other cuts are built
+ * from the film, not from this edit), and is marked current, so the next load does not rebuild it. Before this, the
+ * imported edit became the source and the next load rebuilt it as Neo-Noir: 701 captions became 141 and 590 voices
+ * became 131. Any other import is returned unchanged.
+ */
+export function openImportedFilmCut(imported: ProjectState, sourceStory: () => StoryLike): ProjectState {
+  if (!isCutStory(imported.story)) return imported;
+  return {
+    ...imported,
+    originalStory: clone(sourceStory()),
+    directorsCutId: "director-export",
+    directorsCutVersion: DIRECTORS_CUT_VERSION,
+    cutOptions: normalizeCutOptions(imported.story.cutOptions as CutOptions | undefined),
+  };
+}
+
+/**
+ * Repairs a saved project whose source was replaced by an imported cut by the old Import (see
+ * `openImportedFilmCut`). Every cut it can build was built from that edit, so the bundled film becomes the source
+ * again, cuts stashed from the wrong source are dropped, the current story is kept as a snapshot, and the project
+ * opens on the Director's Export. A project with a proper source is returned unchanged.
+ */
+export function repairImportedCutSource(project: ProjectState, sourceStory: () => StoryLike): ProjectState {
+  if (!isCutStory(project.originalStory)) return project;
+  const snapshot: ProjectSnapshot = {
+    id: "snapshot-before-import-repair",
+    name: "Before the import repair (the edit built from an imported cut)",
+    createdAt: project.updatedAt || Date.now(),
+    story: clone(project.story),
+    ...(project.audioClips ? { audioClips: clone(project.audioClips) } : {}),
+  };
+  return buildDirectorExportProject({
+    ...project,
+    originalStory: clone(sourceStory()),
+    savedCutStates: {},
+    snapshots: [snapshot, ...(project.snapshots ?? []).filter((s) => s.id !== snapshot.id)],
+  });
+}
+
 /**
  * Builds the default Neo-Noir / *Tokyo Story* Director's Cut on a `ProjectState`
  * without mutating `project.originalStory` or any surviving `beat.text`.
@@ -3869,6 +3964,8 @@ export function buildDirectorsCutById(
   )
     ? cutId
     : "neo-noir";
+  // The director's own edit is played as it was exported: no cut options, no re-timing, no regrade.
+  if (resolvedCutId === "director-export") return buildDirectorExportProject(baseProject);
   if (
     resolvedCutId === "uncut" ||
     resolvedCutId === "jack-noir" ||
@@ -3996,6 +4093,8 @@ export function applyCutOptionsInPlace(
   cutId: DirectorsCutId,
   rawOptions?: CutOptions,
 ): void {
+  // The Director's Export is played exactly as exported; screening options never rewrite it.
+  if (cutId === "director-export") return;
   const opts = normalizeCutOptions(rawOptions);
   story.cutOptions = { ...opts };
   const is1950s = cutId === "noir-1950s";

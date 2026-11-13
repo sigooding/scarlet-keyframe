@@ -253,6 +253,19 @@ function addRecreatedDepthMaps(story: StoryLike, assets: ProjectAsset[], afterVe
   }
 }
 
+/**
+ * Every recreated Uncut plate and depth map the app ships, under its bundled asset id. For a cut that already
+ * references them by id (the Director's Export), so its pictures resolve without re-running the coverage pass.
+ */
+export function recreatedUncutAssets(existing: readonly ProjectAsset[]): ProjectAsset[] {
+  const assets = [...existing];
+  for (const plate of [...plates, wideHaradaPlate]) addBundledJpeg(assets, plate);
+  for (const entry of Object.values(RECREATED_DEPTH_MAP_BY_BEAT)) {
+    addBundledJpeg(assets, { id: entry.depthAssetId, name: entry.depthAssetName, data: entry.data });
+  }
+  return assets;
+}
+
 function addBundledJpeg(assets: ProjectAsset[], plate: { id: string; name: string; data: string }): void {
   if (assets.some(asset => asset.id === plate.id)) return;
   const base64 = plate.data.split(",")[1] || "";

@@ -9198,3 +9198,9 @@ kbd {
   background: #3f6f6a;
   box-shadow: 0 0 0 1px rgba(216, 222, 233, 0.55);
 }
+
+/* Director's Export: the director's own edit, built in. Warm paper white, ringed in the film's red. */
+.topbar-cut-trigger-dot.is-director-export {
+  background: #f2e6d0;
+  box-shadow: 0 0 0 1px rgba(193, 18, 31, 0.85);
+}

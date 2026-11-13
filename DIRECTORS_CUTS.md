@@ -275,3 +275,36 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
 - **A project that already has the Witness Cut saved** keeps the cut it saved (the editor keeps each cut's
   working state). `Reset The Witness Cut to factory` rebuilds it; a project that has never opened the cut gets the
   new one when the cut is chosen.
+
+---
+
+## 9. Director's Export (`"director-export"`) — your own edit, built in
+- **What it is**: the edit you exported from the editor (`exports/nobodys-witness.reel.json`, a Portable Bundle),
+  played exactly as exported: the same 763 shots, 701 captions and 897 sound clips (590 voices), with Mara, Jack and
+  Kurose voiced in scenes 68, 76 and 77A. It is first in the cut menu and needs no import. Nothing is re-cut,
+  re-graded or re-timed, and the screening options (aspect gate, crest leader, depth maps) never rewrite it.
+  Code: `buildDirectorExportProject` in `src/core/directorsCut.ts`; data: `src/data/director-export.json`;
+  tests: `src/core/director-export.test.ts`.
+- **Why its sound is stored as clips**: a shot that merges several beats carries several lines, so most of the
+  voices (459 of 590) live in the sound clips, not on a beat. The cut keeps the clips as they are; rebuilding them
+  from the story would keep only the 131 voices that sit on a beat of their own.
+- **The film stays the source**: the project's `originalStory` is still the bundled film, so switching to any other
+  cut builds that cut from the film, and switching back restores the Director's Export (with your edits, when
+  *Remember custom edits per cut* is on). *Reset Director's Export to factory* brings back the built-in edit.
+- **Making a new export the built-in one**: export a bundle from the editor, put it at
+  `exports/nobodys-witness.reel.json`, and run `npm run hardwire:export` (or pass another path). The script
+  (`scripts/hardwire-export.mjs`) checks every file the bundle embeds byte for byte: files already in `public/` are
+  referred to there, the recreated Uncut plates the app ships keep their `asset:` ids (the cut supplies the app's
+  own copies, `recreatedUncutAssets`), and anything else is written to `public/film/{img,audio,video}/export/`. Files
+  the edit uses that are in `public/` but missing from `src/data/media-index.json` are indexed. For the 13 November
+  2026 export: 70 of the 115 embedded files were already in `public/`, 45 are bundled plates, and the 6 pictures you
+  uploaded yourself are in `public/film/img/export/`; the bundle's 67 MB became 1.4 MB of data.
+- **Importing a Nobody's Witness bundle** (fixed 13 November 2026): Import opens it as the Director's Export, with
+  the bundle's own story and sound, and keeps the bundled film as the source. Before, the imported edit *became* the
+  source and was marked as never cut, so the next load rebuilt it as the Neo-Noir cut from that edit: 701 captions
+  became 141 and 590 voices became 131; picking any cut from the menu did the same to the voices. A project already
+  damaged that way is repaired when the editor opens (`repairImportedCutSource`): the film is the source again, cuts
+  stashed from the edit are dropped, the damaged story is kept as the snapshot *Before the import repair*, and the
+  project opens on the Director's Export. A cut is told from the source by its merged shots (`mergedBeatIds`) and
+  its own opening beats (`nw_dc_…`); the film's source has neither. An import of the film's source itself is
+  unchanged.

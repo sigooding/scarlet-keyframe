@@ -303,6 +303,7 @@ describe("Turn 21 — Multi-Cut Director's Cuts (Creative, 1940s/1950s Noir, Neo
 
     // 3. Topbar renders clearly named cut selector trigger for each option
     expect(DIRECTORS_CUT_OPTIONS.map((o) => o.id)).toEqual([
+      "director-export",
       "neo-noir",
       "creative",
       "noir-1940s",
