@@ -155,6 +155,8 @@ import {
   switchDirectorsCutWithState,
   type DirectorsCutId,
 } from "./core/directorsCut";
+import { restoreJackWalk } from "./core/jackWalk";
+import { cutMaraCall } from "./core/maraCall";
 import { downloadText, measureAudioDuration, slug } from "./core/helpers";
 import {
   createUploadAsset,
@@ -1061,6 +1063,11 @@ export default function App() {
     () => buildTimelineClips(frames, voiceDurations),
     [frames, voiceDurations],
   );
+  // Only offered for an older export with the empty scene. Imports and saved edits are never silently rewritten.
+  const jackWalkRestore = useMemo(() => project && !isRenderMode ? restoreJackWalk(project, clips) : undefined,
+    [project, clips, isRenderMode]);
+  const maraCallEdit = useMemo(() => project && !isRenderMode ? cutMaraCall(project, clips) : undefined,
+    [project, clips, isRenderMode]);
   const resolvedTimelineCaptions = useMemo(
     () => resolveTimelineCaptions(clips),
     [clips],
@@ -5429,6 +5436,15 @@ export default function App() {
               }
             : undefined
         }
+        onCutMaraCall={maraCallEdit ? () => {
+          if (playback) stopPlaybackAndAudio();
+          applyProject({ ...maraCallEdit.project, updatedAt: Date.now() }, "Cut Mara’s call on the record tone");
+          setSelection([maraCallEdit.firstShotId], maraCallEdit.firstShotId, maraCallEdit.startFrame);
+        } : undefined}
+        onRestoreJackWalk={jackWalkRestore ? () => {
+          applyProject({ ...jackWalkRestore.project, updatedAt: Date.now() }, "Restored Jack’s walk to the Hive");
+          setSelection([jackWalkRestore.firstShotId], jackWalkRestore.firstShotId, jackWalkRestore.startFrame);
+        } : undefined}
         onResetActiveCut={
           project.story.id === "nobodys-witness-film"
             ? () => {

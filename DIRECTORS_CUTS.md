@@ -280,13 +280,36 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
 
 ## 9. Director's Export (`"director-export"`) — your own edit, built in
 - **What it is**: the edit you exported from the editor (`exports/nobodys-witness.reel.json`, a Portable Bundle),
-  played exactly as exported: the same 763 shots, 701 captions and 897 sound clips (590 voices), with Mara, Jack and
+  played exactly as exported: 769 shots, 693 authored captions and 896 sound clips (585 voices), with Mara, Jack and
   Kurose voiced in scenes 68, 76 and 77A. It is first in the cut menu and needs no import. Nothing is re-cut,
   re-graded or re-timed, and the screening options (aspect gate, crest leader, depth maps) never rewrite it.
   Code: `buildDirectorExportProject` in `src/core/directorsCut.ts`; data: `src/data/director-export.json`;
   tests: `src/core/director-export.test.ts`.
+- **Jack’s walk to the Hive** (restored 18 November 2026): the original export held the six stills in
+  `nw_m18.credits.montage` but had no shots to play them. In both the portable file and the built-in edit,
+  Jack now leaves after Kaneko’s call in scene 18: six five-second stills with dissolves, no narration or captions.
+  *Dark Hills Blues* continues from his office without restarting, rises over ten seconds and fades at scene 19.
+  The walk starts at **21:56:15** (24 fps); the later shots, their anchored sound, and the director’s note move
+  together by 30 seconds. The “Pink water” reprise and the other cuts are unchanged.
+- **Older saved edit?** With Director’s Export selected, **Cut & Screening Options → Restore Jack’s walk to the Hive**
+  inserts only this sequence into a working copy. It’s one undoable edit, not a factory reset. The button is offered
+  only when the walk is empty, the 18 → montage → 19 route is intact and the incoming music still meets the cut.
+- **Mara’s call** (18 November 2026, Director’s Export only): scene 68 keeps “I have to tell Vera”, “Two minutes”
+  and 43 frames on the handset. Cut on the quiet record tone to the corridor at **51:24:10**, with Jack’s “It's time”
+  off screen. The five dry message takes and their eight caption cues are out; the 32.25 s comes out of picture as
+  well. Short crossfades keep the piano and Hive room sound in sync with the following scenes. In scene 76 Vera
+  presses Play at **58:13:21**. The full message runs once, from **58:19:01** through the broken-off “I’m sor—”,
+  followed by the stop tone. On an older saved export, **Cut & Screening Options → Save Mara’s message for Vera**
+  makes the same edit at that copy’s own cut points, as one undoable step. It is not applied on load or to other cuts.
+- **Playback level check**: measured the unmastered 48 kHz stereo export mix and stems, at default faders, from
+  first to last word. Initially the machine voice was **−36.2 LUFS** against **−25.5 LUFS** of music and room;
+  now **−22.4** against **−37.5**, with a **−5.3 dBTP** mixed peak. The recording still sounds through the machine:
+  the five `public/film/voice/s76/*-print.wav` files are PCM copies of the corresponding filtered MP3s with only
+  fixed gain (+14.5, +17, +12.5, +13.5, +11.5 dB in order). No compression, new performance, or changes to the
+  source recordings. The song drops 12.4 dB for the message, not for the entire cue. The portable file embeds the
+  five prints. At the outgoing call, all three setup/exit lines measure at least 9 LU above their background.
 - **Why its sound is stored as clips**: a shot that merges several beats carries several lines, so most of the
-  voices (459 of 590) live in the sound clips, not on a beat. The cut keeps the clips as they are; rebuilding them
+  voices (454 of 585) live in the sound clips, not on a beat. The cut keeps the clips as they are; rebuilding them
   from the story would keep only the 131 voices that sit on a beat of their own.
 - **The film stays the source**: the project's `originalStory` is still the bundled film, so switching to any other
   cut builds that cut from the film, and switching back restores the Director's Export (with your edits, when
