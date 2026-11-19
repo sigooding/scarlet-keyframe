@@ -34,6 +34,8 @@ export interface TopbarProps {
   cutOptions?: CutOptions;
   onChangeCutOptions?: (patch: Partial<CutOptions>, label: string) => void;
   onResetActiveCut?: () => void;
+  onRestoreJackWalk?: () => void;
+  onCutMaraCall?: () => void;
   projectChoices?: ReadonlyArray<{ id: string; title: string }>;
   onSelectProject?: (id: string) => void;
   switchingProject?: boolean;
@@ -73,6 +75,8 @@ export function Topbar({
   cutOptions,
   onChangeCutOptions,
   onResetActiveCut,
+  onRestoreJackWalk,
+  onCutMaraCall,
   projectChoices,
   onSelectProject,
   switchingProject = false,
@@ -413,6 +417,32 @@ export function Topbar({
                         <span>Remember custom edits per cut when switching</span>
                       </label>
 
+                      {onRestoreJackWalk && (
+                        <button
+                          type="button"
+                          className="topbar-cut-reset-btn"
+                          onClick={() => {
+                            setCutMenuOpen(false);
+                            onRestoreJackWalk();
+                          }}
+                          title="Insert the six missing shots and continue Dark Hills Blues through them. Keeps the rest of your edit; undoable."
+                        >
+                          Restore Jack’s walk to the Hive
+                        </button>
+                      )}
+                      {onCutMaraCall && (
+                        <button
+                          type="button"
+                          className="topbar-cut-reset-btn"
+                          onClick={() => {
+                            setCutMenuOpen(false);
+                            onCutMaraCall();
+                          }}
+                          title="Cut away at the handset and bring the recorded message forward when Vera presses Play. Undoable."
+                        >
+                          Save Mara’s message for Vera
+                        </button>
+                      )}
                       {onResetActiveCut && (
                         <button
                           type="button"

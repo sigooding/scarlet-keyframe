@@ -1,0 +1,3 @@
+# Portable film bundles contain large base64 media blobs. Emit a binary delta rather
+# than both entire JSON lines in patches; the built-in edit is also in src/data/.
+exports/*.reel.json -diff
