@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s22/438-i-stayed-awake.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s22/438-i-stayed-awake/people-1/cutout-1.png",
+   "depth": 0.64,
+   "box": [
+    50,
+    0,
+    1396,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

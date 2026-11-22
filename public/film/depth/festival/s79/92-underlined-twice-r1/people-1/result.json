@@ -1,0 +1,20 @@
+{
+ "picture": "/film/img/festival/s79/92-underlined-twice-r1.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/festival/s79/92-underlined-twice-r1/people-1/cutout-1.png",
+   "depth": 0.882,
+   "box": [
+    397,
+    521,
+    1060,
+    559
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 1 runs to its box edge: it may be clipped"
+ ]
+}

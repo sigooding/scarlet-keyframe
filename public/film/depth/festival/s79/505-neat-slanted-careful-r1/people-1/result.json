@@ -1,0 +1,20 @@
+{
+ "picture": "/film/img/festival/s79/505-neat-slanted-careful-r1.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/festival/s79/505-neat-slanted-careful-r1/people-1/cutout-1.png",
+   "depth": 0.937,
+   "box": [
+    382,
+    619,
+    1286,
+    461
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 1 runs to its box edge: it may be clipped"
+ ]
+}

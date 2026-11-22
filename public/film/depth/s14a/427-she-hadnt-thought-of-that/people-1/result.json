@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s14a/427-she-hadnt-thought-of-that.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s14a/427-she-hadnt-thought-of-that/people-1/cutout-1.png",
+   "depth": 0.138,
+   "box": [
+    41,
+    24,
+    1526,
+    1056
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

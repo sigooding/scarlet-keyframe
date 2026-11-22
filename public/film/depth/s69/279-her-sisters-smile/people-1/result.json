@@ -1,0 +1,31 @@
+{
+ "picture": "/film/img/s69/279-her-sisters-smile.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s69/279-her-sisters-smile/people-1/cutout-1.png",
+   "depth": 0.534,
+   "box": [
+    771,
+    211,
+    400,
+    869
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s69/279-her-sisters-smile/people-1/cutout-2.png",
+   "depth": 0.539,
+   "box": [
+    1613,
+    485,
+    230,
+    284
+   ],
+   "how": "feet"
+  }
+ ],
+ "flags": [
+  "1 smaller figure(s) were left in the plate (under 15% of the largest, or past 4)"
+ ]
+}

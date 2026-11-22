@@ -1,0 +1,32 @@
+{
+ "picture": "/film/img/s53a/298-there-was-no-car.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s53a/298-there-was-no-car/people-1/cutout-1.png",
+   "depth": 0.395,
+   "box": [
+    223,
+    213,
+    467,
+    867
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s53a/298-there-was-no-car/people-1/cutout-2.png",
+   "depth": 0.513,
+   "box": [
+    1280,
+    219,
+    404,
+    619
+   ],
+   "how": "feet"
+  }
+ ],
+ "flags": [
+  "1 person-like shape(s) still found in the plate: someone may have been missed",
+  "5 smaller figure(s) were left in the plate (under 15% of the largest, or past 4)"
+ ]
+}

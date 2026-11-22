@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s68/1706-jack-at-the-curtain.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s68/1706-jack-at-the-curtain/people-1/cutout-1.png",
+   "depth": 0.174,
+   "box": [
+    246,
+    0,
+    836,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

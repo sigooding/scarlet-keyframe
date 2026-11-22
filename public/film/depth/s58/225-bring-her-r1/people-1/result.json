@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/s58/225-bring-her-r1.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s58/225-bring-her-r1/people-1/cutout-1.png",
+   "depth": 0.372,
+   "box": [
+    339,
+    257,
+    650,
+    823
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s58/225-bring-her-r1/people-1/cutout-2.png",
+   "depth": 0.222,
+   "box": [
+    1147,
+    321,
+    334,
+    589
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}
