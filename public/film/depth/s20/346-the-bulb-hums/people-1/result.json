@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/s20/346-the-bulb-hums.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s20/346-the-bulb-hums/people-1/cutout-1.png",
+   "depth": 0.535,
+   "box": [
+    225,
+    372,
+    841,
+    1162
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s20/346-the-bulb-hums/people-1/cutout-2.png",
+   "depth": 0.409,
+   "box": [
+    1665,
+    156,
+    1063,
+    1378
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

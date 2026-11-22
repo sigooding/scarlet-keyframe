@@ -1,0 +1,31 @@
+{
+ "picture": "/film/img/s14/425-a-story-i-used-to-tell-her.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s14/425-a-story-i-used-to-tell-her/people-1/cutout-1.png",
+   "depth": 0.193,
+   "box": [
+    376,
+    54,
+    702,
+    1026
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s14/425-a-story-i-used-to-tell-her/people-1/cutout-2.png",
+   "depth": 0.633,
+   "box": [
+    1288,
+    707,
+    632,
+    373
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 2 runs to its box edge: it may be clipped"
+ ]
+}

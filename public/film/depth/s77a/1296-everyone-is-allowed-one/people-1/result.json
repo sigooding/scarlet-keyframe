@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s77a/1296-everyone-is-allowed-one.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s77a/1296-everyone-is-allowed-one/people-1/cutout-1.png",
+   "depth": 0.274,
+   "box": [
+    490,
+    65,
+    671,
+    997
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}
