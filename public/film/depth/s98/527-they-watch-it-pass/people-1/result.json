@@ -1,0 +1,31 @@
+{
+ "picture": "/film/img/s98/527-they-watch-it-pass.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s98/527-they-watch-it-pass/people-1/cutout-1.png",
+   "depth": 0.735,
+   "box": [
+    766,
+    262,
+    502,
+    722
+   ],
+   "how": "feet"
+  },
+  {
+   "image": "/film/depth/s98/527-they-watch-it-pass/people-1/cutout-2.png",
+   "depth": 0.805,
+   "box": [
+    875,
+    44,
+    745,
+    1036
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 1 is nearly empty: it may not be a person"
+ ]
+}

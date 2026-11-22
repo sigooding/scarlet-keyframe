@@ -1,0 +1,20 @@
+{
+ "picture": "/film/img/s76/1698-the-machine-plays.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s76/1698-the-machine-plays/people-1/cutout-1.png",
+   "depth": 0.692,
+   "box": [
+    0,
+    474,
+    755,
+    606
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 1 runs to its box edge: it may be clipped"
+ ]
+}

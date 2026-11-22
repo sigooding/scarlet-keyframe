@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s25/446-she-closes-her-hand.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s25/446-she-closes-her-hand/people-1/cutout-1.png",
+   "depth": 0.677,
+   "box": [
+    519,
+    12,
+    900,
+    1068
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

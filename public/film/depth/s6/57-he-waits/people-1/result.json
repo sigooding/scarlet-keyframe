@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s6/57-he-waits.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s6/57-he-waits/people-1/cutout-1.png",
+   "depth": 0.73,
+   "box": [
+    456,
+    44,
+    1116,
+    1036
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

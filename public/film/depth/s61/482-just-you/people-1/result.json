@@ -1,0 +1,20 @@
+{
+ "picture": "/film/img/s61/482-just-you.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s61/482-just-you/people-1/cutout-1.png",
+   "depth": 0.346,
+   "box": [
+    957,
+    0,
+    846,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "1 smaller figure(s) were left in the plate (under 15% of the largest, or past 4)"
+ ]
+}

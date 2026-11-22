@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/s25/the-rice-goes-cold.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s25/the-rice-goes-cold/people-1/cutout-1.png",
+   "depth": 0.769,
+   "box": [
+    329,
+    422,
+    722,
+    972
+   ],
+   "how": "feet"
+  },
+  {
+   "image": "/film/depth/s25/the-rice-goes-cold/people-1/cutout-2.png",
+   "depth": 0.472,
+   "box": [
+    1655,
+    229,
+    909,
+    1307
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

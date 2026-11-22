@@ -182,6 +182,12 @@ export interface ProjectState {
     | "witness"
     | "uncut";
   cutOptions?: CutOptions;
+  /**
+   * The version of each built-in cut (the Director's Export, the Festival Cut) this project's copy of it was built
+   * from. A built-in cut is made from data in the app, so when that data changes (a pull) the saved copy is stale:
+   * it is rebuilt instead of restored.
+   */
+  builtInCutVersions?: Partial<Record<"festival" | "director-export", string>>;
   savedCutStates?: Partial<
     Record<
       "festival" | "director-export" | "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "jack-noir" | "jack-narrated" | "witness" | "uncut",

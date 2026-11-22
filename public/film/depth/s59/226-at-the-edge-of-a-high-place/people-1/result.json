@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/s59/226-at-the-edge-of-a-high-place.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s59/226-at-the-edge-of-a-high-place/people-1/cutout-1.png",
+   "depth": 0.803,
+   "box": [
+    825,
+    721,
+    288,
+    748
+   ],
+   "how": "feet"
+  },
+  {
+   "image": "/film/depth/s59/226-at-the-edge-of-a-high-place/people-1/cutout-2.png",
+   "depth": 0.945,
+   "box": [
+    1199,
+    639,
+    377,
+    892
+   ],
+   "how": "feet"
+  }
+ ],
+ "flags": []
+}

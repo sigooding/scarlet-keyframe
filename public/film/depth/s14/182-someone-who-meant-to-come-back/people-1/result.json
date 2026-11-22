@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/s14/182-someone-who-meant-to-come-back.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s14/182-someone-who-meant-to-come-back/people-1/cutout-1.png",
+   "depth": 0.32,
+   "box": [
+    109,
+    66,
+    221,
+    970
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s14/182-someone-who-meant-to-come-back/people-1/cutout-2.png",
+   "depth": 0.274,
+   "box": [
+    800,
+    439,
+    432,
+    641
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}
