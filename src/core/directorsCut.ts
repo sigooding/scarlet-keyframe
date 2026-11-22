@@ -3,6 +3,7 @@ import directorExportData from "../data/director-export.json";
 import { applyJackNoirTreatment } from "./jackNoirCut";
 import { applyJackNarration } from "./jackNarration";
 import { applyWitnessTreatment } from "./witnessCut";
+import { applyFestivalFinish } from "./festivalCut";
 import {
   buildAudioClipsFromFilm,
   frameToMs,
@@ -42,6 +43,7 @@ import {
 export const DIRECTORS_CUT_VERSION = 5;
 
 export type DirectorsCutId =
+  | "festival"
   | "director-export"
   | "neo-noir"
   | "creative"
@@ -53,7 +55,7 @@ export type DirectorsCutId =
   | "uncut";
 type EditorialCutVariant = Exclude<
   DirectorsCutId,
-  "director-export" | "uncut" | "jack-noir" | "jack-narrated" | "witness"
+  "festival" | "director-export" | "uncut" | "jack-noir" | "jack-narrated" | "witness"
 >;
 
 export interface DirectorsCutOptionMeta {
@@ -64,6 +66,13 @@ export interface DirectorsCutOptionMeta {
 }
 
 export const DIRECTORS_CUT_OPTIONS: readonly DirectorsCutOptionMeta[] = [
+  {
+    id: "festival",
+    label: "The Festival Cut",
+    shortLabel: "Festival Cut",
+    description:
+      "The Director’s Export finished as a feature: your edit, timing and sound untouched, every picture with a depth map played as a 2.5D shot that moves with its camera, dolly shots re-based so depth can run, still frames given a slow motivated move, faulty stills repaired, and one film stock across the picture.",
+  },
   {
     id: "director-export",
     label: "Director’s Export",
@@ -3966,6 +3975,10 @@ export function buildDirectorsCutById(
     : "neo-noir";
   // The director's own edit is played as it was exported: no cut options, no re-timing, no regrade.
   if (resolvedCutId === "director-export") return buildDirectorExportProject(baseProject);
+  if (resolvedCutId === "festival") {
+    const { project } = applyFestivalFinish(buildDirectorExportProject(baseProject));
+    return { ...project, directorsCutId: "festival" };
+  }
   if (
     resolvedCutId === "uncut" ||
     resolvedCutId === "jack-noir" ||
@@ -4094,7 +4107,7 @@ export function applyCutOptionsInPlace(
   rawOptions?: CutOptions,
 ): void {
   // The Director's Export is played exactly as exported; screening options never rewrite it.
-  if (cutId === "director-export") return;
+  if (cutId === "director-export" || cutId === "festival") return;
   const opts = normalizeCutOptions(rawOptions);
   story.cutOptions = { ...opts };
   const is1950s = cutId === "noir-1950s";

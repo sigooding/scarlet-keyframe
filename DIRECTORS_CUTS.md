@@ -331,3 +331,29 @@ Every period craft, mastering, and editorial workflow enhancement is exposed as 
   project opens on the Director's Export. A cut is told from the source by its merged shots (`mergedBeatIds`) and
   its own opening beats (`nw_dc_…`); the film's source has neither. An import of the film's source itself is
   unchanged.
+
+---
+
+## 10. The Festival Cut (`"festival"`) — the Director's Export, finished as a feature
+- **What it is**: the Director's Export (section 9) with a cinematographer's finish. The edit is yours: every shot,
+  line, caption and sound clip at the same length, so nothing drifts out of sync. First in the cut menu. Code:
+  `src/core/festivalCut.ts`; data: `src/data/festival-cut.json` (`npm run build:festival-cut`); tests:
+  `src/core/festival-cut.test.ts`.
+- **Depth on every picture**: 675 of the 676 pictures it shows have a depth map (510 new ones made on 22 November
+  2026 with `npm run depth -- <picture> --model small`, Depth Anything V2 small, Apache-2.0). 555 shots gain a 2.5D
+  depth camera; 162 keep your own rigs untouched (2 of them move to the repaired picture's map, because a rig's plate
+  and cut-outs are slices of the old picture); the 4 Vertigo dolly-zooms keep theirs. The depth camera moves with
+  the shot's own zoom/x/y keys, and the amount breathes from 0.14 to 0.24 across the shot (inside the range of the
+  film's hand-made rigs, gentle enough that faces without cut-outs do not stretch).
+- **Camera**: the dolly preset switches the depth camera off (`hasDepthParallax`, vendor/scarlet-reel/game/
+  DepthParallax.tsx), so 113 dolly shots are re-based on their own keys (mode static; the keys already carry the
+  move). A shot with no move gets a slow push-in, or a slow lateral drift on a wide exterior.
+- **Repaired pictures** (11 pictures, 12 shots, GPT Image 2.5 Flare edits of the originals, in
+  `public/film/img/festival/`; the originals are untouched and the Director's Export still shows them): real
+  Japanese signage in the scene 5 police box (4 shots), the identity form (scene 6), photographic blood in the
+  scene 1 puddle, the hand holding the lighter (scene 26), the locker receipt printed on the paper (scene 34), the
+  kiosk signage (scene 54), and Daniel's notebook in scene 79 now carries his own lines from the screenplay
+  ("Today Jack signed the report. Accidental fire." underlined twice; "Kurose. Always Kurose."). Found by reviewing
+  every picture on numbered contact sheets.
+- **Look**: one film stock across the picture (film grade ≥ 0.3, grain 0.045, vignette ≥ 0.32); each scene keeps its
+  grade.

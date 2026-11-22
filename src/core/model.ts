@@ -171,6 +171,7 @@ export interface ProjectState {
   sweetJesusOpeningVersion?: number;
   sweetJesusShotsVersion?: number;
   directorsCutId?:
+    | "festival"
     | "director-export"
     | "neo-noir"
     | "creative"
@@ -183,7 +184,7 @@ export interface ProjectState {
   cutOptions?: CutOptions;
   savedCutStates?: Partial<
     Record<
-      "director-export" | "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "jack-noir" | "jack-narrated" | "witness" | "uncut",
+      "festival" | "director-export" | "neo-noir" | "creative" | "noir-1940s" | "noir-1950s" | "jack-noir" | "jack-narrated" | "witness" | "uncut",
       { story: StoryLike; audioClips?: AudioClip[]; updatedAt: number }
     >
   >;
