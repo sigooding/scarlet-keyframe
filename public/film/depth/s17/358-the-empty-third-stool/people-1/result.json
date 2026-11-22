@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s17/358-the-empty-third-stool.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s17/358-the-empty-third-stool/people-1/cutout-1.png",
+   "depth": 0.33,
+   "box": [
+    745,
+    80,
+    1083,
+    1072
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

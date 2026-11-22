@@ -1,0 +1,32 @@
+{
+ "picture": "/film/img/s23/442-he-puts-down-his-chopsticks.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s23/442-he-puts-down-his-chopsticks/people-1/cutout-1.png",
+   "depth": 0.489,
+   "box": [
+    206,
+    163,
+    819,
+    846
+   ],
+   "how": "feet"
+  },
+  {
+   "image": "/film/depth/s23/442-he-puts-down-his-chopsticks/people-1/cutout-2.png",
+   "depth": 0.898,
+   "box": [
+    936,
+    0,
+    984,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "3 person-like shape(s) still found in the plate: someone may have been missed",
+  "10 smaller figure(s) were left in the plate (under 15% of the largest, or past 4)"
+ ]
+}

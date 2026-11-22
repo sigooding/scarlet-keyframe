@@ -400,6 +400,10 @@ and a trip through the other cuts. To make an export the built-in Director's Exp
 has, with no import, put it at `exports/nobodys-witness.reel.json` and run `npm run hardwire:export` (see
 `DIRECTORS_CUTS.md`, section 9).
 
+**The Festival Cut** finishes the Director's Export with a depth camera on every picture, repaired stills and one
+film stock (`DIRECTORS_CUTS.md`, section 10). After a new export is hardwired, or new depth maps are made, run
+`npm run build:festival-cut` to refresh its data.
+
 ## A shot that plays a video
 
 A shot's picture is a reference, and one that begins with `video:` plays a film clip instead of showing a still: it

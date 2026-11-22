@@ -1,0 +1,53 @@
+{
+ "picture": "/film/img/s26/453-just-riding-the-loop.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s26/453-just-riding-the-loop/people-1/cutout-1.png",
+   "depth": 0.254,
+   "box": [
+    0,
+    299,
+    398,
+    764
+   ],
+   "how": "feet"
+  },
+  {
+   "image": "/film/depth/s26/453-just-riding-the-loop/people-1/cutout-2.png",
+   "depth": 0.203,
+   "box": [
+    798,
+    348,
+    298,
+    641
+   ],
+   "how": "feet"
+  },
+  {
+   "image": "/film/depth/s26/453-just-riding-the-loop/people-1/cutout-3.png",
+   "depth": 0.183,
+   "box": [
+    1141,
+    303,
+    415,
+    777
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s26/453-just-riding-the-loop/people-1/cutout-4.png",
+   "depth": 0.29,
+   "box": [
+    1416,
+    363,
+    504,
+    717
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "2 smaller figure(s) were left in the plate (under 15% of the largest, or past 4)"
+ ]
+}

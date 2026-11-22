@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s14/270-packed-and-zipped.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s14/270-packed-and-zipped/people-1/cutout-1.png",
+   "depth": 0.738,
+   "box": [
+    935,
+    0,
+    985,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

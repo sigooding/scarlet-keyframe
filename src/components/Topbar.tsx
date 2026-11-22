@@ -218,7 +218,9 @@ export function Topbar({
             >
               <span
                 className={`topbar-cut-trigger-dot ${
-                  activeOption.id === "director-export"
+                  activeOption.id === "festival"
+                    ? "is-festival"
+                    : activeOption.id === "director-export"
                     ? "is-director-export"
                     : activeOption.id === "creative"
                     ? "is-creative"
@@ -279,7 +281,9 @@ export function Topbar({
                           <div className="topbar-cut-option-title">
                             <span
                               className={`topbar-cut-trigger-dot ${
-                                opt.id === "director-export"
+                                opt.id === "festival"
+                                  ? "is-festival"
+                                  : opt.id === "director-export"
                                   ? "is-director-export"
                                   : opt.id === "creative"
                                   ? "is-creative"

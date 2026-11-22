@@ -1,0 +1,31 @@
+{
+ "picture": "/film/img/s33/458-the-back-door-sticks.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s33/458-the-back-door-sticks/people-1/cutout-1.png",
+   "depth": 0.313,
+   "box": [
+    606,
+    162,
+    351,
+    918
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s33/458-the-back-door-sticks/people-1/cutout-2.png",
+   "depth": 0.248,
+   "box": [
+    812,
+    125,
+    254,
+    913
+   ],
+   "how": "feet"
+  }
+ ],
+ "flags": [
+  "cut-out 1 runs to its box edge: it may be clipped"
+ ]
+}

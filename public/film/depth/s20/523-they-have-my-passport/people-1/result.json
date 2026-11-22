@@ -1,0 +1,32 @@
+{
+ "picture": "/film/img/s20/523-they-have-my-passport.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s20/523-they-have-my-passport/people-1/cutout-1.png",
+   "depth": 0.185,
+   "box": [
+    0,
+    222,
+    462,
+    858
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s20/523-they-have-my-passport/people-1/cutout-2.png",
+   "depth": 0.151,
+   "box": [
+    257,
+    0,
+    1304,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 1 runs to its box edge: it may be clipped",
+  "2 person-like shape(s) still found in the plate: someone may have been missed"
+ ]
+}

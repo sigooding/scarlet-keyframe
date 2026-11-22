@@ -68,8 +68,8 @@ function oldImport(): ProjectState {
 }
 
 describe("Director's Export cut", () => {
-  it("is the first cut in the menu", () => {
-    expect(DIRECTORS_CUT_OPTIONS[0].id).toBe("director-export");
+  it("is in the menu, after The Festival Cut", () => {
+    expect(DIRECTORS_CUT_OPTIONS.map((o) => o.id).slice(0, 2)).toEqual(["festival", "director-export"]);
     expect(exportCut.directorsCutId).toBe("director-export");
     expect(data.source).toBe("nobodys-witness.reel.json");
   });

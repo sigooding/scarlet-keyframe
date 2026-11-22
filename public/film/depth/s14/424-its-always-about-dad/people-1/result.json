@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s14/424-its-always-about-dad.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s14/424-its-always-about-dad/people-1/cutout-1.png",
+   "depth": 0.589,
+   "box": [
+    65,
+    0,
+    975,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}
