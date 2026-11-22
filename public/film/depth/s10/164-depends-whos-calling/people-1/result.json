@@ -1,0 +1,31 @@
+{
+ "picture": "/film/img/s10/164-depends-whos-calling.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s10/164-depends-whos-calling/people-1/cutout-1.png",
+   "depth": 0.238,
+   "box": [
+    230,
+    82,
+    593,
+    1466
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s10/164-depends-whos-calling/people-1/cutout-2.png",
+   "depth": 0.711,
+   "box": [
+    1422,
+    378,
+    1026,
+    1170
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "2 smaller figure(s) were left in the plate (under 15% of the largest, or past 4)"
+ ]
+}

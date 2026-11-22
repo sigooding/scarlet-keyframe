@@ -726,6 +726,20 @@
     }
    ]
   },
+  "/film/img/s10/164-depends-whos-calling.jpg": {
+   "depthMap": "/film/depth/s10/164-depends-whos-calling/people-1/depth.png",
+   "depthPlate": "/film/depth/s10/164-depends-whos-calling/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s10/164-depends-whos-calling/people-1/cutout-1.png",
+     "depth": 0.238
+    },
+    {
+     "image": "/film/depth/s10/164-depends-whos-calling/people-1/cutout-2.png",
+     "depth": 0.711
+    }
+   ]
+  },
   "/film/img/s10/414-the-clip-on-the-desk.jpg": {
    "depthMap": "/film/depth/s10/414-the-clip-on-the-desk/people-1/depth.png",
    "depthPlate": "/film/depth/s10/414-the-clip-on-the-desk/people-1/plate.jpg",
@@ -1261,6 +1275,16 @@
     {
      "image": "/film/depth/s83/515-he-pours-her-tea-himself/people-1/cutout-2.png",
      "depth": 0.394
+    }
+   ]
+  },
+  "/film/img/s84/518-thats-mine.jpg": {
+   "depthMap": "/film/depth/s84/518-thats-mine/people-1/depth.png",
+   "depthPlate": "/film/depth/s84/518-thats-mine/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s84/518-thats-mine/people-1/cutout-1.png",
+     "depth": 0.669
     }
    ]
   },
