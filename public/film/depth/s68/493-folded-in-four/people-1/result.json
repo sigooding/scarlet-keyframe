@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s68/493-folded-in-four.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s68/493-folded-in-four/people-1/cutout-1.png",
+   "depth": 0.458,
+   "box": [
+    603,
+    15,
+    852,
+    1065
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

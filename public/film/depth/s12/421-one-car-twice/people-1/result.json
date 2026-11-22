@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s12/421-one-car-twice.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s12/421-one-car-twice/people-1/cutout-1.png",
+   "depth": 0.293,
+   "box": [
+    738,
+    38,
+    337,
+    556
+   ],
+   "how": "feet"
+  }
+ ],
+ "flags": []
+}

@@ -1,0 +1,31 @@
+{
+ "picture": "/film/img/s98/154-this-is-yours.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s98/154-this-is-yours/people-1/cutout-1.png",
+   "depth": 0.868,
+   "box": [
+    0,
+    373,
+    1536,
+    707
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s98/154-this-is-yours/people-1/cutout-2.png",
+   "depth": 0.884,
+   "box": [
+    864,
+    304,
+    1056,
+    711
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "1 person-like shape(s) still found in the plate: someone may have been missed"
+ ]
+}
