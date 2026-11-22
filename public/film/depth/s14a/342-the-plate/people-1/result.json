@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s14a/342-the-plate.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s14a/342-the-plate/people-1/cutout-1.png",
+   "depth": 0.621,
+   "box": [
+    116,
+    389,
+    1669,
+    691
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

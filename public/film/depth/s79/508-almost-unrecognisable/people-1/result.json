@@ -1,0 +1,21 @@
+{
+ "picture": "/film/img/s79/508-almost-unrecognisable.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s79/508-almost-unrecognisable/people-1/cutout-1.png",
+   "depth": 0.973,
+   "box": [
+    307,
+    669,
+    1216,
+    411
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 1 runs to its box edge: it may be clipped",
+  "1 person-like shape(s) still found in the plate: someone may have been missed"
+ ]
+}

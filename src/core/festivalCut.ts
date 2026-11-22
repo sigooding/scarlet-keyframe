@@ -15,14 +15,15 @@
 //    lateral drift on a wide shot, so no frame is a dead still. The four Vertigo dolly-zooms are left alone. The
 //    raids, the Hive shootout, Vera's run and the night of the call go handheld: a float over the shot's own move.
 //  - Light. A shot whose picture has a practical in it (a lamp, a street light, a neon sign, a vending machine) gets
-//    a soft glow on it that breathes the way that light would: neon flickers, a flame wavers, a lamp barely moves.
+//    a soft glow on it that breathes the way that light would, slowly: neon and flame a little more, a lamp barely.
 //  - Motion. Six shots play as real motion, made from their own pictures (Vera starting to run, the train overhead,
 //    the red shoe, the car, the incense, the rain at the service).
 //  - Pictures. A handful of stills with visible faults (reviewed frame by frame) are replaced by repaired versions
 //    that keep composition, cast, wardrobe and light. The originals are untouched.
 //  - Sound. Foley where the film had none, Kurose's sedan, a fuller Hive shootout; the rain under Mara's service plays
 //    only outside, so the song has the room to itself indoors.
-//  - Look. Film stock and grain are made consistent across the film; each scene keeps its grade.
+//  - Look. Grain and vignette are made consistent across the film; each scene keeps its grade. No flicker anywhere:
+//    the film-grade overlay's flicker is never switched on, and no light pulses faster than once in two seconds.
 //
 // Data: src/data/festival-cut.json, made by scripts/build-festival-cut.mjs. Code is pure: the input is never changed.
 
@@ -174,9 +175,10 @@ export function practicalLight(spot: { x: number; y: number; color: string }, te
   let pulseSeconds = 4.5;
   let pulseAmount = 0.2;
   let intensity = 0.3;
-  if (/\bneon|\bsign\b|signboard/.test(t)) [pulseSeconds, pulseAmount, intensity] = [0.9, 0.6, 0.38];
-  else if (/candle|fire|flame|incense|lighter|\bmatch\b/.test(t)) [pulseSeconds, pulseAmount, intensity] = [1.1, 0.5, 0.36];
-  else if (/vending|fluorescent|\btube\b|television|\btv\b|screen/.test(t)) [pulseSeconds, pulseAmount] = [2.2, 0.15];
+  // Slow on purpose: a fast pulse reads as flicker, and flicker makes people feel sick.
+  if (/\bneon|\bsign\b|signboard/.test(t)) [pulseSeconds, pulseAmount, intensity] = [2.6, 0.3, 0.34];
+  else if (/candle|fire|flame|incense|lighter|\bmatch\b/.test(t)) [pulseSeconds, pulseAmount, intensity] = [2.2, 0.3, 0.34];
+  else if (/vending|fluorescent|\btube\b|television|\btv\b|screen/.test(t)) [pulseSeconds, pulseAmount] = [3.5, 0.12];
   return { x: spot.x, y: spot.y, color: spot.color, intensity, size: 16, pulseSeconds, pulseAmount };
 }
 
@@ -216,9 +218,8 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
       const frames = Math.max(1, framesOf.get(id) ?? Math.round(Number(beat.durationFrames) || 0));
       const cinematic: AnyRecord = { ...(beat.cinematic ?? {}) };
 
-      // Look: one film stock across the feature; each scene keeps its grade.
-      cinematic.filmGrade = true;
-      cinematic.filmGradeStrength = Math.max(Number(cinematic.filmGradeStrength) || 0, 0.3);
+      // Look: one grain and vignette across the feature; each scene keeps its grade. Never the "film grade" overlay:
+      // it carries a brightness flicker (2.6 times a second) and scratches, which made a viewer feel sick.
       cinematic.grain = true;
       cinematic.grainOpacity = 0.045;
       cinematic.vignette = true;

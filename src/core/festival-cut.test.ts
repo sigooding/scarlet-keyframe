@@ -217,6 +217,15 @@ describe("The Festival Cut", () => {
     }
   });
 
+  it("never flickers: no film-grade overlay it did not already have, and no light pulsing faster than every 2 seconds", () => {
+    for (const b of beats(festival.story)) {
+      const was = exportBeats.get(String(b.id));
+      expect(Boolean(b.cinematic?.filmGrade), String(b.id)).toBe(Boolean(was?.cinematic?.filmGrade));
+      if (was?.cinematic?.lights) continue;
+      for (const l of (b.cinematic?.lights as { pulseSeconds: number }[] | undefined) ?? []) expect(l.pulseSeconds).toBeGreaterThanOrEqual(2);
+    }
+  });
+
   it("never changes the Director's Export itself", () => {
     expect(exportCut.story).toEqual((directorExport as unknown as { story: StoryLike }).story);
     const again = applyFestivalFinish(exportCut);

@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s98/526-at-the-end.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s98/526-at-the-end/people-1/cutout-1.png",
+   "depth": 0.591,
+   "box": [
+    827,
+    0,
+    1093,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

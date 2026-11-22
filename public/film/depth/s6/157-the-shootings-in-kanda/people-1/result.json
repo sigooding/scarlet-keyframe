@@ -1,0 +1,20 @@
+{
+ "picture": "/film/img/s6/157-the-shootings-in-kanda.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s6/157-the-shootings-in-kanda/people-1/cutout-1.png",
+   "depth": 0.847,
+   "box": [
+    86,
+    0,
+    1131,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "1 person-like shape(s) still found in the plate: someone may have been missed"
+ ]
+}
