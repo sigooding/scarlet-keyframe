@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s84/520-excuse-me.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s84/520-excuse-me/people-1/cutout-1.png",
+   "depth": 0.713,
+   "box": [
+    0,
+    411,
+    669,
+    669
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}
