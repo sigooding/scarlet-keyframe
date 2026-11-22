@@ -1,0 +1,54 @@
+{
+ "picture": "/film/img/s69/236-vera-would-love-this.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s69/236-vera-would-love-this/people-1/cutout-1.png",
+   "depth": 0.25,
+   "box": [
+    283,
+    561,
+    187,
+    406
+   ],
+   "how": "feet"
+  },
+  {
+   "image": "/film/depth/s69/236-vera-would-love-this/people-1/cutout-2.png",
+   "depth": 0.351,
+   "box": [
+    610,
+    177,
+    380,
+    903
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s69/236-vera-would-love-this/people-1/cutout-3.png",
+   "depth": 0.312,
+   "box": [
+    1025,
+    287,
+    280,
+    793
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s69/236-vera-would-love-this/people-1/cutout-4.png",
+   "depth": 0.27,
+   "box": [
+    1612,
+    487,
+    222,
+    282
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "1 person-like shape(s) still found in the plate: someone may have been missed",
+  "2 smaller figure(s) were left in the plate (under 15% of the largest, or past 4)"
+ ]
+}

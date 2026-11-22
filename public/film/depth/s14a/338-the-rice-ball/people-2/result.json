@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s14a/338-the-rice-ball.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s14a/338-the-rice-ball/people-2/cutout-1.png",
+   "depth": 0.603,
+   "box": [
+    193,
+    0,
+    1511,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

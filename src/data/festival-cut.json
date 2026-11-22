@@ -692,6 +692,20 @@
   "/film/img/s53/275-the-kiss-r1.jpg": "/film/img/festival/s53/275-the-kiss-close.jpg"
  },
  "cutoutsByPicture": {
+  "/film/img/festival/s53/275-the-kiss-close.jpg": {
+   "depthMap": "/film/depth/festival/s53/275-the-kiss-close/people-1/depth.png",
+   "depthPlate": "/film/depth/festival/s53/275-the-kiss-close/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/festival/s53/275-the-kiss-close/people-1/cutout-1.png",
+     "depth": 0.645
+    },
+    {
+     "image": "/film/depth/festival/s53/275-the-kiss-close/people-1/cutout-2.png",
+     "depth": 0.654
+    }
+   ]
+  },
   "/film/img/festival/s79/505-neat-slanted-careful-r1.jpg": {
    "depthMap": "/film/depth/festival/s79/505-neat-slanted-careful-r1/people-1/depth.png",
    "depthPlate": "/film/depth/festival/s79/505-neat-slanted-careful-r1/people-1/plate.jpg",
@@ -802,6 +816,16 @@
     }
    ]
   },
+  "/film/img/s12/421-one-car-twice.jpg": {
+   "depthMap": "/film/depth/s12/421-one-car-twice/people-1/depth.png",
+   "depthPlate": "/film/depth/s12/421-one-car-twice/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s12/421-one-car-twice/people-1/cutout-1.png",
+     "depth": 0.293
+    }
+   ]
+  },
   "/film/img/s14/182-someone-who-meant-to-come-back.jpg": {
    "depthMap": "/film/depth/s14/182-someone-who-meant-to-come-back/people-1/depth.png",
    "depthPlate": "/film/depth/s14/182-someone-who-meant-to-come-back/people-1/plate.jpg",
@@ -826,6 +850,16 @@
     }
    ]
   },
+  "/film/img/s14/363-the-clip-on-the-sketchbook.jpg": {
+   "depthMap": "/film/depth/s14/363-the-clip-on-the-sketchbook/people-1/depth.png",
+   "depthPlate": "/film/depth/s14/363-the-clip-on-the-sketchbook/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14/363-the-clip-on-the-sketchbook/people-1/cutout-1.png",
+     "depth": 0.266
+    }
+   ]
+  },
   "/film/img/s14/424-its-always-about-dad.jpg": {
    "depthMap": "/film/depth/s14/424-its-always-about-dad/people-1/depth.png",
    "depthPlate": "/film/depth/s14/424-its-always-about-dad/people-1/plate.jpg",
@@ -847,6 +881,16 @@
     {
      "image": "/film/depth/s14/425-a-story-i-used-to-tell-her/people-1/cutout-2.png",
      "depth": 0.633
+    }
+   ]
+  },
+  "/film/img/s14a/338-the-rice-ball.jpg": {
+   "depthMap": "/film/depth/s14a/338-the-rice-ball/people-2/depth.png",
+   "depthPlate": "/film/depth/s14a/338-the-rice-ball/people-2/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14a/338-the-rice-ball/people-2/cutout-1.png",
+     "depth": 0.603
     }
    ]
   },
@@ -1240,6 +1284,20 @@
     }
    ]
   },
+  "/film/img/s32/171-upstairs-at-the-end.jpg": {
+   "depthMap": "/film/depth/s32/171-upstairs-at-the-end/people-1/depth.png",
+   "depthPlate": "/film/depth/s32/171-upstairs-at-the-end/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s32/171-upstairs-at-the-end/people-1/cutout-1.png",
+     "depth": 0.225
+    },
+    {
+     "image": "/film/depth/s32/171-upstairs-at-the-end/people-1/cutout-2.png",
+     "depth": 0.201
+    }
+   ]
+  },
   "/film/img/s33/458-the-back-door-sticks.jpg": {
    "depthMap": "/film/depth/s33/458-the-back-door-sticks/people-1/depth.png",
    "depthPlate": "/film/depth/s33/458-the-back-door-sticks/people-1/plate.jpg",
@@ -1285,6 +1343,34 @@
     {
      "image": "/film/depth/s53/219-pink-water/people-1/cutout-2.png",
      "depth": 0.23
+    }
+   ]
+  },
+  "/film/img/s53/275-the-kiss-r1.jpg": {
+   "depthMap": "/film/depth/s53/275-the-kiss-r1/people-1/depth.png",
+   "depthPlate": "/film/depth/s53/275-the-kiss-r1/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s53/275-the-kiss-r1/people-1/cutout-1.png",
+     "depth": 0.284
+    },
+    {
+     "image": "/film/depth/s53/275-the-kiss-r1/people-1/cutout-2.png",
+     "depth": 0.291
+    }
+   ]
+  },
+  "/film/img/s53/474-careful-steady.jpg": {
+   "depthMap": "/film/depth/s53/474-careful-steady/people-1/depth.png",
+   "depthPlate": "/film/depth/s53/474-careful-steady/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s53/474-careful-steady/people-1/cutout-1.png",
+     "depth": 0.686
+    },
+    {
+     "image": "/film/depth/s53/474-careful-steady/people-1/cutout-2.png",
+     "depth": 0.237
     }
    ]
   },
@@ -1556,6 +1642,20 @@
     }
    ]
   },
+  "/film/img/s62/486-properly.jpg": {
+   "depthMap": "/film/depth/s62/486-properly/people-1/depth.png",
+   "depthPlate": "/film/depth/s62/486-properly/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s62/486-properly/people-1/cutout-1.png",
+     "depth": 0.234
+    },
+    {
+     "image": "/film/depth/s62/486-properly/people-1/cutout-2.png",
+     "depth": 0.683
+    }
+   ]
+  },
   "/film/img/s64/231-behind-the-counter.jpg": {
    "depthMap": "/film/depth/s64/231-behind-the-counter/people-1/depth.png",
    "depthPlate": "/film/depth/s64/231-behind-the-counter/people-1/plate.jpg",
@@ -1577,6 +1677,38 @@
     {
      "image": "/film/depth/s68/1706-jack-at-the-curtain/people-1/cutout-1.png",
      "depth": 0.174
+    }
+   ]
+  },
+  "/film/img/s68/493-folded-in-four.jpg": {
+   "depthMap": "/film/depth/s68/493-folded-in-four/people-1/depth.png",
+   "depthPlate": "/film/depth/s68/493-folded-in-four/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s68/493-folded-in-four/people-1/cutout-1.png",
+     "depth": 0.458
+    }
+   ]
+  },
+  "/film/img/s69/236-vera-would-love-this.jpg": {
+   "depthMap": "/film/depth/s69/236-vera-would-love-this/people-1/depth.png",
+   "depthPlate": "/film/depth/s69/236-vera-would-love-this/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s69/236-vera-would-love-this/people-1/cutout-1.png",
+     "depth": 0.25
+    },
+    {
+     "image": "/film/depth/s69/236-vera-would-love-this/people-1/cutout-2.png",
+     "depth": 0.351
+    },
+    {
+     "image": "/film/depth/s69/236-vera-would-love-this/people-1/cutout-3.png",
+     "depth": 0.312
+    },
+    {
+     "image": "/film/depth/s69/236-vera-would-love-this/people-1/cutout-4.png",
+     "depth": 0.27
     }
    ]
   },
@@ -1645,6 +1777,20 @@
     {
      "image": "/film/depth/s79/508-almost-unrecognisable/people-1/cutout-1.png",
      "depth": 0.973
+    }
+   ]
+  },
+  "/film/img/s80/95-ishida-doesnt-look-up.jpg": {
+   "depthMap": "/film/depth/s80/95-ishida-doesnt-look-up/people-1/depth.png",
+   "depthPlate": "/film/depth/s80/95-ishida-doesnt-look-up/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s80/95-ishida-doesnt-look-up/people-1/cutout-1.png",
+     "depth": 0.508
+    },
+    {
+     "image": "/film/depth/s80/95-ishida-doesnt-look-up/people-1/cutout-2.png",
+     "depth": 0.74
     }
    ]
   },

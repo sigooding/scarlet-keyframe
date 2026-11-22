@@ -1,0 +1,20 @@
+{
+ "picture": "/film/img/s14/363-the-clip-on-the-sketchbook.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s14/363-the-clip-on-the-sketchbook/people-1/cutout-1.png",
+   "depth": 0.266,
+   "box": [
+    1118,
+    14,
+    802,
+    1066
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 1 runs to its box edge: it may be clipped"
+ ]
+}

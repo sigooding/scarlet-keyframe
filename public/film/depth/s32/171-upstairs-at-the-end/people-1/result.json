@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/s32/171-upstairs-at-the-end.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s32/171-upstairs-at-the-end/people-1/cutout-1.png",
+   "depth": 0.225,
+   "box": [
+    671,
+    237,
+    350,
+    843
+   ],
+   "how": "feet"
+  },
+  {
+   "image": "/film/depth/s32/171-upstairs-at-the-end/people-1/cutout-2.png",
+   "depth": 0.201,
+   "box": [
+    1024,
+    258,
+    261,
+    822
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}
