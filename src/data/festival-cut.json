@@ -880,6 +880,20 @@
     }
    ]
   },
+  "/film/img/s17/434-i-was-already-old.jpg": {
+   "depthMap": "/film/depth/s17/434-i-was-already-old/people-1/depth.png",
+   "depthPlate": "/film/depth/s17/434-i-was-already-old/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s17/434-i-was-already-old/people-1/cutout-1.png",
+     "depth": 0.862
+    },
+    {
+     "image": "/film/depth/s17/434-i-was-already-old/people-1/cutout-2.png",
+     "depth": 0.152
+    }
+   ]
+  },
   "/film/img/s20/309-the-voicemail.jpg": {
    "depthMap": "/film/depth/s20/309-the-voicemail/people-1/depth.png",
    "depthPlate": "/film/depth/s20/309-the-voicemail/people-1/plate.jpg",
