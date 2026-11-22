@@ -712,6 +712,20 @@
     }
    ]
   },
+  "/film/img/jack_ishida_new/61-02-neither-looks.jpg": {
+   "depthMap": "/film/depth/jack_ishida_new/61-02-neither-looks/people-1/depth.png",
+   "depthPlate": "/film/depth/jack_ishida_new/61-02-neither-looks/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/jack_ishida_new/61-02-neither-looks/people-1/cutout-1.png",
+     "depth": 0.203
+    },
+    {
+     "image": "/film/depth/jack_ishida_new/61-02-neither-looks/people-1/cutout-2.png",
+     "depth": 0.217
+    }
+   ]
+  },
   "/film/img/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1.jpg": {
    "depthMap": "/film/depth/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1/people-1/depth.png",
    "depthPlate": "/film/depth/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1/people-1/plate.jpg",
@@ -751,6 +765,20 @@
     {
      "image": "/film/depth/s10/414-the-clip-on-the-desk/people-1/cutout-2.png",
      "depth": 0.323
+    }
+   ]
+  },
+  "/film/img/s10/415-four-days.jpg": {
+   "depthMap": "/film/depth/s10/415-four-days/people-1/depth.png",
+   "depthPlate": "/film/depth/s10/415-four-days/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s10/415-four-days/people-1/cutout-1.png",
+     "depth": 0.57
+    },
+    {
+     "image": "/film/depth/s10/415-four-days/people-1/cutout-2.png",
+     "depth": 0.672
     }
    ]
   },
@@ -867,6 +895,20 @@
     {
      "image": "/film/depth/s14a/428-their-fingers-dont-touch/people-1/cutout-2.png",
      "depth": 0.174
+    }
+   ]
+  },
+  "/film/img/s14a/533-the-amber-sign-goes-dark.jpg": {
+   "depthMap": "/film/depth/s14a/533-the-amber-sign-goes-dark/people-1/depth.png",
+   "depthPlate": "/film/depth/s14a/533-the-amber-sign-goes-dark/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14a/533-the-amber-sign-goes-dark/people-1/cutout-1.png",
+     "depth": 0.931
+    },
+    {
+     "image": "/film/depth/s14a/533-the-amber-sign-goes-dark/people-1/cutout-2.png",
+     "depth": 0.9
     }
    ]
   },
@@ -991,6 +1033,30 @@
     {
      "image": "/film/depth/s25/370-the-tag-114/people-1/cutout-1.png",
      "depth": 0.589
+    }
+   ]
+  },
+  "/film/img/s25/443-eat.jpg": {
+   "depthMap": "/film/depth/s25/443-eat/people-1/depth.png",
+   "depthPlate": "/film/depth/s25/443-eat/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s25/443-eat/people-1/cutout-1.png",
+     "depth": 0.089
+    },
+    {
+     "image": "/film/depth/s25/443-eat/people-1/cutout-2.png",
+     "depth": 0.488
+    }
+   ]
+  },
+  "/film/img/s25/445-exactly-where-it-was.jpg": {
+   "depthMap": "/film/depth/s25/445-exactly-where-it-was/people-1/depth.png",
+   "depthPlate": "/film/depth/s25/445-exactly-where-it-was/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s25/445-exactly-where-it-was/people-1/cutout-1.png",
+     "depth": 0.61
     }
    ]
   },
@@ -1266,6 +1332,20 @@
     }
    ]
   },
+  "/film/img/s6/59-is-she-dead.jpg": {
+   "depthMap": "/film/depth/s6/59-is-she-dead/people-1/depth.png",
+   "depthPlate": "/film/depth/s6/59-is-she-dead/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s6/59-is-she-dead/people-1/cutout-1.png",
+     "depth": 0.789
+    },
+    {
+     "image": "/film/depth/s6/59-is-she-dead/people-1/cutout-2.png",
+     "depth": 0.745
+    }
+   ]
+  },
   "/film/img/s6/61-in-japanese.jpg": {
    "depthMap": "/film/depth/s6/61-in-japanese/people-1/depth.png",
    "depthPlate": "/film/depth/s6/61-in-japanese/people-1/plate.jpg",
@@ -1305,6 +1385,20 @@
     {
      "image": "/film/depth/s60/480-she-was-so-happy/people-1/cutout-2.png",
      "depth": 0.751
+    }
+   ]
+  },
+  "/film/img/s62/485-the-signal-is-red.jpg": {
+   "depthMap": "/film/depth/s62/485-the-signal-is-red/people-1/depth.png",
+   "depthPlate": "/film/depth/s62/485-the-signal-is-red/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s62/485-the-signal-is-red/people-1/cutout-1.png",
+     "depth": 0.842
+    },
+    {
+     "image": "/film/depth/s62/485-the-signal-is-red/people-1/cutout-2.png",
+     "depth": 0.88
     }
    ]
   },
@@ -4215,6 +4309,19 @@
    "fadeInMs": 0,
    "fadeOutMs": 0,
    "loop": false
+  },
+  {
+   "id": "fc_sfx_34",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/jack-breathing-hard.mp3",
+   "anchorId": "nw_b1358",
+   "gain": 0.55,
+   "fileMs": 15047,
+   "offsetMs": 0,
+   "fadeInMs": 200,
+   "fadeOutMs": 1500,
+   "loop": false,
+   "maxMs": 5000
   }
  ],
  "ambience": [
@@ -4247,6 +4354,9 @@
  "clipPatches": {
   "ac_sfx_562": {
    "offsetMs": 700
+  },
+  "ac_sfx_622": {
+   "gain": 0.85
   }
  }
 }

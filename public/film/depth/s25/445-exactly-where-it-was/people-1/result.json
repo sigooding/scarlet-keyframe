@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s25/445-exactly-where-it-was.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s25/445-exactly-where-it-was/people-1/cutout-1.png",
+   "depth": 0.61,
+   "box": [
+    0,
+    0,
+    1441,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}
