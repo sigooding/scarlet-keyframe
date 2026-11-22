@@ -754,6 +754,20 @@
     }
    ]
   },
+  "/film/img/s10/415-four-days.jpg": {
+   "depthMap": "/film/depth/s10/415-four-days/people-1/depth.png",
+   "depthPlate": "/film/depth/s10/415-four-days/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s10/415-four-days/people-1/cutout-1.png",
+     "depth": 0.57
+    },
+    {
+     "image": "/film/depth/s10/415-four-days/people-1/cutout-2.png",
+     "depth": 0.672
+    }
+   ]
+  },
   "/film/img/s10/417-at-the-door.jpg": {
    "depthMap": "/film/depth/s10/417-at-the-door/people-1/depth.png",
    "depthPlate": "/film/depth/s10/417-at-the-door/people-1/plate.jpg",
