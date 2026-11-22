@@ -1112,6 +1112,16 @@
     }
    ]
   },
+  "/film/img/s25/447-last-night-she-had-noodles.jpg": {
+   "depthMap": "/film/depth/s25/447-last-night-she-had-noodles/people-1/depth.png",
+   "depthPlate": "/film/depth/s25/447-last-night-she-had-noodles/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s25/447-last-night-she-had-noodles/people-1/cutout-1.png",
+     "depth": 0.394
+    }
+   ]
+  },
   "/film/img/s25/the-rice-goes-cold.jpg": {
    "depthMap": "/film/depth/s25/the-rice-goes-cold/people-1/depth.png",
    "depthPlate": "/film/depth/s25/the-rice-goes-cold/people-1/plate.jpg",
