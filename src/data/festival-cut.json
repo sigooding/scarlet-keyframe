@@ -984,6 +984,20 @@
     }
    ]
   },
+  "/film/img/s29/204-the-tea-she-does-not-want-to-pour.jpg": {
+   "depthMap": "/film/depth/s29/204-the-tea-she-does-not-want-to-pour/people-1/depth.png",
+   "depthPlate": "/film/depth/s29/204-the-tea-she-does-not-want-to-pour/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s29/204-the-tea-she-does-not-want-to-pour/people-1/cutout-1.png",
+     "depth": 0.823
+    },
+    {
+     "image": "/film/depth/s29/204-the-tea-she-does-not-want-to-pour/people-1/cutout-2.png",
+     "depth": 0.791
+    }
+   ]
+  },
   "/film/img/s29/355-did-he-ever-pay-rent.jpg": {
    "depthMap": "/film/depth/s29/355-did-he-ever-pay-rent/people-1/depth.png",
    "depthPlate": "/film/depth/s29/355-did-he-ever-pay-rent/people-1/plate.jpg",
