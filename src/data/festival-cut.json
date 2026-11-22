@@ -802,6 +802,20 @@
     }
    ]
   },
+  "/film/img/s14/182-someone-who-meant-to-come-back.jpg": {
+   "depthMap": "/film/depth/s14/182-someone-who-meant-to-come-back/people-1/depth.png",
+   "depthPlate": "/film/depth/s14/182-someone-who-meant-to-come-back/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14/182-someone-who-meant-to-come-back/people-1/cutout-1.png",
+     "depth": 0.32
+    },
+    {
+     "image": "/film/depth/s14/182-someone-who-meant-to-come-back/people-1/cutout-2.png",
+     "depth": 0.274
+    }
+   ]
+  },
   "/film/img/s14/270-packed-and-zipped.jpg": {
    "depthMap": "/film/depth/s14/270-packed-and-zipped/people-1/depth.png",
    "depthPlate": "/film/depth/s14/270-packed-and-zipped/people-1/plate.jpg",
@@ -988,6 +1002,24 @@
     }
    ]
   },
+  "/film/img/s22/347-the-cups-tremble.jpg": {
+   "depthMap": "/film/depth/s22/347-the-cups-tremble/people-1/depth.png",
+   "depthPlate": "/film/depth/s22/347-the-cups-tremble/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s22/347-the-cups-tremble/people-1/cutout-1.png",
+     "depth": 0.873
+    },
+    {
+     "image": "/film/depth/s22/347-the-cups-tremble/people-1/cutout-2.png",
+     "depth": 0.178
+    },
+    {
+     "image": "/film/depth/s22/347-the-cups-tremble/people-1/cutout-3.png",
+     "depth": 0.798
+    }
+   ]
+  },
   "/film/img/s22/438-i-stayed-awake.jpg": {
    "depthMap": "/film/depth/s22/438-i-stayed-awake/people-1/depth.png",
    "depthPlate": "/film/depth/s22/438-i-stayed-awake/people-1/plate.jpg",
@@ -1050,6 +1082,16 @@
     }
    ]
   },
+  "/film/img/s25/444-he-knew-me.jpg": {
+   "depthMap": "/film/depth/s25/444-he-knew-me/people-1/depth.png",
+   "depthPlate": "/film/depth/s25/444-he-knew-me/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s25/444-he-knew-me/people-1/cutout-1.png",
+     "depth": 0.606
+    }
+   ]
+  },
   "/film/img/s25/445-exactly-where-it-was.jpg": {
    "depthMap": "/film/depth/s25/445-exactly-where-it-was/people-1/depth.png",
    "depthPlate": "/film/depth/s25/445-exactly-where-it-was/people-1/plate.jpg",
@@ -1057,6 +1099,50 @@
     {
      "image": "/film/depth/s25/445-exactly-where-it-was/people-1/cutout-1.png",
      "depth": 0.61
+    }
+   ]
+  },
+  "/film/img/s25/446-she-closes-her-hand.jpg": {
+   "depthMap": "/film/depth/s25/446-she-closes-her-hand/people-1/depth.png",
+   "depthPlate": "/film/depth/s25/446-she-closes-her-hand/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s25/446-she-closes-her-hand/people-1/cutout-1.png",
+     "depth": 0.677
+    }
+   ]
+  },
+  "/film/img/s25/447-last-night-she-had-noodles.jpg": {
+   "depthMap": "/film/depth/s25/447-last-night-she-had-noodles/people-1/depth.png",
+   "depthPlate": "/film/depth/s25/447-last-night-she-had-noodles/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s25/447-last-night-she-had-noodles/people-1/cutout-1.png",
+     "depth": 0.394
+    }
+   ]
+  },
+  "/film/img/s25/the-rice-goes-cold.jpg": {
+   "depthMap": "/film/depth/s25/the-rice-goes-cold/people-1/depth.png",
+   "depthPlate": "/film/depth/s25/the-rice-goes-cold/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s25/the-rice-goes-cold/people-1/cutout-1.png",
+     "depth": 0.769
+    },
+    {
+     "image": "/film/depth/s25/the-rice-goes-cold/people-1/cutout-2.png",
+     "depth": 0.472
+    }
+   ]
+  },
+  "/film/img/s25a/448-breakfast-nobody-asked-for.jpg": {
+   "depthMap": "/film/depth/s25a/448-breakfast-nobody-asked-for/people-1/depth.png",
+   "depthPlate": "/film/depth/s25a/448-breakfast-nobody-asked-for/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s25a/448-breakfast-nobody-asked-for/people-1/cutout-1.png",
+     "depth": 0.355
     }
    ]
   },
@@ -1280,6 +1366,20 @@
     }
    ]
   },
+  "/film/img/s59/226-at-the-edge-of-a-high-place.jpg": {
+   "depthMap": "/film/depth/s59/226-at-the-edge-of-a-high-place/people-1/depth.png",
+   "depthPlate": "/film/depth/s59/226-at-the-edge-of-a-high-place/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s59/226-at-the-edge-of-a-high-place/people-1/cutout-1.png",
+     "depth": 0.803
+    },
+    {
+     "image": "/film/depth/s59/226-at-the-edge-of-a-high-place/people-1/cutout-2.png",
+     "depth": 0.945
+    }
+   ]
+  },
   "/film/img/s59/477-he-hardly-hears-her.jpg": {
    "depthMap": "/film/depth/s59/477-he-hardly-hears-her/people-1/depth.png",
    "depthPlate": "/film/depth/s59/477-he-hardly-hears-her/people-1/plate.jpg",
@@ -1332,6 +1432,16 @@
     }
    ]
   },
+  "/film/img/s6/57-he-waits.jpg": {
+   "depthMap": "/film/depth/s6/57-he-waits/people-1/depth.png",
+   "depthPlate": "/film/depth/s6/57-he-waits/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s6/57-he-waits/people-1/cutout-1.png",
+     "depth": 0.73
+    }
+   ]
+  },
   "/film/img/s6/59-is-she-dead.jpg": {
    "depthMap": "/film/depth/s6/59-is-she-dead/people-1/depth.png",
    "depthPlate": "/film/depth/s6/59-is-she-dead/people-1/plate.jpg",
@@ -1374,6 +1484,16 @@
     }
    ]
   },
+  "/film/img/s60/479-a-new-drawing.jpg": {
+   "depthMap": "/film/depth/s60/479-a-new-drawing/people-1/depth.png",
+   "depthPlate": "/film/depth/s60/479-a-new-drawing/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s60/479-a-new-drawing/people-1/cutout-1.png",
+     "depth": 0.28
+    }
+   ]
+  },
   "/film/img/s60/480-she-was-so-happy.jpg": {
    "depthMap": "/film/depth/s60/480-she-was-so-happy/people-1/depth.png",
    "depthPlate": "/film/depth/s60/480-she-was-so-happy/people-1/plate.jpg",
@@ -1388,6 +1508,40 @@
     }
    ]
   },
+  "/film/img/s61/1012-nine-oclock.jpg": {
+   "depthMap": "/film/depth/s61/1012-nine-oclock/people-1/depth.png",
+   "depthPlate": "/film/depth/s61/1012-nine-oclock/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s61/1012-nine-oclock/people-1/cutout-1.png",
+     "depth": 0.621
+    }
+   ]
+  },
+  "/film/img/s61/482-just-you.jpg": {
+   "depthMap": "/film/depth/s61/482-just-you/people-1/depth.png",
+   "depthPlate": "/film/depth/s61/482-just-you/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s61/482-just-you/people-1/cutout-1.png",
+     "depth": 0.346
+    }
+   ]
+  },
+  "/film/img/s61/484-hands-on-the-wheel.jpg": {
+   "depthMap": "/film/depth/s61/484-hands-on-the-wheel/people-1/depth.png",
+   "depthPlate": "/film/depth/s61/484-hands-on-the-wheel/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s61/484-hands-on-the-wheel/people-1/cutout-1.png",
+     "depth": 0.393
+    },
+    {
+     "image": "/film/depth/s61/484-hands-on-the-wheel/people-1/cutout-2.png",
+     "depth": 0.299
+    }
+   ]
+  },
   "/film/img/s62/485-the-signal-is-red.jpg": {
    "depthMap": "/film/depth/s62/485-the-signal-is-red/people-1/depth.png",
    "depthPlate": "/film/depth/s62/485-the-signal-is-red/people-1/plate.jpg",
@@ -1399,6 +1553,20 @@
     {
      "image": "/film/depth/s62/485-the-signal-is-red/people-1/cutout-2.png",
      "depth": 0.88
+    }
+   ]
+  },
+  "/film/img/s64/231-behind-the-counter.jpg": {
+   "depthMap": "/film/depth/s64/231-behind-the-counter/people-1/depth.png",
+   "depthPlate": "/film/depth/s64/231-behind-the-counter/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s64/231-behind-the-counter/people-1/cutout-1.png",
+     "depth": 0.459
+    },
+    {
+     "image": "/film/depth/s64/231-behind-the-counter/people-1/cutout-2.png",
+     "depth": 0.485
     }
    ]
   },
@@ -1440,6 +1608,16 @@
     }
    ]
   },
+  "/film/img/s76/1698-the-machine-plays.jpg": {
+   "depthMap": "/film/depth/s76/1698-the-machine-plays/people-1/depth.png",
+   "depthPlate": "/film/depth/s76/1698-the-machine-plays/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s76/1698-the-machine-plays/people-1/cutout-1.png",
+     "depth": 0.692
+    }
+   ]
+  },
   "/film/img/s76/1701-vera-listens.jpg": {
    "depthMap": "/film/depth/s76/1701-vera-listens/people-1/depth.png",
    "depthPlate": "/film/depth/s76/1701-vera-listens/people-1/plate.jpg",
@@ -1467,6 +1645,20 @@
     {
      "image": "/film/depth/s79/508-almost-unrecognisable/people-1/cutout-1.png",
      "depth": 0.973
+    }
+   ]
+  },
+  "/film/img/s80/97-where-to-find-them.jpg": {
+   "depthMap": "/film/depth/s80/97-where-to-find-them/people-1/depth.png",
+   "depthPlate": "/film/depth/s80/97-where-to-find-them/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s80/97-where-to-find-them/people-1/cutout-1.png",
+     "depth": 0.962
+    },
+    {
+     "image": "/film/depth/s80/97-where-to-find-them/people-1/cutout-2.png",
+     "depth": 0.302
     }
    ]
   },
@@ -1564,6 +1756,16 @@
     }
    ]
   },
+  "/film/img/s96/303-he-left-a-statement.jpg": {
+   "depthMap": "/film/depth/s96/303-he-left-a-statement/people-1/depth.png",
+   "depthPlate": "/film/depth/s96/303-he-left-a-statement/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s96/303-he-left-a-statement/people-1/cutout-1.png",
+     "depth": 0.536
+    }
+   ]
+  },
   "/film/img/s98/155-close-enough.jpg": {
    "depthMap": "/film/depth/s98/155-close-enough/people-1/depth.png",
    "depthPlate": "/film/depth/s98/155-close-enough/people-1/plate.jpg",
@@ -1599,6 +1801,20 @@
     {
      "image": "/film/depth/s98/526-at-the-end/people-1/cutout-1.png",
      "depth": 0.591
+    }
+   ]
+  },
+  "/film/img/s98/527-they-watch-it-pass.jpg": {
+   "depthMap": "/film/depth/s98/527-they-watch-it-pass/people-1/depth.png",
+   "depthPlate": "/film/depth/s98/527-they-watch-it-pass/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s98/527-they-watch-it-pass/people-1/cutout-1.png",
+     "depth": 0.735
+    },
+    {
+     "image": "/film/depth/s98/527-they-watch-it-pass/people-1/cutout-2.png",
+     "depth": 0.805
     }
    ]
   }

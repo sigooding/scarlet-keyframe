@@ -1,0 +1,20 @@
+{
+ "picture": "/film/img/s25a/448-breakfast-nobody-asked-for.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s25a/448-breakfast-nobody-asked-for/people-1/cutout-1.png",
+   "depth": 0.355,
+   "box": [
+    0,
+    0,
+    1342,
+    1080
+   ],
+   "how": "feet"
+  }
+ ],
+ "flags": [
+  "1 person-like shape(s) still found in the plate: someone may have been missed"
+ ]
+}

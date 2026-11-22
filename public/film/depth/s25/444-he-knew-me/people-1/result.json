@@ -1,0 +1,20 @@
+{
+ "picture": "/film/img/s25/444-he-knew-me.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s25/444-he-knew-me/people-1/cutout-1.png",
+   "depth": 0.606,
+   "box": [
+    190,
+    0,
+    1450,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "1 person-like shape(s) still found in the plate: someone may have been missed"
+ ]
+}

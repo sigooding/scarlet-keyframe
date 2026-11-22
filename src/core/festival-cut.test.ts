@@ -6,7 +6,7 @@ import bundledEdits from "../data/studio-edits.json";
 import directorExport from "../data/director-export.json";
 import festivalData from "../data/festival-cut.json";
 import mediaIndex from "../data/media-index.json";
-import { buildDirectorsCutById, DIRECTORS_CUT_OPTIONS } from "./directorsCut";
+import { buildDirectorsCutById, DIRECTORS_CUT_OPTIONS, refreshStaleBuiltInCuts, switchDirectorsCutWithState } from "./directorsCut";
 import {
   applyFestivalFinish,
   FESTIVAL_CUTOUT_DEPTH_END,
@@ -29,6 +29,7 @@ const exportCut = buildDirectorsCutById(base, "director-export", voiceMap, music
 const festival = buildDirectorsCutById(base, "festival", voiceMap, musicMap);
 const data = festivalData as unknown as FestivalData;
 const videoShots = data.videoShots ?? {};
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 const beats = (s: StoryLike) => s.scenes.flatMap((sc) => sc.dialogueBeats ?? []);
 const exportBeats = new Map(beats(exportCut.story).map((b) => [String(b.id), b]));
 
@@ -224,6 +225,31 @@ describe("The Festival Cut", () => {
       if (was?.cinematic?.lights) continue;
       for (const l of (b.cinematic?.lights as { pulseSeconds: number }[] | undefined) ?? []) expect(l.pulseSeconds).toBeGreaterThanOrEqual(2);
     }
+  });
+
+  it("a Festival Cut saved before an update is rebuilt, not restored (switching to it, or reopening the app)", () => {
+    // what a browser had saved before the pull: the old cut, with no video shots, and no version stamp
+    const old = clone(festival);
+    delete old.builtInCutVersions;
+    for (const b of beats(old.story)) if (String(b.background).startsWith("video:")) b.background = "/film/img/old.jpg";
+    const hasVideo = (p: typeof festival) => beats(p.story).some((b) => String(b.background).startsWith("video:"));
+    expect(hasVideo(old)).toBe(false);
+
+    // switching: on the Director's Export with the stale Festival Cut stashed
+    const onExport = { ...clone(exportCut), builtInCutVersions: { "director-export": exportCut.builtInCutVersions!["director-export"] }, savedCutStates: { festival: { story: old.story, audioClips: old.audioClips, updatedAt: 1 } } };
+    const switched = switchDirectorsCutWithState(onExport, "festival", voiceMap, musicMap);
+    expect(hasVideo(switched)).toBe(true);
+
+    // reopening: the saved project is on the stale Festival Cut
+    const reopened = refreshStaleBuiltInCuts(old, voiceMap, musicMap);
+    expect(hasVideo(reopened)).toBe(true);
+    expect(reopened.snapshots?.some((s) => s.id === "snapshot-before-festival-update")).toBe(true);
+    // and a current one is left exactly as it is (the user's own edits survive)
+    expect(refreshStaleBuiltInCuts(reopened, voiceMap, musicMap)).toBe(reopened);
+    const edited = clone(switched);
+    edited.savedCutStates = { ...(edited.savedCutStates ?? {}) };
+    const back = switchDirectorsCutWithState(switchDirectorsCutWithState(edited, "director-export", voiceMap, musicMap), "festival", voiceMap, musicMap);
+    expect(back.story).toEqual(edited.story);
   });
 
   it("never changes the Director's Export itself", () => {

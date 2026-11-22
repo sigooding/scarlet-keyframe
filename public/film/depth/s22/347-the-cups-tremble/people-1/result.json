@@ -1,0 +1,40 @@
+{
+ "picture": "/film/img/s22/347-the-cups-tremble.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s22/347-the-cups-tremble/people-1/cutout-1.png",
+   "depth": 0.873,
+   "box": [
+    439,
+    403,
+    467,
+    677
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s22/347-the-cups-tremble/people-1/cutout-2.png",
+   "depth": 0.178,
+   "box": [
+    1015,
+    476,
+    218,
+    336
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s22/347-the-cups-tremble/people-1/cutout-3.png",
+   "depth": 0.798,
+   "box": [
+    1084,
+    385,
+    567,
+    695
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

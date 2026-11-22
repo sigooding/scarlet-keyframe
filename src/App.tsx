@@ -151,6 +151,7 @@ import {
   getDirectorsCutLabel,
   normalizeCutOptions,
   openImportedFilmCut,
+  refreshStaleBuiltInCuts,
   repairImportedCutSource,
   switchDirectorsCutWithState,
   type DirectorsCutId,
@@ -919,12 +920,16 @@ export default function App() {
           }
           statusLabel = "CLI PROJECT";
         } else if (saved?.story?.scenes?.length) {
-          const normalizedSaved: ProjectState = {
+          const loadedSaved: ProjectState = {
             ...saved,
             importedMissing: saved.importedMissing || [],
             assets: saved.assets || [],
             snapshots: saved.snapshots || [],
           };
+          // A built-in cut (the Director's Export, the Festival Cut) saved from older app data is rebuilt from the
+          // data this build has: a pull brings new shots, sounds and fixes, and the saved copy would hide them.
+          const normalizedSaved = refreshStaleBuiltInCuts(loadedSaved, initialVoiceDurations, initialMusicDurations);
+          if (normalizedSaved !== loadedSaved) void saveActiveProject(normalizedSaved).catch(() => {});
           const repairedSaved = repairImportedCutSource(normalizedSaved, () =>
             applyStudioMusicSync(
               parseImportPayload(bundledFilm, "nobodys-witness-film.json", {

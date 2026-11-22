@@ -372,3 +372,6 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
 }
 
 export const FESTIVAL_DATA = DATA;
+
+/** Bump when the finishing code changes in a way the data does not show. */
+export const FESTIVAL_CODE_VERSION = 3;

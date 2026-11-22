@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s96/303-he-left-a-statement.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s96/303-he-left-a-statement/people-1/cutout-1.png",
+   "depth": 0.536,
+   "box": [
+    1303,
+    353,
+    443,
+    376
+   ],
+   "how": "feet"
+  }
+ ],
+ "flags": []
+}

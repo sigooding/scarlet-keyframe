@@ -3,7 +3,7 @@ import directorExportData from "../data/director-export.json";
 import { applyJackNoirTreatment } from "./jackNoirCut";
 import { applyJackNarration } from "./jackNarration";
 import { applyWitnessTreatment } from "./witnessCut";
-import { applyFestivalFinish } from "./festivalCut";
+import { applyFestivalFinish, FESTIVAL_CODE_VERSION, FESTIVAL_DATA } from "./festivalCut";
 import {
   buildAudioClipsFromFilm,
   frameToMs,
@@ -3885,6 +3885,7 @@ export function buildDirectorExportProject(baseProject: ProjectState): ProjectSt
     assets: recreatedUncutAssets(baseProject.assets),
     directorsCutVersion: DIRECTORS_CUT_VERSION,
     directorsCutId: "director-export",
+    builtInCutVersions: { ...(baseProject.builtInCutVersions ?? {}), "director-export": builtInCutVersions()["director-export"] },
     updatedAt: Date.now(),
   };
 }
@@ -3977,7 +3978,11 @@ export function buildDirectorsCutById(
   if (resolvedCutId === "director-export") return buildDirectorExportProject(baseProject);
   if (resolvedCutId === "festival") {
     const { project } = applyFestivalFinish(buildDirectorExportProject(baseProject));
-    return { ...project, directorsCutId: "festival" };
+    return {
+      ...project,
+      directorsCutId: "festival",
+      builtInCutVersions: { ...(baseProject.builtInCutVersions ?? {}), festival: builtInCutVersions().festival },
+    };
   }
   if (
     resolvedCutId === "uncut" ||
@@ -4242,6 +4247,85 @@ export function applyCutOptionsToProject(
  * Switches between selectable cuts while optionally stashing & restoring custom per-cut
  * user edits (`preservePerCutEdits`), or rebuilding fresh when `forceRebuild` is true.
  */
+function fingerprint(value: unknown): string {
+  const text = JSON.stringify(value);
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+
+let builtInVersions: Record<"festival" | "director-export", string> | undefined;
+
+/** The version of each built-in cut's data in this build of the app (it changes when that data changes). */
+export function builtInCutVersions(): Record<"festival" | "director-export", string> {
+  if (!builtInVersions) {
+    const exported = fingerprint(directorExportData);
+    builtInVersions = {
+      "director-export": exported,
+      festival: `${exported}.${fingerprint(FESTIVAL_DATA)}.${FESTIVAL_CODE_VERSION}`,
+    };
+  }
+  return builtInVersions;
+}
+
+function isBuiltInCut(id: DirectorsCutId | undefined): id is "festival" | "director-export" {
+  return id === "festival" || id === "director-export";
+}
+
+/** True when the project's copy of a built-in cut was built from older data than this app has. */
+export function isBuiltInCutStale(project: ProjectState, cutId: DirectorsCutId | undefined): boolean {
+  if (!isBuiltInCut(cutId)) return false;
+  return project.builtInCutVersions?.[cutId] !== builtInCutVersions()[cutId];
+}
+
+function stampBuiltInCut(project: ProjectState, cutId: DirectorsCutId | undefined): ProjectState {
+  if (!isBuiltInCut(cutId)) return project;
+  return { ...project, builtInCutVersions: { ...(project.builtInCutVersions ?? {}), [cutId]: builtInCutVersions()[cutId] } };
+}
+
+/**
+ * Opening a saved project: if it is on a built-in cut whose data has changed since it was built (the app was
+ * updated), the cut is rebuilt from the new data, and any stale saved copy of a built-in cut is dropped. The old
+ * edit is kept as a snapshot. Anything else is returned unchanged.
+ */
+export function refreshStaleBuiltInCuts(
+  project: ProjectState,
+  voiceDurations: ReadonlyMap<string, number>,
+  musicDurations?: ReadonlyMap<string, number>,
+): ProjectState {
+  const saved = { ...(project.savedCutStates ?? {}) };
+  let changed = false;
+  for (const id of ["festival", "director-export"] as const) {
+    if (saved[id] && isBuiltInCutStale(project, id)) {
+      delete saved[id];
+      changed = true;
+    }
+  }
+  const current = project.directorsCutId;
+  if (!isBuiltInCutStale(project, current)) return changed ? { ...project, savedCutStates: saved } : project;
+  const snapshot: ProjectSnapshot = {
+    id: `snapshot-before-${current}-update`,
+    name: `Before the ${getDirectorsCutLabel(current)} update`,
+    createdAt: project.updatedAt || Date.now(),
+    story: clone(project.story),
+    ...(project.audioClips ? { audioClips: clone(project.audioClips) } : {}),
+  };
+  const fresh = buildDirectorsCutById({ ...project, savedCutStates: saved }, current!, voiceDurations, musicDurations);
+  return stampBuiltInCut(
+    {
+      ...fresh,
+      cutOptions: project.cutOptions,
+      savedCutStates: saved,
+      snapshots: [snapshot, ...(project.snapshots ?? []).filter((s) => s.id !== snapshot.id)],
+      updatedAt: Date.now(),
+    },
+    current,
+  );
+}
+
 export function switchDirectorsCutWithState(
   project: ProjectState,
   nextCutId: DirectorsCutId,
@@ -4274,6 +4358,10 @@ export function switchDirectorsCutWithState(
     delete savedStates[nextCutId];
   }
 
+  // A saved copy of a built-in cut made from older data is not restored: the cut is rebuilt from the data the app
+  // has now (a pull brought new shots, sounds or fixes).
+  if (isBuiltInCutStale(project, nextCutId)) delete savedStates[nextCutId];
+
   const stashed =
     effectiveOptions.preservePerCutEdits && !params?.forceRebuild
       ? savedStates[nextCutId]
@@ -4300,10 +4388,13 @@ export function switchDirectorsCutWithState(
     musicDurations,
     effectiveOptions,
   );
-  return {
-    ...fresh,
-    cutOptions: effectiveOptions,
-    savedCutStates: savedStates,
-    updatedAt: Date.now(),
-  };
+  return stampBuiltInCut(
+    {
+      ...fresh,
+      cutOptions: effectiveOptions,
+      savedCutStates: savedStates,
+      updatedAt: Date.now(),
+    },
+    nextCutId,
+  );
 }
