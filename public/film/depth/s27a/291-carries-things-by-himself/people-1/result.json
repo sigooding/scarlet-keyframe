@@ -1,0 +1,31 @@
+{
+ "picture": "/film/img/s27a/291-carries-things-by-himself.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s27a/291-carries-things-by-himself/people-1/cutout-1.png",
+   "depth": 0.55,
+   "box": [
+    396,
+    114,
+    563,
+    966
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s27a/291-carries-things-by-himself/people-1/cutout-2.png",
+   "depth": 0.529,
+   "box": [
+    1180,
+    109,
+    336,
+    971
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "2 smaller figure(s) were left in the plate (under 15% of the largest, or past 4)"
+ ]
+}

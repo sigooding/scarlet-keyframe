@@ -840,6 +840,16 @@
     }
    ]
   },
+  "/film/img/s22/438-i-stayed-awake.jpg": {
+   "depthMap": "/film/depth/s22/438-i-stayed-awake/people-1/depth.png",
+   "depthPlate": "/film/depth/s22/438-i-stayed-awake/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s22/438-i-stayed-awake/people-1/cutout-1.png",
+     "depth": 0.64
+    }
+   ]
+  },
   "/film/img/s23/442-he-puts-down-his-chopsticks.jpg": {
    "depthMap": "/film/depth/s23/442-he-puts-down-his-chopsticks/people-1/depth.png",
    "depthPlate": "/film/depth/s23/442-he-puts-down-his-chopsticks/people-1/plate.jpg",
@@ -873,6 +883,20 @@
     {
      "image": "/film/depth/s26/453-just-riding-the-loop/people-1/cutout-4.png",
      "depth": 0.29
+    }
+   ]
+  },
+  "/film/img/s27a/291-carries-things-by-himself.jpg": {
+   "depthMap": "/film/depth/s27a/291-carries-things-by-himself/people-1/depth.png",
+   "depthPlate": "/film/depth/s27a/291-carries-things-by-himself/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s27a/291-carries-things-by-himself/people-1/cutout-1.png",
+     "depth": 0.55
+    },
+    {
+     "image": "/film/depth/s27a/291-carries-things-by-himself/people-1/cutout-2.png",
+     "depth": 0.529
     }
    ]
   },
@@ -951,6 +975,20 @@
     {
      "image": "/film/depth/s53/219-pink-water/people-1/cutout-2.png",
      "depth": 0.23
+    }
+   ]
+  },
+  "/film/img/s58/225-bring-her-r1.jpg": {
+   "depthMap": "/film/depth/s58/225-bring-her-r1/people-1/depth.png",
+   "depthPlate": "/film/depth/s58/225-bring-her-r1/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s58/225-bring-her-r1/people-1/cutout-1.png",
+     "depth": 0.372
+    },
+    {
+     "image": "/film/depth/s58/225-bring-her-r1/people-1/cutout-2.png",
+     "depth": 0.222
     }
    ]
   },
