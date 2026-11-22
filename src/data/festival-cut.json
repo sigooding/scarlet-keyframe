@@ -794,6 +794,20 @@
     }
    ]
   },
+  "/film/img/s14/425-a-story-i-used-to-tell-her.jpg": {
+   "depthMap": "/film/depth/s14/425-a-story-i-used-to-tell-her/people-1/depth.png",
+   "depthPlate": "/film/depth/s14/425-a-story-i-used-to-tell-her/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14/425-a-story-i-used-to-tell-her/people-1/cutout-1.png",
+     "depth": 0.193
+    },
+    {
+     "image": "/film/depth/s14/425-a-story-i-used-to-tell-her/people-1/cutout-2.png",
+     "depth": 0.633
+    }
+   ]
+  },
   "/film/img/s14a/339-not-running-from-you.jpg": {
    "depthMap": "/film/depth/s14a/339-not-running-from-you/people-1/depth.png",
    "depthPlate": "/film/depth/s14a/339-not-running-from-you/people-1/plate.jpg",
@@ -866,6 +880,30 @@
     }
    ]
   },
+  "/film/img/s17/434-i-was-already-old.jpg": {
+   "depthMap": "/film/depth/s17/434-i-was-already-old/people-1/depth.png",
+   "depthPlate": "/film/depth/s17/434-i-was-already-old/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s17/434-i-was-already-old/people-1/cutout-1.png",
+     "depth": 0.862
+    },
+    {
+     "image": "/film/depth/s17/434-i-was-already-old/people-1/cutout-2.png",
+     "depth": 0.152
+    }
+   ]
+  },
+  "/film/img/s20/309-the-voicemail.jpg": {
+   "depthMap": "/film/depth/s20/309-the-voicemail/people-1/depth.png",
+   "depthPlate": "/film/depth/s20/309-the-voicemail/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s20/309-the-voicemail/people-1/cutout-1.png",
+     "depth": 0.462
+    }
+   ]
+  },
   "/film/img/s20/344-he-makes-himself-smaller.jpg": {
    "depthMap": "/film/depth/s20/344-he-makes-himself-smaller/people-1/depth.png",
    "depthPlate": "/film/depth/s20/344-he-makes-himself-smaller/people-1/plate.jpg",
@@ -877,6 +915,20 @@
     {
      "image": "/film/depth/s20/344-he-makes-himself-smaller/people-1/cutout-2.png",
      "depth": 0.51
+    }
+   ]
+  },
+  "/film/img/s20/346-the-bulb-hums.jpg": {
+   "depthMap": "/film/depth/s20/346-the-bulb-hums/people-1/depth.png",
+   "depthPlate": "/film/depth/s20/346-the-bulb-hums/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s20/346-the-bulb-hums/people-1/cutout-1.png",
+     "depth": 0.535
+    },
+    {
+     "image": "/film/depth/s20/346-the-bulb-hums/people-1/cutout-2.png",
+     "depth": 0.409
     }
    ]
   },
@@ -998,6 +1050,20 @@
     }
    ]
   },
+  "/film/img/s27a/625-the-journalists-card.jpg": {
+   "depthMap": "/film/depth/s27a/625-the-journalists-card/people-1/depth.png",
+   "depthPlate": "/film/depth/s27a/625-the-journalists-card/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s27a/625-the-journalists-card/people-1/cutout-1.png",
+     "depth": 0.616
+    },
+    {
+     "image": "/film/depth/s27a/625-the-journalists-card/people-1/cutout-2.png",
+     "depth": 0.927
+    }
+   ]
+  },
   "/film/img/s29/204-the-tea-she-does-not-want-to-pour.jpg": {
    "depthMap": "/film/depth/s29/204-the-tea-she-does-not-want-to-pour/people-1/depth.png",
    "depthPlate": "/film/depth/s29/204-the-tea-she-does-not-want-to-pour/people-1/plate.jpg",
@@ -1098,6 +1164,42 @@
     }
    ]
   },
+  "/film/img/s56/223-the-third-stool.jpg": {
+   "depthMap": "/film/depth/s56/223-the-third-stool/people-1/depth.png",
+   "depthPlate": "/film/depth/s56/223-the-third-stool/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-1.png",
+     "depth": 0.925
+    },
+    {
+     "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-2.png",
+     "depth": 0.267
+    },
+    {
+     "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-3.png",
+     "depth": 0.858
+    },
+    {
+     "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-4.png",
+     "depth": 0.602
+    }
+   ]
+  },
+  "/film/img/s56/473-she-freezes.jpg": {
+   "depthMap": "/film/depth/s56/473-she-freezes/people-1/depth.png",
+   "depthPlate": "/film/depth/s56/473-she-freezes/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s56/473-she-freezes/people-1/cutout-1.png",
+     "depth": 0.849
+    },
+    {
+     "image": "/film/depth/s56/473-she-freezes/people-1/cutout-2.png",
+     "depth": 0.408
+    }
+   ]
+  },
   "/film/img/s58/225-bring-her-r1.jpg": {
    "depthMap": "/film/depth/s58/225-bring-her-r1/people-1/depth.png",
    "depthPlate": "/film/depth/s58/225-bring-her-r1/people-1/plate.jpg",
@@ -1109,6 +1211,34 @@
     {
      "image": "/film/depth/s58/225-bring-her-r1/people-1/cutout-2.png",
      "depth": 0.222
+    }
+   ]
+  },
+  "/film/img/s59/477-he-hardly-hears-her.jpg": {
+   "depthMap": "/film/depth/s59/477-he-hardly-hears-her/people-1/depth.png",
+   "depthPlate": "/film/depth/s59/477-he-hardly-hears-her/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s59/477-he-hardly-hears-her/people-1/cutout-1.png",
+     "depth": 0.836
+    },
+    {
+     "image": "/film/depth/s59/477-he-hardly-hears-her/people-1/cutout-2.png",
+     "depth": 0.866
+    }
+   ]
+  },
+  "/film/img/s59/478-a-detective.jpg": {
+   "depthMap": "/film/depth/s59/478-a-detective/people-1/depth.png",
+   "depthPlate": "/film/depth/s59/478-a-detective/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s59/478-a-detective/people-1/cutout-1.png",
+     "depth": 0.206
+    },
+    {
+     "image": "/film/depth/s59/478-a-detective/people-1/cutout-2.png",
+     "depth": 0.733
     }
    ]
   },
@@ -1147,6 +1277,20 @@
     {
      "image": "/film/depth/s6/61-in-japanese/people-1/cutout-2.png",
      "depth": 0.448
+    }
+   ]
+  },
+  "/film/img/s6/62-the-card.jpg": {
+   "depthMap": "/film/depth/s6/62-the-card/people-1/depth.png",
+   "depthPlate": "/film/depth/s6/62-the-card/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s6/62-the-card/people-1/cutout-1.png",
+     "depth": 0.561
+    },
+    {
+     "image": "/film/depth/s6/62-the-card/people-1/cutout-2.png",
+     "depth": 0.686
     }
    ]
   },
@@ -1209,6 +1353,16 @@
     {
      "image": "/film/depth/s76/1701-vera-listens/people-1/cutout-1.png",
      "depth": 0.363
+    }
+   ]
+  },
+  "/film/img/s77a/1296-everyone-is-allowed-one.jpg": {
+   "depthMap": "/film/depth/s77a/1296-everyone-is-allowed-one/people-1/depth.png",
+   "depthPlate": "/film/depth/s77a/1296-everyone-is-allowed-one/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s77a/1296-everyone-is-allowed-one/people-1/cutout-1.png",
+     "depth": 0.274
     }
    ]
   },
@@ -1299,6 +1453,20 @@
     {
      "image": "/film/depth/s9/411-it-was-mine/people-1/cutout-2.png",
      "depth": 0.64
+    }
+   ]
+  },
+  "/film/img/s9/532-not-the-police-him.jpg": {
+   "depthMap": "/film/depth/s9/532-not-the-police-him/people-1/depth.png",
+   "depthPlate": "/film/depth/s9/532-not-the-police-him/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s9/532-not-the-police-him/people-1/cutout-1.png",
+     "depth": 0.822
+    },
+    {
+     "image": "/film/depth/s9/532-not-the-police-him/people-1/cutout-2.png",
+     "depth": 0.354
     }
    ]
   },
@@ -3629,7 +3797,9 @@
   "nw_song_b34": "/film/video/festival/red-shoe.mp4",
   "nw_song_b14": "/film/video/festival/car-passes.mp4",
   "nw_song_service_19:nw_song_b19": "/film/video/festival/incense.mp4",
-  "nw_song_service_35:nw_song_b35": "/film/video/festival/rains-all-night.mp4"
+  "nw_song_service_35:nw_song_b35": "/film/video/festival/rains-all-night.mp4",
+  "nw_song_raid_31:nw_song_b26": "/film/video/festival/train-over-hands.mp4",
+  "nw_song_service_01:nw_song_b1": "/film/video/festival/viaduct-dusk.mp4"
  },
  "sfx": [
   {

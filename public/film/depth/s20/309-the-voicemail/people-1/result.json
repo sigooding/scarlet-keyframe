@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s20/309-the-voicemail.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s20/309-the-voicemail/people-1/cutout-1.png",
+   "depth": 0.462,
+   "box": [
+    206,
+    0,
+    1487,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

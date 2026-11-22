@@ -1,0 +1,51 @@
+{
+ "picture": "/film/img/s56/223-the-third-stool.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-1.png",
+   "depth": 0.925,
+   "box": [
+    637,
+    307,
+    333,
+    773
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-2.png",
+   "depth": 0.267,
+   "box": [
+    1151,
+    338,
+    169,
+    321
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-3.png",
+   "depth": 0.858,
+   "box": [
+    1154,
+    408,
+    415,
+    672
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-4.png",
+   "depth": 0.602,
+   "box": [
+    1523,
+    394,
+    307,
+    667
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

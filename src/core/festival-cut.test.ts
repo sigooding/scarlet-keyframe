@@ -165,7 +165,7 @@ describe("The Festival Cut", () => {
     expect(held).toBeGreaterThan(40);
   });
 
-  it("plays six shots as real motion, made from their own pictures", () => {
+  it("plays its shots as real motion, made from their own pictures", () => {
     const shown = beats(festival.story).filter((b) => String(b.background).startsWith("video:/film/video/festival/"));
     expect(shown.map((b) => String(b.id)).sort()).toEqual(Object.keys(videoShots).sort());
     for (const b of shown) expect(b.cinematic?.depthMap).toBeUndefined();
