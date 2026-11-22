@@ -898,6 +898,20 @@
     }
    ]
   },
+  "/film/img/s14a/533-the-amber-sign-goes-dark.jpg": {
+   "depthMap": "/film/depth/s14a/533-the-amber-sign-goes-dark/people-1/depth.png",
+   "depthPlate": "/film/depth/s14a/533-the-amber-sign-goes-dark/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14a/533-the-amber-sign-goes-dark/people-1/cutout-1.png",
+     "depth": 0.931
+    },
+    {
+     "image": "/film/depth/s14a/533-the-amber-sign-goes-dark/people-1/cutout-2.png",
+     "depth": 0.9
+    }
+   ]
+  },
   "/film/img/s17/358-the-empty-third-stool.jpg": {
    "depthMap": "/film/depth/s17/358-the-empty-third-stool/people-1/depth.png",
    "depthPlate": "/film/depth/s17/358-the-empty-third-stool/people-1/plate.jpg",
