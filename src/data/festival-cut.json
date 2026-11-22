@@ -998,6 +998,20 @@
     }
    ]
   },
+  "/film/img/s27a/625-the-journalists-card.jpg": {
+   "depthMap": "/film/depth/s27a/625-the-journalists-card/people-1/depth.png",
+   "depthPlate": "/film/depth/s27a/625-the-journalists-card/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s27a/625-the-journalists-card/people-1/cutout-1.png",
+     "depth": 0.616
+    },
+    {
+     "image": "/film/depth/s27a/625-the-journalists-card/people-1/cutout-2.png",
+     "depth": 0.927
+    }
+   ]
+  },
   "/film/img/s29/204-the-tea-she-does-not-want-to-pour.jpg": {
    "depthMap": "/film/depth/s29/204-the-tea-she-does-not-want-to-pour/people-1/depth.png",
    "depthPlate": "/film/depth/s29/204-the-tea-she-does-not-want-to-pour/people-1/plate.jpg",
@@ -1095,6 +1109,28 @@
     {
      "image": "/film/depth/s53a/469-what-they-are-told/people-1/cutout-2.png",
      "depth": 0.897
+    }
+   ]
+  },
+  "/film/img/s56/223-the-third-stool.jpg": {
+   "depthMap": "/film/depth/s56/223-the-third-stool/people-1/depth.png",
+   "depthPlate": "/film/depth/s56/223-the-third-stool/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-1.png",
+     "depth": 0.925
+    },
+    {
+     "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-2.png",
+     "depth": 0.267
+    },
+    {
+     "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-3.png",
+     "depth": 0.858
+    },
+    {
+     "image": "/film/depth/s56/223-the-third-stool/people-1/cutout-4.png",
+     "depth": 0.602
     }
    ]
   },
