@@ -1,0 +1,32 @@
+{
+ "picture": "/film/img/s62/485-the-signal-is-red.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s62/485-the-signal-is-red/people-1/cutout-1.png",
+   "depth": 0.842,
+   "box": [
+    317,
+    196,
+    427,
+    884
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s62/485-the-signal-is-red/people-1/cutout-2.png",
+   "depth": 0.88,
+   "box": [
+    652,
+    75,
+    436,
+    1005
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 1 runs to its box edge: it may be clipped",
+  "cut-out 2 runs to its box edge: it may be clipped"
+ ]
+}

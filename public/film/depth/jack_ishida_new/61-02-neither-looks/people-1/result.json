@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/jack_ishida_new/61-02-neither-looks.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/jack_ishida_new/61-02-neither-looks/people-1/cutout-1.png",
+   "depth": 0.203,
+   "box": [
+    102,
+    149,
+    786,
+    547
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/jack_ishida_new/61-02-neither-looks/people-1/cutout-2.png",
+   "depth": 0.217,
+   "box": [
+    1054,
+    151,
+    786,
+    651
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

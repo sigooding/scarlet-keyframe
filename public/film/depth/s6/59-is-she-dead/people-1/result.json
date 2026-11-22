@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/s6/59-is-she-dead.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s6/59-is-she-dead/people-1/cutout-1.png",
+   "depth": 0.789,
+   "box": [
+    287,
+    204,
+    561,
+    843
+   ],
+   "how": "feet"
+  },
+  {
+   "image": "/film/depth/s6/59-is-she-dead/people-1/cutout-2.png",
+   "depth": 0.745,
+   "box": [
+    1106,
+    156,
+    499,
+    902
+   ],
+   "how": "feet"
+  }
+ ],
+ "flags": []
+}
