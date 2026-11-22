@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s10/417-at-the-door.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s10/417-at-the-door/people-1/cutout-1.png",
+   "depth": 0.126,
+   "box": [
+    274,
+    47,
+    599,
+    1033
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

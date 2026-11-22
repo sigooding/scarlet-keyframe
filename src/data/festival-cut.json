@@ -720,6 +720,16 @@
     }
    ]
   },
+  "/film/img/s10/417-at-the-door.jpg": {
+   "depthMap": "/film/depth/s10/417-at-the-door/people-1/depth.png",
+   "depthPlate": "/film/depth/s10/417-at-the-door/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s10/417-at-the-door/people-1/cutout-1.png",
+     "depth": 0.126
+    }
+   ]
+  },
   "/film/img/s11/418-it-takes-a-long-time-to-dial.jpg": {
    "depthMap": "/film/depth/s11/418-it-takes-a-long-time-to-dial/people-1/depth.png",
    "depthPlate": "/film/depth/s11/418-it-takes-a-long-time-to-dial/people-1/plate.jpg",
@@ -727,6 +737,16 @@
     {
      "image": "/film/depth/s11/418-it-takes-a-long-time-to-dial/people-1/cutout-1.png",
      "depth": 0.425
+    }
+   ]
+  },
+  "/film/img/s14/270-packed-and-zipped.jpg": {
+   "depthMap": "/film/depth/s14/270-packed-and-zipped/people-1/depth.png",
+   "depthPlate": "/film/depth/s14/270-packed-and-zipped/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14/270-packed-and-zipped/people-1/cutout-1.png",
+     "depth": 0.738
     }
    ]
   },
@@ -765,6 +785,30 @@
     {
      "image": "/film/depth/s14a/426-forty-metres/people-1/cutout-2.png",
      "depth": 0.483
+    }
+   ]
+  },
+  "/film/img/s14a/428-their-fingers-dont-touch.jpg": {
+   "depthMap": "/film/depth/s14a/428-their-fingers-dont-touch/people-1/depth.png",
+   "depthPlate": "/film/depth/s14a/428-their-fingers-dont-touch/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14a/428-their-fingers-dont-touch/people-1/cutout-1.png",
+     "depth": 0.178
+    },
+    {
+     "image": "/film/depth/s14a/428-their-fingers-dont-touch/people-1/cutout-2.png",
+     "depth": 0.174
+    }
+   ]
+  },
+  "/film/img/s17/358-the-empty-third-stool.jpg": {
+   "depthMap": "/film/depth/s17/358-the-empty-third-stool/people-1/depth.png",
+   "depthPlate": "/film/depth/s17/358-the-empty-third-stool/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s17/358-the-empty-third-stool/people-1/cutout-1.png",
+     "depth": 0.33
     }
    ]
   },
@@ -810,6 +854,28 @@
     }
    ]
   },
+  "/film/img/s26/453-just-riding-the-loop.jpg": {
+   "depthMap": "/film/depth/s26/453-just-riding-the-loop/people-1/depth.png",
+   "depthPlate": "/film/depth/s26/453-just-riding-the-loop/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s26/453-just-riding-the-loop/people-1/cutout-1.png",
+     "depth": 0.254
+    },
+    {
+     "image": "/film/depth/s26/453-just-riding-the-loop/people-1/cutout-2.png",
+     "depth": 0.203
+    },
+    {
+     "image": "/film/depth/s26/453-just-riding-the-loop/people-1/cutout-3.png",
+     "depth": 0.183
+    },
+    {
+     "image": "/film/depth/s26/453-just-riding-the-loop/people-1/cutout-4.png",
+     "depth": 0.29
+    }
+   ]
+  },
   "/film/img/s27a/292-she-was-here.jpg": {
    "depthMap": "/film/depth/s27a/292-she-was-here/people-1/depth.png",
    "depthPlate": "/film/depth/s27a/292-she-was-here/people-1/plate.jpg",
@@ -837,6 +903,30 @@
     {
      "image": "/film/depth/s29/355-did-he-ever-pay-rent/people-1/cutout-1.png",
      "depth": 0.593
+    }
+   ]
+  },
+  "/film/img/s33/458-the-back-door-sticks.jpg": {
+   "depthMap": "/film/depth/s33/458-the-back-door-sticks/people-1/depth.png",
+   "depthPlate": "/film/depth/s33/458-the-back-door-sticks/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s33/458-the-back-door-sticks/people-1/cutout-1.png",
+     "depth": 0.313
+    },
+    {
+     "image": "/film/depth/s33/458-the-back-door-sticks/people-1/cutout-2.png",
+     "depth": 0.248
+    }
+   ]
+  },
+  "/film/img/s4/386-at-the-window.jpg": {
+   "depthMap": "/film/depth/s4/386-at-the-window/people-1/depth.png",
+   "depthPlate": "/film/depth/s4/386-at-the-window/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s4/386-at-the-window/people-1/cutout-1.png",
+     "depth": 0.114
     }
    ]
   },
@@ -930,6 +1020,20 @@
     }
    ]
   },
+  "/film/img/s82/510-very-far-away.jpg": {
+   "depthMap": "/film/depth/s82/510-very-far-away/people-1/depth.png",
+   "depthPlate": "/film/depth/s82/510-very-far-away/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s82/510-very-far-away/people-1/cutout-1.png",
+     "depth": 0.829
+    },
+    {
+     "image": "/film/depth/s82/510-very-far-away/people-1/cutout-2.png",
+     "depth": 0.115
+    }
+   ]
+  },
   "/film/img/s82a/513-i-will-take-care-of-it.jpg": {
    "depthMap": "/film/depth/s82a/513-i-will-take-care-of-it/people-1/depth.png",
    "depthPlate": "/film/depth/s82a/513-i-will-take-care-of-it/people-1/plate.jpg",
@@ -941,6 +1045,34 @@
     {
      "image": "/film/depth/s82a/513-i-will-take-care-of-it/people-1/cutout-2.png",
      "depth": 0.886
+    }
+   ]
+  },
+  "/film/img/s83/110-very-expensive.jpg": {
+   "depthMap": "/film/depth/s83/110-very-expensive/people-1/depth.png",
+   "depthPlate": "/film/depth/s83/110-very-expensive/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s83/110-very-expensive/people-1/cutout-1.png",
+     "depth": 0.937
+    },
+    {
+     "image": "/film/depth/s83/110-very-expensive/people-1/cutout-2.png",
+     "depth": 0.26
+    }
+   ]
+  },
+  "/film/img/s83/515-he-pours-her-tea-himself.jpg": {
+   "depthMap": "/film/depth/s83/515-he-pours-her-tea-himself/people-1/depth.png",
+   "depthPlate": "/film/depth/s83/515-he-pours-her-tea-himself/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s83/515-he-pours-her-tea-himself/people-1/cutout-1.png",
+     "depth": 0.854
+    },
+    {
+     "image": "/film/depth/s83/515-he-pours-her-tea-himself/people-1/cutout-2.png",
+     "depth": 0.394
     }
    ]
   },

@@ -1,0 +1,31 @@
+{
+ "picture": "/film/img/s82/510-very-far-away.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s82/510-very-far-away/people-1/cutout-1.png",
+   "depth": 0.829,
+   "box": [
+    0,
+    0,
+    544,
+    1080
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s82/510-very-far-away/people-1/cutout-2.png",
+   "depth": 0.115,
+   "box": [
+    597,
+    0,
+    1123,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "5 smaller figure(s) were left in the plate (under 15% of the largest, or past 4)"
+ ]
+}

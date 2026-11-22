@@ -1,0 +1,21 @@
+{
+ "picture": "/film/img/s4/386-at-the-window.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s4/386-at-the-window/people-1/cutout-1.png",
+   "depth": 0.114,
+   "box": [
+    974,
+    157,
+    231,
+    803
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "1 person-like shape(s) still found in the plate: someone may have been missed",
+  "1 smaller figure(s) were left in the plate (under 15% of the largest, or past 4)"
+ ]
+}
