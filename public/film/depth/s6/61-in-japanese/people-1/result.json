@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/s6/61-in-japanese.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s6/61-in-japanese/people-1/cutout-1.png",
+   "depth": 0.443,
+   "box": [
+    120,
+    129,
+    919,
+    951
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s6/61-in-japanese/people-1/cutout-2.png",
+   "depth": 0.448,
+   "box": [
+    1070,
+    0,
+    850,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

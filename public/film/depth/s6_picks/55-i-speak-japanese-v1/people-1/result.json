@@ -1,0 +1,32 @@
+{
+ "picture": "/film/img/s6_picks/55-i-speak-japanese-v1.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s6_picks/55-i-speak-japanese-v1/people-1/cutout-1.png",
+   "depth": 0.101,
+   "box": [
+    477,
+    77,
+    932,
+    1003
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s6_picks/55-i-speak-japanese-v1/people-1/cutout-2.png",
+   "depth": 0.117,
+   "box": [
+    1107,
+    0,
+    813,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 2 runs to its box edge: it may be clipped",
+  "1 person-like shape(s) still found in the plate: someone may have been missed"
+ ]
+}

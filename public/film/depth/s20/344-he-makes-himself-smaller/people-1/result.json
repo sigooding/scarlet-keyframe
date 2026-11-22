@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/s20/344-he-makes-himself-smaller.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s20/344-he-makes-himself-smaller/people-1/cutout-1.png",
+   "depth": 0.837,
+   "box": [
+    230,
+    298,
+    501,
+    677
+   ],
+   "how": "feet"
+  },
+  {
+   "image": "/film/depth/s20/344-he-makes-himself-smaller/people-1/cutout-2.png",
+   "depth": 0.51,
+   "box": [
+    1134,
+    156,
+    665,
+    924
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

@@ -1,0 +1,29 @@
+{
+ "picture": "/film/img/s53/219-pink-water.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s53/219-pink-water/people-1/cutout-1.png",
+   "depth": 0.231,
+   "box": [
+    422,
+    221,
+    697,
+    859
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/s53/219-pink-water/people-1/cutout-2.png",
+   "depth": 0.23,
+   "box": [
+    1016,
+    97,
+    596,
+    983
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

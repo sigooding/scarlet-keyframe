@@ -1,0 +1,32 @@
+{
+ "picture": "/film/img/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1/people-1/cutout-1.png",
+   "depth": 0.81,
+   "box": [
+    0,
+    0,
+    1042,
+    1080
+   ],
+   "how": "body"
+  },
+  {
+   "image": "/film/depth/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1/people-1/cutout-2.png",
+   "depth": 0.147,
+   "box": [
+    810,
+    119,
+    948,
+    961
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": [
+  "cut-out 1 runs to its box edge: it may be clipped",
+  "2 person-like shape(s) still found in the plate: someone may have been missed"
+ ]
+}

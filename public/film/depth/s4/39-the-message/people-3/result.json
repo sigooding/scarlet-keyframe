@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s4/39-the-message.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s4/39-the-message/people-3/cutout-1.png",
+   "depth": 0.438,
+   "box": [
+    431,
+    162,
+    838,
+    918
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

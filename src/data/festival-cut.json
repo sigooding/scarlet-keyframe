@@ -14,6 +14,7 @@
   "/film/img/festival/s5/45-the-young-officer-r1.jpg": "/film/depth/festival/s5/45-the-young-officer-r1/depth.png",
   "/film/img/festival/s5/46-mara-voss-on-screen-r1.jpg": "/film/depth/festival/s5/46-mara-voss-on-screen-r1/depth.png",
   "/film/img/festival/s5/48-the-quiet-phone-call-r1.jpg": "/film/depth/festival/s5/48-the-quiet-phone-call-r1/depth.png",
+  "/film/img/festival/s53/275-the-kiss-close.jpg": "/film/depth/festival/s53/275-the-kiss-close/depth.png",
   "/film/img/festival/s54/220-everything-is-still-there-r1.jpg": "/film/depth/festival/s54/220-everything-is-still-there-r1/depth.png",
   "/film/img/festival/s6/325-squared-to-the-corner-r1.jpg": "/film/depth/festival/s6/325-squared-to-the-corner-r1/depth.png",
   "/film/img/festival/s79/505-neat-slanted-careful-r1.jpg": "/film/depth/festival/s79/505-neat-slanted-careful-r1/depth.png",
@@ -687,6 +688,3013 @@
   "/film/img/s34/173-no-114.jpg": "/film/img/festival/s34/173-no-114-r1.jpg",
   "/film/img/s54/220-everything-is-still-there.jpg": "/film/img/festival/s54/220-everything-is-still-there-r1.jpg",
   "/film/img/s79/92-underlined-twice.jpg": "/film/img/festival/s79/92-underlined-twice-r1.jpg",
-  "/film/img/s79/505-neat-slanted-careful.jpg": "/film/img/festival/s79/505-neat-slanted-careful-r1.jpg"
+  "/film/img/s79/505-neat-slanted-careful.jpg": "/film/img/festival/s79/505-neat-slanted-careful-r1.jpg",
+  "/film/img/s53/275-the-kiss-r1.jpg": "/film/img/festival/s53/275-the-kiss-close.jpg"
+ },
+ "cutoutsByPicture": {
+  "/film/img/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1.jpg": {
+   "depthMap": "/film/depth/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1/people-1/depth.png",
+   "depthPlate": "/film/depth/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1/people-1/cutout-1.png",
+     "depth": 0.81
+    },
+    {
+     "image": "/film/depth/retakes_2026_10_20/408-a-matter-between-criminal-groups-r1/people-1/cutout-2.png",
+     "depth": 0.147
+    }
+   ]
+  },
+  "/film/img/s10/414-the-clip-on-the-desk.jpg": {
+   "depthMap": "/film/depth/s10/414-the-clip-on-the-desk/people-1/depth.png",
+   "depthPlate": "/film/depth/s10/414-the-clip-on-the-desk/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s10/414-the-clip-on-the-desk/people-1/cutout-1.png",
+     "depth": 0.77
+    },
+    {
+     "image": "/film/depth/s10/414-the-clip-on-the-desk/people-1/cutout-2.png",
+     "depth": 0.323
+    }
+   ]
+  },
+  "/film/img/s11/418-it-takes-a-long-time-to-dial.jpg": {
+   "depthMap": "/film/depth/s11/418-it-takes-a-long-time-to-dial/people-1/depth.png",
+   "depthPlate": "/film/depth/s11/418-it-takes-a-long-time-to-dial/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s11/418-it-takes-a-long-time-to-dial/people-1/cutout-1.png",
+     "depth": 0.425
+    }
+   ]
+  },
+  "/film/img/s14/424-its-always-about-dad.jpg": {
+   "depthMap": "/film/depth/s14/424-its-always-about-dad/people-1/depth.png",
+   "depthPlate": "/film/depth/s14/424-its-always-about-dad/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14/424-its-always-about-dad/people-1/cutout-1.png",
+     "depth": 0.589
+    }
+   ]
+  },
+  "/film/img/s14a/339-not-running-from-you.jpg": {
+   "depthMap": "/film/depth/s14a/339-not-running-from-you/people-1/depth.png",
+   "depthPlate": "/film/depth/s14a/339-not-running-from-you/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14a/339-not-running-from-you/people-1/cutout-1.png",
+     "depth": 0.746
+    },
+    {
+     "image": "/film/depth/s14a/339-not-running-from-you/people-1/cutout-2.png",
+     "depth": 0.292
+    }
+   ]
+  },
+  "/film/img/s14a/426-forty-metres.jpg": {
+   "depthMap": "/film/depth/s14a/426-forty-metres/people-1/depth.png",
+   "depthPlate": "/film/depth/s14a/426-forty-metres/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s14a/426-forty-metres/people-1/cutout-1.png",
+     "depth": 0.693
+    },
+    {
+     "image": "/film/depth/s14a/426-forty-metres/people-1/cutout-2.png",
+     "depth": 0.483
+    }
+   ]
+  },
+  "/film/img/s20/344-he-makes-himself-smaller.jpg": {
+   "depthMap": "/film/depth/s20/344-he-makes-himself-smaller/people-1/depth.png",
+   "depthPlate": "/film/depth/s20/344-he-makes-himself-smaller/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s20/344-he-makes-himself-smaller/people-1/cutout-1.png",
+     "depth": 0.837
+    },
+    {
+     "image": "/film/depth/s20/344-he-makes-himself-smaller/people-1/cutout-2.png",
+     "depth": 0.51
+    }
+   ]
+  },
+  "/film/img/s20/523-they-have-my-passport.jpg": {
+   "depthMap": "/film/depth/s20/523-they-have-my-passport/people-1/depth.png",
+   "depthPlate": "/film/depth/s20/523-they-have-my-passport/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s20/523-they-have-my-passport/people-1/cutout-1.png",
+     "depth": 0.185
+    },
+    {
+     "image": "/film/depth/s20/523-they-have-my-passport/people-1/cutout-2.png",
+     "depth": 0.151
+    }
+   ]
+  },
+  "/film/img/s23/442-he-puts-down-his-chopsticks.jpg": {
+   "depthMap": "/film/depth/s23/442-he-puts-down-his-chopsticks/people-1/depth.png",
+   "depthPlate": "/film/depth/s23/442-he-puts-down-his-chopsticks/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s23/442-he-puts-down-his-chopsticks/people-1/cutout-1.png",
+     "depth": 0.489
+    },
+    {
+     "image": "/film/depth/s23/442-he-puts-down-his-chopsticks/people-1/cutout-2.png",
+     "depth": 0.898
+    }
+   ]
+  },
+  "/film/img/s27a/292-she-was-here.jpg": {
+   "depthMap": "/film/depth/s27a/292-she-was-here/people-1/depth.png",
+   "depthPlate": "/film/depth/s27a/292-she-was-here/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s27a/292-she-was-here/people-1/cutout-1.png",
+     "depth": 0.404
+    }
+   ]
+  },
+  "/film/img/s27a/455-she-was-fifteen.jpg": {
+   "depthMap": "/film/depth/s27a/455-she-was-fifteen/people-1/depth.png",
+   "depthPlate": "/film/depth/s27a/455-she-was-fifteen/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s27a/455-she-was-fifteen/people-1/cutout-1.png",
+     "depth": 0.729
+    }
+   ]
+  },
+  "/film/img/s29/355-did-he-ever-pay-rent.jpg": {
+   "depthMap": "/film/depth/s29/355-did-he-ever-pay-rent/people-1/depth.png",
+   "depthPlate": "/film/depth/s29/355-did-he-ever-pay-rent/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s29/355-did-he-ever-pay-rent/people-1/cutout-1.png",
+     "depth": 0.593
+    }
+   ]
+  },
+  "/film/img/s4/39-the-message.jpg": {
+   "depthMap": "/film/depth/s4/39-the-message/people-3/depth.png",
+   "depthPlate": "/film/depth/s4/39-the-message/people-3/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s4/39-the-message/people-3/cutout-1.png",
+     "depth": 0.438
+    }
+   ]
+  },
+  "/film/img/s53/219-pink-water.jpg": {
+   "depthMap": "/film/depth/s53/219-pink-water/people-1/depth.png",
+   "depthPlate": "/film/depth/s53/219-pink-water/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s53/219-pink-water/people-1/cutout-1.png",
+     "depth": 0.231
+    },
+    {
+     "image": "/film/depth/s53/219-pink-water/people-1/cutout-2.png",
+     "depth": 0.23
+    }
+   ]
+  },
+  "/film/img/s6/322-her-handwriting.jpg": {
+   "depthMap": "/film/depth/s6/322-her-handwriting/people-1/depth.png",
+   "depthPlate": "/film/depth/s6/322-her-handwriting/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s6/322-her-handwriting/people-1/cutout-1.png",
+     "depth": 0.643
+    },
+    {
+     "image": "/film/depth/s6/322-her-handwriting/people-1/cutout-2.png",
+     "depth": 0.401
+    }
+   ]
+  },
+  "/film/img/s6/61-in-japanese.jpg": {
+   "depthMap": "/film/depth/s6/61-in-japanese/people-1/depth.png",
+   "depthPlate": "/film/depth/s6/61-in-japanese/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s6/61-in-japanese/people-1/cutout-1.png",
+     "depth": 0.443
+    },
+    {
+     "image": "/film/depth/s6/61-in-japanese/people-1/cutout-2.png",
+     "depth": 0.448
+    }
+   ]
+  },
+  "/film/img/s60/480-she-was-so-happy.jpg": {
+   "depthMap": "/film/depth/s60/480-she-was-so-happy/people-1/depth.png",
+   "depthPlate": "/film/depth/s60/480-she-was-so-happy/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s60/480-she-was-so-happy/people-1/cutout-1.png",
+     "depth": 0.127
+    },
+    {
+     "image": "/film/depth/s60/480-she-was-so-happy/people-1/cutout-2.png",
+     "depth": 0.751
+    }
+   ]
+  },
+  "/film/img/s6_picks/55-i-speak-japanese-v1.jpg": {
+   "depthMap": "/film/depth/s6_picks/55-i-speak-japanese-v1/people-1/depth.png",
+   "depthPlate": "/film/depth/s6_picks/55-i-speak-japanese-v1/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s6_picks/55-i-speak-japanese-v1/people-1/cutout-1.png",
+     "depth": 0.101
+    },
+    {
+     "image": "/film/depth/s6_picks/55-i-speak-japanese-v1/people-1/cutout-2.png",
+     "depth": 0.117
+    }
+   ]
+  },
+  "/film/img/s76/1701-vera-listens.jpg": {
+   "depthMap": "/film/depth/s76/1701-vera-listens/people-1/depth.png",
+   "depthPlate": "/film/depth/s76/1701-vera-listens/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s76/1701-vera-listens/people-1/cutout-1.png",
+     "depth": 0.363
+    }
+   ]
+  },
+  "/film/img/s82a/513-i-will-take-care-of-it.jpg": {
+   "depthMap": "/film/depth/s82a/513-i-will-take-care-of-it/people-1/depth.png",
+   "depthPlate": "/film/depth/s82a/513-i-will-take-care-of-it/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s82a/513-i-will-take-care-of-it/people-1/cutout-1.png",
+     "depth": 0.184
+    },
+    {
+     "image": "/film/depth/s82a/513-i-will-take-care-of-it/people-1/cutout-2.png",
+     "depth": 0.886
+    }
+   ]
+  },
+  "/film/img/s98/1622-my-statement.jpg": {
+   "depthMap": "/film/depth/s98/1622-my-statement/people-1/depth.png",
+   "depthPlate": "/film/depth/s98/1622-my-statement/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/s98/1622-my-statement/people-1/cutout-1.png",
+     "depth": 0.838
+    },
+    {
+     "image": "/film/depth/s98/1622-my-statement/people-1/cutout-2.png",
+     "depth": 0.246
+    }
+   ]
+  }
+ },
+ "practicalByPicture": {
+  "/film/img/archive/s63a/293-the-sedan-waits--v4.jpg": {
+   "x": 52.4,
+   "y": 45.1,
+   "color": "#ffebb0"
+  },
+  "/film/img/export/upload-97346782-7653-47cf-8d11-03367dbde41f.jpg": {
+   "x": 94.3,
+   "y": 68.5,
+   "color": "#ffac5a"
+  },
+  "/film/img/export/upload-a0f1f338-530d-4783-9f0a-3e6c4de25644.jpg": {
+   "x": 16.8,
+   "y": 47,
+   "color": "#ccffa9"
+  },
+  "/film/img/export/upload-ad6167a3-45aa-496c-80ab-d0136755ebd1.jpg": {
+   "x": 81,
+   "y": 34.6,
+   "color": "#f1fff4"
+  },
+  "/film/img/export/upload-f7e921f4-d3c6-4ba1-9143-f2c6d31f9845.jpg": {
+   "x": 61.7,
+   "y": 69.2,
+   "color": "#b8fff9"
+  },
+  "/film/img/festival/s26/537-in-his-palm-r1.jpg": {
+   "x": 56.3,
+   "y": 5.5,
+   "color": "#d3edff"
+  },
+  "/film/img/festival/s34/173-no-114-r1.jpg": {
+   "x": 39.5,
+   "y": 36,
+   "color": "#ffb063"
+  },
+  "/film/img/festival/s5/45-the-young-officer-r1.jpg": {
+   "x": 13.6,
+   "y": 8.1,
+   "color": "#edffd7"
+  },
+  "/film/img/festival/s5/48-the-quiet-phone-call-r1.jpg": {
+   "x": 13.8,
+   "y": 8.3,
+   "color": "#f6ffe1"
+  },
+  "/film/img/festival/s54/220-everything-is-still-there-r1.jpg": {
+   "x": 47.6,
+   "y": 14.2,
+   "color": "#ffeba5"
+  },
+  "/film/img/hive_raid_takes/119-single-file-v1.jpg": {
+   "x": 23.3,
+   "y": 20.7,
+   "color": "#ffb75a"
+  },
+  "/film/img/hive_raid_takes/124-the-repairman-v1.jpg": {
+   "x": 71,
+   "y": 49.6,
+   "color": "#fffed7"
+  },
+  "/film/img/hive_raid_takes/129-she-lets-him-v1.jpg": {
+   "x": 50.7,
+   "y": 11.2,
+   "color": "#c0f8ff"
+  },
+  "/film/img/jack_ishida_new/61-01-under-the-expressway.jpg": {
+   "x": 83.5,
+   "y": 25.9,
+   "color": "#ffa958"
+  },
+  "/film/img/jack_ishida_new/61-02-neither-looks.jpg": {
+   "x": 92.3,
+   "y": 22.1,
+   "color": "#ffba6d"
+  },
+  "/film/img/montage/m1-neon-backstreet.jpg": {
+   "x": 88,
+   "y": 50.6,
+   "color": "#ffcea9"
+  },
+  "/film/img/montage/m3-umbrella-bridge.jpg": {
+   "x": 60.5,
+   "y": 13.1,
+   "color": "#ffc08b"
+  },
+  "/film/img/montage18/01.jpg": {
+   "x": 37.3,
+   "y": 47,
+   "color": "#eaff8d"
+  },
+  "/film/img/montage18/02.jpg": {
+   "x": 49.8,
+   "y": 8.7,
+   "color": "#cdffe4"
+  },
+  "/film/img/montage18/04.jpg": {
+   "x": 50.5,
+   "y": 7.6,
+   "color": "#d9fffa"
+  },
+  "/film/img/montage18/05.jpg": {
+   "x": 49.9,
+   "y": 11.6,
+   "color": "#c2ffed"
+  },
+  "/film/img/retakes_2026_10_20/365-the-altar-r1.jpg": {
+   "x": 45.9,
+   "y": 46.4,
+   "color": "#84dbff"
+  },
+  "/film/img/retakes_2026_10_20/483-eyes-on-the-rain-r1.jpg": {
+   "x": 68.1,
+   "y": 13.6,
+   "color": "#ffa859"
+  },
+  "/film/img/retakes_2026_10_20/98-past-the-clock-r1.jpg": {
+   "x": 32.5,
+   "y": 8.9,
+   "color": "#f1ffdf"
+  },
+  "/film/img/retakes_2026_10_20/99-afraid-r1.jpg": {
+   "x": 68.7,
+   "y": 8.1,
+   "color": "#f7ffe6"
+  },
+  "/film/img/retakes_2026_10_21/293-the-sedan-waits-r1.jpg": {
+   "x": 52.5,
+   "y": 45,
+   "color": "#ffebb1"
+  },
+  "/film/img/roadside/s38/38-01-headlights-on-the-highway.jpg": {
+   "x": 52,
+   "y": 47.5,
+   "color": "#ffe7c7"
+  },
+  "/film/img/s1/01-backstreet.jpg": {
+   "x": 92.1,
+   "y": 49,
+   "color": "#e3faff"
+  },
+  "/film/img/s1/02-vending.jpg": {
+   "x": 58.8,
+   "y": 41,
+   "color": "#d2fff7"
+  },
+  "/film/img/s1/03-mara-walks.jpg": {
+   "x": 20.4,
+   "y": 39.4,
+   "color": "#d2faff"
+  },
+  "/film/img/s1/04-mara-phone.jpg": {
+   "x": 77,
+   "y": 35.2,
+   "color": "#accdff"
+  },
+  "/film/img/s1/05-phone-off.jpg": {
+   "x": 73.1,
+   "y": 50.9,
+   "color": "#9dcfff"
+  },
+  "/film/img/s1/06-barbershop-doorway.jpg": {
+   "x": 28.9,
+   "y": 50.4,
+   "color": "#d8d6ff"
+  },
+  "/film/img/s1/07-old-man.jpg": {
+   "x": 15.6,
+   "y": 34.3,
+   "color": "#e5fcff"
+  },
+  "/film/img/s1/09-old-man-stops.jpg": {
+   "x": 11.9,
+   "y": 45.5,
+   "color": "#c4f9ff"
+  },
+  "/film/img/s1/10-the-shot.jpg": {
+   "x": 11.6,
+   "y": 54.9,
+   "color": "#c0edff"
+  },
+  "/film/img/s1/11-sakai-mid-fall.jpg": {
+   "x": 50.4,
+   "y": 53.7,
+   "color": "#cdebff"
+  },
+  "/film/img/s1/12-masked-man-radio.jpg": {
+   "x": 57.5,
+   "y": 61.6,
+   "color": "#aee3ff"
+  },
+  "/film/img/s1/13-taillights-gone.jpg": {
+   "x": 21.7,
+   "y": 48.5,
+   "color": "#d6f9ff"
+  },
+  "/film/img/s1/14-she-kneels.jpg": {
+   "x": 17.7,
+   "y": 10.1,
+   "color": "#ccf7ff"
+  },
+  "/film/img/s1/16-the-key.jpg": {
+   "x": 78.9,
+   "y": 35.1,
+   "color": "#bee2ff"
+  },
+  "/film/img/s1/17-she-runs.jpg": {
+   "x": 81.6,
+   "y": 32.3,
+   "color": "#bff5ff"
+  },
+  "/film/img/s1/18-the-flashlight.jpg": {
+   "x": 81.1,
+   "y": 32.2,
+   "color": "#bff4ff"
+  },
+  "/film/img/s1/328-the-scrap.jpg": {
+   "x": 81.6,
+   "y": 46.1,
+   "color": "#9fddff"
+  },
+  "/film/img/s1/329-the-lane-the-watch.jpg": {
+   "x": 6.9,
+   "y": 39.7,
+   "color": "#ffddd5"
+  },
+  "/film/img/s1/330-the-red-clip.jpg": {
+   "x": 43,
+   "y": 47.8,
+   "color": "#d3ecff"
+  },
+  "/film/img/s1/331-he-refuses.jpg": {
+   "x": 21.4,
+   "y": 41.7,
+   "color": "#defdff"
+  },
+  "/film/img/s1/332-the-sedan-blocks-the-lane.jpg": {
+   "x": 43.8,
+   "y": 62.3,
+   "color": "#effdff"
+  },
+  "/film/img/s1/333-the-white-light.jpg": {
+   "x": 21.9,
+   "y": 55.6,
+   "color": "#d9f6ff"
+  },
+  "/film/img/s1/383-the-empty-lane.jpg": {
+   "x": 21.7,
+   "y": 48.5,
+   "color": "#d7fbff"
+  },
+  "/film/img/s1/384-he-half-turns.jpg": {
+   "x": 70.7,
+   "y": 23.9,
+   "color": "#ff9257"
+  },
+  "/film/img/s1/385-he-turns-the-other-way.jpg": {
+   "x": 70.8,
+   "y": 23.6,
+   "color": "#ff8c52"
+  },
+  "/film/img/s10/164-depends-whos-calling.jpg": {
+   "x": 37.4,
+   "y": 47,
+   "color": "#ebff83"
+  },
+  "/film/img/s10/165-face-up.jpg": {
+   "x": 29.1,
+   "y": 23.9,
+   "color": "#ffc672"
+  },
+  "/film/img/s10/166-by-its-edges.jpg": {
+   "x": 15.8,
+   "y": 40.8,
+   "color": "#e7ff9e"
+  },
+  "/film/img/s10/412-pressed-against-the-railway.jpg": {
+   "x": 20.2,
+   "y": 43.6,
+   "color": "#ffa96d"
+  },
+  "/film/img/s10/413-open-and-shut.jpg": {
+   "x": 5.9,
+   "y": 34.7,
+   "color": "#f2ff8b"
+  },
+  "/film/img/s10/415-four-days.jpg": {
+   "x": 37.4,
+   "y": 47.1,
+   "color": "#e8ff8c"
+  },
+  "/film/img/s10/417-at-the-door.jpg": {
+   "x": 62.1,
+   "y": 45.1,
+   "color": "#ffef7b"
+  },
+  "/film/img/s100/158-the-third-stool.jpg": {
+   "x": 44.6,
+   "y": 26.5,
+   "color": "#ffc083"
+  },
+  "/film/img/s100/159-she-doesnt-turn.jpg": {
+   "x": 44.3,
+   "y": 28,
+   "color": "#ffb87a"
+  },
+  "/film/img/s100/160-the-clip.jpg": {
+   "x": 44.6,
+   "y": 26.6,
+   "color": "#ffbb7d"
+  },
+  "/film/img/s100/161-stool-three.jpg": {
+   "x": 44.6,
+   "y": 26.4,
+   "color": "#ffbd7f"
+  },
+  "/film/img/s100/1676-the-kaneko-sign.jpg": {
+   "x": 58.4,
+   "y": 34.7,
+   "color": "#ffb373"
+  },
+  "/film/img/s100/1678-the-evening-news-kurose.jpg": {
+   "x": 27.5,
+   "y": 35.5,
+   "color": "#ffbc80"
+  },
+  "/film/img/s100/1685-money-on-the-counter.jpg": {
+   "x": 42.9,
+   "y": 12.6,
+   "color": "#ffc285"
+  },
+  "/film/img/s11/243-the-box.jpg": {
+   "x": 71.1,
+   "y": 28.8,
+   "color": "#bef0ff"
+  },
+  "/film/img/s11/244-daniel-voss-41.jpg": {
+   "x": 52.3,
+   "y": 10.5,
+   "color": "#e0ff89"
+  },
+  "/film/img/s11/375-he-sets-the-receiver-down.jpg": {
+   "x": 25.9,
+   "y": 58.3,
+   "color": "#ffe8a8"
+  },
+  "/film/img/s11/418-it-takes-a-long-time-to-dial.jpg": {
+   "x": 11.7,
+   "y": 56.2,
+   "color": "#ffd088"
+  },
+  "/film/img/s11/419-twenty-years.jpg": {
+   "x": 3.5,
+   "y": 55.9,
+   "color": "#f9ff70"
+  },
+  "/film/img/s12/168-the-strap.jpg": {
+   "x": 82.6,
+   "y": 39.9,
+   "color": "#f7ffe9"
+  },
+  "/film/img/s12/245-the-barber.jpg": {
+   "x": 82.2,
+   "y": 39.9,
+   "color": "#f5ffe7"
+  },
+  "/film/img/s12/246-the-can.jpg": {
+   "x": 7.2,
+   "y": 20.2,
+   "color": "#c4fffe"
+  },
+  "/film/img/s12/420-not-searching-looking.jpg": {
+   "x": 82.6,
+   "y": 39.8,
+   "color": "#fbffea"
+  },
+  "/film/img/s12/421-one-car-twice.jpg": {
+   "x": 94.1,
+   "y": 67,
+   "color": "#ffa44f"
+  },
+  "/film/img/s12/422-everywhere-a-small-thing-could-fall.jpg": {
+   "x": 78.9,
+   "y": 47.1,
+   "color": "#fffae5"
+  },
+  "/film/img/s14/423-the-fridge.jpg": {
+   "x": 79.6,
+   "y": 24.9,
+   "color": "#e7f2ff"
+  },
+  "/film/img/s14/425-a-story-i-used-to-tell-her.jpg": {
+   "x": 28,
+   "y": 26.6,
+   "color": "#f9fffa"
+  },
+  "/film/img/s14a/334-the-mirror.jpg": {
+   "x": 46.1,
+   "y": 44.6,
+   "color": "#fff8cd"
+  },
+  "/film/img/s14a/335-the-lane-mouth.jpg": {
+   "x": 61.5,
+   "y": 46.4,
+   "color": "#f3fff8"
+  },
+  "/film/img/s14a/336-the-lighter.jpg": {
+   "x": 73.3,
+   "y": 6.1,
+   "color": "#ffe7a7"
+  },
+  "/film/img/s14a/337-engine-off.jpg": {
+   "x": 76.4,
+   "y": 4.5,
+   "color": "#ffeaa6"
+  },
+  "/film/img/s14a/338-the-rice-ball.jpg": {
+   "x": 50,
+   "y": 45.9,
+   "color": "#e3fff0"
+  },
+  "/film/img/s14a/339-not-running-from-you.jpg": {
+   "x": 84,
+   "y": 26.1,
+   "color": "#ff9d2e"
+  },
+  "/film/img/s14a/340-the-shuttered-door.jpg": {
+   "x": 83.1,
+   "y": 43.5,
+   "color": "#e4fff9"
+  },
+  "/film/img/s14a/341-reflex.jpg": {
+   "x": 84.2,
+   "y": 34.9,
+   "color": "#c6f8ff"
+  },
+  "/film/img/s14a/426-forty-metres.jpg": {
+   "x": 81.1,
+   "y": 23.4,
+   "color": "#ffa75f"
+  },
+  "/film/img/s14a/427-she-hadnt-thought-of-that.jpg": {
+   "x": 28,
+   "y": 54.5,
+   "color": "#ffab62"
+  },
+  "/film/img/s14a/428-their-fingers-dont-touch.jpg": {
+   "x": 77.4,
+   "y": 8.4,
+   "color": "#93ffe1"
+  },
+  "/film/img/s14a/429-the-red-bird-swings.jpg": {
+   "x": 6,
+   "y": 29.2,
+   "color": "#ffd06e"
+  },
+  "/film/img/s14a/430-a-figure-at-the-road-end.jpg": {
+   "x": 56.4,
+   "y": 45,
+   "color": "#ffd28f"
+  },
+  "/film/img/s14a/431-the-dark-takes-it.jpg": {
+   "x": 7.9,
+   "y": 64.1,
+   "color": "#ffb351"
+  },
+  "/film/img/s14a/533-the-amber-sign-goes-dark.jpg": {
+   "x": 39.3,
+   "y": 48.4,
+   "color": "#c3ffe6"
+  },
+  "/film/img/s15/185-then-he-goes-in.jpg": {
+   "x": 58.1,
+   "y": 38.7,
+   "color": "#ffefd9"
+  },
+  "/film/img/s15/432-the-hive.jpg": {
+   "x": 26.2,
+   "y": 21.4,
+   "color": "#edf5ff"
+  },
+  "/film/img/s16/186-everybody-sees-him.jpg": {
+   "x": 44.3,
+   "y": 40.5,
+   "color": "#ffeeb4"
+  },
+  "/film/img/s16/248-exactly-the-drawing.jpg": {
+   "x": 40.7,
+   "y": 6.1,
+   "color": "#fff5e0"
+  },
+  "/film/img/s16/249-the-chair.jpg": {
+   "x": 86.2,
+   "y": 36.7,
+   "color": "#edfff9"
+  },
+  "/film/img/s16/433-barely-shoulder-wide.jpg": {
+   "x": 18.6,
+   "y": 30.1,
+   "color": "#ffc978"
+  },
+  "/film/img/s17/187-you-got-old.jpg": {
+   "x": 50,
+   "y": 18.1,
+   "color": "#ffb867"
+  },
+  "/film/img/s17/188-something-moves.jpg": {
+   "x": 50.1,
+   "y": 20.2,
+   "color": "#ffae51"
+  },
+  "/film/img/s17/358-the-empty-third-stool.jpg": {
+   "x": 38.4,
+   "y": 5.7,
+   "color": "#ffa854"
+  },
+  "/film/img/s17/359-eat-then-go.jpg": {
+   "x": 50.7,
+   "y": 17.7,
+   "color": "#ffb86c"
+  },
+  "/film/img/s17/360-more-than-the-bowl-costs.jpg": {
+   "x": 45.5,
+   "y": 42.6,
+   "color": "#ffb155"
+  },
+  "/film/img/s18/283-the-letter.jpg": {
+   "x": 21.6,
+   "y": 63.2,
+   "color": "#ffda9c"
+  },
+  "/film/img/s18/435-the-last-page.jpg": {
+   "x": 33.9,
+   "y": 46.8,
+   "color": "#f8ff77"
+  },
+  "/film/img/s19/190-she-stands-aside.jpg": {
+   "x": 49.7,
+   "y": 19.3,
+   "color": "#ffc57b"
+  },
+  "/film/img/s2/20-the-journalist.jpg": {
+   "x": 45,
+   "y": 10,
+   "color": "#4fadff"
+  },
+  "/film/img/s2/22-not-his-business.jpg": {
+   "x": 6.9,
+   "y": 34.5,
+   "color": "#ffa033"
+  },
+  "/film/img/s2/308-clip-under-the-shelf.jpg": {
+   "x": 62,
+   "y": 9.4,
+   "color": "#cafffe"
+  },
+  "/film/img/s20/191-prove-it.jpg": {
+   "x": 57.5,
+   "y": 29,
+   "color": "#ffb873"
+  },
+  "/film/img/s20/284-i-called-her-a-coward.jpg": {
+   "x": 61.3,
+   "y": 14.6,
+   "color": "#ffcd92"
+  },
+  "/film/img/s20/344-he-makes-himself-smaller.jpg": {
+   "x": 49.8,
+   "y": 16,
+   "color": "#ffc17c"
+  },
+  "/film/img/s20/345-the-book-into-her-lap.jpg": {
+   "x": 61.1,
+   "y": 14,
+   "color": "#ffd9a2"
+  },
+  "/film/img/s20/346-the-bulb-hums.jpg": {
+   "x": 50.1,
+   "y": 10.9,
+   "color": "#ffbe79"
+  },
+  "/film/img/s20/437-vera-doesnt-know.jpg": {
+   "x": 39,
+   "y": 13.1,
+   "color": "#ffb46c"
+  },
+  "/film/img/s20/523-they-have-my-passport.jpg": {
+   "x": 63.1,
+   "y": 11.9,
+   "color": "#ffb26b"
+  },
+  "/film/img/s21/193-footsteps-on-the-stairs.jpg": {
+   "x": 53.6,
+   "y": 13,
+   "color": "#ecfff2"
+  },
+  "/film/img/s21/194-he-holds-it-without-drinking.jpg": {
+   "x": 43.8,
+   "y": 10.9,
+   "color": "#effffe"
+  },
+  "/film/img/s21/21-00-he-hasnt-slept.jpg": {
+   "x": 43.3,
+   "y": 11.1,
+   "color": "#dff3ff"
+  },
+  "/film/img/s22/195-somewhere-like-this.jpg": {
+   "x": 16,
+   "y": 35.6,
+   "color": "#ffee9c"
+  },
+  "/film/img/s22/196-back-from-the-edge.jpg": {
+   "x": 14.6,
+   "y": 22.3,
+   "color": "#fff7a8"
+  },
+  "/film/img/s22/285-the-inside-pocket.jpg": {
+   "x": 15.5,
+   "y": 35.2,
+   "color": "#ffe898"
+  },
+  "/film/img/s22/347-the-cups-tremble.jpg": {
+   "x": 66,
+   "y": 22.2,
+   "color": "#bbffb4"
+  },
+  "/film/img/s22/348-easy-to-talk-to.jpg": {
+   "x": 15.8,
+   "y": 35.7,
+   "color": "#ffee9c"
+  },
+  "/film/img/s22/349-paid-to-listen.jpg": {
+   "x": 63.6,
+   "y": 12.8,
+   "color": "#dfffd1"
+  },
+  "/film/img/s22/438-i-stayed-awake.jpg": {
+   "x": 54.5,
+   "y": 6.8,
+   "color": "#ff8e4d"
+  },
+  "/film/img/s22/439-under-the-arch.jpg": {
+   "x": 66.8,
+   "y": 17.7,
+   "color": "#d6ffcf"
+  },
+  "/film/img/s22/440-she-rests-her-head.jpg": {
+   "x": 16.1,
+   "y": 22,
+   "color": "#ffe7a6"
+  },
+  "/film/img/s22/534-a-long-time.jpg": {
+   "x": 76.5,
+   "y": 20.7,
+   "color": "#ffd183"
+  },
+  "/film/img/s23/197-you-never-call.jpg": {
+   "x": 35.8,
+   "y": 34.1,
+   "color": "#ffb694"
+  },
+  "/film/img/s23/198-the-lanterns-sway.jpg": {
+   "x": 35.6,
+   "y": 34,
+   "color": "#ff9f75"
+  },
+  "/film/img/s23/350-the-skewer-turns.jpg": {
+   "x": 29.3,
+   "y": 18.6,
+   "color": "#ff9b77"
+  },
+  "/film/img/s23/352-the-address.jpg": {
+   "x": 35.5,
+   "y": 33.8,
+   "color": "#ff9373"
+  },
+  "/film/img/s23/441-in-the-bubble-years.jpg": {
+   "x": 52.3,
+   "y": 25.7,
+   "color": "#ffa992"
+  },
+  "/film/img/s23/442-he-puts-down-his-chopsticks.jpg": {
+   "x": 39.8,
+   "y": 21.5,
+   "color": "#ffaa8a"
+  },
+  "/film/img/s23/535-the-shiohama-fire.jpg": {
+   "x": 37.1,
+   "y": 22.8,
+   "color": "#ffa588"
+  },
+  "/film/img/s25/200-the-number-114.jpg": {
+   "x": 57.5,
+   "y": 30.4,
+   "color": "#ffb875"
+  },
+  "/film/img/s25/443-eat.jpg": {
+   "x": 61.9,
+   "y": 13.1,
+   "color": "#ffb371"
+  },
+  "/film/img/s25/445-exactly-where-it-was.jpg": {
+   "x": 70.4,
+   "y": 47,
+   "color": "#ffbb81"
+  },
+  "/film/img/s25/447-last-night-she-had-noodles.jpg": {
+   "x": 71.9,
+   "y": 15.6,
+   "color": "#ffb06a"
+  },
+  "/film/img/s25/the-rice-goes-cold.jpg": {
+   "x": 49.8,
+   "y": 15.6,
+   "color": "#ffc280"
+  },
+  "/film/img/s25a/287-breakfast.jpg": {
+   "x": 52.3,
+   "y": 17.5,
+   "color": "#fdfff1"
+  },
+  "/film/img/s25a/289-for-making-me.jpg": {
+   "x": 42.9,
+   "y": 15.8,
+   "color": "#f8fff9"
+  },
+  "/film/img/s25a/448-breakfast-nobody-asked-for.jpg": {
+   "x": 85.7,
+   "y": 34.3,
+   "color": "#ffb37c"
+  },
+  "/film/img/s25a/449-reporting-on-me.jpg": {
+   "x": 28.6,
+   "y": 34,
+   "color": "#eaf9ff"
+  },
+  "/film/img/s25a/450-she-was-hungry.jpg": {
+   "x": 21,
+   "y": 7.7,
+   "color": "#ecfaff"
+  },
+  "/film/img/s25a/451-the-cooking-show.jpg": {
+   "x": 9.9,
+   "y": 28,
+   "color": "#f0feff"
+  },
+  "/film/img/s26/202-the-lighter.jpg": {
+   "x": 26.5,
+   "y": 6.7,
+   "color": "#e2faff"
+  },
+  "/film/img/s26/453-just-riding-the-loop.jpg": {
+   "x": 88.9,
+   "y": 14.2,
+   "color": "#dff7ff"
+  },
+  "/film/img/s26/454-keep-it.jpg": {
+   "x": 35.2,
+   "y": 25.9,
+   "color": "#eafbff"
+  },
+  "/film/img/s26/545-you-dont-smoke.jpg": {
+   "x": 16.6,
+   "y": 11.9,
+   "color": "#d5f1ff"
+  },
+  "/film/img/s27/203-too-small.jpg": {
+   "x": 59.7,
+   "y": 12.7,
+   "color": "#e7fff9"
+  },
+  "/film/img/s27a/290-daylight-again.jpg": {
+   "x": 94.3,
+   "y": 17.8,
+   "color": "#effeff"
+  },
+  "/film/img/s27a/291-carries-things-by-himself.jpg": {
+   "x": 86.7,
+   "y": 13.2,
+   "color": "#f2fffe"
+  },
+  "/film/img/s27a/292-she-was-here.jpg": {
+   "x": 76.3,
+   "y": 40.2,
+   "color": "#eefffd"
+  },
+  "/film/img/s27a/373-okada-polishes-the-glass.jpg": {
+   "x": 95.3,
+   "y": 17.6,
+   "color": "#f2fffd"
+  },
+  "/film/img/s27a/455-she-was-fifteen.jpg": {
+   "x": 96.2,
+   "y": 57.1,
+   "color": "#fafdff"
+  },
+  "/film/img/s27a/456-the-counter-flap.jpg": {
+   "x": 49.6,
+   "y": 26,
+   "color": "#fbfff5"
+  },
+  "/film/img/s27a/625-the-journalists-card.jpg": {
+   "x": 9.2,
+   "y": 13.1,
+   "color": "#fefcff"
+  },
+  "/film/img/s29/457-a-man-a-debt.jpg": {
+   "x": 77.4,
+   "y": 19.2,
+   "color": "#f7faff"
+  },
+  "/film/img/s2_picks/21-mara-bursts-in-v1.jpg": {
+   "x": 24.5,
+   "y": 60.1,
+   "color": "#6dd8ff"
+  },
+  "/film/img/s2_picks/24-from-the-floor-s2new2.jpg": {
+   "x": 50.1,
+   "y": 16.1,
+   "color": "#47b2ff"
+  },
+  "/film/img/s2_picks/26-the-variety-show-s2new2.jpg": {
+   "x": 51.1,
+   "y": 14.3,
+   "color": "#64baff"
+  },
+  "/film/img/s2_picks/27-the-notebook-v1.jpg": {
+   "x": 46.4,
+   "y": 27.9,
+   "color": "#ffcc87"
+  },
+  "/film/img/s2_picks/28-the-blue-glow-s2new2.jpg": {
+   "x": 52.3,
+   "y": 13.7,
+   "color": "#2eb2ff"
+  },
+  "/film/img/s3/31-the-lit-window.jpg": {
+   "x": 52.6,
+   "y": 38.6,
+   "color": "#ffcba0"
+  },
+  "/film/img/s30/205-a-light-ahead.jpg": {
+   "x": 62.7,
+   "y": 27.9,
+   "color": "#ffe3aa"
+  },
+  "/film/img/s30/30-00-the-only-thing-moving.jpg": {
+   "x": 52.6,
+   "y": 69.6,
+   "color": "#ffd8ab"
+  },
+  "/film/img/s32/170-just-one-night.jpg": {
+   "x": 41.2,
+   "y": 26.8,
+   "color": "#c1f7ff"
+  },
+  "/film/img/s32/32-00-the-faded-lobby.jpg": {
+   "x": 41.2,
+   "y": 26.6,
+   "color": "#c5f0ff"
+  },
+  "/film/img/s33/206-the-window-swollen-shut.jpg": {
+   "x": 37.5,
+   "y": 13.6,
+   "color": "#ffebcd"
+  },
+  "/film/img/s34/172-twenty-years-of-januaries.jpg": {
+   "x": 37.7,
+   "y": 43.9,
+   "color": "#ffa33b"
+  },
+  "/film/img/s35/207-the-pink-payphone.jpg": {
+   "x": 46.6,
+   "y": 5,
+   "color": "#ffca83"
+  },
+  "/film/img/s36/376-the-coins-run-out.jpg": {
+   "x": 47.3,
+   "y": 7,
+   "color": "#ffd492"
+  },
+  "/film/img/s36/538-the-receipts-in-his-hand.jpg": {
+   "x": 33.4,
+   "y": 34.9,
+   "color": "#fff0a9"
+  },
+  "/film/img/s37/460-parked-crooked.jpg": {
+   "x": 73.8,
+   "y": 5.8,
+   "color": "#97f6ff"
+  },
+  "/film/img/s37/542-dont-tell-my-husband.jpg": {
+   "x": 10.4,
+   "y": 22.1,
+   "color": "#ffb96e"
+  },
+  "/film/img/s38/173-four-black-sedans.jpg": {
+   "x": 47.6,
+   "y": 55.4,
+   "color": "#ddfffc"
+  },
+  "/film/img/s39/174-he-has-heard-the-gravel.jpg": {
+   "x": 19.7,
+   "y": 20.5,
+   "color": "#b1eeff"
+  },
+  "/film/img/s39/175-the-curtain-gap.jpg": {
+   "x": 46.8,
+   "y": 48.4,
+   "color": "#e4f9ff"
+  },
+  "/film/img/s39/461-takes-nothing-else.jpg": {
+   "x": 20.1,
+   "y": 24.7,
+   "color": "#c2f0ff"
+  },
+  "/film/img/s39/raid-39-they-split.jpg": {
+   "x": 58.8,
+   "y": 47.7,
+   "color": "#ecfeff"
+  },
+  "/film/img/s4/35-the-photograph.jpg": {
+   "x": 22.1,
+   "y": 21.5,
+   "color": "#ffdd93"
+  },
+  "/film/img/s4/37-the-answerphone.jpg": {
+   "x": 67,
+   "y": 7.4,
+   "color": "#e4fff1"
+  },
+  "/film/img/s40/176-were-closed.jpg": {
+   "x": 78.8,
+   "y": 19,
+   "color": "#6bd2ff"
+  },
+  "/film/img/s40/177-behind-the-counter.jpg": {
+   "x": 23.1,
+   "y": 51.7,
+   "color": "#7fddff"
+  },
+  "/film/img/s40/178-staff-side.jpg": {
+   "x": 23.1,
+   "y": 53.4,
+   "color": "#bef1ff"
+  },
+  "/film/img/s41/177-boots-below.jpg": {
+   "x": 51.8,
+   "y": 5.7,
+   "color": "#fff9e7"
+  },
+  "/film/img/s41/178-the-screens.jpg": {
+   "x": 47.6,
+   "y": 8.1,
+   "color": "#99dbff"
+  },
+  "/film/img/s41/raid-41-corridor.jpg": {
+   "x": 51.9,
+   "y": 5.9,
+   "color": "#fff8e5"
+  },
+  "/film/img/s42/210-the-third-time.jpg": {
+   "x": 29.9,
+   "y": 37.9,
+   "color": "#b3d9ff"
+  },
+  "/film/img/s43/211-wet-tin.jpg": {
+   "x": 38.8,
+   "y": 13.1,
+   "color": "#ffbb7d"
+  },
+  "/film/img/s44/44-02-my-husband.jpg": {
+   "x": 11.1,
+   "y": 15.1,
+   "color": "#ffd4aa"
+  },
+  "/film/img/s45/178-thank-you-very-much.jpg": {
+   "x": 36.9,
+   "y": 57,
+   "color": "#c6efff"
+  },
+  "/film/img/s45/179-it-rings.jpg": {
+   "x": 43,
+   "y": 38.6,
+   "color": "#6dc2ff"
+  },
+  "/film/img/s45/180-the-shoulder.jpg": {
+   "x": 72.1,
+   "y": 14.9,
+   "color": "#49bbff"
+  },
+  "/film/img/s45/462-a-finger-to-his-lips.jpg": {
+   "x": 74,
+   "y": 20,
+   "color": "#71c6ff"
+  },
+  "/film/img/s46/213-clutch-each-other.jpg": {
+   "x": 41.9,
+   "y": 38.5,
+   "color": "#ffc26b"
+  },
+  "/film/img/s47/222-mud-and-impacts.jpg": {
+   "x": 16.5,
+   "y": 27.9,
+   "color": "#ffcb9f"
+  },
+  "/film/img/s48/214-come-on-come-on.jpg": {
+   "x": 31.3,
+   "y": 32.4,
+   "color": "#fff4e5"
+  },
+  "/film/img/s49/215-no-need-to-chase.jpg": {
+   "x": 43.6,
+   "y": 57.4,
+   "color": "#fcffed"
+  },
+  "/film/img/s49/463-through-the-farm-gate.jpg": {
+   "x": 55.5,
+   "y": 45.7,
+   "color": "#ffd8aa"
+  },
+  "/film/img/s5/47-he-stops-typing.jpg": {
+   "x": 58.8,
+   "y": 9.4,
+   "color": "#e3ffdc"
+  },
+  "/film/img/s5/49-she-watches-him.jpg": {
+   "x": 49.7,
+   "y": 16.3,
+   "color": "#eaffe1"
+  },
+  "/film/img/s50/216-hand-starts-to-shake.jpg": {
+   "x": 94.7,
+   "y": 39,
+   "color": "#ffd29c"
+  },
+  "/film/img/s50/the-pickup-drives-on.jpg": {
+   "x": 63.7,
+   "y": 56.1,
+   "color": "#ebfbff"
+  },
+  "/film/img/s52/218-she-pulls-him-in.jpg": {
+   "x": 41.3,
+   "y": 25.9,
+   "color": "#e4faff"
+  },
+  "/film/img/s52/541-a-knock-at-the-door.jpg": {
+   "x": 28,
+   "y": 13.4,
+   "color": "#cce5ff"
+  },
+  "/film/img/s53/219-pink-water.jpg": {
+   "x": 75.1,
+   "y": 8,
+   "color": "#ffddae"
+  },
+  "/film/img/s53/275-the-kiss-r1.jpg": {
+   "x": 47.7,
+   "y": 14,
+   "color": "#f0fdff"
+  },
+  "/film/img/s53/466-the-phone-on-the-bath.jpg": {
+   "x": 40.7,
+   "y": 63.3,
+   "color": "#fcfeff"
+  },
+  "/film/img/s53/474-careful-steady.jpg": {
+   "x": 34.3,
+   "y": 60.6,
+   "color": "#dbf1ff"
+  },
+  "/film/img/s53a/297-the-glass-office.jpg": {
+   "x": 52.5,
+   "y": 5.8,
+   "color": "#e8fffb"
+  },
+  "/film/img/s53a/298-there-was-no-car.jpg": {
+   "x": 4.8,
+   "y": 15.8,
+   "color": "#daf8ff"
+  },
+  "/film/img/s53a/469-what-they-are-told.jpg": {
+   "x": 61.9,
+   "y": 4.6,
+   "color": "#f7fff9"
+  },
+  "/film/img/s54/470-wedged-into-the-corner.jpg": {
+   "x": 43,
+   "y": 19,
+   "color": "#ffd198"
+  },
+  "/film/img/s55/221-they-match.jpg": {
+   "x": 48.5,
+   "y": 21.2,
+   "color": "#ffaa4f"
+  },
+  "/film/img/s55/471-where-a-childs-hand-would-reach.jpg": {
+   "x": 43,
+   "y": 7.8,
+   "color": "#ffb862"
+  },
+  "/film/img/s55/472-he-glances-up.jpg": {
+   "x": 29.7,
+   "y": 8.5,
+   "color": "#ffa855"
+  },
+  "/film/img/s56/223-the-third-stool.jpg": {
+   "x": 50,
+   "y": 18.1,
+   "color": "#ffab51"
+  },
+  "/film/img/s56/224-stool-three.jpg": {
+   "x": 50,
+   "y": 16,
+   "color": "#ffab4b"
+  },
+  "/film/img/s56/473-she-freezes.jpg": {
+   "x": 39.8,
+   "y": 8.2,
+   "color": "#edfffc"
+  },
+  "/film/img/s57/224-three-feet-away.jpg": {
+   "x": 49.6,
+   "y": 31.4,
+   "color": "#ffbb7a"
+  },
+  "/film/img/s58/225-bring-her-r1.jpg": {
+   "x": 49.2,
+   "y": 18.3,
+   "color": "#ffa84d"
+  },
+  "/film/img/s58/276-slides-down-the-wall.jpg": {
+   "x": 49.6,
+   "y": 31.3,
+   "color": "#ffbb7b"
+  },
+  "/film/img/s58/475-the-chopsticks-stop.jpg": {
+   "x": 39.1,
+   "y": 13,
+   "color": "#ffaa5a"
+  },
+  "/film/img/s58/476-too-much.jpg": {
+   "x": 51.5,
+   "y": 4.7,
+   "color": "#ffaf61"
+  },
+  "/film/img/s59/364-the-kotatsu.jpg": {
+   "x": 45.9,
+   "y": 46.3,
+   "color": "#7ed4ff"
+  },
+  "/film/img/s59/367-the-phone-rings.jpg": {
+   "x": 17.4,
+   "y": 22.7,
+   "color": "#d6edff"
+  },
+  "/film/img/s59/478-a-detective.jpg": {
+   "x": 16.6,
+   "y": 15.2,
+   "color": "#ffad63"
+  },
+  "/film/img/s6/321-the-form.jpg": {
+   "x": 49.8,
+   "y": 6.7,
+   "color": "#f0ffe3"
+  },
+  "/film/img/s6/322-her-handwriting.jpg": {
+   "x": 49.8,
+   "y": 6.6,
+   "color": "#f5ffe7"
+  },
+  "/film/img/s6/323-the-pen-stops.jpg": {
+   "x": 47,
+   "y": 9.2,
+   "color": "#f4ffe9"
+  },
+  "/film/img/s6/51-the-interview-room.jpg": {
+   "x": 49.8,
+   "y": 8.1,
+   "color": "#f2ffe3"
+  },
+  "/film/img/s6/52-the-paper-cup-of-tea.jpg": {
+   "x": 49.8,
+   "y": 8.1,
+   "color": "#f4ffe2"
+  },
+  "/film/img/s6/56-three-days-ago.jpg": {
+   "x": 49.8,
+   "y": 8.1,
+   "color": "#f3ffe3"
+  },
+  "/film/img/s60/227-i-want-my-sister.jpg": {
+   "x": 57.7,
+   "y": 27.7,
+   "color": "#ffb170"
+  },
+  "/film/img/s60/479-a-new-drawing.jpg": {
+   "x": 67.3,
+   "y": 12.4,
+   "color": "#ffad67"
+  },
+  "/film/img/s60/480-she-was-so-happy.jpg": {
+   "x": 61.9,
+   "y": 9.7,
+   "color": "#ffb068"
+  },
+  "/film/img/s61/1012-nine-oclock.jpg": {
+   "x": 61.7,
+   "y": 17.3,
+   "color": "#ffa34b"
+  },
+  "/film/img/s61/481-the-side-of-his-face.jpg": {
+   "x": 39.4,
+   "y": 66.7,
+   "color": "#ffa458"
+  },
+  "/film/img/s61/482-just-you.jpg": {
+   "x": 14.1,
+   "y": 62.1,
+   "color": "#ffa769"
+  },
+  "/film/img/s61/484-hands-on-the-wheel.jpg": {
+   "x": 72.5,
+   "y": 34.1,
+   "color": "#ff964a"
+  },
+  "/film/img/s62/1025-something-to-tell-you.jpg": {
+   "x": 28.3,
+   "y": 20.8,
+   "color": "#4bf8ff"
+  },
+  "/film/img/s62/485-the-signal-is-red.jpg": {
+   "x": 81.6,
+   "y": 18,
+   "color": "#ff292f"
+  },
+  "/film/img/s62/486-properly.jpg": {
+   "x": 18.7,
+   "y": 23.4,
+   "color": "#ff2e3c"
+  },
+  "/film/img/s63/230-no-questions.jpg": {
+   "x": 47.9,
+   "y": 11.6,
+   "color": "#e6ffe0"
+  },
+  "/film/img/s63/231-the-box.jpg": {
+   "x": 54.8,
+   "y": 65.1,
+   "color": "#e7fff9"
+  },
+  "/film/img/s63/63-00-the-locker-room.jpg": {
+   "x": 47.9,
+   "y": 11.3,
+   "color": "#ebffe3"
+  },
+  "/film/img/s63a/294-through-the-parlour.jpg": {
+   "x": 92,
+   "y": 50.8,
+   "color": "#ff7e70"
+  },
+  "/film/img/s63a/295-they-give-up.jpg": {
+   "x": 24.2,
+   "y": 4.3,
+   "color": "#ffb160"
+  },
+  "/film/img/s64/231-behind-the-counter.jpg": {
+   "x": 25.5,
+   "y": 10.4,
+   "color": "#ffa44d"
+  },
+  "/film/img/s64/232-the-cassette.jpg": {
+   "x": 34.9,
+   "y": 12.5,
+   "color": "#ffb971"
+  },
+  "/film/img/s65/232-the-wine-red-dress.jpg": {
+   "x": 64.2,
+   "y": 49.3,
+   "color": "#ffcca4"
+  },
+  "/film/img/s65/277-borrowing-it.jpg": {
+   "x": 10.9,
+   "y": 22.1,
+   "color": "#ffb360"
+  },
+  "/film/img/s65/487-the-top-of-the-wardrobe.jpg": {
+   "x": 44.2,
+   "y": 45.8,
+   "color": "#ff9226"
+  },
+  "/film/img/s65/489-out-of-practice.jpg": {
+   "x": 9.8,
+   "y": 34.6,
+   "color": "#ffae53"
+  },
+  "/film/img/s65/490-the-old-steel-lighter.jpg": {
+   "x": 10.9,
+   "y": 18.7,
+   "color": "#ffa046"
+  },
+  "/film/img/s66/233-waiting-for-someone.jpg": {
+   "x": 25.6,
+   "y": 35.3,
+   "color": "#ffdeb5"
+  },
+  "/film/img/s66/491-to-almost-no-one.jpg": {
+   "x": 9.8,
+   "y": 63.9,
+   "color": "#ffa139"
+  },
+  "/film/img/s66/492-shaking-the-rain.jpg": {
+   "x": 40.8,
+   "y": 39.8,
+   "color": "#ffa545"
+  },
+  "/film/img/s67/234-a-different-clock.jpg": {
+   "x": 59.2,
+   "y": 10.7,
+   "color": "#ff915a"
+  },
+  "/film/img/s68/1706-jack-at-the-curtain.jpg": {
+   "x": 52,
+   "y": 15.1,
+   "color": "#ff973d"
+  },
+  "/film/img/s68/1713-did-he-kill-himself.jpg": {
+   "x": 80.5,
+   "y": 7.1,
+   "color": "#ff9033"
+  },
+  "/film/img/s68/1714-jack-no.jpg": {
+   "x": 82.9,
+   "y": 10.8,
+   "color": "#ff9239"
+  },
+  "/film/img/s68/1719-kanekos-telephone.jpg": {
+   "x": 76.4,
+   "y": 6,
+   "color": "#ff831e"
+  },
+  "/film/img/s68/235-rice-balls-for-the-car.jpg": {
+   "x": 65.1,
+   "y": 26,
+   "color": "#ffa24f"
+  },
+  "/film/img/s68/493-folded-in-four.jpg": {
+   "x": 81.6,
+   "y": 7.6,
+   "color": "#ff9c47"
+  },
+  "/film/img/s68/494-like-a-grandmother.jpg": {
+   "x": 72,
+   "y": 12,
+   "color": "#ff9e49"
+  },
+  "/film/img/s68/497-maras-message.jpg": {
+   "x": 76.5,
+   "y": 5.8,
+   "color": "#ff943a"
+  },
+  "/film/img/s69/236-vera-would-love-this.jpg": {
+   "x": 11.8,
+   "y": 24.9,
+   "color": "#ffd59e"
+  },
+  "/film/img/s69/279-her-sisters-smile.jpg": {
+   "x": 32.9,
+   "y": 22.3,
+   "color": "#ffb772"
+  },
+  "/film/img/s69/495-other-lives.jpg": {
+   "x": 8.1,
+   "y": 19.9,
+   "color": "#ffb86c"
+  },
+  "/film/img/s69/496-meeting-her-at-ten.jpg": {
+   "x": 56.3,
+   "y": 15.6,
+   "color": "#ffba7e"
+  },
+  "/film/img/s7/63-the-detectives-room.jpg": {
+   "x": 31.4,
+   "y": 9.4,
+   "color": "#f0ffdd"
+  },
+  "/film/img/s7/64-the-bottom-drawer.jpg": {
+   "x": 50,
+   "y": 47,
+   "color": "#feffe7"
+  },
+  "/film/img/s7/66-he-looks-at-it.jpg": {
+   "x": 55.2,
+   "y": 20,
+   "color": "#faffd9"
+  },
+  "/film/img/s70/237-position.jpg": {
+   "x": 59.3,
+   "y": 10.7,
+   "color": "#ff824a"
+  },
+  "/film/img/s70/389-out-of-the-back-door.jpg": {
+   "x": 17.1,
+   "y": 21.5,
+   "color": "#ffa450"
+  },
+  "/film/img/s70/390-he-opens-the-rear-door.jpg": {
+   "x": 54.8,
+   "y": 21.2,
+   "color": "#ff9d6e"
+  },
+  "/film/img/s70/391-mara-stops-dead.jpg": {
+   "x": 52.6,
+   "y": 7.5,
+   "color": "#ff7c44"
+  },
+  "/film/img/s70/392-into-his-sleeve.jpg": {
+   "x": 75.8,
+   "y": 35.8,
+   "color": "#ff9265"
+  },
+  "/film/img/s70/393-run.jpg": {
+   "x": 19.1,
+   "y": 11.5,
+   "color": "#ffb989"
+  },
+  "/film/img/s70/394-between-the-pillars.jpg": {
+   "x": 64.2,
+   "y": 6.6,
+   "color": "#ff763e"
+  },
+  "/film/img/s70/395-behind-the-dumpster.jpg": {
+   "x": 80.5,
+   "y": 40.1,
+   "color": "#ffd3b9"
+  },
+  "/film/img/s70/396-five-metres-three.jpg": {
+   "x": 68.1,
+   "y": 10.1,
+   "color": "#ff8146"
+  },
+  "/film/img/s70/397-through-the-doorway.jpg": {
+   "x": 55.9,
+   "y": 20.1,
+   "color": "#ff8e43"
+  },
+  "/film/img/s70/398-the-doorframe.jpg": {
+   "x": 70.5,
+   "y": 29.7,
+   "color": "#ffa054"
+  },
+  "/film/img/s71/238-everyones-awake.jpg": {
+   "x": 89.6,
+   "y": 5.8,
+   "color": "#ffcc8c"
+  },
+  "/film/img/s71/399-the-bolt.jpg": {
+   "x": 29.2,
+   "y": 5,
+   "color": "#ffcd9c"
+  },
+  "/film/img/s71/400-holding-her-side.jpg": {
+   "x": 58.1,
+   "y": 15.6,
+   "color": "#ffbf7c"
+  },
+  "/film/img/s71/401-his-hands-over-hers.jpg": {
+   "x": 48.2,
+   "y": 21.8,
+   "color": "#ffc084"
+  },
+  "/film/img/s71/402-the-windows-wake.jpg": {
+   "x": 6.3,
+   "y": 54.5,
+   "color": "#e8ffbc"
+  },
+  "/film/img/s71/403-all-the-light.jpg": {
+   "x": 84.7,
+   "y": 48.5,
+   "color": "#ffd295"
+  },
+  "/film/img/s71/404-her-grip.jpg": {
+   "x": 31.2,
+   "y": 46.5,
+   "color": "#ffbb7e"
+  },
+  "/film/img/s71/405-youll-tell-her.jpg": {
+   "x": 83.2,
+   "y": 32.3,
+   "color": "#ffa850"
+  },
+  "/film/img/s71/406-the-pages.jpg": {
+   "x": 33.3,
+   "y": 16.6,
+   "color": "#ffb360"
+  },
+  "/film/img/s71/407-the-bulbs-swing.jpg": {
+   "x": 47.8,
+   "y": 6.9,
+   "color": "#ffd8b7"
+  },
+  "/film/img/s71/kaneko-comes-to-help.jpg": {
+   "x": 31.5,
+   "y": 15.8,
+   "color": "#ffc884"
+  },
+  "/film/img/s72/497-eleven-fifty-two.jpg": {
+   "x": 76.5,
+   "y": 9,
+   "color": "#ff9e38"
+  },
+  "/film/img/s72/498-open-shut.jpg": {
+   "x": 70,
+   "y": 17.7,
+   "color": "#ff9b33"
+  },
+  "/film/img/s72/499-the-screen.jpg": {
+   "x": 79.5,
+   "y": 61.9,
+   "color": "#ffa742"
+  },
+  "/film/img/s72/69-the-wait.jpg": {
+   "x": 83.9,
+   "y": 31.8,
+   "color": "#ffbd63"
+  },
+  "/film/img/s72/70-the-call.jpg": {
+   "x": 96.2,
+   "y": 48.2,
+   "color": "#ffb155"
+  },
+  "/film/img/s73/547-the-call-still-lit.jpg": {
+   "x": 74.1,
+   "y": 64.3,
+   "color": "#ffd188"
+  },
+  "/film/img/s73/549-the-crossing-chimes.jpg": {
+   "x": 78.4,
+   "y": 8.7,
+   "color": "#ff120f"
+  },
+  "/film/img/s73/69-vera-runs.jpg": {
+   "x": 80,
+   "y": 64.2,
+   "color": "#68ffd4"
+  },
+  "/film/img/s73/72-the-lost-heel.jpg": {
+   "x": 75.1,
+   "y": 66,
+   "color": "#ff9040"
+  },
+  "/film/img/s74/501-one-shoe.jpg": {
+   "x": 16.6,
+   "y": 25.8,
+   "color": "#f1fdff"
+  },
+  "/film/img/s74/502-why-didnt-you-tell-me.jpg": {
+   "x": 11.1,
+   "y": 35.9,
+   "color": "#ebf9ff"
+  },
+  "/film/img/s74/503-she-holds-on.jpg": {
+   "x": 12.9,
+   "y": 18.5,
+   "color": "#fefff9"
+  },
+  "/film/img/s74/504-nobody-looks-down.jpg": {
+   "x": 8.2,
+   "y": 62.6,
+   "color": "#f2fcff"
+  },
+  "/film/img/s74/74-twenty-metres-apart.jpg": {
+   "x": 6.4,
+   "y": 33.7,
+   "color": "#effffc"
+  },
+  "/film/img/s74/75-one-desperate-blow.jpg": {
+   "x": 24,
+   "y": 40.3,
+   "color": "#fffef3"
+  },
+  "/film/img/s75/80-the-machine-waits.jpg": {
+   "x": 34.9,
+   "y": 29.4,
+   "color": "#fff4e5"
+  },
+  "/film/img/s76/1698-the-machine-plays.jpg": {
+   "x": 97.4,
+   "y": 4.5,
+   "color": "#ffab54"
+  },
+  "/film/img/s76/1701-vera-listens.jpg": {
+   "x": 13.3,
+   "y": 10.7,
+   "color": "#7aceff"
+  },
+  "/film/img/s77/85-the-desk-lamp.jpg": {
+   "x": 40.1,
+   "y": 46.6,
+   "color": "#daffa8"
+  },
+  "/film/img/s77/86-the-clean-envelope.jpg": {
+   "x": 28.4,
+   "y": 22.5,
+   "color": "#ffc674"
+  },
+  "/film/img/s77/87-he-writes-nothing.jpg": {
+   "x": 37.3,
+   "y": 47,
+   "color": "#e9ff8c"
+  },
+  "/film/img/s77a/1290-predawn-avenue.jpg": {
+   "x": 69.4,
+   "y": 7,
+   "color": "#7ef1ff"
+  },
+  "/film/img/s77a/1293-sedan-keeps-pace.jpg": {
+   "x": 40.1,
+   "y": 56,
+   "color": "#fff9e5"
+  },
+  "/film/img/s77a/1294-hand-and-watch-on-sill.jpg": {
+   "x": 4.5,
+   "y": 23.2,
+   "color": "#ffd793"
+  },
+  "/film/img/s77a/1296-everyone-is-allowed-one.jpg": {
+   "x": 90.5,
+   "y": 67.1,
+   "color": "#eaf5ff"
+  },
+  "/film/img/s77a/1299-the-envelope.jpg": {
+   "x": 69.5,
+   "y": 7.2,
+   "color": "#84f1ff"
+  },
+  "/film/img/s77a/1301-maybe-a-mistake.jpg": {
+   "x": 75.3,
+   "y": 17.4,
+   "color": "#a3d0ff"
+  },
+  "/film/img/s78/1307-jack-knocks-once.jpg": {
+   "x": 31.8,
+   "y": 16,
+   "color": "#d2fffc"
+  },
+  "/film/img/s78/1313-daniel-voss-inside-cover.jpg": {
+   "x": 40.5,
+   "y": 11.3,
+   "color": "#dcf3ff"
+  },
+  "/film/img/s78/316-squared-to-the-door.jpg": {
+   "x": 31.8,
+   "y": 15.9,
+   "color": "#feffeb"
+  },
+  "/film/img/s78/88-the-walkway.jpg": {
+   "x": 31.6,
+   "y": 15.7,
+   "color": "#fbffea"
+  },
+  "/film/img/s78/89-no-name.jpg": {
+   "x": 62.5,
+   "y": 11.9,
+   "color": "#c4e8ff"
+  },
+  "/film/img/s8/160-were-closed.jpg": {
+   "x": 94.3,
+   "y": 18,
+   "color": "#eefeff"
+  },
+  "/film/img/s8/161-the-umbrella-left-behind.jpg": {
+   "x": 94.3,
+   "y": 18.2,
+   "color": "#f0fffe"
+  },
+  "/film/img/s8/240-the-far-end.jpg": {
+   "x": 46.3,
+   "y": 56.2,
+   "color": "#fcfff9"
+  },
+  "/film/img/s8/410-exactly-one-second.jpg": {
+   "x": 91.1,
+   "y": 34.2,
+   "color": "#f5fcff"
+  },
+  "/film/img/s80/94-the-long-room.jpg": {
+   "x": 69.3,
+   "y": 8.7,
+   "color": "#f5ffe5"
+  },
+  "/film/img/s80/95-ishida-doesnt-look-up.jpg": {
+   "x": 69.3,
+   "y": 8.7,
+   "color": "#f6ffe6"
+  },
+  "/film/img/s80/96-hands-close.jpg": {
+   "x": 68.5,
+   "y": 4.1,
+   "color": "#f0ffe5"
+  },
+  "/film/img/s80/97-where-to-find-them.jpg": {
+   "x": 80.3,
+   "y": 33.7,
+   "color": "#effff0"
+  },
+  "/film/img/s80/not-to-jack.jpg": {
+   "x": 68,
+   "y": 8.1,
+   "color": "#f4ffe6"
+  },
+  "/film/img/s80/the-blood-on-his-hand.jpg": {
+   "x": 68.1,
+   "y": 6.5,
+   "color": "#e6ffed"
+  },
+  "/film/img/s80/the-chair-goes-over.jpg": {
+   "x": 68.2,
+   "y": 8.5,
+   "color": "#f5ffe6"
+  },
+  "/film/img/s81/100-the-bar-in-daylight.jpg": {
+   "x": 87.3,
+   "y": 44.6,
+   "color": "#f4fffe"
+  },
+  "/film/img/s81/101-the-cash-drawer.jpg": {
+   "x": 96.8,
+   "y": 18.1,
+   "color": "#eefffe"
+  },
+  "/film/img/s81/103-without-a-toast.jpg": {
+   "x": 96.8,
+   "y": 18.6,
+   "color": "#edfdff"
+  },
+  "/film/img/s82/105-the-tape-between-them.jpg": {
+   "x": 39,
+   "y": 32.6,
+   "color": "#e2fffa"
+  },
+  "/film/img/s82/108-not-silent.jpg": {
+   "x": 21.4,
+   "y": 7.6,
+   "color": "#ccffe1"
+  },
+  "/film/img/s82/510-very-far-away.jpg": {
+   "x": 85.9,
+   "y": 17.8,
+   "color": "#e3fdff"
+  },
+  "/film/img/s82/511-twenty-years-ago.jpg": {
+   "x": 20.1,
+   "y": 37.4,
+   "color": "#e3fffe"
+  },
+  "/film/img/s82/new-empty-newsroom.jpg": {
+   "x": 20.7,
+   "y": 7.2,
+   "color": "#cbffe1"
+  },
+  "/film/img/s82/new-jack-walks-in-1.jpg": {
+   "x": 5.1,
+   "y": 16.3,
+   "color": "#cff8ff"
+  },
+  "/film/img/s82/new-jack-walks-in-2.jpg": {
+   "x": 70.3,
+   "y": 9.4,
+   "color": "#f9ffd6"
+  },
+  "/film/img/s82/new-jack-walks-in-3.jpg": {
+   "x": 5.2,
+   "y": 13.9,
+   "color": "#c9f3ff"
+  },
+  "/film/img/s82a/300-at-the-edge-of-the-newsroom.jpg": {
+   "x": 5.9,
+   "y": 10.2,
+   "color": "#e7f9ff"
+  },
+  "/film/img/s82a/301-the-bar-of-light.jpg": {
+   "x": 43.3,
+   "y": 49.2,
+   "color": "#f2ffe5"
+  },
+  "/film/img/s82a/302-the-copies.jpg": {
+   "x": 7.4,
+   "y": 23.4,
+   "color": "#e0fdff"
+  },
+  "/film/img/s82a/512-he-hasnt-stopped.jpg": {
+   "x": 73.6,
+   "y": 6.7,
+   "color": "#e6ffec"
+  },
+  "/film/img/s82a/514-hell-want-to-look-at-me.jpg": {
+   "x": 48.6,
+   "y": 15.5,
+   "color": "#f6fff1"
+  },
+  "/film/img/s84/115-the-storeroom.jpg": {
+   "x": 57.4,
+   "y": 30.4,
+   "color": "#ffba74"
+  },
+  "/film/img/s84/116-thats-me.jpg": {
+   "x": 66.9,
+   "y": 10.5,
+   "color": "#ffcd95"
+  },
+  "/film/img/s84/117-both-wrong.jpg": {
+   "x": 57.4,
+   "y": 30.1,
+   "color": "#ffbc7a"
+  },
+  "/film/img/s84/118-position.jpg": {
+   "x": 69.4,
+   "y": 31.4,
+   "color": "#ffc581"
+  },
+  "/film/img/s84/318-the-dried-stack.jpg": {
+   "x": 61.1,
+   "y": 53.6,
+   "color": "#ffb873"
+  },
+  "/film/img/s84/516-he-cant-go-home.jpg": {
+   "x": 58.5,
+   "y": 15.1,
+   "color": "#ffb56b"
+  },
+  "/film/img/s84/517-neither-moves.jpg": {
+   "x": 51.2,
+   "y": 26.6,
+   "color": "#ffb067"
+  },
+  "/film/img/s84/518-thats-mine.jpg": {
+   "x": 28.5,
+   "y": 17.9,
+   "color": "#ffc181"
+  },
+  "/film/img/s84/519-not-all-right.jpg": {
+   "x": 78.1,
+   "y": 17.7,
+   "color": "#ffbb74"
+  },
+  "/film/img/s84/521-somebody-has-to-look.jpg": {
+   "x": 59.6,
+   "y": 17.7,
+   "color": "#ffb771"
+  },
+  "/film/img/s84/522-the-bulb-swings.jpg": {
+   "x": 55.3,
+   "y": 21.6,
+   "color": "#ffb56e"
+  },
+  "/film/img/s85/120-the-hive-is-watching.jpg": {
+   "x": 8.3,
+   "y": 18.2,
+   "color": "#ffb158"
+  },
+  "/film/img/s87/125-the-main-switch.jpg": {
+   "x": 14.1,
+   "y": 47.5,
+   "color": "#ffb956"
+  },
+  "/film/img/s88/126-dark.jpg": {
+   "x": 24.5,
+   "y": 69.4,
+   "color": "#e9ffe2"
+  },
+  "/film/img/s88/127-faces-vanish.jpg": {
+   "x": 66.4,
+   "y": 47.6,
+   "color": "#fbffdb"
+  },
+  "/film/img/s9/241-the-card.jpg": {
+   "x": 5.2,
+   "y": 49.2,
+   "color": "#f3f7ff"
+  },
+  "/film/img/s90/130-the-roof.jpg": {
+   "x": 49.5,
+   "y": 26.5,
+   "color": "#aae7ff"
+  },
+  "/film/img/s90/132-the-gap.jpg": {
+   "x": 50.2,
+   "y": 21,
+   "color": "#ffa756"
+  },
+  "/film/img/s90/378-the-barbers-shop.jpg": {
+   "x": 64.7,
+   "y": 12,
+   "color": "#efffde"
+  },
+  "/film/img/s90/379-the-laundry.jpg": {
+   "x": 61.3,
+   "y": 16.3,
+   "color": "#ebffaf"
+  },
+  "/film/img/s91/132-the-rails-sing.jpg": {
+   "x": 59.1,
+   "y": 17.9,
+   "color": "#dffffd"
+  },
+  "/film/img/s91/134-the-walkway-is-empty.jpg": {
+   "x": 63.7,
+   "y": 53.7,
+   "color": "#a6ffdb"
+  },
+  "/film/img/s92/135-below-the-viaduct.jpg": {
+   "x": 24.3,
+   "y": 35,
+   "color": "#ffb567"
+  },
+  "/film/img/s92/136-until-us.jpg": {
+   "x": 20.7,
+   "y": 46.7,
+   "color": "#ffb26d"
+  },
+  "/film/img/s93/137-he-knows-this-car.jpg": {
+   "x": 39.3,
+   "y": 47.9,
+   "color": "#f6ffef"
+  },
+  "/film/img/s93/138-the-door-opens.jpg": {
+   "x": 37.9,
+   "y": 47.7,
+   "color": "#f5fff0"
+  },
+  "/film/img/s93/93-00-down-the-steps.jpg": {
+   "x": 35.9,
+   "y": 25.1,
+   "color": "#d2faff"
+  },
+  "/film/img/s94/139-only-tea.jpg": {
+   "x": 53.8,
+   "y": 16.9,
+   "color": "#ffa944"
+  },
+  "/film/img/s94/140-where-are-we-going.jpg": {
+   "x": 23.8,
+   "y": 46.6,
+   "color": "#d6fffd"
+  },
+  "/film/img/s94/141-he-drinks.jpg": {
+   "x": 19,
+   "y": 21.5,
+   "color": "#ffac48"
+  },
+  "/film/img/s94/368-the-door-closes.jpg": {
+   "x": 82.2,
+   "y": 21.5,
+   "color": "#ffa94d"
+  },
+  "/film/img/s95/142-taillights.jpg": {
+   "x": 56.3,
+   "y": 67.6,
+   "color": "#ff6a5a"
+  },
+  "/film/img/s96/143-the-box.jpg": {
+   "x": 32.1,
+   "y": 8.8,
+   "color": "#eeffe3"
+  },
+  "/film/img/s96/303-he-left-a-statement.jpg": {
+   "x": 68.4,
+   "y": 8.5,
+   "color": "#f6ffe8"
+  },
+  "/film/img/s97a/557-the-umbrellas.jpg": {
+   "x": 72.7,
+   "y": 39.3,
+   "color": "#ffa135"
+  },
+  "/film/img/s97a/562-kanekos-parcel.jpg": {
+   "x": 4.8,
+   "y": 36,
+   "color": "#ffa747"
+  },
+  "/film/img/s97a/564-the-room-from-above.jpg": {
+   "x": 50.2,
+   "y": 29,
+   "color": "#ffc97b"
+  },
+  "/film/img/s97a/565-they-bow.jpg": {
+   "x": 22,
+   "y": 25.1,
+   "color": "#ff9f43"
+  },
+  "/film/img/s97a/567-okada-at-the-door.jpg": {
+   "x": 47.1,
+   "y": 55.8,
+   "color": "#ffc997"
+  },
+  "/film/img/s97a/569-after-the-service.jpg": {
+   "x": 21.9,
+   "y": 45.8,
+   "color": "#ffb556"
+  },
+  "/film/img/s97a/570-before-he-kneels.jpg": {
+   "x": 51.4,
+   "y": 36.1,
+   "color": "#e5ffe9"
+  },
+  "/film/img/s99/157-the-sign.jpg": {
+   "x": 8.2,
+   "y": 14.2,
+   "color": "#edfff8"
+  },
+  "/film/img/s99a/530-exposed-to-the-sky.jpg": {
+   "x": 86.7,
+   "y": 10.1,
+   "color": "#f6feff"
+  },
+  "/film/img/s99a/531-six-old-stools.jpg": {
+   "x": 82.2,
+   "y": 18.9,
+   "color": "#f5feff"
+  },
+  "/film/img/service_new/556-the-lane-from-above.jpg": {
+   "x": 36.6,
+   "y": 38.9,
+   "color": "#ffbd6c"
+  },
+  "/film/img/service_new/560-jack-at-the-door.jpg": {
+   "x": 31.7,
+   "y": 8.1,
+   "color": "#fcffd3"
+  },
+  "/film/img/service_new/572-the-circle-is-whole.jpg": {
+   "x": 13.6,
+   "y": 14.7,
+   "color": "#ffa352"
+  },
+  "/film/img/service_new/574-the-viaduct-at-dusk.jpg": {
+   "x": 39.5,
+   "y": 35.9,
+   "color": "#ffb060"
+  },
+  "/film/img/service_new/575-vera-and-her-mother-arrive.jpg": {
+   "x": 29.5,
+   "y": 39.6,
+   "color": "#ffa855"
+  },
+  "/film/img/service_new/577-the-window.jpg": {
+   "x": 24.7,
+   "y": 34.4,
+   "color": "#ff9334"
+  },
+  "/film/img/service_new/578-maras-photograph.jpg": {
+   "x": 18.8,
+   "y": 29.1,
+   "color": "#ffa244"
+  },
+  "/film/img/service_new/579-her-drawings.jpg": {
+   "x": 18.6,
+   "y": 29,
+   "color": "#ffc98d"
+  },
+  "/film/img/service_new/581-veras-face.jpg": {
+   "x": 15.7,
+   "y": 35.3,
+   "color": "#ff9e41"
+  },
+  "/film/img/service_new/582-jacks-face.jpg": {
+   "x": 14.4,
+   "y": 25.3,
+   "color": "#ff861f"
+  },
+  "/film/img/service_new/583-the-neighbours.jpg": {
+   "x": 37,
+   "y": 26.7,
+   "color": "#31e5ff"
+  },
+  "/film/img/service_new/584-the-tea-gone-cold.jpg": {
+   "x": 17.9,
+   "y": 28.3,
+   "color": "#ff9b3d"
+  },
+  "/film/img/service_new/585-kaneko-goes-to-him.jpg": {
+   "x": 19.5,
+   "y": 33.6,
+   "color": "#ffa042"
+  },
+  "/film/img/service_new/587-the-blue-umbrella-opens.jpg": {
+   "x": 35.1,
+   "y": 29.8,
+   "color": "#ffdea1"
+  },
+  "/film/img/service_new/588-it-rains-all-night.jpg": {
+   "x": 38.7,
+   "y": 39.6,
+   "color": "#ffaa58"
+  },
+  "/film/img/service_new/extras/mom-01-her-face-at-the-table.jpg": {
+   "x": 7.3,
+   "y": 31.3,
+   "color": "#ff9d3f"
+  },
+  "/film/img/service_new/extras/mom-02-mother-and-daughter.jpg": {
+   "x": 37.3,
+   "y": 35.6,
+   "color": "#ffcb90"
+  },
+  "/film/img/service_new/extras/mom-03-what-she-wears-home.jpg": {
+   "x": 39.9,
+   "y": 31.9,
+   "color": "#ff9827"
+  },
+  "/film/img/thehiveescape/s86/86-04-go-now-they-will-help-you.jpg": {
+   "x": 49.5,
+   "y": 21.2,
+   "color": "#ffd399"
+  },
+  "/film/img/thehiveescape/s89/89-03-the-beam-falls-away.jpg": {
+   "x": 37.8,
+   "y": 61.7,
+   "color": "#ccffec"
+  },
+  "/film/img/thehiveescape/s90/90-02-family-kitchen-by-candle.jpg": {
+   "x": 4.4,
+   "y": 10.1,
+   "color": "#93fff2"
+  },
+  "/film/img/thehiveescape/s90/90-03-dentist-finger-to-lips.jpg": {
+   "x": 21.1,
+   "y": 32.5,
+   "color": "#dfffc9"
+  },
+  "/film/img/thehiveescape/s90/90-05-through-the-wardrobe.jpg": {
+   "x": 46,
+   "y": 33,
+   "color": "#ffce95"
+  },
+  "/film/img/thehiveescape/s91/91-03-hand-in-his-on-the-rail.jpg": {
+   "x": 22.8,
+   "y": 56.2,
+   "color": "#2db7ff"
+  },
+  "/film/img/vera_run_new/72-01-the-piano-plays-on.jpg": {
+   "x": 84.4,
+   "y": 31.3,
+   "color": "#ffb25b"
+  },
+  "/film/img/vera_run_new/72-03-the-lighter-into-the-bag.jpg": {
+   "x": 64.2,
+   "y": 41.6,
+   "color": "#ffa646"
+  },
+  "/film/img/vera_run_new/72-05-the-umbrella-stays.jpg": {
+   "x": 12.9,
+   "y": 43.6,
+   "color": "#ffc47a"
+  },
+  "/film/img/vera_run_new/73-05-toward-the-tracks.jpg": {
+   "x": 36.2,
+   "y": 62.6,
+   "color": "#ffbe87"
+  },
+  "/film/img/vera_run_new/73-06-her-face.jpg": {
+   "x": 56.5,
+   "y": 31.4,
+   "color": "#ffcd85"
+  },
+  "/film/img/vera_run_new/73-07-heels-on-wet-pavement.jpg": {
+   "x": 88.5,
+   "y": 64.7,
+   "color": "#ffb47a"
+  },
+  "/film/img/vera_run_new/73-09-she-cannot-breathe.jpg": {
+   "x": 82.2,
+   "y": 53,
+   "color": "#ffb88f"
+  },
+  "/film/img/vera_run_new/73-10-a-car-passes.jpg": {
+   "x": 13.2,
+   "y": 58.9,
+   "color": "#ffbc76"
+  },
+  "/film/img/vera_run_new/74-01-no-one-else-is-here.jpg": {
+   "x": 4,
+   "y": 48.7,
+   "color": "#fffcef"
+  },
+  "/film/img/vera_run_new/74-06-dont.jpg": {
+   "x": 6.6,
+   "y": 37.2,
+   "color": "#fefff0"
+  },
+  "/film/img/vera_run_new/74-08-you-knew.jpg": {
+   "x": 30.4,
+   "y": 26.8,
+   "color": "#ffcd6c"
+  },
+  "/film/img/vera_run_new/74-09-his-silence.jpg": {
+   "x": 23.3,
+   "y": 28.4,
+   "color": "#ffda74"
+  },
+  "/film/img/vera_run_new/74-13-she-folds.jpg": {
+   "x": 14.9,
+   "y": 36.6,
+   "color": "#ffd4a8"
+  },
+  "/film/img/vera_run_new/74-15-she-pushes-him-away.jpg": {
+   "x": 8,
+   "y": 36.1,
+   "color": "#befaff"
+  },
+  "/film/img/vera_run_new/74-17-the-reflection.jpg": {
+   "x": 7.4,
+   "y": 57.8,
+   "color": "#caf2ff"
+  },
+  "/film/img/vera_run_new/74-18-she-covers-her-face.jpg": {
+   "x": 63.7,
+   "y": 9.3,
+   "color": "#ffbe62"
+  },
+  "/film/img/vera_run_new/75-01-the-red-shoe.jpg": {
+   "x": 78.6,
+   "y": 7,
+   "color": "#bcfffa"
+  },
+  "/film/img/vera_run_new/75-02-the-empty-lounge.jpg": {
+   "x": 21.2,
+   "y": 47.8,
+   "color": "#faffbd"
+  },
+  "/film/img/vera_run_new/75-04-the-machines-wait.jpg": {
+   "x": 18,
+   "y": 42.5,
+   "color": "#c4f3ff"
+  },
+  "/film/img/vera_run_new/75-05-static-in-a-window.jpg": {
+   "x": 16.2,
+   "y": 57.1,
+   "color": "#96ebff"
+  },
+  "/film/img/vera_run_new/76-01-the-walkway.jpg": {
+   "x": 36.8,
+   "y": 8,
+   "color": "#ffac67"
+  },
+  "/film/img/vera_run_new/76-07-the-lighter.jpg": {
+   "x": 66.2,
+   "y": 20.4,
+   "color": "#59d9ff"
+  },
+  "/film/img/vera_run_takes/72-02-the-phone-lowers--r1.jpg": {
+   "x": 5.9,
+   "y": 64.9,
+   "color": "#ffbb5f"
+  },
+  "/film/img/vera_run_takes/72-04-walking-very-carefully--r1.jpg": {
+   "x": 85.3,
+   "y": 47,
+   "color": "#ffdbae"
+  },
+  "/film/img/vera_run_takes/73-03-she-runs--69-vera-runs-v2.jpg": {
+   "x": 23.8,
+   "y": 30.8,
+   "color": "#ffa544"
+  },
+  "/film/img/vera_run_takes/73-08-she-slips--70-not-elegantly-badly-playframe.jpg": {
+   "x": 29.9,
+   "y": 66.6,
+   "color": "#ffab56"
+  },
+  "/film/img/vera_run_takes/73-11-the-vending-machine--71-the-machine-glows-v2.jpg": {
+   "x": 21.1,
+   "y": 20.5,
+   "color": "#f4fff5"
+  },
+  "/film/img/vera_run_takes/75-03-the-hive-shut--79-the-hive-shut-v1.jpg": {
+   "x": 49.8,
+   "y": 48.7,
+   "color": "#ffaa64"
+  }
+ },
+ "videoShots": {
+  "nw_song_b7": "/film/video/festival/she-runs.mp4",
+  "nw_song_b33": "/film/video/festival/train-above.mp4",
+  "nw_song_b34": "/film/video/festival/red-shoe.mp4",
+  "nw_song_b14": "/film/video/festival/car-passes.mp4",
+  "nw_song_service_19:nw_song_b19": "/film/video/festival/incense.mp4",
+  "nw_song_service_35:nw_song_b35": "/film/video/festival/rains-all-night.mp4"
+ },
+ "sfx": [
+  {
+   "id": "fc_sfx_1",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/bulb-hum.mp3",
+   "anchorId": "nw_b526",
+   "gain": 0.22,
+   "fileMs": 25051,
+   "offsetMs": 0,
+   "fadeInMs": 600,
+   "fadeOutMs": 600,
+   "loop": true,
+   "untilAnchorId": "nw_b526"
+  },
+  {
+   "id": "fc_sfx_2",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/sketchbook-down.mp3",
+   "anchorId": "nw_b501",
+   "gain": 0.6,
+   "fileMs": 3030,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_3",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/fridge-open.mp3",
+   "anchorId": "nw_b338",
+   "gain": 0.55,
+   "fileMs": 5042,
+   "offsetMs": 400,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_4",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/curtain-swish.mp3",
+   "anchorId": "nw_b597",
+   "gain": 0.5,
+   "fileMs": 3030,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_5",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/neon-sign-buzz.mp3",
+   "anchorId": "nw_b738",
+   "gain": 0.3,
+   "fileMs": 25051,
+   "offsetMs": 0,
+   "fadeInMs": 400,
+   "fadeOutMs": 800,
+   "loop": true,
+   "untilAnchorId": "nw_b738"
+  },
+  {
+   "id": "fc_sfx_6",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/chopsticks-pot.mp3",
+   "anchorId": "nw_b964",
+   "gain": 0.45,
+   "fileMs": 12042,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 900,
+   "loop": false,
+   "maxMs": 5000
+  },
+  {
+   "id": "fc_sfx_7",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/money-counter.mp3",
+   "anchorId": "nw_b966",
+   "gain": 0.6,
+   "fileMs": 3030,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_8",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/tissue-paper.mp3",
+   "anchorId": "nw_b1072",
+   "gain": 0.45,
+   "fileMs": 15047,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 1200,
+   "loop": false,
+   "maxMs": 6000
+  },
+  {
+   "id": "fc_sfx_9",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/newspaper-office.mp3",
+   "anchorId": "nw_b906",
+   "gain": 0.28,
+   "fileMs": 15047,
+   "offsetMs": 0,
+   "fadeInMs": 800,
+   "fadeOutMs": 1000,
+   "loop": false,
+   "maxMs": 9000
+  },
+  {
+   "id": "fc_sfx_10",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/window-stuck.mp3",
+   "anchorId": "nw_cut_inn-raid_b13",
+   "gain": 0.8,
+   "fileMs": 6034,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_11",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/struggle-gun-drop.mp3",
+   "anchorId": "nw_cut_inn-raid_b24",
+   "gain": 0.8,
+   "fileMs": 5042,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_12",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/fist-coat.mp3",
+   "anchorId": "nw_song_b26",
+   "gain": 0.9,
+   "fileMs": 1045,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_13",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/knees-wet.mp3",
+   "anchorId": "nw_song_b27",
+   "gain": 0.75,
+   "fileMs": 2038,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_14",
+   "lane": "sfx",
+   "src": "/film/sfx/heels-running-wet.mp3",
+   "anchorId": "nw_song_b9",
+   "gain": 0.45,
+   "fileMs": 4049,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 600,
+   "loop": false,
+   "maxMs": 4500
+  },
+  {
+   "id": "fc_sfx_15",
+   "lane": "sfx",
+   "src": "/film/sfx/shoe-splash.mp3",
+   "anchorId": "nw_song_b24",
+   "gain": 0.45,
+   "fileMs": 1515,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_16",
+   "lane": "sfx",
+   "src": "/film/sfx/phone-vibrate.mp3",
+   "anchorId": "nw_song_b43",
+   "gain": 0.25,
+   "fileMs": 2508,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_17",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/wardrobe-hangers.mp3",
+   "anchorId": "nw_song_raid_23:nw_song_b18",
+   "gain": 0.55,
+   "fileMs": 6034,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_18",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/floor-hatch.mp3",
+   "anchorId": "nw_song_raid_26:nw_song_b21",
+   "gain": 0.55,
+   "fileMs": 5042,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_19",
+   "lane": "sfx",
+   "src": "/film/sfx/boots-single-file.mp3",
+   "anchorId": "nw_song_raid_18:nw_song_b13",
+   "gain": 0.45,
+   "fileMs": 6034,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 600,
+   "loop": false,
+   "maxMs": 4000
+  },
+  {
+   "id": "fc_sfx_20",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/umbrella-close.mp3",
+   "anchorId": "nw_song_service_05:nw_song_b5",
+   "gain": 0.5,
+   "fileMs": 4049,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_21",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/incense-match.mp3",
+   "anchorId": "nw_song_service_09:nw_song_b9",
+   "gain": 0.45,
+   "fileMs": 15047,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 1500,
+   "loop": false,
+   "maxMs": 5000
+  },
+  {
+   "id": "fc_sfx_22",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/sedan-approach.mp3",
+   "anchorId": "nw_b1293",
+   "gain": 0.55,
+   "fileMs": 15047,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 900,
+   "loop": false,
+   "maxMs": 3400
+  },
+  {
+   "id": "fc_sfx_23",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/kurose-sedan-crawl.mp3",
+   "anchorId": "nw_b1294",
+   "gain": 0.28,
+   "fileMs": 15047,
+   "offsetMs": 0,
+   "fadeInMs": 900,
+   "fadeOutMs": 900,
+   "loop": true,
+   "untilAnchorId": "nw_b1303"
+  },
+  {
+   "id": "fc_sfx_24",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/kurose-window-down.mp3",
+   "anchorId": "nw_b1294",
+   "gain": 0.8,
+   "fileMs": 8046,
+   "offsetMs": 300,
+   "fadeInMs": 0,
+   "fadeOutMs": 800,
+   "loop": false,
+   "maxMs": 4500
+  },
+  {
+   "id": "fc_sfx_25",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/kurose-window-up.mp3",
+   "anchorId": "nw_b1303",
+   "gain": 0.8,
+   "fileMs": 8046,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 600,
+   "loop": false,
+   "maxMs": 3500
+  },
+  {
+   "id": "fc_sfx_26",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/kurose-sedan-away.mp3",
+   "anchorId": "nw_b1304",
+   "gain": 0.7,
+   "fileMs": 18051,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 2000,
+   "loop": false,
+   "maxMs": 6000
+  },
+  {
+   "id": "fc_sfx_27",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/hive-volley.mp3",
+   "anchorId": "nw_b1141",
+   "gain": 0.75,
+   "fileMs": 15047,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 700,
+   "loop": false,
+   "maxMs": 3600
+  },
+  {
+   "id": "fc_sfx_28",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/hive-casings.mp3",
+   "anchorId": "nw_b1141",
+   "gain": 0.3,
+   "fileMs": 8046,
+   "offsetMs": 1600,
+   "fadeInMs": 0,
+   "fadeOutMs": 800,
+   "loop": false,
+   "maxMs": 2800
+  },
+  {
+   "id": "fc_sfx_29",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/hive-dumpster-hits.mp3",
+   "anchorId": "nw_b1142",
+   "gain": 0.7,
+   "fileMs": 12042,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 600,
+   "loop": false,
+   "maxMs": 3700
+  },
+  {
+   "id": "fc_sfx_30",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/hive-slide-rack.mp3",
+   "anchorId": "nw_b1142",
+   "gain": 0.65,
+   "fileMs": 4049,
+   "offsetMs": 2300,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  },
+  {
+   "id": "fc_sfx_31",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/hive-mara-run.mp3",
+   "anchorId": "nw_b1143",
+   "gain": 0.6,
+   "fileMs": 25051,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 500,
+   "loop": false,
+   "maxMs": 4700
+  },
+  {
+   "id": "fc_sfx_32",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/hive-doorframe.mp3",
+   "anchorId": "nw_b1146",
+   "gain": 0.85,
+   "fileMs": 5042,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 600,
+   "loop": false,
+   "maxMs": 4000
+  },
+  {
+   "id": "fc_sfx_33",
+   "lane": "sfx",
+   "src": "/film/sfx/festival/hive-door-bolt.mp3",
+   "anchorId": "nw_b1147",
+   "gain": 0.9,
+   "fileMs": 4049,
+   "offsetMs": 0,
+   "fadeInMs": 0,
+   "fadeOutMs": 0,
+   "loop": false
+  }
+ ],
+ "ambience": [
+  {
+   "id": "fc_amb_1",
+   "lane": "ambience",
+   "src": "rain+file:/film/sfx/amb-hive.mp3",
+   "anchorId": "nw_song_service_01:nw_song_b1",
+   "untilAnchorId": "nw_song_service_04:nw_song_b4",
+   "gain": 0.6,
+   "fadeInMs": 300,
+   "fadeOutMs": 1800,
+   "loop": true
+  },
+  {
+   "id": "fc_amb_2",
+   "lane": "ambience",
+   "src": "rain",
+   "anchorId": "nw_song_service_29:nw_song_b29",
+   "untilAnchorId": "nw_song_service_35:nw_song_b35",
+   "gain": 0.4,
+   "fadeInMs": 1800,
+   "fadeOutMs": 2500,
+   "loop": true
+  }
+ ],
+ "removeClips": [
+  "ac_amb_865"
+ ],
+ "clipPatches": {
+  "ac_sfx_562": {
+   "offsetMs": 700
+  }
  }
 }

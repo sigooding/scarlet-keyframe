@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/s76/1701-vera-listens.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/s76/1701-vera-listens/people-1/cutout-1.png",
+   "depth": 0.363,
+   "box": [
+    454,
+    0,
+    940,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}
