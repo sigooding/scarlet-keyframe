@@ -4367,7 +4367,10 @@
   "nw_b1306": "/film/video/festival/alive-s78-walkway.mp4",
   "nw_b1444": "/film/video/festival/alive-s84-the-bulb.mp4",
   "nw_b1558": "/film/video/festival/alive-s93-wipers.mp4",
-  "nw_b1648": "/film/video/festival/alive-s98-they-watch-it-pass.mp4"
+  "nw_b1648": "/film/video/festival/alive-s98-they-watch-it-pass.mp4",
+  "nw_b818": "/film/video/festival/lipsync-mrs-noda-my-husband.mp4",
+  "nw_b847": "/film/video/festival/lipsync-jack-come-on-come-on.mp4",
+  "nw_b1226": "/film/video/festival/lipsync-vera-you-knew.mp4"
  },
  "sfx": [
   {
@@ -5557,6 +5560,40 @@
      "to": 85,
      "picture": "video:/film/video/festival/lipsync-jack-last-night-she-had-noodles.mp4",
      "text": "Jack: Last night she had noodles."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1131",
+   "cuts": [
+    {
+     "from": 45,
+     "to": 77,
+     "picture": "video:/film/video/festival/lipsync-mara-that-s-him.mp4",
+     "text": "Mara: That's him."
+    },
+    {
+     "from": 114,
+     "to": 169,
+     "picture": "video:/film/video/festival/lipsync-mara-the-bar-his-voice.mp4",
+     "text": "Mara: The bar. His voice."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b200",
+   "cuts": [
+    {
+     "from": 39,
+     "to": 67,
+     "picture": "video:/film/video/festival/lipsync-okada-no.mp4",
+     "text": "Okada: No."
+    },
+    {
+     "from": 117,
+     "to": 182,
+     "picture": "video:/film/video/festival/lipsync-okada-i-looked-no.mp4",
+     "text": "Okada: I looked. No."
     }
    ]
   }
