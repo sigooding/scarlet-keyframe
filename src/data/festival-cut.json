@@ -5101,6 +5101,12 @@
    "beatId": "nw_b346",
    "cuts": [
     {
+     "from": 0,
+     "to": 268,
+     "picture": "video:/film/video/festival/lipsync-vera-it-was-about-dad-it-is-always-about-dad.mp4",
+     "text": "Vera: It was about Dad. It is always about Dad."
+    },
+    {
      "from": 296,
      "to": 473,
      "picture": "/film/img/s14/182-someone-who-meant-to-come-back.jpg",
