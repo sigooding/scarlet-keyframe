@@ -5435,6 +5435,72 @@
      "text": "Mara: I have to tell Vera."
     }
    ]
+  },
+  {
+   "beatId": "nw_b780",
+   "cuts": [
+    {
+     "from": 0,
+     "to": 43,
+     "picture": "video:/film/video/festival/lipsync-mrs-noda-don-t-tell-my-husband.mp4",
+     "text": "Mrs. noda: Don't tell my husband."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1715",
+   "cuts": [
+    {
+     "from": 4,
+     "to": 35,
+     "picture": "video:/film/video/festival/lipsync-mara-what-happened.mp4",
+     "text": "Mara: What happened?"
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1717",
+   "cuts": [
+    {
+     "from": 4,
+     "to": 39,
+     "picture": "video:/film/video/festival/lipsync-mara-who-killed-him.mp4",
+     "text": "Mara: Who killed him?"
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1301",
+   "cuts": [
+    {
+     "from": 4,
+     "to": 51,
+     "picture": "video:/film/video/festival/lipsync-jack-maybe-that-was-a-mistake.mp4",
+     "text": "Jack: Maybe that was a mistake."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1706",
+   "cuts": [
+    {
+     "from": 177,
+     "to": 235,
+     "picture": "video:/film/video/festival/lipsync-jack-in-the-car-we-have-to-move.mp4",
+     "text": "Jack: In the car. We have to move."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b629",
+   "cuts": [
+    {
+     "from": 35,
+     "to": 85,
+     "picture": "video:/film/video/festival/lipsync-jack-last-night-she-had-noodles.mp4",
+     "text": "Jack: Last night she had noodles."
+    }
+   ]
   }
  ]
 }
