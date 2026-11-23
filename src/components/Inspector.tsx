@@ -78,6 +78,7 @@ import {
   type StarterPresetId,
 } from "../sequence/animate";
 import { mapTransitionKind } from "../sequence/transitions";
+import { MakeLipSyncRow, type MakeLipSyncRowProps } from "./MakeLipSyncRow";
 
 export type InspectorTab = "clip" | "voice" | "sfx" | "music" | "ambience";
 
@@ -215,6 +216,8 @@ interface InspectorProps {
   onShowShot?: () => void;
   /** "Make depth map" and "Make cutouts" in the Picture section: the controller's state and what the rows can ask for. */
   depthMaker?: DepthMakerBinding;
+  /** "Make lip sync" in the Picture section: this shot's view and what the row can ask for. */
+  lipSync?: MakeLipSyncRowProps;
   onApplyEffects?: (patch: CinematicPatch, label: string) => void;
   onPreviewEffects?: (patch: CinematicPatch) => void;
   onMove: (delta: -1 | 1) => void;
@@ -1111,6 +1114,7 @@ export function Inspector(props: InspectorProps) {
                   maker={props.depthMaker}
                 />
               )}
+              {!beat.gap && frame.picture && props.lipSync && <MakeLipSyncRow {...props.lipSync} />}
               {beat.shotDescription !== undefined && (
                 <div className="storyboard-description-field">
                   <label className="control-label" htmlFor="shot-description">Shot description</label>

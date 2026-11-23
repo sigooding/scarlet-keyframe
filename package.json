@@ -13,6 +13,8 @@
     "depth:setup": "node scripts/depth-setup.mjs",
     "cutouts": "node scripts/make-cutouts.mjs",
     "models": "node scripts/get-models.mjs",
+    "lipsync": "node scripts/make-lipsync.mjs",
+    "lipsync:setup": "node scripts/lipsync-setup.mjs",
     "build:local": "vite build --mode serve",
     "build": "vite build",
     "preview": "vite preview",

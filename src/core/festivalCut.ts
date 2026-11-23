@@ -31,6 +31,7 @@
 import festivalData from "../data/festival-cut.json";
 import type { AudioClip } from "./audioClips";
 import { handheldAnimation } from "./cameraDrive";
+import { cutawayPieceId, splitShot } from "./cutaways";
 import { buildKeyframes, type AnyRecord, type BeatAnimation, type BeatLike, type Key, type ProjectState, type StoryLike } from "./model";
 import { clipFrames, FPS } from "./timing";
 
@@ -194,71 +195,30 @@ export function practicalLight(spot: { x: number; y: number; color: string }, te
   return { x: spot.x, y: spot.y, color: spot.color, intensity, size: 16, pulseSeconds, pulseAmount };
 }
 
-const ROUTE_KEYS = ["afterBeatMode", "afterBeatTargetSceneId", "afterBeatSceneId", "afterBeatDelaySeconds", "nextSceneId"];
-/** What a cutaway or the return to the shot must not carry: the shot's own sound, depth rig and lights. */
-const NOT_COPIED = ["audioUrl", "sfxUrl", "sfxVolume", "audioClipId"];
-const NOT_COPIED_LOOK = ["depthMap", "depthPlate", "depthCutouts", "depthAmount", "depthMotion", "depthFocus", "lights", "lightSource"];
-
 /** The id of the n-th piece a split shot becomes (piece 0 keeps the shot's own id, so its sounds stay anchored). */
-export function cutawayPieceId(beatId: string, piece: number): string {
-  return piece === 0 ? beatId : `${beatId}~fc${piece}`;
-}
+export { cutawayPieceId };
 
 /**
  * Splits each listed shot at its cutaways: the shot plays, the cutaway takes over, the shot comes back. Captions
  * are split at the cuts; the route to the next scene moves to the last piece. Returns how many cutaways went in.
  */
 function insertCutaways(story: StoryLike): number {
-  const byBeat = new Map((DATA.inserts ?? []).map((i) => [i.beatId, [...i.cuts].sort((a, b) => a.from - b.from)]));
+  const byBeat = new Map((DATA.inserts ?? []).map((i) => [i.beatId, i.cuts]));
   let added = 0;
   for (const scene of story.scenes) {
-    const beats = scene.dialogueBeats ?? [];
     const out: BeatLike[] = [];
-    for (const beat of beats) {
+    for (const beat of scene.dialogueBeats ?? []) {
       const cuts = byBeat.get(String(beat.id));
       const total = Math.round(Number(beat.durationFrames) || 0);
       if (!cuts?.length || total <= 0) {
         out.push(beat);
         continue;
       }
-      // pieces: [shot][cut][shot][cut]...[shot], dropping empty ones
-      const pieces: { from: number; to: number; picture?: string; text?: string }[] = [];
-      let at = 0;
-      for (const cut of cuts) {
-        const from = Math.max(at, Math.min(total, cut.from));
-        const to = Math.max(from, Math.min(total, cut.to));
-        if (from > at) pieces.push({ from: at, to: from });
-        if (to > from) pieces.push({ from, to, picture: cut.picture, text: cut.text });
-        at = to;
-      }
-      if (at < total) pieces.push({ from: at, to: total });
-      const original = clone(beat);
-      const captions = Array.isArray(original.captions) ? original.captions : [];
-      pieces.forEach((piece, n) => {
-        const part: BeatLike = n === 0 ? beat : clone(original);
-        part.id = cutawayPieceId(String(beat.id), n);
-        part.durationFrames = piece.to - piece.from;
-        part.captions = captions
-          .filter((c) => c.outFrame > piece.from && c.inFrame < piece.to)
-          .map((c) => ({ ...c, inFrame: Math.max(c.inFrame, piece.from) - piece.from, outFrame: Math.min(c.outFrame, piece.to) - piece.from }));
-        if (n > 0) {
-          for (const k of NOT_COPIED) delete (part as AnyRecord)[k];
-          // a fresh camera for each piece: the festival gives it a move of its own
-          delete part.animation;
-          part.cinematic = { ...(original.cinematic ?? {}) };
-          for (const k of NOT_COPIED_LOOK) delete (part.cinematic as AnyRecord)[k];
-        }
-        if (piece.picture) {
-          part.background = piece.picture;
-          part.characterId = "nw_narrator";
-          part.text = piece.text ?? "";
-          part.silent = true;
-          added += 1;
-        }
-        if (n < pieces.length - 1) for (const k of ROUTE_KEYS) delete (part as AnyRecord)[k];
-        out.push(part);
-      });
-      // the first piece keeps the shot's move up to its cut; keys past its end are never reached
+      // the first piece keeps the shot's move up to its cut (keys past its end are never reached); each other piece
+      // gets a fresh camera from the festival's own pass
+      const pieces = splitShot(beat, total, cuts, (n) => cutawayPieceId(String(beat.id), n));
+      added += pieces.filter((p) => cuts.some((c) => c.picture === p.background)).length;
+      out.push(...pieces);
     }
     scene.dialogueBeats = out;
   }

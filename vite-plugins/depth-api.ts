@@ -14,6 +14,7 @@ import type {
   DepthQuality,
   DepthFiles,
   DepthReady,
+  LipSyncReady,
   ModelRole,
   ModelStatus,
 } from "../src/core/depthApiTypes";
@@ -33,6 +34,7 @@ import {
   resolveSourceMap,
 } from "../scripts/depth/lib.mjs";
 import { ALL_MODELS, DEFAULT_QUALITY, QUALITIES, modelCacheDir, modelIdsFor } from "../scripts/depth/models.mjs";
+import { LIPSYNC_VIDEO_ROOT, isVoiceRef, lipSyncStatus } from "../scripts/lipsync/lib.mjs";
 
 /**
  * The depth API (`/__api/depth/*`) behind the editor's "Make depth map" and "Make cutouts" buttons and its model downloads.
@@ -45,6 +47,7 @@ import { ALL_MODELS, DEFAULT_QUALITY, QUALITIES, modelCacheDir, modelIdsFor } fr
  *   GET  /__api/depth/ready            what this computer can do: Python, its packages, the GPU, every model and whether it is here
  *   POST /__api/depth/make             { picture, quality? }                  -> a depth map being made (or already there)
  *   POST /__api/depth/cutouts          { picture, quality?, sourceMap? }      -> the cut-outs of the picture's people
+ *   POST /__api/depth/lipsync          { picture, audio }                       -> a lip-synced clip of the picture speaking the line
  *   POST /__api/depth/models/download  { ids? , quality? }                    -> models being downloaded
  *   GET  /__api/depth/status           ?id=...                                -> how a job is going
  *   POST /__api/depth/cancel           { id }
@@ -74,6 +77,9 @@ export interface DepthApiOptions {
   cliPath?: string;
   cutoutsCliPath?: string;
   modelsCliPath?: string;
+  lipsyncCliPath?: string;
+  /** Whether local lip sync is set up. Default: look at the files (scripts/lipsync/lib.mjs). Tests replace it. */
+  lipsyncProbe?: () => LipSyncReady;
   /** A Depth Anything V2 .onnx file to use instead of the downloaded model (SCARLET_KEYFRAME_DEPTH_MODEL_FILE). */
   modelFile?: string;
   /** .onnx files to use instead of the downloaded cut-out models (SCARLET_KEYFRAME_CUTOUT_MODEL_FILES, a JSON object). */
@@ -115,7 +121,7 @@ const MAX_LOG_LINES = 80;
 const MAX_LINE_CHARS = 240;
 const SHOWN_LOG_LINES = 8;
 const MAX_KEPT_JOBS = 20;
-const TIMEOUT_MS: Record<DepthJobKind, number> = { depth: 15 * 60_000, cutouts: 30 * 60_000, models: 90 * 60_000 };
+const TIMEOUT_MS: Record<DepthJobKind, number> = { depth: 15 * 60_000, cutouts: 30 * 60_000, lipsync: 30 * 60_000, models: 90 * 60_000 };
 const CAPABILITY_TTL_MS = 30_000;
 const LOOPBACK_HOSTS = ["127.0.0.1", "localhost", "::1"];
 
@@ -299,6 +305,13 @@ export function createDepthMiddleware(options: DepthApiOptions): Connect.NextHan
   const cliPath = options.cliPath ?? path.join(scripts, "make-depth.mjs");
   const cutoutsCliPath = options.cutoutsCliPath ?? path.join(scripts, "make-cutouts.mjs");
   const modelsCliPath = options.modelsCliPath ?? path.join(scripts, "get-models.mjs");
+  const lipsyncCliPath = options.lipsyncCliPath ?? path.join(scripts, "make-lipsync.mjs");
+  const lipsyncProbe =
+    options.lipsyncProbe ??
+    (() => {
+      const status = lipSyncStatus(options.repoRoot);
+      return { ready: status.ready, missing: status.missing, setupCommand: status.setupCommand };
+    });
   const modelsDir = options.modelsDir ?? modelCacheDir();
   const probe = options.probe ?? (() => probeMachine(options.repoRoot));
   const allowedHosts = new Set([...LOOPBACK_HOSTS, ...(options.allowedHosts ?? []).map((host) => hostnameOf(host))]);
@@ -425,6 +438,14 @@ export function createDepthMiddleware(options: DepthApiOptions): Connect.NextHan
       if (!fs.existsSync(job.mapFile)) return "The command finished but the map is not where it should be.";
       const size = pngSize(job.mapFile);
       job.result = { ...result, map: job.map, ...(size ? { width: result.width ?? size.width, height: result.height ?? size.height } : {}) };
+      return null;
+    }
+    if (job.kind === "lipsync") {
+      const video = typeof result.video === "string" ? result.video : "";
+      if (!video.startsWith(LIPSYNC_VIDEO_ROOT) || video.split("/").some((part) => part === ".." || part === ".") || !video.endsWith(".mp4")) {
+        return "The command's answer named a file outside the lip sync folder.";
+      }
+      if (!fs.existsSync(fileForRef(publicDir, video))) return `The command finished but ${video} is not there.`;
       return null;
     }
     if (job.kind === "cutouts") {
@@ -557,7 +578,7 @@ export function createDepthMiddleware(options: DepthApiOptions): Connect.NextHan
     const what =
       running.kind === "models"
         ? "models are being downloaded"
-        : `${running.kind === "cutouts" ? "cut-outs are" : "a depth map is"} being made${running.picture ? ` (${path.basename(running.picture)})` : ""}`;
+        : `${running.kind === "cutouts" ? "cut-outs are" : running.kind === "lipsync" ? "a lip-synced clip is" : "a depth map is"} being made${running.picture ? ` (${path.basename(running.picture)})` : ""}`;
     throw new Refusal(409, "busy", `Something else is running: ${what}. Wait for it to finish, then try again.`, { id: running.id });
   };
 
@@ -599,6 +620,7 @@ export function createDepthMiddleware(options: DepthApiOptions): Connect.NextHan
           qualities: QUALITIES as DepthReady["qualities"],
           defaultQuality: DEFAULT_QUALITY as DepthQuality,
           busy: runningJob()?.id ?? null,
+          lipsync: lipsyncProbe(),
         } satisfies DepthReady);
         return;
       }
@@ -651,6 +673,24 @@ export function createDepthMiddleware(options: DepthApiOptions): Connect.NextHan
         if (replace) args.push("--replace");
         const job = newJob("depth", picture.ref, map, { folder: path.dirname(fileForRef(publicDir, map)) });
         send(200, view(runJob(job, args)));
+        return;
+      }
+
+      if (route === "lipsync" && req.method === "POST") {
+        const body = await readJsonBody(req);
+        const picture = pictureFrom(body);
+        const audio = typeof body.audio === "string" ? body.audio.trim() : "";
+        if (!isVoiceRef(audio)) throw new Refusal(400, "bad-request", "Say which voice line: a /film/....mp3 path under public/.");
+        if (!fs.existsSync(fileForRef(publicDir, audio))) throw new Refusal(400, "bad-request", `The voice file is not there: ${audio}`);
+        const joined = joinOrBusy("lipsync", picture.ref);
+        if (joined) {
+          send(200, view(joined));
+          return;
+        }
+        const status = lipsyncProbe();
+        if (!status.ready) throw new Refusal(412, "setup-needed", `One-time setup needed: run  ${status.setupCommand}  in the project folder (missing ${status.missing.join(", ")}), then try again.`);
+        const job = newJob("lipsync", picture.ref, "", {});
+        send(200, view(runJob(job, [lipsyncCliPath, picture.ref, "--audio", audio, "--json"])));
         return;
       }
 

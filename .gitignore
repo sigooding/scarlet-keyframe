@@ -8,5 +8,6 @@ dist-local/
 public/thumbs/
 public/.thumbs-check-parked/
 .depth-venv/
+.lipsync-venv/
 __pycache__/
 *.pyc

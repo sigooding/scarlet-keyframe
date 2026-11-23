@@ -132,6 +132,9 @@ export const startDepthJob = (picture: string, quality: DepthQuality, replace: b
   callApi<DepthJobView>(fetchImpl, "POST", "make", { picture, quality, ...(replace ? { replace: true } : {}) });
 export const startCutoutsJob = (picture: string, quality: DepthQuality, sourceMap: string | undefined, fetchImpl: FetchLike = fetch) =>
   callApi<DepthJobView>(fetchImpl, "POST", "cutouts", { picture, quality, ...(sourceMap ? { sourceMap } : {}) });
+/** A lip-synced clip of `picture` speaking the voice line `audio` (LatentSync 1.5 on this computer's GPU). */
+export const startLipSyncJob = (picture: string, audio: string, fetchImpl: FetchLike = fetch) =>
+  callApi<DepthJobView>(fetchImpl, "POST", "lipsync", { picture, audio });
 export const startModelDownload = (ids: string[], fetchImpl: FetchLike = fetch) => callApi<DepthJobView>(fetchImpl, "POST", "models/download", { ids });
 export const fetchDepthJob = (id: string, fetchImpl: FetchLike = fetch) =>
   callApi<DepthJobView>(fetchImpl, "GET", `status?id=${encodeURIComponent(id)}`);
