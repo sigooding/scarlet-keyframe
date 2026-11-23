@@ -311,6 +311,7 @@ describe("The Festival Cut", () => {
     expect(exportCut.story).toEqual((directorExport as unknown as { story: StoryLike }).story);
     const again = applyFestivalFinish(exportCut);
     expect(exportCut.story).toEqual((directorExport as unknown as { story: StoryLike }).story);
-    expect(again.report.depthKept).toBeGreaterThan(150);
+    // the director's depth rigs are kept, except where a real-motion clip has taken the shot over
+    expect(again.report.depthKept + again.report.videoShots).toBeGreaterThan(150);
   });
 });
