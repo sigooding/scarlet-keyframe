@@ -5101,6 +5101,12 @@
    "beatId": "nw_b346",
    "cuts": [
     {
+     "from": 0,
+     "to": 268,
+     "picture": "video:/film/video/festival/lipsync-vera-it-was-about-dad-it-is-always-about-dad.mp4",
+     "text": "Vera: It was about Dad. It is always about Dad."
+    },
+    {
      "from": 296,
      "to": 473,
      "picture": "/film/img/s14/182-someone-who-meant-to-come-back.jpg",
@@ -5499,6 +5505,17 @@
      "to": 85,
      "picture": "video:/film/video/festival/lipsync-jack-last-night-she-had-noodles.mp4",
      "text": "Jack: Last night she had noodles."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b605",
+   "cuts": [
+    {
+     "from": 0,
+     "to": 252,
+     "picture": "video:/film/video/festival/lipsync-mara-he-knew-me.mp4",
+     "text": "Mara: He knew me. He saw me in the doorway and stopped. (HeyGen Avatar 6 Turbo)"
     }
    ]
   }

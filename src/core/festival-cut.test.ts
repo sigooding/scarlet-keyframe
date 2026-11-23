@@ -44,6 +44,8 @@ describe("The Festival Cut", () => {
     // a shot broken up by cutaways becomes pieces right after it; together they run exactly as long as it did and
     // carry exactly its captions
     const inserts = new Map((data.inserts ?? []).map((i) => [i.beatId, i.cuts.length]));
+    // a clip that covers the whole shot (a lip sync longer than the line) replaces its picture without splitting it
+    const wholeShot = (id: string, frames: number) => (data.inserts ?? []).some((i) => i.beatId === id && i.cuts.length === 1 && i.cuts[0].from === 0 && i.cuts[0].to >= frames);
     const byId = new Map(beats(festival.story).map((b) => [String(b.id), b]));
     const expected: string[] = [];
     for (const f of buildKeyframes(exportCut.story)) {
@@ -55,7 +57,7 @@ describe("The Festival Cut", () => {
     for (const [id, was] of exportBeats) {
       const pieces = [byId.get(id)!];
       for (let n = 1; byId.has(cutawayPieceId(id, n)); n += 1) pieces.push(byId.get(cutawayPieceId(id, n))!);
-      expect(pieces.length > 1, id).toBe(inserts.has(id));
+      expect(pieces.length > 1 || wholeShot(id, Number(was.durationFrames)), id).toBe(inserts.has(id));
       if (pieces.length === 1) {
         expect(pieces[0].durationFrames, id).toBe(was.durationFrames);
         expect(pieces[0].captions, id).toEqual(was.captions);
