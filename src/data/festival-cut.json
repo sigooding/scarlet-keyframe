@@ -7,6 +7,10 @@
   "/film/img/export/upload-a0f1f338-530d-4783-9f0a-3e6c4de25644.jpg": "/film/depth/export/upload-a0f1f338-530d-4783-9f0a-3e6c4de25644/depth.png",
   "/film/img/export/upload-ad6167a3-45aa-496c-80ab-d0136755ebd1.jpg": "/film/depth/export/upload-ad6167a3-45aa-496c-80ab-d0136755ebd1/depth.png",
   "/film/img/export/upload-f7e921f4-d3c6-4ba1-9143-f2c6d31f9845.jpg": "/film/depth/export/upload-f7e921f4-d3c6-4ba1-9143-f2c6d31f9845/depth.png",
+  "/film/img/festival/cutaways/ishida-on-the-phone.jpg": "/film/depth/festival/cutaways/ishida-on-the-phone/depth.png",
+  "/film/img/festival/cutaways/okada-with-the-crate.jpg": "/film/depth/festival/cutaways/okada-with-the-crate/depth.png",
+  "/film/img/festival/cutaways/the-hive-balconies.jpg": "/film/depth/festival/cutaways/the-hive-balconies/depth.png",
+  "/film/img/festival/cutaways/vera-at-the-counter.jpg": "/film/depth/festival/cutaways/vera-at-the-counter/depth.png",
   "/film/img/festival/s1/386-the-puddle-leaking-blood-r1.jpg": "/film/depth/festival/s1/386-the-puddle-leaking-blood-r1/depth.png",
   "/film/img/festival/s26/537-in-his-palm-r1.jpg": "/film/depth/festival/s26/537-in-his-palm-r1/depth.png",
   "/film/img/festival/s34/173-no-114-r1.jpg": "/film/depth/festival/s34/173-no-114-r1/depth.png",
@@ -692,6 +696,36 @@
   "/film/img/s53/275-the-kiss-r1.jpg": "/film/img/festival/s53/275-the-kiss-close.jpg"
  },
  "cutoutsByPicture": {
+  "/film/img/festival/cutaways/ishida-on-the-phone.jpg": {
+   "depthMap": "/film/depth/festival/cutaways/ishida-on-the-phone/people-1/depth.png",
+   "depthPlate": "/film/depth/festival/cutaways/ishida-on-the-phone/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/festival/cutaways/ishida-on-the-phone/people-1/cutout-1.png",
+     "depth": 0.357
+    }
+   ]
+  },
+  "/film/img/festival/cutaways/okada-with-the-crate.jpg": {
+   "depthMap": "/film/depth/festival/cutaways/okada-with-the-crate/people-1/depth.png",
+   "depthPlate": "/film/depth/festival/cutaways/okada-with-the-crate/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/festival/cutaways/okada-with-the-crate/people-1/cutout-1.png",
+     "depth": 0.669
+    }
+   ]
+  },
+  "/film/img/festival/cutaways/vera-at-the-counter.jpg": {
+   "depthMap": "/film/depth/festival/cutaways/vera-at-the-counter/people-1/depth.png",
+   "depthPlate": "/film/depth/festival/cutaways/vera-at-the-counter/people-1/plate.jpg",
+   "depthCutouts": [
+    {
+     "image": "/film/depth/festival/cutaways/vera-at-the-counter/people-1/cutout-1.png",
+     "depth": 0.622
+    }
+   ]
+  },
   "/film/img/festival/s53/275-the-kiss-close.jpg": {
    "depthMap": "/film/depth/festival/s53/275-the-kiss-close/people-1/depth.png",
    "depthPlate": "/film/depth/festival/s53/275-the-kiss-close/people-1/plate.jpg",
@@ -4744,5 +4778,451 @@
   "ac_sfx_622": {
    "gain": 0.85
   }
- }
+ },
+ "voiceGainDb": {
+  "/film/voice/prologue/hive1.mp3": 2.9,
+  "/film/voice/prologue/hive2.mp3": 1.6,
+  "/film/voice/prologue/hive4.mp3": 1.6,
+  "/film/voice/prologue/hive5.mp3": 2,
+  "/film/voice/s1/05-mara-tired-not-tonight.mp3": 5.3,
+  "/film/voice/s1/09-oldman-twenty-years.mp3": 1.5,
+  "/film/voice/s1/12-maskedman-first-position-done-moving-to-second.mp3": -3.9,
+  "/film/voice/s1/14-mara-trembling-voice-mr-sakai.mp3": 4.3,
+  "/film/voice/s1/15-mara-bewildered-have-what-i-don-t.mp3": 1.5,
+  "/film/voice/s1/15-oldman-strained-don-t-let-them-have.mp3": -4.7,
+  "/film/voice/s10/166-jack-calmly-sit-down.mp3": 1.7,
+  "/film/voice/s10/166-vera-mr-okada-the-bar-in-kanda.mp3": -2.2,
+  "/film/voice/s10/167-jack-do-you-have-photographs-of-her.mp3": -1.9,
+  "/film/voice/s10/167-jack-softly-your-father.mp3": 2.1,
+  "/film/voice/s10/167-jack-wearily-it-s-good-advice.mp3": 6,
+  "/film/voice/s10/167-vera-quietly-he-died-pause-that-year.mp3": 4.8,
+  "/film/voice/s10/167-vera-to-go-home.mp3": -3.2,
+  "/film/voice/s10/244-jack-i-found-her.mp3": -2.3,
+  "/film/voice/s10/244-vera-some-badly.mp3": 2.3,
+  "/film/voice/s11/251-ishida-gently-go-to-sleep-jack-you.mp3": 4.4,
+  "/film/voice/s11/251-ishida-i-know.mp3": 2,
+  "/film/voice/s11/251-ishida-tired-it-s-late-jack.mp3": 3.5,
+  "/film/voice/s11/251-jack-and-the-old-man-in-the.mp3": -2.4,
+  "/film/voice/s11/251-jack-low-her-sister-was-in-that.mp3": 3.5,
+  "/film/voice/s12/247-barber-grumbling-police-again.mp3": 2.7,
+  "/film/voice/s13/182-vera-pleading-just-call-me-you-don.mp3": 1.6,
+  "/film/voice/s14/184-jack-quietly-she-wasn-t-planning-to.mp3": 3.1,
+  "/film/voice/s14/184-jack-when-were-you-last-here.mp3": -1.7,
+  "/film/voice/s14/184-vera-wryly-a-week-ago-she-made.mp3": 3.2,
+  "/film/voice/s14/185-jack-can-i-borrow-this.mp3": -1.9,
+  "/film/voice/s14/270-jack-you-didn-t-want-her-to.mp3": -1.9,
+  "/film/voice/s14/270-vera-bitterly-she-said-i-was-the.mp3": -2,
+  "/film/voice/s14/270-vera-quietly-i-told-her-to-go.mp3": 3.6,
+  "/film/voice/s14/363-vera-wryly-take-this-too-it-s.mp3": 4,
+  "/film/voice/s14a/336-jack-dryly-it-s-what-a-professional.mp3": 2.9,
+  "/film/voice/s14a/336-jack-dryly-somebody-who-d-be-worse.mp3": 1.6,
+  "/film/voice/s14a/336-vera-curious-is-that-bad.mp3": 3.7,
+  "/film/voice/s14a/336-vera-gently-i-brought-food.mp3": 3.8,
+  "/film/voice/s14a/337-jack-dryly-this-is-a-stakeout-nothing.mp3": 2.1,
+  "/film/voice/s14a/337-vera-evenly-back.mp3": 2.6,
+  "/film/voice/s14a/337-vera-gently-is-that-for-luck.mp3": 2.9,
+  "/film/voice/s14a/339-vera-pleading-you-don-t-know-that.mp3": -1.6,
+  "/film/voice/s14a/339-vera-voice-breaking-it-s-the-last.mp3": 1.6,
+  "/film/voice/s14a/339-vera-weakly-i-told-her-she-always.mp3": 3.5,
+  "/film/voice/s14a/342-jack-dryly-we-have-a-plate-number.mp3": 5.3,
+  "/film/voice/s14a/342-jack-evenly-probably.mp3": 1.5,
+  "/film/voice/s14a/343-jack-dryly-that-s-a-lie.mp3": 3.2,
+  "/film/voice/s14a/343-vera-flatly-yes.mp3": 2.9,
+  "/film/voice/s17/189-jack-quietly-he-always-paid-too-much.mp3": 3.8,
+  "/film/voice/s17/189-kaneko-dryly-you-got-old.mp3": 1.6,
+  "/film/voice/s18/191-kaneko-urgently-come-back-alone-after-the.mp3": -4.1,
+  "/film/voice/s2/25-maskedman-shitsurei-shimasu.mp3": -3.6,
+  "/film/voice/s2/27-maskedman-second-position-done.mp3": -3.3,
+  "/film/voice/s20/193-jack-my-name-is-jack-your-sister.mp3": -1.8,
+  "/film/voice/s20/193-mara-shakily-prove-it.mp3": 1.7,
+  "/film/voice/s20/194-jack-she-says-it-was-hers-she.mp3": -1.5,
+  "/film/voice/s20/194-jack-vera-doesn-t-know-you-went.mp3": -2.7,
+  "/film/voice/s20/194-mara-bitterly-is-she-okay.mp3": 2.7,
+  "/film/voice/s20/194-mara-desperately-is-she-okay-is-she.mp3": -3.2,
+  "/film/voice/s20/194-mara-flatly-i-know-i-listen-to.mp3": 2.2,
+  "/film/voice/s20/194-mara-he-wrote-to-vera-mr-sakai.mp3": -1.8,
+  "/film/voice/s20/284-jack-i-promise.mp3": 2.4,
+  "/film/voice/s20/284-mara-tearfully-i-watched-them-shoot-two.mp3": -2.3,
+  "/film/voice/s20/284-mara-urgently-they-have-my-purse-they.mp3": -3.4,
+  "/film/voice/s21/195-vera-dryly-you-look-terrible.mp3": 4.1,
+  "/film/voice/s22/197-jack-and-you.mp3": -1.5,
+  "/film/voice/s22/197-jack-carefully-what-did-you-do.mp3": 2.9,
+  "/film/voice/s22/285-jack-vera.mp3": -1.5,
+  "/film/voice/s22/285-vera-drowsily-you-re-the-first-person.mp3": 3.5,
+  "/film/voice/s23/199-ishida-among-others-pause-the-journalist-in.mp3": -1.5,
+  "/film/voice/s23/199-ishida-because-you-ll-find-out-anyway.mp3": -1.6,
+  "/film/voice/s23/199-ishida-wearily-you-never-call-me-unless.mp3": 4.4,
+  "/film/voice/s23/199-jack-sakai-had-a-wife.mp3": -2.7,
+  "/film/voice/s23/199-jack-the-shiohama-fire.mp3": -3.1,
+  "/film/voice/s25/202-jack-sakai-was-bringing-him-something.mp3": -2.5,
+  "/film/voice/s25/202-mara-and-then-in-the-bar-the.mp3": -2.7,
+  "/film/voice/s25/202-mara-this.mp3": 1.8,
+  "/film/voice/s25/258-jack-because-nobody-knows-where-you-are.mp3": -2.6,
+  "/film/voice/s25/258-jack-it-s-not-a-station-locker.mp3": -1.7,
+  "/film/voice/s25/258-jack-last-night-she-had-noodles.mp3": -2.2,
+  "/film/voice/s25/258-mara-then-what-is-it.mp3": -1.7,
+  "/film/voice/s25a/287-jack-breakfast.mp3": 1.5,
+  "/film/voice/s25a/287-jack-you-drink-coffee-until-the-afternoon.mp3": -1.6,
+  "/film/voice/s25a/288-jack-gently-is.mp3": 5,
+  "/film/voice/s25a/289-vera-thank-you.mp3": -2.2,
+  "/film/voice/s26/203-vera-i-don-t-know-he-did.mp3": -1.7,
+  "/film/voice/s26/257-jack-i-quit.mp3": 2.1,
+  "/film/voice/s26/257-jack-twenty-years-ago.mp3": -2.8,
+  "/film/voice/s26/257-vera-and-you-still-carry-the-lighter.mp3": 1.5,
+  "/film/voice/s26/257-vera-when.mp3": -1.8,
+  "/film/voice/s26/257-vera-you-don-t-smoke.mp3": 2,
+  "/film/voice/s27a/291-okada-he-finds-things-and-then-he--aged.mp3": -2.7,
+  "/film/voice/s27a/291-vera-where-did-you-find-the-clip.mp3": -3.5,
+  "/film/voice/s27a/292-okada-people-learn--aged.mp3": -3.5,
+  "/film/voice/s29/206-jack-someone-who-owes-a-man-a.mp3": -1.9,
+  "/film/voice/s29/273-mrssakai-every-january-for-years.mp3": 1.8,
+  "/film/voice/s32/172-mrsnoda-just-one-night.mp3": 4,
+  "/film/voice/s32/173-mrsnoda-upstairs-at-the-end-the-bath.mp3": 2,
+  "/film/voice/s33/208-mrsnoda-dryly-exactly.mp3": 5,
+  "/film/voice/s33/208-mrsnoda-kitchen-if-you-want-tea-just.mp3": 2.1,
+  "/film/voice/s36/210-jack-it-s-me.mp3": -1.5,
+  "/film/voice/s36/210-jack-maybe-i-ll-know-tomorrow.mp3": -1.6,
+  "/film/voice/s36/210-vera-come-back-safe-anyway.mp3": -1.5,
+  "/film/voice/s36/210-vera-come-back-safe.mp3": -1.7,
+  "/film/voice/s37/211-jack-i-quit.mp3": 2.3,
+  "/film/voice/s37/211-mrsnoda-don-t-tell-my-husband.mp3": 4,
+  "/film/voice/s37/211-mrsnoda-sorry-about-the-truck-he-parks.mp3": 1.9,
+  "/film/voice/s37/211-mrsnoda-then-you-ll-understand-why-i.mp3": 1.9,
+  "/film/voice/s4/37-mara-bright-it-s-mara-you-know.mp3": -2.6,
+  "/film/voice/s44/214-mrsnoda-my-husband.mp3": -3.5,
+  "/film/voice/s48/216-jack-come-on-come-on.mp3": -3.2,
+  "/film/voice/s5/45-vera-firmly-she-doesn-t-not-without.mp3": -3.7,
+  "/film/voice/s5/48-youngofficer-whisper-yes-that-name.mp3": 3.8,
+  "/film/voice/s5/50-youngofficer-politely-someone-will-be-right-with--yd.mp3": -1.5,
+  "/film/voice/s52/220-vera-oh-my-god.mp3": 5.9,
+  "/film/voice/s53/221-jack-i-don-t-know.mp3": 4,
+  "/film/voice/s53/221-jack-nothing-i-m-sorry-nothing.mp3": 3.6,
+  "/film/voice/s53/221-vera-jack-what.mp3": -2.7,
+  "/film/voice/s53/221-vera-what.mp3": 2.2,
+  "/film/voice/s53/221-vera-who-did-this.mp3": -3.8,
+  "/film/voice/s53/221-vera-you-told-me-it-was-just.mp3": -3.3,
+  "/film/voice/s53/275-vera-don-t-go-anywhere-else-without.mp3": -2.2,
+  "/film/voice/s53a/297-harada-the-police-say-what-they-are.mp3": 2,
+  "/film/voice/s53a/297-vera-did-he-say-who-he-was.mp3": -1.7,
+  "/film/voice/s53a/297-vera-my-sister-was-in-that-bar.mp3": 1.5,
+  "/film/voice/s53a/297-vera-which-detective.mp3": 2.3,
+  "/film/voice/s54/222-oldtobacconist-everything-is-still-there-until-it.mp3": 2.6,
+  "/film/voice/s54/222-vera-it-s-still-there.mp3": 1.7,
+  "/film/voice/s56/225-kaneko-he-always-paid-too-much.mp3": 2.6,
+  "/film/voice/s56/266-kaneko-and-you-you-ate-everything-on.mp3": -2.9,
+  "/film/voice/s58/227-kaneko-yes-bring-her.mp3": 4.2,
+  "/film/voice/s59/228-jack-later-please.mp3": 5.9,
+  "/film/voice/s59/228-jack-later.mp3": 6,
+  "/film/voice/s59/228-jack-yes.mp3": 2.7,
+  "/film/voice/s59/228-vera-jack-it-s-still-here-the.mp3": -2.4,
+  "/film/voice/s59/228-vera-when-we-find-mara-i-m.mp3": -2,
+  "/film/voice/s6/321-ishida-name-height-what-she-was-wearing.mp3": -1.7,
+  "/film/voice/s6/322-ishida-gently-i-m-sorry-pause-did.mp3": 1.7,
+  "/film/voice/s6/322-vera-my-mother-is-my-father-died.mp3": -1.6,
+  "/film/voice/s6/324-vera-she-gave-me-two-when-she.mp3": -1.7,
+  "/film/voice/s6/54-ishida-gently-you-must-be-cold.mp3": 4.5,
+  "/film/voice/s6/55-vera-coolly-i-speak-japanese.mp3": -2.5,
+  "/film/voice/s6/56-ishida-when-did-you-last-see-your.mp3": -1.5,
+  "/film/voice/s6/56-vera-until-i-was-nine-what-s.mp3": -2.2,
+  "/film/voice/s6/57-vera-hesitantly-normal.mp3": -3,
+  "/film/voice/s6/58-ishida-did-she-ever-mention-kanda-friends.mp3": -2,
+  "/film/voice/s6/58-ishida-we-have-no-reason-to-believe.mp3": -2.3,
+  "/film/voice/s6/58-vera-is-she-hurt.mp3": 2.4,
+  "/film/voice/s6/58-vera-realising-the-shootings-in-kanda-it.mp3": -3.3,
+  "/film/voice/s6/59-ishida-miss-voss.mp3": -1.7,
+  "/film/voice/s6/59-ishida-no-reason-she-is-dead.mp3": -2.7,
+  "/film/voice/s6/59-ishida-what-i-know-is-that-two.mp3": -1.5,
+  "/film/voice/s6/59-vera-angry-stop-saying-that-stop-saying.mp3": -3.8,
+  "/film/voice/s6/59-vera-urgently-is-she-dead.mp3": -3,
+  "/film/voice/s6/60-ishida-may-be.mp3": -1.6,
+  "/film/voice/s6/60-vera-may-be.mp3": -3.4,
+  "/film/voice/s6/61-vera-low-controlled-she-is-my-sister.mp3": 3.9,
+  "/film/voice/s6/62-vera-you-would-have-told-me-if.mp3": -1.9,
+  "/film/voice/s60/229-jack-and-then-i-tell-her-everything.mp3": 1.8,
+  "/film/voice/s60/229-jack-you-did-the-right-thing.mp3": 2.8,
+  "/film/voice/s60/229-mara-and-then.mp3": 2.1,
+  "/film/voice/s60/229-mara-did-i-she-said-she-d.mp3": 1.9,
+  "/film/voice/s60/229-mara-find-what-it-opens-and-then.mp3": -3.4,
+  "/film/voice/s60/229-mara-she-was-right-there-she-was.mp3": -4.3,
+  "/film/voice/s61/230-ishida-good-you-ve-done-well-jack.mp3": -1.6,
+  "/film/voice/s61/230-ishida-where-else-would-the-voss-girl.mp3": -1.6,
+  "/film/voice/s61/230-jack-i-have-a-witness-from-the.mp3": -1.5,
+  "/film/voice/s61/230-jack-tomorrow-night.mp3": -3.2,
+  "/film/voice/s62/231-jack-i-know.mp3": -1.5,
+  "/film/voice/s62/231-jack-old-hotel.mp3": -1.6,
+  "/film/voice/s62/231-jack-tomorrow.mp3": -2.5,
+  "/film/voice/s62/231-vera-like-a-date.mp3": 2.1,
+  "/film/voice/s64/233-okada-behind-the-counter-like-the-girl--aged.mp3": -1.6,
+  "/film/voice/s64/233-okada-curious-the-girl--aged.mp3": 5.6,
+  "/film/voice/s65/277-vera-borrowing-it-you-ll-get-it.mp3": -2,
+  "/film/voice/s66/235-vera-i-m-waiting-for-someone-pause.mp3": -2.2,
+  "/film/voice/s68/237-kaneko-come-back-with-your-sister-sit.mp3": -4.7,
+  "/film/voice/s68/237-kaneko-rice-balls-for-the-car.mp3": -3,
+  "/film/voice/s68/nw_b1707-mara-what-did-you-find.mp3": 1.5,
+  "/film/voice/s68/nw_b1708-jack-notebook-and-tape.mp3": 6,
+  "/film/voice/s68/nw_b1709-mara-let-me-see.mp3": 6,
+  "/film/voice/s68/nw_b1710-jack-in-the-car.mp3": 4.4,
+  "/film/voice/s68/nw_b1711-mara-just-tell-me.mp3": 6,
+  "/film/voice/s68/nw_b1712-jack-leave-now.mp3": 5.3,
+  "/film/voice/s68/nw_b1713-mara-did-he-kill-himself.mp3": 6,
+  "/film/voice/s68/nw_b1715-mara-what-happened.mp3": 6,
+  "/film/voice/s68/nw_b1716-jack-a-fire-the-report-was-a-lie.mp3": 5.4,
+  "/film/voice/s68/nw_b1717-mara-who-killed-him.mp3": 5.3,
+  "/film/voice/s68/nw_b1720-mara-tell-vera.mp3": 3.4,
+  "/film/voice/s68/nw_b1721-jack-two-minutes.mp3": 5.3,
+  "/film/voice/s69/238-jack-for-dinner.mp3": -1.5,
+  "/film/voice/s69/238-jack-tonight-i-m-meeting-her-at.mp3": -2.8,
+  "/film/voice/s69/238-jack-you-can-bring-her.mp3": -1.5,
+  "/film/voice/s69/279-mara-oh-oh-i-see.mp3": 1.7,
+  "/film/voice/s70/239-driver-excuse-me.mp3": -2.3,
+  "/film/voice/s70/239-driver-position.mp3": -2.7,
+  "/film/voice/s70/239-jack-urgently-run.mp3": -3.5,
+  "/film/voice/s70/239-mara-that-s-him.mp3": -4.6,
+  "/film/voice/s70/239-mara-the-bar-his-voice.mp3": -4,
+  "/film/voice/s71/240-jack-desperately-stay-with-me-mara-stay.mp3": -1.6,
+  "/film/voice/s71/240-jack-you-ll-tell-her-tonight-i.mp3": -2.5,
+  "/film/voice/s71/240-mara-weakly-everyone-s-awake.mp3": 6,
+  "/film/voice/s71/240-mara-weakly-jack.mp3": 6,
+  "/film/voice/s71/240-mara-weakly-tell-her-i-m-sorry.mp3": 6,
+  "/film/voice/s71/240-mara-weakly-tell-her.mp3": 5,
+  "/film/voice/s72/86-ishida-gently-miss-voss-i-m-so.mp3": 4.1,
+  "/film/voice/s74/74-vera-dont.mp3": 3.9,
+  "/film/voice/s74/75-vera-waiting-for-me.mp3": 2.2,
+  "/film/voice/s74/75-vera-why-didnt-you.mp3": -1.8,
+  "/film/voice/s76/315-mother-warmly-vera-honey.mp3": 6,
+  "/film/voice/s76/nw_b1698-machine-its-me-print.wav": 6,
+  "/film/voice/s76/nw_b1699-machine-answers-about-dad-print.wav": 5.6,
+  "/film/voice/s76/nw_b1701-machine-dad-didnt-kill-himself-print.wav": 5.7,
+  "/film/voice/s76/nw_b1702-machine-coming-home-print.wav": 5.8,
+  "/film/voice/s76/nw_b1704-machine-im-sor-print.wav": 6,
+  "/film/voice/s77/87-vera-drowsily-you-re-the-first-person.mp3": 4.6,
+  "/film/voice/s77a/nw_b1296-kurose-detective.mp3": 6,
+  "/film/voice/s77a/nw_b1298-kurose-sorry-about-the-girl.mp3": 3.2,
+  "/film/voice/s77a/nw_b1300-kurose-knew-when-to-stop.mp3": 4.2,
+  "/film/voice/s77a/nw_b1301-jack-maybe-a-mistake.mp3": 4.7,
+  "/film/voice/s79/286-daniel-quietly-the-police-have-given-me.mp3": 2.4,
+  "/film/voice/s79/94-daniel-quietly-they-followed-me-home-again--no-vera.mp3": 2.4,
+  "/film/voice/s79/94-daniel-quietly-today-jack-signed-the-report.mp3": 3.2,
+  "/film/voice/s79/94-daniel-tired-i-ll-go-on-alone.mp3": 1.8,
+  "/film/voice/s8/162-okada-pause-no--aged.mp3": -2.3,
+  "/film/voice/s8/162-vera-carefully-my-sister-four-nights-ago.mp3": 3.1,
+  "/film/voice/s8/162-vera-you-didn-t-look.mp3": -1.9,
+  "/film/voice/s80/97-ishida-gently-you-told-me-yourself-jack.mp3": 4.6,
+  "/film/voice/s80/99-ishida-gently-i-have-never-killed-anyone.mp3": 3.2,
+  "/film/voice/s82/108-harada-gravely-that-s-kurose.mp3": 2.5,
+  "/film/voice/s82/108-jack-firmly-start-with-my-part.mp3": -1.8,
+  "/film/voice/s82/108-sakai-gruffly-and-if-it-isn-t.mp3": -1.6,
+  "/film/voice/s82/109-harada-gently-from-the-beginning.mp3": 3,
+  "/film/voice/s82a/301-harada-evenly-two-hours-he-hasn-t.mp3": 2.6,
+  "/film/voice/s82a/301-harada-firmly-that-is-not-your-job.mp3": -1.9,
+  "/film/voice/s82a/301-vera-evenly-i-ll-go.mp3": -1.8,
+  "/film/voice/s82a/301-vera-gently-i-know-i-can-see.mp3": 4.5,
+  "/film/voice/s82a/301-vera-sadly-it-s-all-i-have.mp3": 4.1,
+  "/film/voice/s82a/302-harada-evenly-the-copies-not-the-original.mp3": 1.8,
+  "/film/voice/s83/111-kurose-gently-when-my-secretary-said-the.mp3": 2.6,
+  "/film/voice/s83/111-vera-evenly-did-you.mp3": 1.5,
+  "/film/voice/s83/113-vera-firmly-it-s-just-a-face.mp3": -2,
+  "/film/voice/s83/115-vera-dryly-it-s-very-clean.mp3": 2.7,
+  "/film/voice/s83/317-kurose-curious-why.mp3": 1.6,
+  "/film/voice/s83/317-kurose-dryly-and-they-sent-you.mp3": 1.9,
+  "/film/voice/s84/118-jack-flatly-right-behind-the-curtain.mp3": 1.6,
+  "/film/voice/s84/118-jack-tenderly-she-drew-it-after-you.mp3": 1.5,
+  "/film/voice/s84/118-vera-gently-that-s-me.mp3": 2.4,
+  "/film/voice/s84/118-vera-sadly-she-was-here-the-day.mp3": 4.8,
+  "/film/voice/s84/119-jack-evenly-i-know.mp3": -1.6,
+  "/film/voice/s84/119-jack-gently-no-one-s-asking-you.mp3": 2.2,
+  "/film/voice/s84/119-jack-heavily-i-know.mp3": -1.5,
+  "/film/voice/s84/119-jack-pleading-don-t.mp3": -1.6,
+  "/film/voice/s84/119-jack-sadly-she-never-told-me-she.mp3": 3.1,
+  "/film/voice/s84/119-jack-sadly-she-told-herself-pause-she.mp3": 4.1,
+  "/film/voice/s84/119-maskedman-curtly-position.mp3": -1.8,
+  "/film/voice/s84/119-vera-firmly-i-m-not-going-to.mp3": -3,
+  "/film/voice/s84/119-vera-gently-he-didn-t-blame-you.mp3": 2.9,
+  "/film/voice/s84/119-vera-tenderly-she-drew-what-she-saw.mp3": 4.1,
+  "/film/voice/s86/124-jack-urgently-come-with-us.mp3": -2.7,
+  "/film/voice/s86/124-kaneko-urgently-up-through-the-back-the.mp3": -3.3,
+  "/film/voice/s86/125-kaneko-dryly-i-have-lived-here-fifty.mp3": 1.9,
+  "/film/voice/s86/125-kaneko-urgently-go-now-they-will-help.mp3": -6,
+  "/film/voice/s9/165-okada-behind-the-counter-after--aged.mp3": -2.9,
+  "/film/voice/s9/165-okada-not-the-police-him--aged.mp3": -2.7,
+  "/film/voice/s9/165-okada-they-didn-t-ask--aged.mp3": -2.4,
+  "/film/voice/s92/137-vera-urgently-is-kaneko.mp3": 1.7,
+  "/film/voice/s92/138-vera-sadly-mara-was-safe-here-until.mp3": 3.1,
+  "/film/voice/s94/143-kurose-gently-it-s-only-tea.mp3": 4.1,
+  "/film/voice/s96/303-youngdetective-evenly-yes-pause-where-pause-in.mp3": 2.1,
+  "/film/voice/s98/155-jack-dryly-is-that-what-it-says.mp3": 2.3,
+  "/film/voice/s98/155-jack-heavily-i-was.mp3": 1.5,
+  "/film/voice/s98/155-vera-dryly-that-s-what-the-police.mp3": 3.5,
+  "/film/voice/s98/155-vera-gently-i-told-her-you-were.mp3": 3.1,
+  "/film/voice/s98/155-vera-steadily-mom-flies-home-tonight.mp3": -1.6,
+  "/film/voice/s98/156-jack-gently-this-is-yours.mp3": 1.9,
+  "/film/voice/s98/156-vera-voice-breaking-liar-it-was-mine.mp3": -1.5,
+  "/film/voice/s98/157-jack-gently-i-know.mp3": 1.7,
+  "/film/voice/s98/157-jack-gently-you-don-t-have-to.mp3": 1.8,
+  "/film/voice/s98/157-vera-dryly-i-still-have-your-lighter.mp3": 2.7,
+  "/film/voice/s98/157-vera-earnestly-somebody-from-mara-s-family.mp3": -1.8,
+  "/film/voice/s98/157-vera-unsteadily-i-m-not-flying-home.mp3": -2.1,
+  "/film/voice/s98/157-vera-warmly-kaneko-s-opening-a-new.mp3": -1.7,
+  "/film/voice/s98/157-vera-wistfully-i-don-t-know-what.mp3": 1.6
+ },
+ "dialogueLufs": -19,
+ "inserts": [
+  {
+   "beatId": "nw_b129",
+   "cuts": [
+    {
+     "from": 157,
+     "to": 354,
+     "picture": "/film/img/s6/57-he-waits.jpg",
+     "text": "Ishida reads her form upside down as she answers."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b289",
+   "cuts": [
+    {
+     "from": 303,
+     "to": 460,
+     "picture": "/film/img/festival/cutaways/ishida-on-the-phone.jpg",
+     "text": "Ishida, at home, on the telephone."
+    },
+    {
+     "from": 510,
+     "to": 721,
+     "picture": "/film/img/festival/cutaways/ishida-on-the-phone.jpg",
+     "text": "Ishida, at home, on the telephone."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b346",
+   "cuts": [
+    {
+     "from": 296,
+     "to": 473,
+     "picture": "/film/img/s14/182-someone-who-meant-to-come-back.jpg",
+     "text": "Jack, crouched by the futon, listens."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b379",
+   "cuts": [
+    {
+     "from": 128,
+     "to": 287,
+     "picture": "/film/img/s14a/427-she-hadnt-thought-of-that.jpg",
+     "text": "Vera at the wheel."
+    },
+    {
+     "from": 354,
+     "to": 480,
+     "picture": "/film/img/s14a/427-she-hadnt-thought-of-that.jpg",
+     "text": "Vera at the wheel."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b523",
+   "cuts": [
+    {
+     "from": 309,
+     "to": 461,
+     "picture": "/film/img/s20/437-vera-doesnt-know.jpg",
+     "text": "Jack listens."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b693",
+   "cuts": [
+    {
+     "from": 113,
+     "to": 249,
+     "picture": "/film/img/s27a/291-carries-things-by-himself.jpg",
+     "text": "Okada and Vera across the counter."
+    },
+    {
+     "from": 388,
+     "to": 522,
+     "picture": "/film/img/festival/cutaways/vera-at-the-counter.jpg",
+     "text": "Vera listens, very still."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b705",
+   "cuts": [
+    {
+     "from": 157,
+     "to": 365,
+     "picture": "/film/img/festival/cutaways/okada-with-the-crate.jpg",
+     "text": "Okada in the back, a crate in his arms. He does not move."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b910",
+   "cuts": [
+    {
+     "from": 221,
+     "to": 449,
+     "picture": "/film/img/s53a/469-what-they-are-told.jpg",
+     "text": "Harada at her desk."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1323",
+   "cuts": [
+    {
+     "from": 300,
+     "to": 467,
+     "picture": "/film/img/s79/508-almost-unrecognisable.jpg",
+     "text": "The handwriting, faster."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1409",
+   "cuts": [
+    {
+     "from": 202,
+     "to": 389,
+     "picture": "/film/img/s82a/512-he-hasnt-stopped.jpg",
+     "text": "Harada and Vera."
+    },
+    {
+     "from": 584,
+     "to": 677,
+     "picture": "/film/img/s82a/514-hell-want-to-look-at-me.jpg",
+     "text": "Vera."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1",
+   "cuts": [
+    {
+     "from": 173,
+     "to": 347,
+     "picture": "/film/img/montage/m2-the-hive.jpg",
+     "text": "The block beside the railway."
+    },
+    {
+     "from": 426,
+     "to": 666,
+     "picture": "/film/img/festival/cutaways/the-hive-balconies.jpg",
+     "text": "A balcony bolted onto a balcony."
+    },
+    {
+     "from": 912,
+     "to": 1095,
+     "picture": "/film/img/s15/184-a-gap-in-someones-teeth.jpg",
+     "text": "The land is worth more than we are."
+    }
+   ]
+  }
+ ]
 }

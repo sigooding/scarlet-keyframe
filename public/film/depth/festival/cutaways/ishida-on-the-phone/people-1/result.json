@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/festival/cutaways/ishida-on-the-phone.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/festival/cutaways/ishida-on-the-phone/people-1/cutout-1.png",
+   "depth": 0.357,
+   "box": [
+    389,
+    0,
+    1264,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

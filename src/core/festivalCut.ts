@@ -20,7 +20,8 @@
 //    the red shoe, the car, the incense, the rain at the service).
 //  - Pictures. A handful of stills with visible faults (reviewed frame by frame) are replaced by repaired versions
 //    that keep composition, cast, wardrobe and light. The originals are untouched.
-//  - Sound. Foley where the film had none, Kurose's sedan, a fuller Hive shootout; the rain under Mara's service plays
+//  - Sound. Every line of dialogue brought to one level (within 1.5 dB of the film's median, never more than 6 dB
+//    of correction); Foley where the film had none, Kurose's sedan, a fuller Hive shootout; the rain under Mara's service plays
 //    only outside, so the song has the room to itself indoors.
 //  - Look. Grain and vignette are made consistent across the film; each scene keeps its grade. No flicker anywhere:
 //    the film-grade overlay's flicker is never switched on, and no light pulses faster than once in two seconds.
@@ -74,6 +75,16 @@ export interface FestivalData {
   removeClips?: string[];
   /** clip id -> fields changed in the festival mix */
   clipPatches?: Record<string, Partial<AudioClip>>;
+  /**
+   * Cutaways that break up a long-held shot: within the shot (by id), from frame `from` to frame `to` (relative to
+   * the shot's start), the picture cuts to `picture`, then back. The shot's total length and every sound anchored to
+   * it stay exactly where they were.
+   */
+  inserts?: { beatId: string; cuts: { from: number; to: number; picture: string; text: string }[] }[];
+  /** voice file -> gain (dB) that brings the line to the film's median dialogue level (scripts/festival/measure-voices.mjs) */
+  voiceGainDb?: Record<string, number>;
+  /** the film's median dialogue loudness, LUFS */
+  dialogueLufs?: number;
 }
 
 const DATA = festivalData as unknown as FestivalData;
@@ -102,6 +113,7 @@ export interface FestivalReport {
   picturesReplaced: number;
   soundsAdded: number;
   soundsRemoved: number;
+  cutawaysAdded: number;
 }
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -182,6 +194,77 @@ export function practicalLight(spot: { x: number; y: number; color: string }, te
   return { x: spot.x, y: spot.y, color: spot.color, intensity, size: 16, pulseSeconds, pulseAmount };
 }
 
+const ROUTE_KEYS = ["afterBeatMode", "afterBeatTargetSceneId", "afterBeatSceneId", "afterBeatDelaySeconds", "nextSceneId"];
+/** What a cutaway or the return to the shot must not carry: the shot's own sound, depth rig and lights. */
+const NOT_COPIED = ["audioUrl", "sfxUrl", "sfxVolume", "audioClipId"];
+const NOT_COPIED_LOOK = ["depthMap", "depthPlate", "depthCutouts", "depthAmount", "depthMotion", "depthFocus", "lights", "lightSource"];
+
+/** The id of the n-th piece a split shot becomes (piece 0 keeps the shot's own id, so its sounds stay anchored). */
+export function cutawayPieceId(beatId: string, piece: number): string {
+  return piece === 0 ? beatId : `${beatId}~fc${piece}`;
+}
+
+/**
+ * Splits each listed shot at its cutaways: the shot plays, the cutaway takes over, the shot comes back. Captions
+ * are split at the cuts; the route to the next scene moves to the last piece. Returns how many cutaways went in.
+ */
+function insertCutaways(story: StoryLike): number {
+  const byBeat = new Map((DATA.inserts ?? []).map((i) => [i.beatId, [...i.cuts].sort((a, b) => a.from - b.from)]));
+  let added = 0;
+  for (const scene of story.scenes) {
+    const beats = scene.dialogueBeats ?? [];
+    const out: BeatLike[] = [];
+    for (const beat of beats) {
+      const cuts = byBeat.get(String(beat.id));
+      const total = Math.round(Number(beat.durationFrames) || 0);
+      if (!cuts?.length || total <= 0) {
+        out.push(beat);
+        continue;
+      }
+      // pieces: [shot][cut][shot][cut]...[shot], dropping empty ones
+      const pieces: { from: number; to: number; picture?: string; text?: string }[] = [];
+      let at = 0;
+      for (const cut of cuts) {
+        const from = Math.max(at, Math.min(total, cut.from));
+        const to = Math.max(from, Math.min(total, cut.to));
+        if (from > at) pieces.push({ from: at, to: from });
+        if (to > from) pieces.push({ from, to, picture: cut.picture, text: cut.text });
+        at = to;
+      }
+      if (at < total) pieces.push({ from: at, to: total });
+      const original = clone(beat);
+      const captions = Array.isArray(original.captions) ? original.captions : [];
+      pieces.forEach((piece, n) => {
+        const part: BeatLike = n === 0 ? beat : clone(original);
+        part.id = cutawayPieceId(String(beat.id), n);
+        part.durationFrames = piece.to - piece.from;
+        part.captions = captions
+          .filter((c) => c.outFrame > piece.from && c.inFrame < piece.to)
+          .map((c) => ({ ...c, inFrame: Math.max(c.inFrame, piece.from) - piece.from, outFrame: Math.min(c.outFrame, piece.to) - piece.from }));
+        if (n > 0) {
+          for (const k of NOT_COPIED) delete (part as AnyRecord)[k];
+          // a fresh camera for each piece: the festival gives it a move of its own
+          delete part.animation;
+          part.cinematic = { ...(original.cinematic ?? {}) };
+          for (const k of NOT_COPIED_LOOK) delete (part.cinematic as AnyRecord)[k];
+        }
+        if (piece.picture) {
+          part.background = piece.picture;
+          part.characterId = "nw_narrator";
+          part.text = piece.text ?? "";
+          part.silent = true;
+          added += 1;
+        }
+        if (n < pieces.length - 1) for (const k of ROUTE_KEYS) delete (part as AnyRecord)[k];
+        out.push(part);
+      });
+      // the first piece keeps the shot's move up to its cut; keys past its end are never reached
+    }
+    scene.dialogueBeats = out;
+  }
+  return added;
+}
+
 /** Applies the festival finish to a copy of the Director's Export project. */
 export function applyFestivalFinish(exportProject: ProjectState): { project: ProjectState; report: FestivalReport } {
   const story: StoryLike = clone(exportProject.story);
@@ -197,7 +280,9 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
     picturesReplaced: 0,
     soundsAdded: 0,
     soundsRemoved: 0,
+    cutawaysAdded: 0,
   };
+  report.cutawaysAdded = insertCutaways(story);
 
   // Every shot's real length (a montage shot has no durationFrames: it runs on its delay), in play order.
   const keyframes = buildKeyframes(story);
@@ -335,7 +420,11 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
       report.soundsRemoved += 1;
       continue;
     }
-    audioClips.push(patches[clip.id] ? { ...clip, ...patches[clip.id] } : clip);
+    const patched = patches[clip.id] ? { ...clip, ...patches[clip.id] } : clip;
+    // Dialogue at one level: each line is brought toward the film's median loudness, on top of the director's own
+    // gain for the clip (a line set quieter on purpose stays quieter).
+    const db = clip.lane === "voice" ? DATA.voiceGainDb?.[clip.src] : undefined;
+    audioClips.push(db ? { ...patched, gain: Math.round(patched.gain * 10 ** (db / 20) * 1000) / 1000 } : patched);
   }
   const spanMs = (from: string, until: string): number => {
     const a = order.indexOf(from);

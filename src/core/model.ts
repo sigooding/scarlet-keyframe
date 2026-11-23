@@ -12,7 +12,7 @@ export interface NoteMarker {
 }
 
 export type AspectFramingMode = "2.35:1" | "1.37:1" | "16:9";
-export type LoudnessTargetMode = "off" | "-16" | "-14";
+export type LoudnessTargetMode = "off" | "-24" | "-16" | "-14";
 
 export interface CutOptions {
   /** Enable 2.5D WebGL depth parallax on the 9 s12/s77a/s78 plates */

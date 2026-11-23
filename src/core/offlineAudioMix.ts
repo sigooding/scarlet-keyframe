@@ -35,7 +35,7 @@ export interface OfflineAudioMixOptions {
   fps?: number;
   sampleRate?: number;
   normalize?: boolean;
-  loudnessTarget?: "off" | "-16" | "-14";
+  loudnessTarget?: "off" | "-24" | "-16" | "-14";
   opticalPrintEq?: boolean;
 }
 
@@ -437,7 +437,13 @@ export async function renderTimelineAudioOfflineWav(
 
   const resolvedLoudness =
     options.loudnessTarget ?? (options.normalize ? "-14" : "off");
-  if (resolvedLoudness === "-16") {
+  if (resolvedLoudness === "-24") {
+    // festival and broadcast delivery (EBU R128 / ATSC A/85 territory): quieter, more headroom
+    normalizeStereoLoudnessInPlace(outLeft, outRight, sampleRate, {
+      targetLufs: -24,
+      ceilingDb: -2.0,
+    });
+  } else if (resolvedLoudness === "-16") {
     normalizeStereoLoudnessInPlace(outLeft, outRight, sampleRate, {
       targetLufs: -16,
       ceilingDb: -1.5,

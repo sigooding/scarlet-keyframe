@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/festival/cutaways/okada-with-the-crate.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/festival/cutaways/okada-with-the-crate/people-1/cutout-1.png",
+   "depth": 0.669,
+   "box": [
+    247,
+    34,
+    593,
+    1046
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

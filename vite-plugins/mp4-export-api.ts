@@ -116,7 +116,7 @@ export function createMp4ExportMiddleware(options: Mp4ExportOptions): Connect.Ne
             : "auto";
         const normalize = Boolean(body.normalize);
         const loudnessTarget =
-          body.loudnessTarget === "-16" || body.loudnessTarget === "-14" || body.loudnessTarget === "off"
+          body.loudnessTarget === "-24" || body.loudnessTarget === "-16" || body.loudnessTarget === "-14" || body.loudnessTarget === "off"
             ? body.loudnessTarget
             : normalize
               ? "-14"
