@@ -1,0 +1,18 @@
+{
+ "picture": "/film/img/festival/cutaways/vera-at-the-counter.jpg",
+ "quality": "fast",
+ "cutouts": [
+  {
+   "image": "/film/depth/festival/cutaways/vera-at-the-counter/people-1/cutout-1.png",
+   "depth": 0.622,
+   "box": [
+    804,
+    0,
+    929,
+    1080
+   ],
+   "how": "body"
+  }
+ ],
+ "flags": []
+}

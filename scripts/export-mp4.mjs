@@ -54,7 +54,7 @@ Options:
   --gpu                   Enable GPU WebGL/compositor rendering + hardware H.264 encoding (default: on)
   --no-gpu                Force CPU SwiftShader rendering and libx264 software encoding
   --encoder <name>        H.264 encoder: auto, nvenc, videotoolbox, amf, qsv, vaapi, libx264 (default: auto)
-  --loudnorm <off|-16|-14> Loudness mastering target: off, -16 LUFS (theatrical), -14 LUFS (streaming)
+  --loudnorm <off|-24|-16|-14> Loudness mastering target: off, -24 LUFS (festival / broadcast), -16 LUFS (theatrical), -14 LUFS (streaming)
   --normalize             Shorthand for --loudnorm -14 (-14 LUFS with -1.0 dBTP peak ceiling)
   --no-normalize          Shorthand for --loudnorm off (default)
   --optical-eq            Apply warm 1950s optical-print EQ (85 Hz HPF, +1.8 dB @ 1.8 kHz, 7.8 kHz LPF)
@@ -210,15 +210,15 @@ export function parseCliArgs(argv) {
       opts.loudnorm = "off";
     } else if (arg === "--loudnorm") {
       const v = String(next()).toLowerCase();
-      if (v !== "off" && v !== "-16" && v !== "-14") {
-        throw new Error(`Invalid --loudnorm "${v}" (expected "off", "-16", or "-14")`);
+      if (v !== "off" && v !== "-24" && v !== "-16" && v !== "-14") {
+        throw new Error(`Invalid --loudnorm "${v}" (expected "off", "-24", "-16", or "-14")`);
       }
       opts.loudnorm = v;
       opts.normalize = v !== "off";
     } else if (arg.startsWith("--loudnorm=")) {
       const v = arg.slice(11).toLowerCase();
-      if (v !== "off" && v !== "-16" && v !== "-14") {
-        throw new Error(`Invalid --loudnorm "${v}" (expected "off", "-16", or "-14")`);
+      if (v !== "off" && v !== "-24" && v !== "-16" && v !== "-14") {
+        throw new Error(`Invalid --loudnorm "${v}" (expected "off", "-24", "-16", or "-14")`);
       }
       opts.loudnorm = v;
       opts.normalize = v !== "off";
@@ -382,7 +382,7 @@ async function normalizeWav16StereoFileInPlace(
     if (meanFinal > 0) measuredLufs = -0.691 + 10 * Math.log10(meanFinal);
   }
 
-  const ceilingDb = targetLufs <= -16 ? -1.5 : -1.0;
+  const ceilingDb = targetLufs <= -24 ? -2.0 : targetLufs <= -16 ? -1.5 : -1.0;
   const ceilingLinear = Math.pow(10, ceilingDb / 20);
   const gainDb = Number.isFinite(measuredLufs)
     ? Math.max(-24, Math.min(12, targetLufs - measuredLufs))
@@ -1089,9 +1089,9 @@ async function main() {
       await wavHandle.close();
     }
 
-    if (opts.loudnorm === "-16" || opts.loudnorm === "-14") {
+    if (opts.loudnorm === "-24" || opts.loudnorm === "-16" || opts.loudnorm === "-14") {
       const targetNum = Number(opts.loudnorm);
-      const ceilStr = targetNum <= -16 ? "−1.5 dBTP" : "−1.0 dBTP";
+      const ceilStr = targetNum <= -24 ? "−2.0 dBTP" : targetNum <= -16 ? "−1.5 dBTP" : "−1.0 dBTP";
       emitProgress({
         phase: `Normalizing audio loudness (${targetNum} LUFS / ${ceilStr})…`,
         completedFrames: expectedFrames,

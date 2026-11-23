@@ -231,7 +231,8 @@ export function ExportModal({
     else if (capture === "png") args.push("--capture png");
     if (workers > 1) args.push(`--workers ${clampExportWorkers(workers)}`);
     args.push(gpu ? "--gpu" : "--no-gpu");
-    if (effectiveLoudness === "-16") args.push("--loudnorm -16");
+    if (effectiveLoudness === "-24") args.push("--loudnorm -24");
+    else if (effectiveLoudness === "-16") args.push("--loudnorm -16");
     else if (effectiveLoudness === "-14") args.push("--loudnorm -14");
     if (opticalPrintEq) args.push("--optical-eq");
     if (embedChapters) args.push("--chapters");
@@ -778,6 +779,7 @@ export function ExportModal({
                         }}
                       >
                         <option value="off">Off (Original Mix)</option>
+                        <option value="-24">−24 LUFS (Festival / broadcast)</option>
                         <option value="-16">−16 LUFS (Theatrical)</option>
                         <option value="-14">−14 LUFS (Streaming)</option>
                       </select>

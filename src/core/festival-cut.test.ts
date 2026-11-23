@@ -9,6 +9,7 @@ import mediaIndex from "../data/media-index.json";
 import { buildDirectorsCutById, DIRECTORS_CUT_OPTIONS, refreshStaleBuiltInCuts, switchDirectorsCutWithState } from "./directorsCut";
 import {
   applyFestivalFinish,
+  cutawayPieceId,
   FESTIVAL_CUTOUT_DEPTH_END,
   FESTIVAL_CUTOUT_DEPTH_START,
   FESTIVAL_DEPTH_END,
@@ -40,11 +41,29 @@ describe("The Festival Cut", () => {
   });
 
   it("keeps the director's edit: same shots, same order, same lengths, same captions, and every voice and music clip", () => {
-    expect(buildKeyframes(festival.story).map((f) => f.id)).toEqual(buildKeyframes(exportCut.story).map((f) => f.id));
-    for (const b of beats(festival.story)) {
-      const was = exportBeats.get(String(b.id))!;
-      expect(b.durationFrames).toBe(was.durationFrames);
-      expect(b.captions).toEqual(was.captions);
+    // a shot broken up by cutaways becomes pieces right after it; together they run exactly as long as it did and
+    // carry exactly its captions
+    const inserts = new Map((data.inserts ?? []).map((i) => [i.beatId, i.cuts.length]));
+    const byId = new Map(beats(festival.story).map((b) => [String(b.id), b]));
+    const expected: string[] = [];
+    for (const f of buildKeyframes(exportCut.story)) {
+      const id = String(f.beat.id);
+      expected.push(id);
+      for (let n = 1; byId.has(cutawayPieceId(id, n)); n += 1) expected.push(cutawayPieceId(id, n));
+    }
+    expect(buildKeyframes(festival.story).map((f) => f.id)).toEqual(expected);
+    for (const [id, was] of exportBeats) {
+      const pieces = [byId.get(id)!];
+      for (let n = 1; byId.has(cutawayPieceId(id, n)); n += 1) pieces.push(byId.get(cutawayPieceId(id, n))!);
+      expect(pieces.length > 1, id).toBe(inserts.has(id));
+      if (pieces.length === 1) {
+        expect(pieces[0].durationFrames, id).toBe(was.durationFrames);
+        expect(pieces[0].captions, id).toEqual(was.captions);
+        continue;
+      }
+      expect(pieces.reduce((t, p) => t + Number(p.durationFrames), 0), id).toBe(was.durationFrames);
+      const texts = [...new Set(pieces.flatMap((p) => (p.captions ?? []).map((c) => c.text)))];
+      expect(texts, id).toEqual((was.captions ?? []).map((c) => c.text));
     }
     const removed = new Set(data.removeClips ?? []);
     const mine = new Map((festival.audioClips ?? []).map((c) => [c.id, c]));
@@ -54,7 +73,10 @@ describe("The Festival Cut", () => {
         expect(mine.has(clip.id)).toBe(false);
         continue;
       }
-      expect(mine.get(clip.id), clip.id).toEqual({ ...clip, ...(data.clipPatches?.[clip.id] ?? {}) });
+      const db = clip.lane === "voice" ? data.voiceGainDb?.[clip.src] : undefined;
+      const want = { ...clip, ...(data.clipPatches?.[clip.id] ?? {}) };
+      if (db) want.gain = Math.round(want.gain * 10 ** (db / 20) * 1000) / 1000;
+      expect(mine.get(clip.id), clip.id).toEqual(want);
     }
     for (const clip of exportCut.audioClips ?? []) if (clip.lane === "voice" || clip.lane === "music") expect(removed.has(clip.id)).toBe(false);
     expect(festival.originalStory).toEqual(base.originalStory);
@@ -78,8 +100,8 @@ describe("The Festival Cut", () => {
   it("breathes the new depth from 0.14 to 0.24 and leaves the director's own rigs exactly as they were", () => {
     let added = 0;
     for (const b of beats(festival.story)) {
-      const was = exportBeats.get(String(b.id))!;
-      if (videoShots[String(b.id)]) continue;
+      const was = exportBeats.get(String(b.id));
+      if (!was || videoShots[String(b.id)]) continue;
       if (was.cinematic?.depthMap && data.pictureReplacements[String(was.background)]) {
         // a rig made for a faulty picture moves to the repaired picture's map; its old plate and cut-outs go
         expect(b.cinematic?.depthMap).toBe(data.depthByPicture[data.pictureReplacements[String(was.background)]]);
@@ -218,6 +240,14 @@ describe("The Festival Cut", () => {
     }
   });
 
+  it("levels the dialogue: no line corrected by more than 6 dB, and lines already at level left alone", () => {
+    const g = Object.values(data.voiceGainDb ?? {});
+    expect(g.length).toBeGreaterThan(0);
+    for (const db of g) expect(Math.abs(db)).toBeLessThanOrEqual(6);
+    const voices = (exportCut.audioClips ?? []).filter((c) => c.lane === "voice").length;
+    expect(g.length).toBeLessThan(voices);
+  });
+
   it("never flickers: no film-grade overlay it did not already have, and no light pulsing faster than every 2 seconds", () => {
     for (const b of beats(festival.story)) {
       const was = exportBeats.get(String(b.id));
@@ -250,6 +280,17 @@ describe("The Festival Cut", () => {
     edited.savedCutStates = { ...(edited.savedCutStates ?? {}) };
     const back = switchDirectorsCutWithState(switchDirectorsCutWithState(edited, "director-export", voiceMap, musicMap), "festival", voiceMap, musicMap);
     expect(back.story).toEqual(edited.story);
+  });
+
+  it("breaks up the longest holds: no picture held more than 13 seconds where a cutaway went in", () => {
+    const byId = new Map(beats(festival.story).map((b) => [String(b.id), b]));
+    for (const insert of data.inserts ?? []) {
+      for (let n = 0; byId.has(cutawayPieceId(insert.beatId, n)); n += 1) {
+        const piece = byId.get(cutawayPieceId(insert.beatId, n))!;
+        expect(Number(piece.durationFrames) / 24, piece.id as string).toBeLessThanOrEqual(13.5);
+        expect(piece.background, piece.id as string).toBeTruthy();
+      }
+    }
   });
 
   it("never changes the Director's Export itself", () => {
