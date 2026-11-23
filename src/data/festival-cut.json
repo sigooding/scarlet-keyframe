@@ -5341,6 +5341,166 @@
      "text": "Vera: Liar. It was mine."
     }
    ]
+  },
+  {
+   "beatId": "nw_b157",
+   "cuts": [
+    {
+     "from": 123,
+     "to": 158,
+     "picture": "video:/film/video/festival/lipsync-vera-is-she-hurt.mp4",
+     "text": "Vera: Is she hurt?"
+    },
+    {
+     "from": 241,
+     "to": 303,
+     "picture": "video:/film/video/festival/lipsync-vera-that-s-not-the-same-as-saying-she-isn-t.mp4",
+     "text": "Vera: That's not the same as saying she isn't."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b266",
+   "cuts": [
+    {
+     "from": 0,
+     "to": 35,
+     "picture": "video:/film/video/festival/lipsync-vera-so-you-ll-look.mp4",
+     "text": "Vera: So you'll look."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b386",
+   "cuts": [
+    {
+     "from": 41,
+     "to": 80,
+     "picture": "video:/film/video/festival/lipsync-vera-i-brought-food.mp4",
+     "text": "Vera: I brought food."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b774",
+   "cuts": [
+    {
+     "from": 0,
+     "to": 43,
+     "picture": "video:/film/video/festival/lipsync-vera-come-back-safe-anyway.mp4",
+     "text": "Vera: Come back safe anyway."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1008",
+   "cuts": [
+    {
+     "from": 200,
+     "to": 231,
+     "picture": "video:/film/video/festival/lipsync-jack-tomorrow-night.mp4",
+     "text": "Jack: Tomorrow night."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1099",
+   "cuts": [
+    {
+     "from": 175,
+     "to": 229,
+     "picture": "video:/film/video/festival/lipsync-mara-thank-you-for.mp4",
+     "text": "Mara: Thank you. For —"
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1456",
+   "cuts": [
+    {
+     "from": 65,
+     "to": 108,
+     "picture": "video:/film/video/festival/lipsync-vera-that-s-me.mp4",
+     "text": "Vera: That's me."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1719",
+   "cuts": [
+    {
+     "from": 30,
+     "to": 73,
+     "picture": "video:/film/video/festival/lipsync-mara-i-have-to-tell-vera.mp4",
+     "text": "Mara: I have to tell Vera."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b780",
+   "cuts": [
+    {
+     "from": 0,
+     "to": 43,
+     "picture": "video:/film/video/festival/lipsync-mrs-noda-don-t-tell-my-husband.mp4",
+     "text": "Mrs. noda: Don't tell my husband."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1715",
+   "cuts": [
+    {
+     "from": 4,
+     "to": 35,
+     "picture": "video:/film/video/festival/lipsync-mara-what-happened.mp4",
+     "text": "Mara: What happened?"
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1717",
+   "cuts": [
+    {
+     "from": 4,
+     "to": 39,
+     "picture": "video:/film/video/festival/lipsync-mara-who-killed-him.mp4",
+     "text": "Mara: Who killed him?"
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1301",
+   "cuts": [
+    {
+     "from": 4,
+     "to": 51,
+     "picture": "video:/film/video/festival/lipsync-jack-maybe-that-was-a-mistake.mp4",
+     "text": "Jack: Maybe that was a mistake."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1706",
+   "cuts": [
+    {
+     "from": 177,
+     "to": 235,
+     "picture": "video:/film/video/festival/lipsync-jack-in-the-car-we-have-to-move.mp4",
+     "text": "Jack: In the car. We have to move."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b629",
+   "cuts": [
+    {
+     "from": 35,
+     "to": 85,
+     "picture": "video:/film/video/festival/lipsync-jack-last-night-she-had-noodles.mp4",
+     "text": "Jack: Last night she had noodles."
+    }
+   ]
   }
  ]
 }
