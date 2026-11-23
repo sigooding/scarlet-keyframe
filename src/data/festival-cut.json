@@ -23,6 +23,7 @@
   "/film/img/festival/s6/325-squared-to-the-corner-r1.jpg": "/film/depth/festival/s6/325-squared-to-the-corner-r1/depth.png",
   "/film/img/festival/s79/505-neat-slanted-careful-r1.jpg": "/film/depth/festival/s79/505-neat-slanted-careful-r1/depth.png",
   "/film/img/festival/s79/92-underlined-twice-r1.jpg": "/film/depth/festival/s79/92-underlined-twice-r1/depth.png",
+  "/film/img/festival/s97a/563-the-saved-drawing-r1.jpg": "/film/depth/festival/s97a/563-the-saved-drawing-r1/depth.png",
   "/film/img/hive_raid_takes/119-single-file-v1.jpg": "/film/depth/hive_raid_takes/119-single-file-v1/depth.png",
   "/film/img/hive_raid_takes/123-fifty-years-playframe.jpg": "/film/depth/hive_raid_takes/123-fifty-years-playframe/depth.png",
   "/film/img/hive_raid_takes/124-the-repairman-v1.jpg": "/film/depth/hive_raid_takes/124-the-repairman-v1/depth.png",
@@ -693,7 +694,8 @@
   "/film/img/s54/220-everything-is-still-there.jpg": "/film/img/festival/s54/220-everything-is-still-there-r1.jpg",
   "/film/img/s79/92-underlined-twice.jpg": "/film/img/festival/s79/92-underlined-twice-r1.jpg",
   "/film/img/s79/505-neat-slanted-careful.jpg": "/film/img/festival/s79/505-neat-slanted-careful-r1.jpg",
-  "/film/img/s53/275-the-kiss-r1.jpg": "/film/img/festival/s53/275-the-kiss-close.jpg"
+  "/film/img/s53/275-the-kiss-r1.jpg": "/film/img/festival/s53/275-the-kiss-close.jpg",
+  "/film/img/s97a/563-the-saved-drawing.jpg": "/film/img/festival/s97a/563-the-saved-drawing-r1.jpg"
  },
  "cutoutsByPicture": {
   "/film/img/festival/cutaways/ishida-on-the-phone.jpg": {
@@ -5128,9 +5130,15 @@
    "cuts": [
     {
      "from": 309,
-     "to": 461,
+     "to": 444,
      "picture": "/film/img/s20/437-vera-doesnt-know.jpg",
      "text": "Jack listens."
+    },
+    {
+     "from": 444,
+     "to": 542,
+     "picture": "video:/film/video/festival/lipsync-mara-switching-off-lights.mp4",
+     "text": "Mara: I watched them shoot two men like they were switching off lights."
     }
    ]
   },
@@ -5221,6 +5229,116 @@
      "to": 1095,
      "picture": "/film/img/s15/184-a-gap-in-someones-teeth.jpg",
      "text": "The land is worth more than we are."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b10",
+   "cuts": [
+    {
+     "from": 48,
+     "to": 87,
+     "picture": "video:/film/video/festival/lipsync-mara-not-tonight.mp4",
+     "text": "Mara: Not tonight."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b137",
+   "cuts": [
+    {
+     "from": 31,
+     "to": 101,
+     "picture": "video:/film/video/festival/lipsync-vera-she-was-four-she-doesn-t-remember-him.mp4",
+     "text": "Vera: She was four. She doesn't remember him."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b151",
+   "cuts": [
+    {
+     "from": 183,
+     "to": 267,
+     "picture": "video:/film/video/festival/lipsync-ishida-did-she-mention-kanda-friends-there-work.mp4",
+     "text": "Ishida: Did she mention Kanda? Friends there? Work?"
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b298",
+   "cuts": [
+    {
+     "from": 0,
+     "to": 54,
+     "picture": "video:/film/video/festival/lipsync-jack-twenty-years-ishida.mp4",
+     "text": "Jack: Twenty years, Ishida."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b622",
+   "cuts": [
+    {
+     "from": 159,
+     "to": 213,
+     "picture": "video:/film/video/festival/lipsync-jack-because-nobody-knows-where-you-are.mp4",
+     "text": "Jack: Because nobody knows where you are."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b625",
+   "cuts": [
+    {
+     "from": 43,
+     "to": 74,
+     "picture": "video:/film/video/festival/lipsync-mara-is-she-eating.mp4",
+     "text": "Mara: Is she eating?"
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1713",
+   "cuts": [
+    {
+     "from": 6,
+     "to": 49,
+     "picture": "video:/film/video/festival/lipsync-mara-did-he-kill-himself.mp4",
+     "text": "Mara: Did he kill himself?"
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1465",
+   "cuts": [
+    {
+     "from": 188,
+     "to": 270,
+     "picture": "video:/film/video/festival/lipsync-jack-i-trusted-him-i-m-so-sorry.mp4",
+     "text": "Jack: I trusted him. I'm so sorry."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1469",
+   "cuts": [
+    {
+     "from": 65,
+     "to": 135,
+     "picture": "video:/film/video/festival/lipsync-vera-i-m-not-going-to-tell-you-it-wasn-t-your.mp4",
+     "text": "Vera: I'm not going to tell you it wasn't yours."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1632",
+   "cuts": [
+    {
+     "from": 37,
+     "to": 123,
+     "picture": "video:/film/video/festival/lipsync-vera-liar-it-was-mine.mp4",
+     "text": "Vera: Liar. It was mine."
     }
    ]
   }

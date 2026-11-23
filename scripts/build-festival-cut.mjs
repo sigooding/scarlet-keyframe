@@ -37,7 +37,7 @@ for (const scene of exported.story.scenes) {
   }
 }
 for (const repaired of Object.values(pictureReplacements)) pictures.add(repaired);
-for (const insert of previous.inserts ?? []) for (const cut of insert.cuts) pictures.add(cut.picture);
+for (const insert of previous.inserts ?? []) for (const cut of insert.cuts) if (cut.picture.startsWith("/film/img/")) pictures.add(cut.picture);
 
 function depthFor(picture) {
   const m = /^\/film\/img\/(.+)\/([^/]+)\.(?:jpe?g|png|webp)$/i.exec(picture);
@@ -88,7 +88,7 @@ writeFileSync(OUT, `${JSON.stringify(out, null, 1)}\n`);
 const index = new Set(JSON.parse(readFileSync(MEDIA_INDEX, "utf8")));
 const before = index.size;
 const used = [...Object.values(depthByPicture), ...Object.values(pictureReplacements), ...Object.values(out.videoShots ?? {})];
-for (const insert of out.inserts ?? []) for (const cut of insert.cuts) used.push(cut.picture);
+for (const insert of out.inserts ?? []) for (const cut of insert.cuts) used.push(cut.picture.replace(/^video:/, ""));
 for (const c of Object.values(cutoutsByPicture)) used.push(c.depthMap, c.depthPlate, ...c.depthCutouts.map((x) => x.image));
 for (const s of [...(out.sfx ?? []), ...(out.ambience ?? [])]) for (const part of s.src.split("+")) if (part.includes("/")) used.push(part.replace(/^file:/, ""));
 for (const p of used) index.add(p);
