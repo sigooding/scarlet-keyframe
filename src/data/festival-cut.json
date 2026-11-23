@@ -5507,6 +5507,17 @@
      "text": "Jack: Last night she had noodles."
     }
    ]
+  },
+  {
+   "beatId": "nw_b605",
+   "cuts": [
+    {
+     "from": 0,
+     "to": 252,
+     "picture": "video:/film/video/festival/lipsync-mara-he-knew-me.mp4",
+     "text": "Mara: He knew me. He saw me in the doorway and stopped. (HeyGen Avatar 6 Turbo)"
+    }
+   ]
   }
  ]
 }
