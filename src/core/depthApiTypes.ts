@@ -8,8 +8,17 @@ export const DEPTH_API = "/__api/depth";
 
 export type DepthJobStatus = "running" | "done" | "error" | "cancelled";
 
-/** What a job is making: a depth map, the cut-outs of a picture's people, or downloading models. */
-export type DepthJobKind = "depth" | "cutouts" | "models";
+/** What a job is making: a depth map, the cut-outs of a picture's people, a lip-synced clip, or downloading models. */
+export type DepthJobKind = "depth" | "cutouts" | "lipsync" | "models";
+
+/** Whether local lip sync (LatentSync 1.5 on this computer's NVIDIA GPU) is set up, from GET /ready. */
+export interface LipSyncReady {
+  ready: boolean;
+  /** What is not there yet, in words ("the LatentSync code", "ffmpeg ..."). */
+  missing: string[];
+  /** The command that sets it up: npm run lipsync:setup */
+  setupCommand: string;
+}
 
 /** "best" uses the largest models (Depth Anything Large is non-commercial); "fast" the small, permissively licensed ones. */
 export type DepthQuality = "best" | "fast";
@@ -58,6 +67,8 @@ export interface DepthReady {
   defaultQuality: DepthQuality;
   /** The id of the job running right now, if any (one at a time). */
   busy: string | null;
+  /** Local lip sync: whether it is set up (absent from older servers). */
+  lipsync?: LipSyncReady;
 }
 
 /** One person's layer: the picture of them (transparent PNG at the picture's size) and the depth it moves at. */
@@ -102,6 +113,13 @@ export interface DepthMakeResult {
   leftOut?: number;
   quality?: DepthQuality;
   source?: "model" | "given";
+  // ---- lip sync
+  /** The clip made: /film/video/lipsync/....mp4 (1920x1080, 24 fps, no sound). */
+  video?: string;
+  /** The voice line it speaks. */
+  audio?: string;
+  /** Its length in seconds. */
+  duration?: number;
   // ---- models
   models?: { id: string; file: string; bytes: number }[];
 }

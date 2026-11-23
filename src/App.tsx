@@ -175,8 +175,11 @@ import {
 import { UndoHistory } from "./core/history";
 import { loadActiveProject, loadSavedProject, listSavedProjects, saveActiveProject, type SavedProjectSummary } from "./core/storage";
 import { savedStatusText } from "./core/saveLocation";
-import { depthMapRefForPicture, fetchDepthFiles, plainPictureRef, type ApplyCutouts, type ApplyDepthMap } from "./core/depthMaker";
+import { depthMapRefForPicture, fetchDepthFiles, pictureCanHaveDepthMap, plainPictureRef, type ApplyCutouts, type ApplyDepthMap } from "./core/depthMaker";
 import { useDepthMaker } from "./core/useDepthMaker";
+import { useLipSync, type ApplyLipSync } from "./components/useLipSync";
+import { insertClipIntoShot } from "./core/cutaways";
+import { lipSyncRowView, voiceLinesInShot } from "./core/lipSync";
 import { useCameraDrive } from "./core/useCameraDrive";
 import { handheldAnimation } from "./core/cameraDrive";
 import { DEFAULT_HANDHELD, type HandheldSettings } from "./components/CameraDrivePanel";
@@ -2112,6 +2115,39 @@ export default function App() {
     };
   }, [loading]);
   const depthMaker = useDepthMaker({ apply: applyMadeDepthMap, applyCutouts: applyMadeCutouts });
+
+  // "Make lip sync": the clip made on this computer's GPU is cut into its shot on the frames of its line (one undo step).
+  const applyLipSync = useCallback<ApplyLipSync>(
+    (job) => {
+      const frame = frames.find((item) => item.id === job.frameId);
+      if (!frame) return { applied: false, reason: "That shot is no longer in the film." };
+      if (!frame.picture || plainPictureRef(frame.picture) !== job.picture) return { applied: false, reason: "This shot's picture changed while the clip was being made." };
+      const current = projectRef.current;
+      if (!current) return { applied: false, reason: "No film is open." };
+      const to = Math.min(job.totalFrames, job.line.from + Math.max(1, Math.floor(job.duration * 24)));
+      const story = insertClipIntoShot(current.story, job.frameId, job.totalFrames, { from: job.line.from, to, picture: `video:${job.video}`, text: job.line.label });
+      if (!story) return { applied: false, reason: "The clip did not fit in the shot any more." };
+      setPublicPaths((paths) => withPublicPaths(paths, [job.video]));
+      editProject((project) => ({ ...project, story }), "Lip sync made");
+      return { applied: true };
+    },
+    [editProject, frames],
+  );
+  const lipSync = useLipSync(applyLipSync);
+  const lipSyncBinding = useMemo(() => {
+    if (!selectedClip) return undefined;
+    const frame = selectedClip.keyframe;
+    const picture = frame.picture ? plainPictureRef(frame.picture) : "";
+    const canLipSync = !frame.beat.gap && pictureCanHaveDepthMap(picture);
+    const lines = canLipSync ? voiceLinesInShot({ startFrame: selectedClip.startFrame, durationFrames: selectedClip.durationFrames, beat: frame.beat }, resolvedAudioClips) : [];
+    return {
+      view: lipSyncRowView(lipSync.state, { frameId: frame.id, canLipSync }, lines),
+      onMake: (line: (typeof lines)[number]) => lipSync.start(frame.id, picture, line, selectedClip.durationFrames),
+      onCancel: lipSync.cancel,
+      onDismiss: lipSync.dismiss,
+      onCheckAgain: () => void lipSync.check(true),
+    };
+  }, [lipSync, resolvedAudioClips, selectedClip]);
   const depthMakerBinding = useMemo(
     () => ({
       state: depthMaker.state,
@@ -6149,6 +6185,7 @@ export default function App() {
             onApplyEffects={applyEffects}
             onPreviewEffects={previewEffects}
             depthMaker={depthMakerBinding}
+            lipSync={lipSyncBinding}
             pointEdit={lightEdit}
             onPointEditChange={setLightEdit}
             canPlaceOnViewer={canPlaceLightOnViewer && !compareActive}
