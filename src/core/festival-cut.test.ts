@@ -62,8 +62,19 @@ describe("The Festival Cut", () => {
         continue;
       }
       expect(pieces.reduce((t, p) => t + Number(p.durationFrames), 0), id).toBe(was.durationFrames);
-      const texts = [...new Set(pieces.flatMap((p) => (p.captions ?? []).map((c) => c.text)))];
-      expect(texts, id).toEqual((was.captions ?? []).map((c) => c.text));
+      // put the pieces' captions back on the shot's own clock and re-join any caption a cut split in two
+      const rebuilt: { text: string; inFrame: number; outFrame: number }[] = [];
+      let offset = 0;
+      for (const piece of pieces) {
+        for (const c of piece.captions ?? []) {
+          const at = { text: c.text, inFrame: c.inFrame + offset, outFrame: c.outFrame + offset };
+          const last = rebuilt[rebuilt.length - 1];
+          if (last && last.text === at.text && last.outFrame === at.inFrame) last.outFrame = at.outFrame;
+          else rebuilt.push(at);
+        }
+        offset += Number(piece.durationFrames);
+      }
+      expect(rebuilt, id).toEqual((was.captions ?? []).map((c) => ({ text: c.text, inFrame: c.inFrame, outFrame: c.outFrame })));
     }
     const removed = new Set(data.removeClips ?? []);
     const mine = new Map((festival.audioClips ?? []).map((c) => [c.id, c]));
@@ -143,6 +154,7 @@ describe("The Festival Cut", () => {
       expect(index.has(to), to).toBe(true);
     }
     const used = [...Object.values(data.depthByPicture), ...Object.values(videoShots)];
+    for (const insert of data.inserts ?? []) for (const cut of insert.cuts) used.push(cut.picture.replace(/^video:/, ""));
     for (const c of Object.values(data.cutoutsByPicture ?? {})) used.push(c.depthMap, c.depthPlate, ...c.depthCutouts.map((x) => x.image));
     for (const s of [...(data.sfx ?? []), ...(data.ambience ?? [])]) for (const part of s.src.split("+")) if (part.includes("/")) used.push(part.replace(/^file:/, ""));
     for (const p of used) {
@@ -189,7 +201,9 @@ describe("The Festival Cut", () => {
   });
 
   it("plays its shots as real motion, made from their own pictures", () => {
-    const shown = beats(festival.story).filter((b) => String(b.background).startsWith("video:/film/video/festival/"));
+    // real-motion shots, plus any lip-sync piece a cutaway put in
+    const lipSync = (data.inserts ?? []).flatMap((i) => i.cuts.filter((c) => c.picture.startsWith("video:")).map((c) => c.picture));
+    const shown = beats(festival.story).filter((b) => String(b.background).startsWith("video:/film/video/festival/") && !lipSync.includes(String(b.background)));
     expect(shown.map((b) => String(b.id)).sort()).toEqual(Object.keys(videoShots).sort());
     for (const b of shown) expect(b.cinematic?.depthMap).toBeUndefined();
   });
