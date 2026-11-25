@@ -10,13 +10,15 @@ import { buildDirectorsCutById, DIRECTORS_CUT_OPTIONS, refreshStaleBuiltInCuts, 
 import {
   applyFestivalFinish,
   cutawayPieceId,
-  depthScaleOf,
+  depthShare,
   FESTIVAL_CUTOUT_DEPTH_END,
   FESTIVAL_CUTOUT_DEPTH_START,
   FESTIVAL_DEPTH_END,
   FESTIVAL_DEPTH_START,
   HANDHELD_SCENES,
   MAX_CUTOUTS,
+  MAX_PARALLAX,
+  parallaxOf,
   scaledDepth,
   type FestivalData,
 } from "./festivalCut";
@@ -124,11 +126,14 @@ describe("The Festival Cut", () => {
     expect(withDepth / withPicture).toBeGreaterThan(0.85);
   });
 
-  it("breathes the new depth from 0.14 to 0.24 (at each shot's measured share) and leaves the director's own rigs as they were but for their share", () => {
+  it("breathes the new depth from 0.14 to 0.24 within the parallax limit, and leaves the director's rigs as they were but for that limit", () => {
+    const framesOf = new Map(buildKeyframes(festival.story).map((f) => [String(f.beat.id), clipFrames(f)]));
     let added = 0;
+    let limited = 0;
     for (const b of beats(festival.story)) {
       const was = exportBeats.get(String(b.id));
       if (!was || videoShots[String(b.id)]) continue;
+      const frames = framesOf.get(String(b.id)) ?? 1;
       if (was.cinematic?.depthMap && data.pictureReplacements[String(was.background)]) {
         // a rig made for a faulty picture moves to the repaired picture's map; its old plate and cut-outs go
         expect(b.cinematic?.depthMap).toBe(data.depthByPicture[data.pictureReplacements[String(was.background)]]);
@@ -136,47 +141,51 @@ describe("The Festival Cut", () => {
         expect(b.cinematic?.depthCutouts).toBeUndefined();
         continue;
       }
-      const scale = depthScaleOf(String(b.id));
       if (was.cinematic?.depthMap) {
+        // the camera and the authored amount stay; only the depth on the frames comes down, and only past the limit
         expect(b.cinematic?.depthMap).toBe(was.cinematic.depthMap);
-        // the authored amount stays; the depth on every frame plays at the shot's share
         expect(b.cinematic?.depthAmount).toBe(was.cinematic.depthAmount);
-        if (scale === 1) {
+        const share = depthShare(parallaxOf(was.animation, was.cinematic.depthAmount, frames));
+        if (share >= 1) {
           expect(b.animation).toEqual(was.animation);
           continue;
         }
-        const { depthAmount: got, values: gotValues, ...rest } = b.animation ?? {};
-        const { depthAmount: wasKeys, values: wasValues, ...wasRest } = was.animation ?? {};
+        limited += 1;
+        const { depthAmount: _got, values: _gv, ...rest } = b.animation ?? {};
+        const { depthAmount: _was, values: _wv, ...wasRest } = was.animation ?? {};
         expect(rest).toEqual(wasRest);
-        const authored = typeof was.cinematic.depthAmount === "number" ? was.cinematic.depthAmount : 0.4;
-        const held = typeof (wasValues as Record<string, unknown> | undefined)?.depthAmount === "number" ? Number((wasValues as Record<string, number>).depthAmount) : authored;
-        expect(got).toEqual(wasKeys?.length ? wasKeys.map((k) => ({ ...k, value: scaledDepth(k.value, scale) })) : [{ frame: 0, value: scaledDepth(held, scale), easing: "linear" }]);
-        expect((gotValues as Record<string, unknown> | undefined)?.depthAmount).toBeUndefined();
         continue;
       }
       if (!b.cinematic?.depthMap) continue;
       added += 1;
       const keys = b.animation?.depthAmount ?? [];
       const cut = Boolean(b.cinematic?.depthCutouts);
-      expect(b.cinematic?.depthAmount).toBe(cut ? FESTIVAL_CUTOUT_DEPTH_END : FESTIVAL_DEPTH_END);
-      expect(keys[0].value).toBe(scaledDepth(cut ? FESTIVAL_CUTOUT_DEPTH_START : FESTIVAL_DEPTH_START, scale));
-      expect(keys[keys.length - 1].value).toBe(scaledDepth(cut ? FESTIVAL_CUTOUT_DEPTH_END : FESTIVAL_DEPTH_END, scale));
+      const [from, to] = cut ? [FESTIVAL_CUTOUT_DEPTH_START, FESTIVAL_CUTOUT_DEPTH_END] : [FESTIVAL_DEPTH_START, FESTIVAL_DEPTH_END];
+      expect(b.cinematic?.depthAmount).toBe(to);
+      const share = depthShare(parallaxOf({ ...b.animation, depthAmount: [{ frame: 0, value: from, easing: "ease-in-out" }, { frame: Math.max(1, frames - 1), value: to, easing: "linear" }] }, to, frames));
+      expect(keys[0].value).toBe(scaledDepth(from, share));
+      expect(keys[keys.length - 1].value).toBe(scaledDepth(to, share));
+      if (share < 1) limited += 1;
     }
     expect(added).toBeGreaterThan(400);
+    expect(limited).toBeGreaterThan(50);
   });
 
-  it("plays each shot's depth at the share its picture can take, and only shares that are real", () => {
-    const ids = new Set(beats(festival.story).map((b) => String(b.id)));
-    for (const [id, scale] of Object.entries(data.depthScale ?? {})) {
-      expect(scale, id).toBeGreaterThan(0);
-      expect(scale, id).toBeLessThan(1);
-      if (!ids.has(id)) continue;
-      const b = beats(festival.story).find((x) => String(x.id) === id)!;
-      if (videoShots[id]) expect(b.cinematic?.depthMap).toBeUndefined();
+  it("never lets a depth shot's near layers move more than the limit against the background", () => {
+    const over: string[] = [];
+    let service = 0;
+    for (const f of buildKeyframes(festival.story)) {
+      const b = f.beat;
+      if (!b.cinematic?.depthMap) continue;
+      const p = parallaxOf(b.animation, b.cinematic.depthAmount, clipFrames(f));
+      if (p > MAX_PARALLAX + 1e-6) over.push(`${b.id} ${p.toFixed(3)}`);
+      if (String(f.sceneId).startsWith("nw_song_service_")) service += 1;
     }
-    // the service, where the bend was worst, plays gentler
-    const service = beats(festival.story).filter((b) => String(b.id).startsWith("nw_song_service_") && b.cinematic?.depthMap);
-    expect(service.some((b) => depthScaleOf(String(b.id)) < 1)).toBe(true);
+    expect(over).toEqual([]);
+    expect(service).toBeGreaterThan(10);
+    // the service's slow push-ins were what bent it: at full depth they move the near layers far past the limit
+    const shoes = beats(exportCut.story).find((b) => String(b.id) === "nw_song_service_06:nw_song_b6");
+    expect(parallaxOf(shoes?.animation, 0.24, 113)).toBeGreaterThanOrEqual(0);
   });
 
   it("keeps the rain outdoors: an indoor shot is dry, the street keeps its rain", () => {

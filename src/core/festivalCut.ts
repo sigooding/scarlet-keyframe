@@ -6,12 +6,12 @@
 //    zoom/x/y keys (FrameDepthParallax), so a shot keeps its move and gains parallax. The amount breathes from a
 //    gentle 0.14 to 0.24 across the shot: inside the range the film's hand-made rigs use. The close-ups that hold the
 //    screen longest have their people cut out (a plate with the people painted out, and a layer per person), so they
-//    can take more depth, 0.2 to 0.34. Not every picture's depth map can take that: where the bend between a shot's
-//    first and last frame (the camera's own move taken out) showed people stretching or cut-outs sliding over the
-//    floor, the shot plays at the share of its depth it can take (depthScale, measured shot by shot). Shots that
-//    already have a depth rig (the director's own) keep their camera exactly as it is, at their measured share,
-//    unless their picture was repaired: a rig's plate and cut-outs are slices of the old picture, so the shot moves to
-//    the repaired picture's own map.
+//    can take more depth, 0.2 to 0.34. However much depth a shot has, its near layers never grow or slide more than
+//    3% of the frame against the background over the shot (MAX_PARALLAX, by the engine's own maths: a push-in
+//    multiplies the depth). Past that the picture stretched at the edges of what is near and cut-out people slid,
+//    worst in Mara's service, where slow 18% push-ins met full depth. Shots that already have a depth rig (the
+//    director's own) keep their camera exactly as it is, within the same limit, unless their picture was repaired: a
+//    rig's plate and cut-outs are slices of the old picture, so the shot moves to the repaired picture's own map.
 //  - Camera. The "dolly" preset switches the depth camera off, so a dolly shot with keys is re-based on its keys
 //    (mode static: the keys already carry the move). A shot with no move at all gets a slow push-in, or a slow
 //    lateral drift on a wide shot, so no frame is a dead still. The four Vertigo dolly-zooms are left alone. The
@@ -92,12 +92,6 @@ export interface FestivalData {
   pictureReplacements: Record<string, string>;
   /** picture path -> people cut out: depth map with them painted out, the plate, a layer per person */
   cutoutsByPicture?: Record<string, FestivalCutout>;
-  /**
-   * beat id -> the fraction of its depth a shot plays at. Measured shot by shot: the bend between a shot's first and
-   * last frame, with the camera's own move taken out. A shot whose depth map could not take the full amount (people
-   * stretching, cut-outs sliding over the floor) plays at the most it can take; a shot not listed plays it all.
-   */
-  depthScale?: Record<string, number>;
   /** beat ids of indoor shots (a room, inside a car; a split shot's pieces follow it): the scene's rain stays outside */
   dry?: string[];
   /** beat id -> the title card it shows instead (the credits) */
@@ -136,6 +130,11 @@ export const FESTIVAL_CUTOUT_DEPTH_START = 0.2;
 export const FESTIVAL_CUTOUT_DEPTH_END = 0.34;
 /** The engine plays at most this many cut-outs in one shot. */
 export const MAX_CUTOUTS = 4;
+/**
+ * The most a depth shot's near layers may grow or slide against its background over the shot, as a share of the
+ * frame. Past this the picture visibly stretches at the edges of what is near, and cut-out people slide.
+ */
+export const MAX_PARALLAX = 0.03;
 
 /** Scenes that go handheld: the raids, the Hive shootout, Kurose's men, Vera's run and the night of the call. */
 export const HANDHELD_SCENES =
@@ -214,25 +213,52 @@ function addMove(beat: BeatLike, frames: number): void {
   beat.animation = anim;
 }
 
-/** The share of its depth a shot plays at (1 for most). */
-export function depthScaleOf(id: string): number {
-  const scale = DATA.depthScale?.[id];
-  return typeof scale === "number" && scale > 0 && scale < 1 ? scale : 1;
+/**
+ * How far a depth shot's near layers move against its background over the shot, as a share of the frame, by the
+ * engine's own maths (FrameDepthParallax): near layers zoom by 1 + (zoom - 1)(1 + 2r) against the background's zoom
+ * and slide by r times the pan, where r is the depth on the frame over the shot's authored depth.
+ */
+export function parallaxOf(animation: BeatAnimation | undefined, authored: unknown, frames: number): number {
+  const anim = animation ?? {};
+  const own = typeof authored === "number" && Number.isFinite(authored) ? authored : 0.4;
+  const base = own > 1e-4 ? Math.min(1, Math.max(0.05, own)) : 0.4;
+  const at = (f: number): [number, number, number] => {
+    const zoom = Math.max(1, valueAt(anim.zoom, f, 1));
+    const r = Math.min(1, Math.max(0, valueAt(anim.depthAmount, f, own))) / base;
+    return [(r * (zoom - 1)) / zoom, (r * valueAt(anim.x, f, 0)) / 100, (r * valueAt(anim.y, f, 0)) / 100];
+  };
+  const last = Math.max(1, frames - 1);
+  const times = new Set<number>([0, last]);
+  for (let f = 0; f <= last; f += Math.max(1, Math.floor(last / 24))) times.add(f);
+  for (const ch of ["zoom", "x", "y", "depthAmount"] as const) for (const k of anim[ch] ?? []) if (k.frame <= last) times.add(Math.max(0, k.frame));
+  const [z0, x0, y0] = at(0);
+  let most = 0;
+  for (const f of times) {
+    const [z, x, y] = at(f);
+    most = Math.max(most, Math.abs(z - z0) + Math.abs(x - x0) + Math.abs(y - y0));
+  }
+  return most;
 }
 
-/** A depth amount at a shot's share, rounded so the same input always gives the same number. */
-export function scaledDepth(value: number, scale: number): number {
-  return scale === 1 ? value : Math.round(value * scale * 1000) / 1000;
+/** The share of its depth a shot can play at without its near layers moving more than MAX_PARALLAX (1 for most). */
+export function depthShare(parallax: number): number {
+  // a hair under the exact share, so rounding the depth keys can never tip a shot over the limit
+  return parallax > MAX_PARALLAX ? (MAX_PARALLAX / parallax) * 0.99 : 1;
+}
+
+/** A depth amount at a shot's share (rounded down, to five places). */
+export function scaledDepth(value: number, share: number): number {
+  return share >= 1 ? value : Math.floor(value * share * 100000) / 100000;
 }
 
 /**
- * A director's rig plays at its measured share. The engine's parallax is the shot's camera move times the ratio of the
- * depth on the frame to the shot's authored depth (FrameDepthParallax), so the authored amount stays as it is and the
- * depth on every frame comes down: its keys at their share, or one held key at its share for a rig that had none.
+ * A director's rig keeps its camera, but its depth plays at the share that keeps its near layers within
+ * MAX_PARALLAX. The engine's parallax is the depth on the frame over the authored depth, so the authored amount
+ * stays and the depth on every frame comes down: its keys at their share, or one held key for a rig that had none.
  */
-function soften(beat: BeatLike, cinematic: AnyRecord, id: string): boolean {
-  const scale = depthScaleOf(id);
-  if (scale === 1) return false;
+function soften(beat: BeatLike, cinematic: AnyRecord, frames: number): boolean {
+  const share = depthShare(parallaxOf(beat.animation, cinematic.depthAmount, frames));
+  if (share >= 1) return false;
   const anim: BeatAnimation = { ...(beat.animation ?? {}) };
   const values = anim.values as AnyRecord | undefined;
   const authored = typeof cinematic.depthAmount === "number" ? cinematic.depthAmount : 0.4;
@@ -240,8 +266,8 @@ function soften(beat: BeatLike, cinematic: AnyRecord, id: string): boolean {
   const keys = anim.depthAmount;
   anim.depthAmount =
     Array.isArray(keys) && keys.length
-      ? keys.map((k) => ({ ...k, value: scaledDepth(k.value, scale) }))
-      : [key(0, scaledDepth(held, scale), "linear")];
+      ? keys.map((k) => ({ ...k, value: scaledDepth(k.value, share) }))
+      : [key(0, scaledDepth(held, share), "linear")];
   if (values && "depthAmount" in values) {
     const rest = { ...values };
     delete rest.depthAmount;
@@ -366,7 +392,8 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
       if (!pic.startsWith("/film/img/") && !beat.gap && beat.cinematic?.depthMap) {
         // a director's rig on a library picture: nothing else is finished here, but its depth plays at its share
         const rig: AnyRecord = { ...beat.cinematic };
-        if (soften(beat, rig, String(beat.id))) report.depthSoftened += 1;
+        const length = Math.max(1, framesOf.get(String(beat.id)) ?? Math.round(Number(beat.durationFrames) || 0));
+        if (soften(beat, rig, length)) report.depthSoftened += 1;
         beat.cinematic = rig;
       }
       if (!pic.startsWith("/film/img/") || beat.gap) continue;
@@ -420,14 +447,14 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
         const map = DATA.depthByPicture[shown];
         if (map) cinematic.depthMap = map;
         else delete cinematic.depthMap;
-        if (soften(beat, cinematic, id)) report.depthSoftened += 1;
+        if (soften(beat, cinematic, frames)) report.depthSoftened += 1;
         report.depthKept += 1;
         beat.cinematic = cinematic;
         continue;
       }
       if (cinematic.depthMap) {
-        // The director's own rig: its camera is never touched; its depth plays at the share its picture can take.
-        if (soften(beat, cinematic, id)) report.depthSoftened += 1;
+        // The director's own rig: its camera is never touched; its depth keeps its near layers within MAX_PARALLAX.
+        if (soften(beat, cinematic, frames)) report.depthSoftened += 1;
         report.depthKept += 1;
         beat.cinematic = cinematic;
         continue;
@@ -468,19 +495,20 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
         cinematic.mode = "static";
         cinematic.depthMap = depthMap;
         cinematic.depthMotion = "push";
-        // Each shot breathes at the share of the range its picture can take without bending (most take it all).
-        const scale = depthScaleOf(id);
-        if (scale < 1) report.depthSoftened += 1;
+        const [from, to] = cutout ? [FESTIVAL_CUTOUT_DEPTH_START, FESTIVAL_CUTOUT_DEPTH_END] : [FESTIVAL_DEPTH_START, FESTIVAL_DEPTH_END];
         if (cutout) {
           cinematic.depthPlate = cutout.depthPlate;
           cinematic.depthCutouts = cutout.depthCutouts.slice(0, MAX_CUTOUTS);
-          // the authored amount stays: the engine's parallax is the depth on the frame over the authored amount
-          cinematic.depthAmount = FESTIVAL_CUTOUT_DEPTH_END;
-          breathe(beat, frames, scaledDepth(FESTIVAL_CUTOUT_DEPTH_START, scale), scaledDepth(FESTIVAL_CUTOUT_DEPTH_END, scale));
           report.cutoutShots += 1;
-        } else {
-          cinematic.depthAmount = FESTIVAL_DEPTH_END;
-          breathe(beat, frames, scaledDepth(FESTIVAL_DEPTH_START, scale), scaledDepth(FESTIVAL_DEPTH_END, scale));
+        }
+        // The authored amount is the top of the range; the depth breathes up to it across the shot, at the share that
+        // keeps the near layers within MAX_PARALLAX of the background (a big push takes less depth than a slow one).
+        cinematic.depthAmount = to;
+        breathe(beat, frames, from, to);
+        const share = depthShare(parallaxOf(beat.animation, to, frames));
+        if (share < 1) {
+          breathe(beat, frames, scaledDepth(from, share), scaledDepth(to, share));
+          report.depthSoftened += 1;
         }
         report.depthAdded += 1;
       }
