@@ -10,6 +10,7 @@
 // shot's length and the line timings for the prompt and for install_clip.py.
 //
 // --silent    no room tone: the gaps are digital silence (the old way).
+// --listen    the actor has no line here: the track is the scene's room tone alone, for a listening clip.
 // --with-sfx  also lays the scene's sound effects under the track (untested: check the clip with mouth_check.py).
 // --from N   starts the track at frame N of the shot, for a clip that only covers the rest of it as a cut (the speaker's
 //            close-up over a shot whose picture doesn't show them). install_clip.py then lays the clip from frame N.
@@ -26,6 +27,7 @@ import { clipFrames, FPS } from "../../../../src/core/timing";
 const argv = process.argv.slice(2);
 const flag = (name: string) => argv.indexOf(name);
 const withBed = flag("--silent") < 0;
+const listening = flag("--listen") >= 0;
 const bedLanes = flag("--with-sfx") >= 0 ? ["ambience", "sfx"] : ["ambience"];
 const fromFrame = flag("--from") >= 0 ? Number(argv[flag("--from") + 1]) : 0;
 const [beatId, speaker, out] = argv.filter((a, i) => !a.startsWith("--") && argv[i - 1] !== "--from");
@@ -68,7 +70,7 @@ const lines = (festival.audioClips ?? [])
   .filter((l) => l.endMs > 100 && l.startMs < shotMs - 100)
   .sort((a, b) => a.startMs - b.startMs);
 const kept = lines.filter((l) => l.speaker === speaker.toLowerCase());
-if (!kept.length) throw new Error(`${speaker} says nothing in ${beatId}; voices here: ${[...new Set(lines.map((l) => l.speaker))].join(", ") || "none"}`);
+if (!kept.length && !listening) throw new Error(`${speaker} says nothing in ${beatId}; voices here: ${[...new Set(lines.map((l) => l.speaker))].join(", ") || "none"}`);
 
 const T = shotMs / 1000;
 const inputs: string[] = [];
@@ -82,7 +84,7 @@ kept.forEach((l, k) => {
 // The room sound under the shot, at its level in the film relative to the speaker's line.
 const bed: { src: string; gain: number }[] = [];
 if (withBed) {
-  const refGain = festival.audioClips?.find((c) => c.src === kept[0].src)?.gain ?? 1;
+  const refGain = kept.length ? festival.audioClips?.find((c) => c.src === kept[0].src)?.gain ?? 1 : 1;
   for (const c of festival.audioClips ?? []) {
     if (!bedLanes.includes(c.lane) || !startMs.has(c.anchorId)) continue;
     const clipStart = startMs.get(c.anchorId)! + c.offsetMs;

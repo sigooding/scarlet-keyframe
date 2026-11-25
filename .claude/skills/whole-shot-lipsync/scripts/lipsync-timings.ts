@@ -49,13 +49,16 @@ type Timing = { shot: string; lines: { voice: string; atMs: number }[] };
 function measure(clip: string): Timing {
   const shot = shownBy.get(clip);
   if (!shot) throw new Error(`${clip} isn't shown anywhere in the Festival Cut`);
-  // the clip is named lipsync-<speaker>-<words>; voice files spell a two-word speaker as one (mrs-noda -> mrsnoda)
-  const slug = clip.split("/lipsync-")[1].replace(/\.mp4$/, "").replace(/-/g, "");
-  const speaker = clip.split("/lipsync-")[1].split("-")[0];
+  // The clip is named lipsync-<speaker>-<words>; voice files spell a two-word speaker as one (mrs-noda -> mrsnoda).
+  // Two people talking in one clip: lipsync-<a>-and-<b>-<words>. A listening clip (lipsync-<speaker>-listening-...) has
+  // no line to keep in step, so it is recorded with none.
+  const name = clip.split("/lipsync-")[1].replace(/\.mp4$/, "");
+  const parts = name.split("-");
+  const slugs = parts[1] === "and" ? [parts[0], parts[2]] : [name.replace(/-/g, "")];
   const s0 = startMs.get(shot)!, s1 = s0 + lengthMs.get(shot)!;
-  const lines = voices.filter((v) => slug.startsWith(who(v.src)) && v.end > s0 + 100 && v.start < s1 - 100)
+  const lines = voices.filter((v) => slugs.some((sl) => sl.startsWith(who(v.src))) && v.end > s0 + 100 && v.start < s1 - 100)
     .map((v) => ({ voice: v.src, atMs: Math.round(v.start - s0) }));
-  if (!lines.length) throw new Error(`${clip}: no ${speaker} line in ${shot}`);
+  if (!lines.length && !name.includes("-listening")) throw new Error(`${clip}: no ${parts[0]} line in ${shot}`);
   return { shot, lines };
 }
 
