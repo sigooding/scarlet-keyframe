@@ -49,7 +49,9 @@ audio = np.frombuffer(pcm, np.int16).astype(np.float32) / 32768
 if not audio.size or np.abs(audio).max() < 1e-4:
     sys.exit(json.dumps({"clip": clip, "error": "no voice to compare with: pass --track"}))
 hop = 16000 / fps
-db = np.array([20 * np.log10(np.sqrt(np.mean(audio[int(i * hop):int((i + 1) * hop)] ** 2) + 1e-12)) for i in range(n)])
+# loudness per video frame; frames past the end of the voice count as silence
+db = np.array([20 * np.log10(np.sqrt(np.mean(w ** 2) + 1e-12)) if (w := audio[int(i * hop):int((i + 1) * hop)]).size else -120.0
+               for i in range(n)])
 speech = db > db.max() - 30
 
 art = np.abs(np.diff(gap, prepend=gap[0]))
