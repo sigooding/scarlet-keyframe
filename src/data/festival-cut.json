@@ -4372,7 +4372,8 @@
   "nw_b847": "/film/video/festival/lipsync-jack-come-on-come-on.mp4",
   "nw_b1226": "/film/video/festival/lipsync-vera-you-knew.mp4",
   "nw_b725": "/film/video/festival/lipsync-jack-a-man-a-debt.mp4",
-  "nw_b641": "/film/video/festival/lipsync-vera-reporting-on-me.mp4"
+  "nw_b641": "/film/video/festival/lipsync-vera-reporting-on-me.mp4",
+  "nw_b1465": "/film/video/festival/lipsync-jack-i-told-him.mp4"
  },
  "sfx": [
   {
@@ -5369,17 +5370,6 @@
      "to": 49,
      "picture": "video:/film/video/festival/lipsync-mara-did-he-kill-himself.mp4",
      "text": "Mara: Did he kill himself?"
-    }
-   ]
-  },
-  {
-   "beatId": "nw_b1465",
-   "cuts": [
-    {
-     "from": 188,
-     "to": 270,
-     "picture": "video:/film/video/festival/lipsync-jack-i-trusted-him-i-m-so-sorry.mp4",
-     "text": "Jack: I trusted him. I'm so sorry."
     }
    ]
   },

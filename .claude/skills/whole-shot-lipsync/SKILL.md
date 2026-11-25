@@ -26,7 +26,7 @@ Why: a clip per line forces cuts or freezes inside the shot. One take with the p
    ```
    `<speaker>` is the name in the voice files (`/film/voice/<scene>/<nn>-<speaker>-<words>.mp3`), e.g. `vera`, `jack`, `kaneko`. It prints the shot's length and who speaks when; a line marked "off the track" is where the actor listens. It also writes `<track>.json` for step 5.
 
-3. **Give the model the track.** The ElevenLabs connector takes files by https URL (`creative_attach_reference_file`). Commit the mp3 under `lipsync-audio/`, push, and attach `https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/lipsync-audio/<file>.mp3`. Delete the folder again before the PR is merged.
+3. **Give the model the track.** The ElevenLabs connector takes files by https URL (`creative_attach_reference_file`). Copy just the mp3 (not its `.json`) into `lipsync-audio/`, commit, push, and attach `https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/lipsync-audio/<file>.mp3`. Delete the folder again before the PR is merged.
 
 4. **Generate one clip for the whole shot.** Price it first with `estimate_only`, and never call a generation a second time to retry, because it charges again. Pick by what the shot needs:
    - `creatify-aurora`: keeps the picture's framing; 720p; about 848 credits a second. The default for a still that must not change.
