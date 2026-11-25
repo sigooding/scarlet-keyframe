@@ -4863,9 +4863,9 @@
    "gain": 1.24
   },
   "ac_vox_621": {
-   "src": "/film/voice/s80/99-ishida-tired-of-all-the-people-around-here.mp3",
-   "durationMs": 7158,
-   "gain": 1.27
+   "src": "/film/voice/s80/99-ishida-angry-of-all-the-people-around-here.mp3",
+   "durationMs": 4206,
+   "gain": 0.83
   },
   "ac_vox_623": {
    "src": "/film/voice/s80/99-ishida-firmly-sakai-s-thing-where-is-it.mp3",
@@ -6308,19 +6308,12 @@
  },
  "textPatches": {
   "nw_b1352": {
-   "text": "Of all the people around here, you should know how things work with Kurose. I only ever told people where to find them.",
+   "text": "Of all the people around here, you should know how things work with Kurose.",
    "captions": [
     {
      "text": "Of all the people around here, you should know how things work with Kurose.",
      "inFrame": 0,
-     "outFrame": 110,
-     "speaker": "ISHIDA",
-     "isNarration": false
-    },
-    {
-     "text": "I only ever told people where to find them.",
-     "inFrame": 110,
-     "outFrame": 176,
+     "outFrame": 108,
      "speaker": "ISHIDA",
      "isNarration": false
     }
