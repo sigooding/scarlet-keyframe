@@ -10,12 +10,14 @@ import { buildDirectorsCutById, DIRECTORS_CUT_OPTIONS, refreshStaleBuiltInCuts, 
 import {
   applyFestivalFinish,
   cutawayPieceId,
+  depthScaleOf,
   FESTIVAL_CUTOUT_DEPTH_END,
   FESTIVAL_CUTOUT_DEPTH_START,
   FESTIVAL_DEPTH_END,
   FESTIVAL_DEPTH_START,
   HANDHELD_SCENES,
   MAX_CUTOUTS,
+  scaledDepth,
   type FestivalData,
 } from "./festivalCut";
 import { applyStudioMusicSync, buildKeyframes, createProjectState, parseImportPayload, type BeatLike, type StoryLike } from "./model";
@@ -45,14 +47,21 @@ describe("The Festival Cut", () => {
     // carry exactly its captions
     const inserts = new Map((data.inserts ?? []).map((i) => [i.beatId, i.cuts.length]));
     const byId = new Map(beats(festival.story).map((b) => [String(b.id), b]));
+    const dropped = new Set(data.dropScenes ?? []);
     const expected: string[] = [];
     for (const f of buildKeyframes(exportCut.story)) {
+      if (dropped.has(f.sceneId)) continue;
       const id = String(f.beat.id);
       expected.push(id);
       for (let n = 1; byId.has(cutawayPieceId(id, n)); n += 1) expected.push(cutawayPieceId(id, n));
     }
     expect(buildKeyframes(festival.story).map((f) => f.id)).toEqual(expected);
+    const droppedBeats = new Set(exportCut.story.scenes.filter((sc) => dropped.has(String(sc.id))).flatMap((sc) => (sc.dialogueBeats ?? []).map((b) => String(b.id))));
     for (const [id, was] of exportBeats) {
+      if (droppedBeats.has(id)) {
+        expect(byId.has(id), id).toBe(false);
+        continue;
+      }
       const pieces = [byId.get(id)!];
       for (let n = 1; byId.has(cutawayPieceId(id, n)); n += 1) pieces.push(byId.get(cutawayPieceId(id, n))!);
       expect(pieces.length > 1, id).toBe(inserts.has(id));
@@ -87,6 +96,13 @@ describe("The Festival Cut", () => {
       const db = clip.lane === "voice" ? data.voiceGainDb?.[clip.src] : undefined;
       const want = { ...clip, ...(data.clipPatches?.[clip.id] ?? {}) };
       if (db) want.gain = Math.round(want.gain * 10 ** (db / 20) * 1000) / 1000;
+      if ((data.musicHandoffs ?? []).some((h) => h.clipId === clip.id)) {
+        // a song that comes up for the credits: the same clip, playing on only to the hand-over
+        const got = mine.get(clip.id)!;
+        expect({ ...got, durationMs: want.durationMs, fadeOutMs: want.fadeOutMs }, clip.id).toEqual(want);
+        expect(got.durationMs).toBeLessThan(want.durationMs);
+        continue;
+      }
       expect(mine.get(clip.id), clip.id).toEqual(want);
     }
     for (const clip of exportCut.audioClips ?? []) if (clip.lane === "voice" || clip.lane === "music") expect(removed.has(clip.id)).toBe(false);
@@ -108,7 +124,7 @@ describe("The Festival Cut", () => {
     expect(withDepth / withPicture).toBeGreaterThan(0.85);
   });
 
-  it("breathes the new depth from 0.14 to 0.24 and leaves the director's own rigs exactly as they were", () => {
+  it("breathes the new depth from 0.14 to 0.24 (at each shot's measured share) and leaves the director's own rigs as they were but for their share", () => {
     let added = 0;
     for (const b of beats(festival.story)) {
       const was = exportBeats.get(String(b.id));
@@ -120,20 +136,101 @@ describe("The Festival Cut", () => {
         expect(b.cinematic?.depthCutouts).toBeUndefined();
         continue;
       }
+      const scale = depthScaleOf(String(b.id));
       if (was.cinematic?.depthMap) {
         expect(b.cinematic?.depthMap).toBe(was.cinematic.depthMap);
+        // the authored amount stays; the depth on every frame plays at the shot's share
         expect(b.cinematic?.depthAmount).toBe(was.cinematic.depthAmount);
-        expect(b.animation).toEqual(was.animation);
+        if (scale === 1) {
+          expect(b.animation).toEqual(was.animation);
+          continue;
+        }
+        const { depthAmount: got, values: gotValues, ...rest } = b.animation ?? {};
+        const { depthAmount: wasKeys, values: wasValues, ...wasRest } = was.animation ?? {};
+        expect(rest).toEqual(wasRest);
+        const authored = typeof was.cinematic.depthAmount === "number" ? was.cinematic.depthAmount : 0.4;
+        const held = typeof (wasValues as Record<string, unknown> | undefined)?.depthAmount === "number" ? Number((wasValues as Record<string, number>).depthAmount) : authored;
+        expect(got).toEqual(wasKeys?.length ? wasKeys.map((k) => ({ ...k, value: scaledDepth(k.value, scale) })) : [{ frame: 0, value: scaledDepth(held, scale), easing: "linear" }]);
+        expect((gotValues as Record<string, unknown> | undefined)?.depthAmount).toBeUndefined();
         continue;
       }
       if (!b.cinematic?.depthMap) continue;
       added += 1;
       const keys = b.animation?.depthAmount ?? [];
       const cut = Boolean(b.cinematic?.depthCutouts);
-      expect(keys[0].value).toBe(cut ? FESTIVAL_CUTOUT_DEPTH_START : FESTIVAL_DEPTH_START);
-      expect(keys[keys.length - 1].value).toBe(cut ? FESTIVAL_CUTOUT_DEPTH_END : FESTIVAL_DEPTH_END);
+      expect(b.cinematic?.depthAmount).toBe(cut ? FESTIVAL_CUTOUT_DEPTH_END : FESTIVAL_DEPTH_END);
+      expect(keys[0].value).toBe(scaledDepth(cut ? FESTIVAL_CUTOUT_DEPTH_START : FESTIVAL_DEPTH_START, scale));
+      expect(keys[keys.length - 1].value).toBe(scaledDepth(cut ? FESTIVAL_CUTOUT_DEPTH_END : FESTIVAL_DEPTH_END, scale));
     }
     expect(added).toBeGreaterThan(400);
+  });
+
+  it("plays each shot's depth at the share its picture can take, and only shares that are real", () => {
+    const ids = new Set(beats(festival.story).map((b) => String(b.id)));
+    for (const [id, scale] of Object.entries(data.depthScale ?? {})) {
+      expect(scale, id).toBeGreaterThan(0);
+      expect(scale, id).toBeLessThan(1);
+      if (!ids.has(id)) continue;
+      const b = beats(festival.story).find((x) => String(x.id) === id)!;
+      if (videoShots[id]) expect(b.cinematic?.depthMap).toBeUndefined();
+    }
+    // the service, where the bend was worst, plays gentler
+    const service = beats(festival.story).filter((b) => String(b.id).startsWith("nw_song_service_") && b.cinematic?.depthMap);
+    expect(service.some((b) => depthScaleOf(String(b.id)) < 1)).toBe(true);
+  });
+
+  it("keeps the rain outdoors: an indoor shot is dry, the street keeps its rain", () => {
+    const dry = new Set(data.dry ?? []);
+    expect(dry.size).toBeGreaterThan(40);
+    let checked = 0;
+    for (const scene of festival.story.scenes) {
+      for (const b of scene.dialogueBeats ?? []) {
+        if (!dry.has(String(b.id).replace(/~fc\d+$/, ""))) continue;
+        expect(b.particles, String(b.id)).toBe("none");
+        checked += 1;
+      }
+    }
+    expect(checked).toBeGreaterThanOrEqual(dry.size);
+    // the lane outside the service still rains
+    const lane = festival.story.scenes.find((sc) => sc.id === "nw_song_service_30")!;
+    expect(lane.dialogueBeats?.[0].particles ?? lane.particles).toBe("drizzle");
+  });
+
+  it("credits the cast to ElevenLabs and ends on the credits, without the tagline", () => {
+    const order = buildKeyframes(festival.story);
+    const last = order[order.length - 1];
+    expect(last.sceneId).toBe("nw_credits");
+    expect(festival.story.scenes.some((sc) => sc.id === "nw_end")).toBe(false);
+    const cards = festival.story.scenes.find((sc) => sc.id === "nw_credits")!.dialogueBeats!.map((b) => (b as { titleCard?: { kicker?: string; title: string; subtitle?: string } }).titleCard);
+    expect(cards.some((c) => c?.kicker === "CAST CREATED BY" && c.title === "ElevenLabs")).toBe(true);
+    expect(JSON.stringify(cards)).not.toContain("Tokyo as a memory");
+    expect(cards.filter((c) => c?.kicker === "CAST").length).toBe(2);
+  });
+
+  it("brings the closing song up to full for the credits, in step, and fades it out on the last frame", () => {
+    const handoff = (data.musicHandoffs ?? [])[0];
+    expect(handoff).toBeDefined();
+    const clips = festival.audioClips ?? [];
+    const low = clips.find((c) => c.id === handoff.clipId)!;
+    const up = clips.find((c) => c.id === `${handoff.clipId}~up`)!;
+    expect(up.src).toBe(low.src);
+    expect(up.gain).toBe(1);
+    expect(up.anchorId).toBe(handoff.atAnchorId);
+    // the low clip plays exactly to the end of the crossfade, and the loud one picks the song up where it is
+    const frames = buildKeyframes(festival.story);
+    let ms = 0;
+    let lowStart = -1;
+    let upStart = -1;
+    for (const f of frames) {
+      if (String(f.beat.id) === low.anchorId) lowStart = ms;
+      if (String(f.beat.id) === up.anchorId) upStart = ms;
+      ms += (clipFrames(f) / 24) * 1000;
+    }
+    expect(Math.abs(up.inMs - (upStart - lowStart - low.offsetMs))).toBeLessThan(2);
+    expect(Math.abs(low.durationMs - (upStart - lowStart + handoff.fadeMs))).toBeLessThan(2);
+    // it runs to the last frame and fades out with it
+    expect(Math.abs(upStart + up.durationMs - ms)).toBeLessThan(2);
+    expect(up.fadeOutMs).toBe(handoff.fadeOutMs);
   });
 
   it("leaves no shot without a move (the Vertigo dolly-zooms and the director's own rigs keep their own)", () => {
