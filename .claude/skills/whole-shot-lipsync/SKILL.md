@@ -46,6 +46,7 @@ Why: a clip per line forces cuts or freezes inside the shot. One take with the p
 
 ## Gotchas
 
-- A whole-shot clip always goes in `videoShots`, never `inserts`. Inserts skip montage shots (they have no `durationFrames`), and a one-piece insert fails the tests.
+- A whole-shot clip goes in `videoShots`, not `inserts`. Inserts skip montage shots (they have no `durationFrames`), and a one-piece insert fails the tests.
+- Some shots already play as pieces (`<id>`, `<id>~fc1`, …) because a cutaway or another lip sync covers part of them; Jack's confession (nw_b1465) has two lip syncs back to back. The track script then says so and covers only that piece, and the installer adds the clip as a cut over it, keeping the other pieces. Never replace such a shot with one `videoShots` clip: the clip would be shorter than the shot and loop.
 - Budget: the user tops up credits by hand. Make one take per shot, and check one frame rather than the whole clip unless something is clearly wrong.
 - Lip-sync clips go in the Festival Cut only. The Director's Export (pictures only) is the original and stays untouched.

@@ -4372,8 +4372,7 @@
   "nw_b847": "/film/video/festival/lipsync-jack-come-on-come-on.mp4",
   "nw_b1226": "/film/video/festival/lipsync-vera-you-knew.mp4",
   "nw_b725": "/film/video/festival/lipsync-jack-a-man-a-debt.mp4",
-  "nw_b641": "/film/video/festival/lipsync-vera-reporting-on-me.mp4",
-  "nw_b1465": "/film/video/festival/lipsync-jack-i-told-him.mp4"
+  "nw_b641": "/film/video/festival/lipsync-vera-reporting-on-me.mp4"
  },
  "sfx": [
   {
@@ -5586,6 +5585,23 @@
      "to": 182,
      "picture": "video:/film/video/festival/lipsync-okada-i-looked-no.mp4",
      "text": "Okada: I looked. No."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1465",
+   "cuts": [
+    {
+     "from": 0,
+     "to": 188,
+     "picture": "video:/film/video/festival/lipsync-jack-i-told-him.mp4",
+     "text": "Jack: I told him. Where she'd be, and when. He arranged the car."
+    },
+    {
+     "from": 188,
+     "to": 270,
+     "picture": "video:/film/video/festival/lipsync-jack-i-trusted-him-i-m-so-sorry.mp4",
+     "text": "Jack: I trusted him. I'm so sorry."
     }
    ]
   }

@@ -7,8 +7,9 @@
 The script checks that the clip's voice lines up with the track (loudness envelopes cross-correlated; a clip with no
 sound is taken as in step), shifts it if it is early or late, conforms it to 1920x1080 at 24 fps and to the shot's
 length plus half a second held on its last frame (a clip shorter than its shot would loop), writes
-public/film/video/festival/lipsync-<slug>.mp4, and makes it the shot's video in src/data/festival-cut.json (videoShots;
-any cutaway inserts on that shot are dropped). Then run `npm run build:festival-cut` and the festival tests.
+public/film/video/festival/lipsync-<slug>.mp4, and makes it the shot's video in src/data/festival-cut.json (videoShots).
+A shot the festival already plays as pieces (another lip sync or a cutaway over part of it) keeps them: the clip is
+added as a cut over its own piece. Then run `npm run build:festival-cut` and the festival tests.
 """
 import json, os, subprocess, sys, tempfile
 import numpy as np
@@ -58,8 +59,21 @@ subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-an", "-vf", vf, "-fr
 
 F = f"{ROOT}/src/data/festival-cut.json"
 data = json.load(open(F, encoding="utf-8"))
-data["inserts"] = [i for i in data.get("inserts", []) if i["beatId"] != beat]
-data.setdefault("videoShots", {})[beat] = f"/film/video/festival/{name}.mp4"
+base = meta.get("baseId", beat)
+insert = next((i for i in data.get("inserts", []) if i["beatId"] == base), None)
+if meta.get("split") or insert:
+    # The shot already plays as pieces (another lip sync or a cutaway over part of it): keep them, and lay this clip
+    # over its own piece as one more cut, replacing only a cut it overlaps.
+    start = int(meta.get("offsetFrames", 0))
+    cut = {"from": start, "to": start + frames, "picture": f"video:/film/video/festival/{name}.mp4",
+           "text": f"{meta.get('speaker', '').title()}: lip sync"}
+    if insert is None:
+        insert = {"beatId": base, "cuts": []}
+        data.setdefault("inserts", []).append(insert)
+    insert["cuts"] = sorted([c for c in insert["cuts"] if c["to"] <= start or c["from"] >= start + frames] + [cut], key=lambda c: c["from"])
+    data.get("videoShots", {}).pop(base, None)
+else:
+    data.setdefault("videoShots", {})[beat] = f"/film/video/festival/{name}.mp4"
 with open(F, "w", encoding="utf-8") as fh:
     fh.write(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
 print(f"{beat}: clip {dur:.2f}s for a {T:.2f}s shot, voice offset {lag:+d} ms -> {name}.mp4 ({frames} + {extra} frames)")
