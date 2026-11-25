@@ -81,6 +81,12 @@ python3 .claude/skills/kling-video/scripts/install_transition_clip.py <beatA> <b
 ```
 It finds the cut, fits each half to its shot with a small speed change (6 s stretched to 6.25 s puts a 3 s cut exactly on the seam), and sets both `videoShots`.
 
+**Results (door → candlelit kitchen, wardrobe → barber's; Kling 3 Pro, 6 s):**
+- Neither clip made a hard cut. Kling hid each change behind something passing the lens: the door edge, Jack's shoulder. That reads better than a cut.
+- The installer found no cut, so it split each clip halfway, and the hidden change spans the edit.
+- With the barber's picture as the end frame, Vera finally pushed forward through the coats, which a start frame alone hadn't managed.
+- Both stretched by under 4%.
+
 A continuous camera move through to shot 2 ("the camera glides forward behind them through the doorway…", no cut) is untested. Don't assume it fails. The Kling 3 Pro node for door → candlelit kitchen is set up, unrun, on the "Hive escape Kling tests" flow.
 
 ## Gotchas
