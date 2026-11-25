@@ -116,6 +116,21 @@ So put the timing in the track (silence where the actor listens), and keep the p
 - **MiniMax H3 Max takes no prompt at all.**
 - **Timed action without speech:** `ltx-audio-to-video` is documented to follow moments in an audio track ("on the first beat drop…"). Also untested.
 
+## Listening: does the face stay alive in the silences?
+
+Yes. In the silent stretches of eight HeyGen clips (1 to 4.3 s each), the listener kept moving:
+- the head moved 3–12°/s, against 14–67°/s while speaking;
+- the eyes kept shifting, and blinks came now and then;
+- the mouth stayed closed.
+
+It reads as calm listening, not a frozen still (measured with `scripts/idle_check.py`, Nov 2026). The liveliest listening was the passport cut, where a timed cue ("glances down at about 5 s") gave her something to do. So when the actor has a long listen, give the prompt one reaction for it.
+
+**A clip that is all listening is untested.** That would be a face on screen with no line at all and room tone only. At about 303 credits a second it would cost less than bringing a face alive with Kling 4 (951 a second) or Gemini (439). LTX 2 Fast costs about the same (242 a second, but 6 s minimum) and drifts on faces. Two risks:
+- the request might be refused with no speech in it;
+- the model might mouth words anyway. MiniMax's guide warns that audio of pure silence still makes it move the mouth.
+
+Test it on one real listening close-up before relying on it. Prompt the reactions with times, and check the clip with `idle_check.py` and `mouth_check.py`.
+
 ## Keeping it in sync
 
 **The film never plays a lip-sync clip's own sound.** HeyGen returns the clip with the exact track it was given. `install_clip.py` strips that sound, and the film's own voice clip plays at its film time over the muted clip. Nothing is re-voiced or overdubbed with a different take. The clip was made from those same voice clips at those same times, so lips and voice match when it goes in. The installer also measures and corrects any offset (0 ms on the passport cut), and `mouth_check.py` measures the lips.
