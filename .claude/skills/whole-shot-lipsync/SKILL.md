@@ -19,7 +19,7 @@ Why: a clip per line forces cuts or freezes inside the shot. One take with the p
 ## The method (the user's choice from Nov 2026)
 
 The passport-shot test settled it. The user found the result good, and better quality than before.
-1. **Track:** the speaker's lines at their film times, with the scene's room tone in the gaps. This is the track script's default. The mouth rests through room tone as well as through silence (measured below).
+1. **Track:** the speaker's lines at their film times, with the scene's room tone in the gaps. This is the track script's default. Silence works too: the eight earlier HeyGen clips all had silent gaps, including the 10/10 one. No shot has been made both ways, so neither is proven better. Room tone is the default because it's the scene's real sound and the user liked the result.
 2. **Model:** HeyGen Avatar 6 Turbo. It's the best quality of every model tried (the user scored it 10/10), and also the cheapest.
 3. **Prompt:** the performance, plus at most one clear gesture timed in clip seconds (*"at about 5 seconds she glances down at the table, then back up"*).
 4. **Speaker not in the picture:** cut to their close-up for the line, and let the shot's own picture or clip play before it.
@@ -115,6 +115,27 @@ So put the timing in the track (silence where the actor listens), and keep the p
 - **A timed cue landed, once.** The passport cut's prompt said *"at about 5 seconds she glances down at the table, then back up at him"*. She looked down from 4.3 to 5.4 s and back up: the eyes-down score went from 0.05 to 0.75, and the head tipped about 10°. That's within half a second of the cue, so HeyGen can place a simple gesture in time. Its own unprompted glances happen too: there was a blink-glance as she started speaking. So give one cue per clip, for a clear gesture, in clip seconds, and check it with `scripts/cue_check.py` (eyes-down and head tilt every quarter second) or by eye.
 - **MiniMax H3 Max takes no prompt at all.**
 - **Timed action without speech:** `ltx-audio-to-video` is documented to follow moments in an audio track ("on the first beat drop…"). Also untested.
+
+## Keeping it in sync
+
+**The film never plays a lip-sync clip's own sound.** HeyGen returns the clip with the exact track it was given. `install_clip.py` strips that sound, and the film's own voice clip plays at its film time over the muted clip. Nothing is re-voiced or overdubbed with a different take. The clip was made from those same voice clips at those same times, so lips and voice match when it goes in. The installer also measures and corrects any offset (0 ms on the passport cut), and `mouth_check.py` measures the lips.
+
+**The risk is a later edit.** If a line or a shot is retimed after its lip sync is made, the lips stay where they were. So:
+- each clip's line timing is recorded in `lipSyncTimings` in `src/data/festival-cut.json`;
+- the installer does the recording itself, through `scripts/lipsync-timings.ts --write <clip>`;
+- the festival test "keeps every lip sync in step with its voice" fails if any line moves by more than a frame;
+- `lipsync-timings.ts --check` lists any drift.
+
+If the test fails, either put the line back, or remake that lip sync (new track, new clip) and install it again. Never just re-record the timing to make the test pass: the lips would still be off. All 44 clips were recorded in step in Nov 2026.
+
+## Two people talking in one picture
+
+HeyGen animates **one** person from one photo and one audio track. Its prompt only steers that person's expression and movement. Writing "the man says…, then the woman says…" won't move the speech from one face to the other. With two faces in frame, lip-sync models pick one face to animate, and it can be the wrong one: MiniMax animated a man for a woman's voice.
+
+Options, safest first:
+1. **Cut to each speaker's close-up** for their lines (the method above).
+2. **One clip per face, untested.** Crop each face out of the picture and lip-sync it with its own track, with the other speaker's lines left as room tone. Then lay both back into the frame.
+3. **A model that acts the scene from the picture plus audio, untested here.** `bytedance-seedance-v2.5` (about 2,800 credits a second).
 
 ## Gotchas
 
