@@ -49,6 +49,8 @@ It was tried on the film's last shot before the credits (nw_b1687, "The three of
 | LTX 2 Fast | **7/10** | Better quality; adds small details that make it more real | Drifts: Kaneko wandered half out of frame, Jack moved closer |
 | MiniMax H3 Max | 6/10 | Faithful to the still | A bit pixelated (768p) |
 
+The user also noted that **MiniMax H3 Max made good sound of its own**: worth keeping in mind when a shot's sound matters as much as its picture. LTX's sound was switched off in this test, so it's unjudged.
+
 **Use LTX for long takes.** MiniMax won't take `aspect_ratio` with a start frame (it follows the picture). Neither MiniMax nor Kling 3 Pro lets `enhance_prompt` be set.
 
 Gemini Omni Flash 1.2 (12 s at 720p = 5,109), Wan 2.6 (15 s = 9,089) and Seedance 2.0 Mini (12 s = 10,994) also make long takes, at higher cost.
@@ -100,7 +102,7 @@ Not on offer through the ElevenLabs connector (Nov 2026): Kling 4 Flash, the che
 
 ## Sound
 
-Kling 4 always generates sound (it has no setting for it). Kling 3 Pro and 2.6 Pro make sound only with `generate_audio: true`. The installer drops a clip's sound. When a clip's own sound is better than the film's, as with Kaneko's strikes, save it as an mp3 under `public/film/sfx/`. Then point the export's sound clip for that shot at it with `clipPatches` in `src/data/festival-cut.json` (`src`, `durationMs`, and a `gain` matched to the old sound's loudness, measured in LUFS with ffmpeg's `ebur128`). Rebuild so the file enters the media index.
+Kling 4, Gemini Omni Flash and MiniMax H3 Max always generate sound (they have no setting for it). The user liked Kling 4's (Kaneko's strikes) and MiniMax's. Kling 3 Pro and 2.6 Pro make sound only with `generate_audio: true`. The installer drops a clip's sound. When a clip's own sound is better than the film's, as with Kaneko's strikes, save it as an mp3 under `public/film/sfx/`. Then point the export's sound clip for that shot at it with `clipPatches` in `src/data/festival-cut.json` (`src`, `durationMs`, and a `gain` matched to the old sound's loudness, measured in LUFS with ffmpeg's `ebur128`). Rebuild so the file enters the media index.
 
 ## Two-shot transitions (start = shot 1, end = shot 2)
 
