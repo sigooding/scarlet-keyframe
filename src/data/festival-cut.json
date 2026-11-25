@@ -5662,6 +5662,90 @@
   "nw_song_service_33:nw_song_b33",
   "nw_song_service_34:nw_song_b34"
  ],
+ "creditCards": {
+  "sceneId": "nw_credits",
+  "cards": [
+   {
+    "id": "nw_fc_credits_pictures",
+    "after": "nw_dc_credits_6",
+    "picture": "/film/img/s28/203-the-sea-wall-steps.jpg",
+    "titleCard": {
+     "kicker": "PICTURES",
+     "title": "Storyboarded in PlayFrame",
+     "subtitle": "generated with AI image tools"
+    }
+   },
+   {
+    "id": "nw_fc_credits_engine",
+    "after": "nw_fc_credits_pictures",
+    "picture": "/film/img/s31/31-00-the-inn-before-he-arrives.jpg",
+    "titleCard": {
+     "kicker": "ENGINE",
+     "title": "Scarlet Reel"
+    }
+   },
+   {
+    "id": "nw_fc_credits_m1",
+    "picture": "/film/img/s59/59-00-jack-at-the-green-phone.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m2",
+    "picture": "/film/img/s62/486-properly.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m3",
+    "picture": "/film/img/s73/69-vera-runs.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m4",
+    "picture": "/film/img/s74/73-two-small-figures.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m5",
+    "picture": "/film/img/s75/314-the-empty-crossing.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m6",
+    "picture": "/film/img/s77a/1290-predawn-avenue.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m7",
+    "picture": "/film/img/s82/511-twenty-years-ago.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m8",
+    "picture": "/film/img/thehiveescape/s89/89-03-the-beam-falls-away.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m9",
+    "picture": "/film/img/s91/132-the-rails-sing.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m10",
+    "picture": "/film/img/s92/135-below-the-viaduct.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m11",
+    "picture": "/film/img/service_new/582-jacks-face.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m12",
+    "picture": "/film/img/s98/153-the-rain-has-stopped.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m13",
+    "picture": "/film/img/s99a/530-exposed-to-the-sky.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m14",
+    "picture": "/film/img/s99a/305-the-plaza.jpg"
+   },
+   {
+    "id": "nw_fc_credits_m15",
+    "picture": "/film/img/s1/377-the-hive-remembered.jpg"
+   }
+  ]
+ },
  "titleCards": {
   "nw_dc_credits_1": {
    "title": "NOBODY’S WITNESS"
@@ -5684,7 +5768,32 @@
    "atAnchorId": "nw_dc_credits_1",
    "gain": 1,
    "fadeMs": 4000,
-   "fadeOutMs": 4000
+   "fadeOutMs": 500,
+   "songMs": 217440,
+   "runToEnd": {
+    "sceneId": "nw_credits",
+    "fill": [
+     "nw_dc_credits_7",
+     "nw_dc_credits_8",
+     "nw_dc_credits_9",
+     "nw_dc_credits_10",
+     "nw_fc_credits_m1",
+     "nw_fc_credits_m2",
+     "nw_fc_credits_m3",
+     "nw_fc_credits_m4",
+     "nw_fc_credits_m5",
+     "nw_fc_credits_m6",
+     "nw_fc_credits_m7",
+     "nw_fc_credits_m8",
+     "nw_fc_credits_m9",
+     "nw_fc_credits_m10",
+     "nw_fc_credits_m11",
+     "nw_fc_credits_m12",
+     "nw_fc_credits_m13",
+     "nw_fc_credits_m14",
+     "nw_fc_credits_m15"
+    ]
+   }
   }
  ]
 }

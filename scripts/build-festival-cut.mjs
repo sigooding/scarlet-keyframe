@@ -28,7 +28,7 @@ const MEDIA_INDEX = join(ROOT, "src/data/media-index.json");
 const exported = JSON.parse(readFileSync(join(ROOT, "src/data/director-export.json"), "utf8"));
 const previous = existsSync(OUT) ? JSON.parse(readFileSync(OUT, "utf8")) : {};
 const pictureReplacements = previous.pictureReplacements ?? {};
-const KEPT = ["practicalByPicture", "videoShots", "sfx", "ambience", "removeClips", "clipPatches", "voiceGainDb", "dialogueLufs", "inserts", "dry", "titleCards", "dropScenes", "musicHandoffs"];
+const KEPT = ["practicalByPicture", "videoShots", "sfx", "ambience", "removeClips", "clipPatches", "voiceGainDb", "dialogueLufs", "inserts", "dry", "creditCards", "titleCards", "dropScenes", "musicHandoffs"];
 
 const pictures = new Set();
 for (const scene of exported.story.scenes) {
@@ -38,6 +38,7 @@ for (const scene of exported.story.scenes) {
 }
 for (const repaired of Object.values(pictureReplacements)) pictures.add(repaired);
 for (const insert of previous.inserts ?? []) for (const cut of insert.cuts) if (cut.picture.startsWith("/film/img/")) pictures.add(cut.picture);
+for (const card of previous.creditCards?.cards ?? []) if (card.picture.startsWith("/film/img/")) pictures.add(card.picture);
 
 function depthFor(picture) {
   const m = /^\/film\/img\/(.+)\/([^/]+)\.(?:jpe?g|png|webp)$/i.exec(picture);
