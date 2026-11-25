@@ -1,6 +1,6 @@
 ---
 name: kling-video
-description: Turn a Nobody's Witness / Scarlet Keyframe still into a real-motion clip with Kling (Kling 4, Kling 3 Pro, Kling 2.6 Pro) or Gemini Omni Flash through the ElevenLabs connector, and lay it over its Festival Cut shot. Use this whenever the user wants a shot "alive", "in video", moving or animated, image-to-video, the Hive escape or another action sequence as video, or asks about Kling, video tests or video prompting, even if they never name Kling.
+description: Turn a Nobody's Witness / Scarlet Keyframe still into a real-motion clip with Kling (Kling 4, Kling 3 Pro, Kling 2.6 Pro), Gemini Omni Flash or LTX 2 Fast (long takes) through the ElevenLabs connector, and lay it over its Festival Cut shot. Use this whenever the user wants a shot "alive", "in video", moving or animated, image-to-video, the Hive escape or another action sequence as video, or asks about Kling, video tests or video prompting, even if they never name Kling.
 ---
 
 # Kling video for the Festival Cut
@@ -37,6 +37,25 @@ Three things to know about Gemini:
 3. Prompts should be short and about intent: camera, mood, light, setting, action. It also wants the sound described ("Ambient sound: …").
 
 Use Gemini for calm shots, small gestures and close-ups. Use Kling 4 for faces in motion and anything Gemini's filter might stop.
+
+## Long takes (12–20 s in one clip)
+
+The cheapest model that can make a 12–15 s take is **LTX 2 Fast (`ltx-v2-fast`)**. It runs 6–20 s in even seconds, at 1080p and 25 fps. It takes a start frame only, no end frame, and `generate_audio: false` turns off its sound. Cost is about 242 credits a second (12 s = 2,909; 14 s = 3,393).
+
+It was tried on the film's last shot before the credits (nw_b1687, "The three of them in the steam", 12.7 s) against MiniMax H3 Max (`minimax-h3-max`, 768p, 13 s = 4,726):
+
+| Model | User's score | Pros | Cons |
+|---|---|---|---|
+| LTX 2 Fast | **7/10** | Better quality; adds small details that make it more real | Drifts: Kaneko wandered half out of frame, Jack moved closer |
+| MiniMax H3 Max | 6/10 | Faithful to the still | A bit pixelated (768p) |
+
+**Use LTX for long takes.** MiniMax won't take `aspect_ratio` with a start frame (it follows the picture). Neither MiniMax nor Kling 3 Pro lets `enhance_prompt` be set.
+
+Gemini Omni Flash 1.2 (12 s at 720p = 5,109), Wan 2.6 (15 s = 9,089) and Seedance 2.0 Mini (12 s = 10,994) also make long takes, at higher cost.
+
+## Testing models
+
+When comparing models, give each one a **different** scene, not the same shot twice. Every clip can then go into the film, and no credits are spent on a version that will be thrown away. That's the user's rule.
 
 Not on offer through the ElevenLabs connector (Nov 2026): Kling 4 Flash, the cheaper Kling 4 the guide describes. Kling 4's cheapest setting here is 720p. `kling-2.5-turbo` is the only "turbo", and it's an older generation. The Kling AI plugin (Kling's own connector, which spends Kling credits) may offer more.
 
