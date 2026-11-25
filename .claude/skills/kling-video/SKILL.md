@@ -1,6 +1,6 @@
 ---
 name: kling-video
-description: Turn a Nobody's Witness / Scarlet Keyframe still into a real-motion clip with Kling (Kling 4, Kling 3 Pro, Kling 2.6 Pro) through the ElevenLabs connector, and lay it over its Festival Cut shot. Use this whenever the user wants a shot "alive", "in video", moving or animated, image-to-video, the Hive escape or another action sequence as video, or asks about Kling, video tests or video prompting, even if they never name Kling.
+description: Turn a Nobody's Witness / Scarlet Keyframe still into a real-motion clip with Kling (Kling 4, Kling 3 Pro, Kling 2.6 Pro) or Gemini Omni Flash through the ElevenLabs connector, and lay it over its Festival Cut shot. Use this whenever the user wants a shot "alive", "in video", moving or animated, image-to-video, the Hive escape or another action sequence as video, or asks about Kling, video tests or video prompting, even if they never name Kling.
 ---
 
 # Kling video for the Festival Cut
@@ -26,6 +26,17 @@ Eight Hive-escape shots (Nov 2026) were made in one batch, one take each, and no
 So: use Kling 3 Pro for anyone moving through space or moving fast, and say "real-time speed" (and put `slow motion` in the negative prompt). Use Kling 4 for stillness, faces and small actions. For movement that has to arrive somewhere, give an end frame.
 
 Every clip held the locked camera, added no one new and kept everyone's identity. A light change ("a moment later every light goes out") and sweeping flashlight beams both worked without silly effects. People can run past the lens: in the laundry run, Jack pulled Vera out of frame and the shot ended on the sheets swinging closed, which was right for that shot.
+
+**Gemini Omni Flash 1.2 (`gemini-omni-1.2-flash`)** costs about 439 credits a second at 720p (3 s = 1,304; 1080p 3 s = 1,956). That's under half of Kling 4. It does 3–15 s, start and end frames, and makes its own sound. The user upscales later, so 720p is fine. Tested on two calm shots:
+- **Flashlights:** about as good as Kling 4, though the men drifted forward where they were asked to stand still.
+- **Unlit lighter close-up:** exactly right, a trembling thumb and no flame.
+
+Three things to know about Gemini:
+1. `connect_from` wires a picture to its `images` port, which makes it a loose reference, not the opening frame. Add the node without `connect_from`, then wire the picture with `creative_connect_flow_nodes` and `target_port: "start_frame"` (and `"end_frame"` if needed). Start/end frames and image references can't be combined.
+2. Its safety filter blocked Vera feeling her way along a dark corridor with Jack "following close behind her". A thriller beat with a woman, a man and darkness can read as a threat. Phrase such shots neutrally ("Vera and Jack move slowly along the dark corridor together") or use Kling.
+3. Prompts should be short and about intent: camera, mood, light, setting, action. It also wants the sound described ("Ambient sound: …").
+
+Use Gemini for calm shots, small gestures and close-ups. Use Kling 4 for faces in motion and anything Gemini's filter might stop.
 
 Not on offer through the ElevenLabs connector (Nov 2026): Kling 4 Flash, the cheaper Kling 4 the guide describes. Kling 4's cheapest setting here is 720p. `kling-2.5-turbo` is the only "turbo", and it's an older generation. The Kling AI plugin (Kling's own connector, which spends Kling credits) may offer more.
 
