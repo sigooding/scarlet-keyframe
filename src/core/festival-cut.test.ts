@@ -75,7 +75,8 @@ describe("The Festival Cut", () => {
       if (pieces.length === 1) {
         // the credits' montage cards are re-timed to the closing song; every other shot keeps its length
         if (!retimed.has(id)) expect(pieces[0].durationFrames, id).toBe(was.durationFrames);
-        expect(pieces[0].captions, id).toEqual(was.captions);
+        const gone = data.removeCaptions?.[id] ?? [];
+        expect(pieces[0].captions, id).toEqual(gone.length ? (was.captions ?? []).filter((c) => !gone.includes(String(c.text))) : was.captions);
         continue;
       }
       expect(pieces.reduce((t, p) => t + Number(p.durationFrames), 0), id).toBe(was.durationFrames);
@@ -91,13 +92,16 @@ describe("The Festival Cut", () => {
         }
         offset += Number(piece.durationFrames);
       }
-      expect(rebuilt, id).toEqual((was.captions ?? []).map((c) => ({ text: c.text, inFrame: c.inFrame, outFrame: c.outFrame })));
+      const gone = data.removeCaptions?.[id] ?? [];
+      expect(rebuilt, id).toEqual((was.captions ?? []).filter((c) => !gone.includes(String(c.text))).map((c) => ({ text: c.text, inFrame: c.inFrame, outFrame: c.outFrame })));
     }
     const removed = new Set(data.removeClips ?? []);
     const mine = new Map((festival.audioClips ?? []).map((c) => [c.id, c]));
     for (const clip of exportCut.audioClips ?? []) {
       if (removed.has(clip.id)) {
-        expect(clip.lane, clip.id).toBe("ambience");
+        // only ambience, or a line cut on purpose: a voice may go only with its subtitle (removeCaptions on its shot)
+        if (clip.lane === "voice") expect(data.removeCaptions?.[clip.anchorId]?.length ?? 0, clip.id).toBeGreaterThan(0);
+        else expect(clip.lane, clip.id).toBe("ambience");
         expect(mine.has(clip.id)).toBe(false);
         continue;
       }
@@ -113,7 +117,11 @@ describe("The Festival Cut", () => {
       }
       expect(mine.get(clip.id), clip.id).toEqual(want);
     }
-    for (const clip of exportCut.audioClips ?? []) if (clip.lane === "voice" || clip.lane === "music") expect(removed.has(clip.id)).toBe(false);
+    // no music is ever removed, and no voice unless its subtitle goes with it (a line cut on purpose)
+    for (const clip of exportCut.audioClips ?? []) {
+      const lineCut = clip.lane === "voice" && (data.removeCaptions?.[clip.anchorId]?.length ?? 0) > 0;
+      if ((clip.lane === "voice" && !lineCut) || clip.lane === "music") expect(removed.has(clip.id), clip.id).toBe(false);
+    }
     expect(festival.originalStory).toEqual(base.originalStory);
   });
 
