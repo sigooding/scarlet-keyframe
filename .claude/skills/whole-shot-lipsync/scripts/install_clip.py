@@ -48,7 +48,9 @@ def envelope(path):  # 10 ms loudness steps, log scale, mean removed
 
 dur = float(probe("-show_entries", "format=duration", "-of", "csv=p=0"))
 lag = 0
-if probe("-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0"):
+speaking = [l for l in meta.get("lines", []) if l.get("speaker") == str(meta.get("speaker", "")).lower()]
+# a listening clip (track made with --listen) has no line to line up: room tone alone would give a meaningless offset
+if speaking and probe("-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0"):
     a, b = envelope(track), envelope(raw)
     def score(l):  # positive l: the clip's voice is l steps late
         t0, t1 = max(0, -l), min(len(a), len(b) - l)

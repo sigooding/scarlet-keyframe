@@ -4386,7 +4386,9 @@
   "nw_b1662": "/film/video/festival/ltx-hive-cut-open-b.mp4",
   "nw_song_raid_02:nw_song_b2": "/film/video/festival/gemini-raid-doors-close.mp4",
   "nw_b1235": "/film/video/festival/lipsync-vera-why-didnt-you-tell-me.mp4",
-  "nw_b141": "/film/video/festival/ltx-passport-photo.mp4"
+  "nw_b141": "/film/video/festival/ltx-passport-photo.mp4",
+  "nw_song_b25": "/film/video/festival/lipsync-jack-listening-his-silence.mp4",
+  "nw_b498": "/film/video/festival/lipsync-jack-and-mara-prove-it.mp4"
  },
  "sfx": [
   {
@@ -5860,6 +5862,19 @@
     }
    ]
   },
+  "/film/video/festival/lipsync-jack-and-mara-prove-it.mp4": {
+   "shot": "nw_b498",
+   "lines": [
+    {
+     "voice": "/film/voice/s20/193-jack-my-name-is-jack-your-sister.mp3",
+     "atMs": 1667
+    },
+    {
+     "voice": "/film/voice/s20/193-mara-shakily-prove-it.mp3",
+     "atMs": 4958
+    }
+   ]
+  },
   "/film/video/festival/lipsync-jack-because-nobody-knows-where-you-are.mp4": {
    "shot": "nw_b622~fc1",
    "lines": [
@@ -5922,6 +5937,10 @@
      "atMs": 8
     }
    ]
+  },
+  "/film/video/festival/lipsync-jack-listening-his-silence.mp4": {
+   "shot": "nw_song_b25",
+   "lines": []
   },
   "/film/video/festival/lipsync-jack-maybe-that-was-a-mistake.mp4": {
    "shot": "nw_b1301~fc1",

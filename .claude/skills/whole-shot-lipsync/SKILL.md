@@ -27,7 +27,7 @@ The passport-shot test settled it. The user found the result good, and better qu
 
 ## Steps
 
-1. **Check the face.** Look at the shot's picture before spending anything. The face on camera must belong to the speaker: a phone shot once showed Mara while Vera's voice played. One clear face is best; with two faces some models animate the wrong one. Some shots have no speaking face at all:
+1. **Check the face.** Look at the shot's picture before spending anything. The face on camera must belong to the speaker: a phone shot once showed Mara while Vera's voice played. One clear face is best. With two faces some models animate the wrong one, though HeyGen got a man-and-woman pair right (see "Two people talking in one picture"). Some shots have no speaking face at all:
    - a point-of-view shot whose only face is a photograph (scene 6, Vera holding out Mara's passport photo; lip-synced, the photo would talk);
    - an over-the-shoulder shot with the mouth out of view (scene 14, Jack turning the sketchbook page);
    - a wide two-shot with small faces in profile (scene 6, the interview room).
@@ -125,11 +125,14 @@ Yes. In the silent stretches of eight HeyGen clips (1 to 4.3 s each), the listen
 
 It reads as calm listening, not a frozen still (measured with `scripts/idle_check.py`, Nov 2026). The liveliest listening was the passport cut, where a timed cue ("glances down at about 5 s") gave her something to do. So when the actor has a long listen, give the prompt one reaction for it.
 
-**A clip that is all listening is untested.** That would be a face on screen with no line at all and room tone only. At about 303 credits a second it would cost less than bringing a face alive with Kling 4 (951 a second) or Gemini (439). LTX 2 Fast costs about the same (242 a second, but 6 s minimum) and drifts on faces. Two risks:
-- the request might be refused with no speech in it;
-- the model might mouth words anyway. MiniMax's guide warns that audio of pure silence still makes it move the mouth.
-
-Test it on one real listening close-up before relying on it. Prompt the reactions with times, and check the clip with `idle_check.py` and `mouth_check.py`.
+**A clip that is all listening works** (tested Nov 2026 on Jack's close-up in the Vera montage, nw_song_b25: "Jack doesn't answer. That silence is the answer.", 5 s, 1,515 credits). This is the cheap way to bring a silent face alive.
+- **Track:** the scene's room tone only: `shot-voice-track.ts <beat> <speaker> <out> --listen`. Here that was traffic and a vending-machine hum. Leave out the music, because a song with vocals could make the mouth move.
+- **Not refused:** HeyGen took a track with no speech.
+- **Mouth:** closed the whole time, so nothing was mouthed (lip movement 0.08; lips never apart).
+- **Motion:** the head moved a calm 4.8°/s, and the eyes moved.
+- **Timed cues: partly followed.** The eyes dropped at 4.0 s (asked for 3.5 s) but hadn't come back up when the clip ended at 4.9 s. The blink asked for at 2 s didn't show as a full blink. Ask for fewer, bigger reactions, and keep them away from the clip's last second.
+- **Name:** `lipsync-<speaker>-listening-<words>`. The installer skips the voice-offset check and the sync guard records no lines, since there's nothing to keep in step.
+- **Cost:** about 303 credits a second. Bringing a face alive with Kling 4 costs 951 a second, Gemini 439, and LTX 2 Fast 242 (but it drifts on faces).
 
 ## Keeping it in sync
 
@@ -145,12 +148,22 @@ If the test fails, either put the line back, or remake that lip sync (new track,
 
 ## Two people talking in one picture
 
-HeyGen animates **one** person from one photo and one audio track. Its prompt only steers that person's expression and movement. Writing "the man says…, then the woman says…" won't move the speech from one face to the other. With two faces in frame, lip-sync models pick one face to animate, and it can be the wrong one: MiniMax animated a man for a woman's voice.
+**HeyGen can do it in one clip** (tested Nov 2026 on s20 b498, Jack then Mara: "Prove it.", 7.7 s, 2,424 credits). The two faces were small, about 85 px wide in a wide shot.
+- **Track:** both speakers' lines over the room tone. Build one track per speaker, the second with `--silent`, and mix them:
+  ```bash
+  ffmpeg -i a.mp3 -i b.mp3 -filter_complex "[0][1]amix=inputs=2:normalize=0:duration=first" both.mp3
+  ```
+  Copy the first track's `.json` as `both.mp3.json` for the installer.
+- **Prompt:** who speaks first, by position and look, and when the other answers: *"First the man standing on the right speaks, calm but pressing, his hands open. Then, at about 5 seconds, the young woman sitting on the left answers him. Whoever is not speaking listens with their mouth closed."*
+- **Result:** each face moved its lips only during its own lines. Jack's lips moved 20 times more during his line than during Mara's; hers moved 7 times more during her line than during his. The wide framing held. Jack gestured as he spoke, then Mara turned to him and answered.
+- **Caveats:**
+  - HeyGen re-posed Jack at the start (hands down, where the still has them raised), so frame 0 isn't the still.
+  - With a man and a woman, HeyGen may be matching voices to faces by itself, so the prompt may not be what did it. **Two men or two women are untested;** that's where the prompt would have to do the work.
+- **Name and check:** call the clip `lipsync-<a>-and-<b>-<words>` (for example `lipsync-jack-and-mara-prove-it`), so the sync guard records both speakers' lines. To measure each face on its own, crop around each face and enlarge it: the face tracker misses faces this small in the full frame.
 
-Options, safest first:
-1. **Cut to each speaker's close-up** for their lines (the method above).
-2. **One clip per face, untested.** Crop each face out of the picture and lip-sync it with its own track, with the other speaker's lines left as room tone. Then lay both back into the frame.
-3. **A model that acts the scene from the picture plus audio, untested here.** `bytedance-seedance-v2.5` (about 2,800 credits a second).
+If a pair ever animates the wrong face, the fallbacks are:
+- cut to each speaker's close-up;
+- one clip per face, laid back into the frame (untested).
 
 ## Gotchas
 
