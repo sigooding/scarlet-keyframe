@@ -1,15 +1,16 @@
 // Builds the voice track for ONE lip-sync clip over a whole shot of the Festival Cut.
 //
-//   npx vite-node .claude/skills/whole-shot-lipsync/scripts/shot-voice-track.ts <beatId> <speaker> <out.mp3> [--bed] [--from <frame>]
+//   npx vite-node .claude/skills/whole-shot-lipsync/scripts/shot-voice-track.ts <beatId> <speaker> <out.mp3> [--from <frame>] [--silent | --with-sfx]
 //
 // The track is exactly as long as the shot. It holds only <speaker>'s lines (the actor on camera), each at the moment
-// it is spoken in the film; every other voice in the shot becomes silence of the same length, so the clip can play the
-// actor listening through the other lines and the shot never has to cut. <speaker> is the token in the voice files'
+// it is spoken in the film; every other voice in the shot is taken out and its gap keeps the scene's own room tone (the
+// ambience the film plays there, at its level and loop point), so the clip can play the actor listening through the
+// other lines and the shot never has to cut. The mouth rests through room tone as well as through silence (measured). <speaker> is the token in the voice files'
 // names (/film/voice/<scene>/<nn>-<speaker>-<words>.mp3), e.g. vera, jack, kaneko. A sidecar <out>.json records the
 // shot's length and the line timings for the prompt and for install_clip.py.
 //
-// --bed      lays the shot's own room sound under the track (its ambience and effects, exactly as the film plays them,
-//            never another voice), so the gaps hold the scene's real sound instead of digital silence.
+// --silent    no room tone: the gaps are digital silence (the old way).
+// --with-sfx  also lays the scene's sound effects under the track (untested: check the clip with mouth_check.py).
 // --from N   starts the track at frame N of the shot, for a clip that only covers the rest of it as a cut (the speaker's
 //            close-up over a shot whose picture doesn't show them). install_clip.py then lays the clip from frame N.
 import { execFileSync } from "node:child_process";
@@ -24,10 +25,11 @@ import { clipFrames, FPS } from "../../../../src/core/timing";
 
 const argv = process.argv.slice(2);
 const flag = (name: string) => argv.indexOf(name);
-const withBed = flag("--bed") >= 0;
+const withBed = flag("--silent") < 0;
+const bedLanes = flag("--with-sfx") >= 0 ? ["ambience", "sfx"] : ["ambience"];
 const fromFrame = flag("--from") >= 0 ? Number(argv[flag("--from") + 1]) : 0;
 const [beatId, speaker, out] = argv.filter((a, i) => !a.startsWith("--") && argv[i - 1] !== "--from");
-if (!beatId || !speaker || !out) throw new Error("usage: shot-voice-track.ts <beatId> <speaker> <out.mp3> [--bed] [--from <frame>]");
+if (!beatId || !speaker || !out) throw new Error("usage: shot-voice-track.ts <beatId> <speaker> <out.mp3> [--from <frame>] [--silent | --with-sfx]");
 
 const voiceMap = new Map(Object.entries(bundledAudioDurations as Record<string, number>));
 const imported = parseImportPayload(bundledFilm, "nobodys-witness-film.json", { voiceDurations: voiceMap });
@@ -82,7 +84,7 @@ const bed: { src: string; gain: number }[] = [];
 if (withBed) {
   const refGain = festival.audioClips?.find((c) => c.src === kept[0].src)?.gain ?? 1;
   for (const c of festival.audioClips ?? []) {
-    if ((c.lane !== "ambience" && c.lane !== "sfx") || !startMs.has(c.anchorId)) continue;
+    if (!bedLanes.includes(c.lane) || !startMs.has(c.anchorId)) continue;
     const clipStart = startMs.get(c.anchorId)! + c.offsetMs;
     const from = Math.max(clipStart, shotStart);
     const to = Math.min(clipStart + c.durationMs, shotStart + shotMs);
