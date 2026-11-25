@@ -14,6 +14,7 @@ prices and the install scripts:
 ## Rules that hold across sessions
 
 - **Credits.** Generations spend the user's ElevenLabs credits. Price first with `estimate_only`, make one take per shot, and never call a generation again to retry. When testing models, give each a different scene, so every test clip can go into the film.
+- **Never remove a line or music unless the user asks.** No voice or music clip is taken out of the film on Claude's own judgement. When the user asks for one to go, first confirm with them exactly which line (who says it, the words, the scene) before removing it. A removed voice line takes its subtitle with it (`removeClips` plus `removeCaptions`), and the festival test enforces that. A rewritten line goes in `textPatches`, with its new voice file in `clipPatches`.
 - **Sync.** Lip-sync clips play muted over the film's own voice clips, and each clip's line timing is recorded in `lipSyncTimings`. If the festival test "keeps every lip sync in step with its voice" fails, an edit has moved a line under a lip sync. Put the line back, or remake that lip sync.
 - **Same picture, one clip.** Before making any video, check `sameRun` in `shot-info.ts`. Neighbouring shots on the same picture are merged into ONE clip, laid across them with `install_run_clip.py`, never a clip per shot.
 - **Pauses.** Never cut away the moment someone finishes talking. Hold about half a second after a line, unless the next person speaks sooner (see "A breath after the line" in the lip-sync skill).

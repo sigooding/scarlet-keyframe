@@ -76,7 +76,8 @@ describe("The Festival Cut", () => {
         // the credits' montage cards are re-timed to the closing song; every other shot keeps its length
         if (!retimed.has(id)) expect(pieces[0].durationFrames, id).toBe(was.durationFrames);
         const gone = data.removeCaptions?.[id] ?? [];
-        expect(pieces[0].captions, id).toEqual(gone.length ? (was.captions ?? []).filter((c) => !gone.includes(String(c.text))) : was.captions);
+        const rewritten = data.textPatches?.[id]?.captions;
+        expect(pieces[0].captions, id).toEqual(rewritten ?? (gone.length ? (was.captions ?? []).filter((c) => !gone.includes(String(c.text))) : was.captions));
         continue;
       }
       expect(pieces.reduce((t, p) => t + Number(p.durationFrames), 0), id).toBe(was.durationFrames);
@@ -93,7 +94,8 @@ describe("The Festival Cut", () => {
         offset += Number(piece.durationFrames);
       }
       const gone = data.removeCaptions?.[id] ?? [];
-      expect(rebuilt, id).toEqual((was.captions ?? []).filter((c) => !gone.includes(String(c.text))).map((c) => ({ text: c.text, inFrame: c.inFrame, outFrame: c.outFrame })));
+      const source = data.textPatches?.[id]?.captions ?? (was.captions ?? []).filter((c) => !gone.includes(String(c.text)));
+      expect(rebuilt, id).toEqual(source.map((c) => ({ text: c.text, inFrame: c.inFrame, outFrame: c.outFrame })));
     }
     const removed = new Set(data.removeClips ?? []);
     const mine = new Map((festival.audioClips ?? []).map((c) => [c.id, c]));
