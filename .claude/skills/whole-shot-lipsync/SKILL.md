@@ -67,11 +67,11 @@ The passport-shot test settled it. The user found the result good, and better qu
 |---|---|---|---|
 | `heygen-avatar6-turbo` | 1080p | **303** | The default. 10/10 from the user. Takes a motion prompt. |
 | `heygen-avatar6-turbo` | 2K | 530 | Only resolution gained; the user upscales anyway. |
-| `heygen-avatar6` (standard) | 1080p | 606 | Tested on Vera in the newsroom (b1412). Expressive and natural, framing kept, in sync (lips 125 ms ahead, mouth rest ratio 38). **User's score: pending.** |
+| `heygen-avatar6` (standard) | 1080p | 606 | Vera in the newsroom (b1412). Expressive, framing kept, in sync (lips 125 ms ahead, mouth rest ratio 38). **User: 7/10**, below Turbo at twice the price. |
 | `heygen-avatar6` (standard) | 2K | 879 | |
 | `heygen-avatar4` | 1080p | 606 | Older generation; untested. |
 | `creatify-aurora` | 720p | 848 | Keeps the framing exactly. Nine clips in the film: Jack ("a man, a debt", "come on"), Mara ("that's him", "the bar, his voice"), Mrs Noda ("my husband"), Okada ("I looked, no", "no"), Vera ("reporting on me", "you knew"). The user remembers it as really good. |
-| `bytedance-omnihuman-v1.5` | 1080p | 970 | Tested on Vera across the office table (b1434). Framing kept (it returned 1920×1088), calm and natural, the best mouth rest measured (ratio 68), in sync. Slow, about 6 minutes. **User's score: pending.** |
+| `bytedance-omnihuman-v1.5` | 1080p | 970 | Vera across the office table (b1434). Framing kept (it returned 1920×1088), calm and natural, the best mouth rest measured (ratio 68), in sync. Slow, about 6 minutes. **User: 9/10.** The strong second choice, at 3.2× Turbo's price. |
 | `minimax-h3-max-lipsync` | 1080p | 970 | Needs at least 5 s of audio; no prompt; one face only. Untested. |
 | `veed-fabric-1-fast` | 720p | 1,212 | Untested; dearest and only 720p. |
 | `bytedance-seedance-v2.5` | | about 2,800 | Acts the scene from picture and audio; untested. |
@@ -104,11 +104,15 @@ The film often holds one picture over several beats, each with its own line. The
   - s99a b1661+b1662 (already one LTX clip over both shots)
 
   None of them has a speaking face on camera.
-- **A split run with a speaker on camera:** make a track for each shot and join them into one:
+- **A split run with a speaker on camera** (the user's rule: merge same-picture shots before making video). Make a track for each shot and join them into one:
   ```bash
   ffmpeg -i a.mp3 -i b.mp3 -filter_complex concat=n=2:v=0:a=1 run.mp3
   ```
-  Then generate one clip from it and lay it over both shots with the video skill's `install_transition_clip.py`. With no cut in the clip, it splits in proportion to the shots, so a clip exactly as long as the run plays at 1.0× and stays in sync.
+  Generate one clip from it, then lay it across the shots:
+  ```bash
+  python3 .claude/skills/kling-video/scripts/install_run_clip.py <clip> <slug> <beatId> <beatId> --lipsync run.mp3
+  ```
+  It cuts at the exact frames, at real speed, and records the sync. `install_clip.py` refuses a single shot of a run (`--single` overrides).
 
 ## The speaker isn't in the picture
 

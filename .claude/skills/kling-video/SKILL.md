@@ -75,7 +75,11 @@ The dentist failed because an escape beat is still an action shot. Gemini doesn'
 
 When the film holds one picture over several beats, make one clip for the whole run.
 - **Already one shot.** The Director's Export joins such runs into one shot, so a clip for that shot covers the run.
-- **Still split.** Five runs remain separate shots (listed in the `whole-shot-lipsync` skill). Trim an LTX clip to the run's length, since LTX makes even seconds, then lay it over both shots with `install_transition_clip.py`. With no cut in the clip, it splits in proportion, so the speed stays 1.0. The Hive cut open was done this way.
+- **Still split.** Five runs remain separate shots, three of them because the first shot carries a title card ("THREE DAYS LATER") that must keep its own timing. Lay one clip across the run:
+  ```bash
+  python3 .claude/skills/kling-video/scripts/install_run_clip.py <clip> <slug> <beatId> <beatId> [...]
+  ```
+  It cuts the clip at the shots' exact frame boundaries at real speed, with no stretching. Each piece's 12 spare frames are the clip's own next frames, so the join is seamless: tested, shot 1 ends on source frame 70 and shot 2 starts on frame 71. It keeps the clip's sound, and `--lipsync` does the same for a lip sync. The Hive cut open was done before this existed, with `install_transition_clip.py`, which speed-fits; that one is for two different pictures.
 
 **The passport photo** (scene 6, nw_b141, b141–b144 joined, 7.9 s). The user's example, made with LTX 2 Fast at 8 s for 1,939 credits, with sound on (free).
 - **Good:** the camera held, and Mara's printed face never moved; the photo stayed flat paper. The prompt said so in as many words.
@@ -99,6 +103,8 @@ Not on offer through the ElevenLabs connector (Nov 2026): Kling 4 Flash, the che
    npx vite-node .claude/skills/kling-video/scripts/shot-info.ts <beatId> [<beatId> ...]
    ```
    It gives the shot's frames, the whole seconds to generate, its picture (after any festival repair), the pictures either side, and whether it's split into pieces or already a video. Look at the picture itself before writing anything.
+
+   **Merge same-picture shots first (the user's rule).** If `sameRun` lists more than one shot, those neighbours show the same picture: they are one take. Make ONE clip for `runGenerateSeconds` and install it across them with `install_run_clip.py` (see "One clip for a run of beats on one picture"). The single-shot installers refuse a shot in a run (`--single` overrides).
 
 2. **Pick the model** from the table: Kling 4 for stillness and faces, Kling 3 Pro for force.
 
