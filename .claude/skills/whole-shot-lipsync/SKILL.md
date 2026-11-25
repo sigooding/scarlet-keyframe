@@ -11,10 +11,19 @@ When a shot stays on one actor while someone else also speaks in it, make **one*
 
 - the voice track runs the shot's exact length;
 - it holds only the on-camera actor's lines, each at the moment it is spoken in the film;
-- every other voice becomes silence of the same length (the timing is kept, the voice is stripped);
-- where the model takes a prompt, it says the actor stops and listens through those gaps.
+- every other voice is taken out, and its gap keeps the scene's own room tone (silence only where the scene has none), so the timing is kept;
+- where the model takes a prompt, it says the actor stops and listens through those gaps, and can time one clear gesture.
 
 Why: a clip per line forces cuts or freezes inside the shot. One take with the pauses kept reads as one continuous performance, and it stays in step with the film, whose mix still plays the other actor's voice.
+
+## The method (the user's choice from Nov 2026)
+
+The passport-shot test settled it. The user found the result good, and better quality than before.
+1. **Track:** the speaker's lines at their film times, with the scene's room tone in the gaps. This is the track script's default. The mouth rests through room tone as well as through silence (measured below).
+2. **Model:** HeyGen Avatar 6 Turbo. It's the best quality of every model tried (the user scored it 10/10), and also the cheapest.
+3. **Prompt:** the performance, plus at most one clear gesture timed in clip seconds (*"at about 5 seconds she glances down at the table, then back up"*).
+4. **Speaker not in the picture:** cut to their close-up for the line, and let the shot's own picture or clip play before it.
+5. **Check:** `mouth_check.py` should give a ratio of 5 or more and a lag within ±120 ms. `cue_check.py` shows whether the gesture landed.
 
 ## Steps
 
@@ -30,14 +39,14 @@ Why: a clip per line forces cuts or freezes inside the shot. One take with the p
    npx vite-node .claude/skills/whole-shot-lipsync/scripts/shot-voice-track.ts <beatId> <speaker> <scratchpad>/track.mp3 [--bed] [--from <frame>]
    ```
    `<speaker>` is the name in the voice files (`/film/voice/<scene>/<nn>-<speaker>-<words>.mp3`), e.g. `vera`, `jack`, `kaneko`. It prints the shot's length and who speaks when; a line marked "off the track" is where the actor listens. It also writes `<track>.json` for step 5.
-   - `--bed` lays the scene's own room sound under the track (its ambience and effects, at their film level and loop point, never another voice). The gaps then hold the real scene instead of digital silence. It works as well as silence (see below), so use it whenever the scene has a sound bed.
+   - By default the scene's own room tone runs under the track (its ambience, at its film level and loop point, never another voice). The gaps then hold the real scene instead of digital silence. `--silent` leaves them silent. `--with-sfx` also lays in the scene's sound effects; that's untested, so check the result with `mouth_check.py`, because a loud effect might move the mouth.
    - `--from <frame>` starts the track part-way into the shot, for a cut (see "The speaker isn't in the picture").
 
 3. **Give the model the track.** The ElevenLabs connector takes files by https URL (`creative_attach_reference_file`). Copy just the mp3 (not its `.json`) into `lipsync-audio/`, commit, push, and attach `https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/lipsync-audio/<file>.mp3`. Delete the folder again before the PR is merged.
 
 4. **Generate one clip for the whole shot.** Price it first with `estimate_only`, and never call a generation a second time to retry, because it charges again. Pick by what the shot needs:
-   - `creatify-aurora`: keeps the picture's framing; 720p; about 848 credits a second. The default for a still that must not change.
-   - `heygen-avatar6-turbo`: cheapest (about 303 a second, 1080p) but reframes the picture. Its prompt only directs expression and head movement.
+   - `heygen-avatar6-turbo`: **the default.** It's the best quality of every model tried, at about 303 credits a second (1080p). It kept the picture's framing in the passport test from a medium close-up; give it one clear face, close or medium. Its prompt directs expression, head movement and one timed gesture.
+   - `creatify-aurora`: keeps the framing exactly; 720p; about 848 credits a second. Use it only for a still that must not change at all.
    - `minimax-h3-max-lipsync`: one face only, 5 to 14.8 s of audio, no prompt.
    - `bytedance-seedance-v2.5`: picture plus audio with real action in one pass, but about 2,800 a second.
 
@@ -75,7 +84,7 @@ The film often holds one picture over several beats, each with its own line. The
 When a shot's picture doesn't show the person speaking, the Festival Cut cuts to their close-up for the line. Examples are a point-of-view shot or someone's hands. This was already done for Vera in b137 and b157. Make the close-up with this skill, from the same angle used for them elsewhere in the scene.
 
 **The passport photo** (scene 6, beats 25–27 of the film file, joined in nw_b141) was done this way, at the user's request:
-1. **Track:** `--bed --from 32` starts 1.3 s before Vera's line, so the model begins at rest. The scene's room tone (the police-station loop) fills the gaps, and Ishida's off-screen "In case." comes out of it.
+1. **Track:** `--from 32` starts 1.3 s before Vera's line, so the model begins at rest. (It was `--bed` then; room tone is now the default.) The scene's room tone (the police-station loop) fills the gaps, and Ishida's off-screen "In case." comes out of it.
 2. **Clip:** HeyGen, from Vera facing camera over Ishida's shoulder (`s6_picks/55-i-speak-japanese-v1.jpg`), 2,121 credits.
 3. **Install:** `--cut-from 56` drops the lead-in. The cut runs from just before her line to the shot's end, and the shot's own video (the LTX passport clip) plays before it.
 
@@ -89,7 +98,7 @@ Yes. The models make the clip exactly as long as the track, and the mouth rests 
 
 So a line placed at its film time in a silent track plays at that time. The timing needs no prompt.
 
-**Room tone instead of silence works just as well.** The passport cut's track had the scene's own room sound in its gaps instead of silence (`--bed`). The lips moved 40 times more during the line than in the room-tone gaps, the top of the silence range. They lined up with the voice at −120 ms. The model doesn't mouth room tone.
+**Room tone instead of silence works just as well.** The passport cut's track had the scene's own room sound in its gaps instead of silence. The lips moved 40 times more during the line than in the room-tone gaps, the top of the silence range. They lined up with the voice at −120 ms. The model doesn't mouth room tone.
 
 Check each new clip (the setup is in the script's header):
 ```bash
