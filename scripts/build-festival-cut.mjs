@@ -92,6 +92,7 @@ const used = [...Object.values(depthByPicture), ...Object.values(pictureReplacem
 for (const insert of out.inserts ?? []) for (const cut of insert.cuts) used.push(cut.picture.replace(/^video:/, ""));
 for (const c of Object.values(cutoutsByPicture)) used.push(c.depthMap, c.depthPlate, ...c.depthCutouts.map((x) => x.image));
 for (const s of [...(out.sfx ?? []), ...(out.ambience ?? [])]) for (const part of s.src.split("+")) if (part.includes("/")) used.push(part.replace(/^file:/, ""));
+for (const patch of Object.values(out.clipPatches ?? {})) if (typeof patch.src === "string" && patch.src.startsWith("/")) used.push(patch.src);
 for (const p of used) index.add(p);
 if (index.size !== before) writeFileSync(MEDIA_INDEX, `${JSON.stringify([...index].sort(), null, 2)}\n`);
 

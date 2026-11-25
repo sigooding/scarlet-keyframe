@@ -300,6 +300,7 @@ describe("The Festival Cut", () => {
     for (const insert of data.inserts ?? []) for (const cut of insert.cuts) used.push(cut.picture.replace(/^video:/, ""));
     for (const c of Object.values(data.cutoutsByPicture ?? {})) used.push(c.depthMap, c.depthPlate, ...c.depthCutouts.map((x) => x.image));
     for (const s of [...(data.sfx ?? []), ...(data.ambience ?? [])]) for (const part of s.src.split("+")) if (part.includes("/")) used.push(part.replace(/^file:/, ""));
+    for (const patch of Object.values(data.clipPatches ?? {})) if (typeof patch.src === "string") used.push(patch.src);
     for (const p of used) {
       expect(existsSync(`public${p}`), p).toBe(true);
       expect(index.has(p), p).toBe(true);
