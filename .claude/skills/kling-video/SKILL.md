@@ -90,16 +90,24 @@ When the film holds one picture over several beats, make one clip for the whole 
 
 The LTX guide asks for three sentences or fewer in a prompt.
 
-## A start frame plus a reference image (Kling 4)
+## The user's technique for a coherent scene: a start frame plus a reference image (Kling 4)
 
-Kling 4 takes a start frame and reference images together (only an end frame can't be combined with references), but then **the clip doesn't open on the start frame**. Kling treats both pictures as references and builds a fresh take from them.
+Kling 4 takes a start frame and reference images together (only an end frame can't be combined with references). With both, **the clip doesn't open on the start frame**. Kling treats both pictures as references and builds a fresh take: the place and framing come from the reference, the people from the start frame.
 
-**Mara walks up the street** (scene 1, beat 4, nw_b9; Nov 2026). Start frame: the beat 4 picture (Mara mid-street, walking toward us). Reference `@Image1`: beat 12's picture (nw_b17, the same street empty). The prompt said she walks toward the camera and stops about two metres from it. Kling 4, 5 s, 720p, 4,757 credits.
-- **What came out:** beat 12's framing, with Mara starting far down at the crossing. She walks the whole street up to the camera and stops there, waist-up, arms folded and head down. The camera held still. Face, hair, jacket, bag and hands held up all the way through.
-- **Sound:** rain and footsteps (−29 LUFS), kept in the file.
-- **Score:** waiting for the user's.
+**The user's technique:** give the shot's own picture as the start frame, and as `@Image1` another beat's picture of the same place with nobody in it. Every shot in that place then shares one look, and people walk in from further off. The user called the first result excellent and asked for it to continue across scene 1, so use it for any place the scene keeps returning to.
 
-So: when a clip must open on the still, use the start frame alone (or a start and end frame). Add a reference image when a fresh take of the same setting is wanted, such as someone walking in from further away.
+Results (scene 1, Nov 2026; Kling 4 at 720p):
+
+| Shot | Start frame | Reference | Length, cost | What came out |
+|---|---|---|---|---|
+| Beat 4, Mara walks up the street (nw_b9) | Mara mid-street | beat 12's empty street (nw_b17) | 5 s (shot lengthened from 2 s), 4,757 | She starts far down at the crossing, walks the whole street up to the camera and stops waist-up, arms folded, head down. **User: excellent.** |
+| Beats 15–17, the old man comes in from the road (nw_b20) | The old man mid-street | Beats 13–14's empty street (nw_b18) | 4 s, 3,805 | It opens on the empty street. He comes round the corner by the vending machine at about 0.4 s, then hurries up the street to the camera with one hand at his side. Score: waiting for the user's. |
+
+Both held the camera still. Faces, clothes and hands held up all the way through. Both clips made their own sound (rain and footsteps). Both opened on the reference's empty street, so the empty-street shot before the old man now runs into his entrance almost like one take.
+
+**The empty street itself** (beats 13–14, nw_b18) was made with LTX 2 Fast from its own picture: 6 s, 1,454 credits, with free sound (rain and a crossing chime). It kept the rain, the ripples and the green light, and no one appeared. But it crept the camera in although the prompt said the camera stays completely still: about 3% over the shot's 3.4 s, and 9% by 6 s. Use the start of an LTX clip, not its end.
+
+When a clip must open on the still, use the start frame alone (or a start and end frame).
 
 ## A longer take than the shot
 
