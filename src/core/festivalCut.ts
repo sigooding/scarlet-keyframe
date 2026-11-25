@@ -115,6 +115,8 @@ export interface FestivalData {
   removeCaptions?: Record<string, string[]>;
   /** a rewritten line (the user's words): the shot's new text and subtitles; its new voice file goes in clipPatches */
   textPatches?: Record<string, { text?: string; captions?: AnyRecord[] }>;
+  /** scenes played longer or shorter (scene id -> total frames): every shot keeps its share, the last takes the rounding */
+  retimeScenes?: Record<string, number>;
   /** a song the export plays low that comes up to full for the credits, and fades out with the last frame */
   musicHandoffs?: FestivalMusicHandoff[];
   /** cards the festival adds to the credits (more of the closing montage, and the film's own credit lines) */
@@ -441,6 +443,19 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
       const gone = DATA.removeCaptions?.[String(beat.id)];
       if (gone?.length && Array.isArray(beat.captions)) beat.captions = beat.captions.filter((c) => !gone.includes(String(c.text)));
     }
+  }
+  // A scene played longer (the opening titles, to hear more of the theme): every shot keeps its share of the new length.
+  for (const scene of story.scenes) {
+    const total = DATA.retimeScenes?.[String(scene.id)];
+    const beats = scene.dialogueBeats ?? [];
+    const was = beats.reduce((t, b) => t + Math.round(Number(b.durationFrames) || 0), 0);
+    if (!total || !was) continue;
+    let left = total;
+    beats.forEach((beat, k) => {
+      const frames = k === beats.length - 1 ? left : Math.round((Math.round(Number(beat.durationFrames) || 0) * total) / was);
+      beat.durationFrames = frames;
+      left -= frames;
+    });
   }
   report.cutawaysAdded = insertCutaways(story);
 

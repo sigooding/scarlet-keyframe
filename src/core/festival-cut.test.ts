@@ -62,7 +62,11 @@ describe("The Festival Cut", () => {
     const order = buildKeyframes(festival.story).map((f) => f.id);
     expect(order.filter((id) => !added.has(id))).toEqual(expected);
     for (const id of added) expect(order).toContain(id);
-    const retimed = new Set((data.musicHandoffs ?? []).flatMap((h) => h.runToEnd?.fill ?? []));
+    const retimedScenes = new Set(Object.keys(data.retimeScenes ?? {}));
+    const retimed = new Set([
+      ...(data.musicHandoffs ?? []).flatMap((h) => h.runToEnd?.fill ?? []),
+      ...exportCut.story.scenes.filter((sc) => retimedScenes.has(String(sc.id))).flatMap((sc) => (sc.dialogueBeats ?? []).map((b) => String(b.id))),
+    ]);
     const droppedBeats = new Set(exportCut.story.scenes.filter((sc) => dropped.has(String(sc.id))).flatMap((sc) => (sc.dialogueBeats ?? []).map((b) => String(b.id))));
     for (const [id, was] of exportBeats) {
       if (droppedBeats.has(id)) {
