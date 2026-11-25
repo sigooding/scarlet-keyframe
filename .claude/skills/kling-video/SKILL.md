@@ -90,6 +90,26 @@ When the film holds one picture over several beats, make one clip for the whole 
 
 The LTX guide asks for three sentences or fewer in a prompt.
 
+## A start frame plus a reference image (Kling 4)
+
+Kling 4 takes a start frame and reference images together (only an end frame can't be combined with references), but then **the clip doesn't open on the start frame**. Kling treats both pictures as references and builds a fresh take from them.
+
+**Mara walks up the street** (scene 1, beat 4, nw_b9; Nov 2026). Start frame: the beat 4 picture (Mara mid-street, walking toward us). Reference `@Image1`: beat 12's picture (nw_b17, the same street empty). The prompt said she walks toward the camera and stops about two metres from it. Kling 4, 5 s, 720p, 4,757 credits.
+- **What came out:** beat 12's framing, with Mara starting far down at the crossing. She walks the whole street up to the camera and stops there, waist-up, arms folded and head down. The camera held still. Face, hair, jacket, bag and hands held up all the way through.
+- **Sound:** rain and footsteps (−29 LUFS), kept in the file.
+- **Score:** waiting for the user's.
+
+So: when a clip must open on the still, use the start frame alone (or a start and end frame). Add a reference image when a fresh take of the same setting is wanted, such as someone walking in from further away.
+
+## A longer take than the shot
+
+To play a clip longer than its shot, lengthen the shot in `retimeShots` in `src/data/festival-cut.json` (beat id → frames, e.g. `"nw_b9": 120` for 5 s). Then install the clip as usual: `shot-info.ts` and the installers read the new length.
+- Only that shot changes. Everything after it plays later.
+- Voices and effects belong to their own shots and move with them.
+- Music and ambience that run across the shot play on by the added time, so they still end on the same picture. The festival test checks this to the millisecond.
+- It's not for a shot already split into pieces (`inserts`): lengthen it before cutting it up.
+- The user asks for these lengths. Don't lengthen a shot on your own judgement.
+
 ## Testing models
 
 When comparing models, give each one a **different** scene, not the same shot twice. Every clip can then go into the film, and no credits are spent on a version that will be thrown away. That's the user's rule.
