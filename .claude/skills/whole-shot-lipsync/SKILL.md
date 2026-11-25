@@ -27,9 +27,11 @@ Why: a clip per line forces cuts or freezes inside the shot. One take with the p
 
 2. **Build the track.**
    ```bash
-   npx vite-node .claude/skills/whole-shot-lipsync/scripts/shot-voice-track.ts <beatId> <speaker> <scratchpad>/track.mp3
+   npx vite-node .claude/skills/whole-shot-lipsync/scripts/shot-voice-track.ts <beatId> <speaker> <scratchpad>/track.mp3 [--bed] [--from <frame>]
    ```
    `<speaker>` is the name in the voice files (`/film/voice/<scene>/<nn>-<speaker>-<words>.mp3`), e.g. `vera`, `jack`, `kaneko`. It prints the shot's length and who speaks when; a line marked "off the track" is where the actor listens. It also writes `<track>.json` for step 5.
+   - `--bed` lays the scene's own room sound under the track (its ambience and effects, at their film level and loop point, never another voice). The gaps then hold the real scene instead of digital silence. It works as well as silence (see below), so use it whenever the scene has a sound bed.
+   - `--from <frame>` starts the track part-way into the shot, for a cut (see "The speaker isn't in the picture").
 
 3. **Give the model the track.** The ElevenLabs connector takes files by https URL (`creative_attach_reference_file`). Copy just the mp3 (not its `.json`) into `lipsync-audio/`, commit, push, and attach `https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/lipsync-audio/<file>.mp3`. Delete the folder again before the PR is merged.
 
@@ -43,9 +45,9 @@ Why: a clip per line forces cuts or freezes inside the shot. One take with the p
 
 5. **Install it.**
    ```bash
-   python3 .claude/skills/whole-shot-lipsync/scripts/install_clip.py <scratchpad>/track.mp3 <clip.mp4 or URL> <slug>
+   python3 .claude/skills/whole-shot-lipsync/scripts/install_clip.py <scratchpad>/track.mp3 <clip.mp4 or URL> <slug> [--cut-from <frame>] [--text "Vera: ..."]
    ```
-   It checks the clip's voice lines up with the track, conforms it to the shot's length plus 12 held frames (a clip shorter than its shot would loop), writes `public/film/video/festival/lipsync-<slug>.mp4`, and makes it the shot's video (`videoShots` in `src/data/festival-cut.json`).
+   It checks the clip's voice lines up with the track, conforms it to the shot's length plus 12 held frames (a clip shorter than its shot would loop), writes `public/film/video/festival/lipsync-<slug>.mp4`, and makes it the shot's video (`videoShots` in `src/data/festival-cut.json`). A track made with `--from` goes in as a cut instead (an `inserts` entry). `--cut-from` starts that cut later than the track did, and `--text` sets the cut's caption.
 
 6. **Finish.** Run `npm run build:festival-cut` and `npx vitest run src/core/festival-cut.test.ts`, remove `lipsync-audio/`, then open a PR and merge it. The user has said there's no need to ask before merging.
 
@@ -68,6 +70,17 @@ The film often holds one picture over several beats, each with its own line. The
   ```
   Then generate one clip from it and lay it over both shots with the video skill's `install_transition_clip.py`. With no cut in the clip, it splits in proportion to the shots, so a clip exactly as long as the run plays at 1.0× and stays in sync.
 
+## The speaker isn't in the picture
+
+When a shot's picture doesn't show the person speaking, the Festival Cut cuts to their close-up for the line. Examples are a point-of-view shot or someone's hands. This was already done for Vera in b137 and b157. Make the close-up with this skill, from the same angle used for them elsewhere in the scene.
+
+**The passport photo** (scene 6, beats 25–27 of the film file, joined in nw_b141) was done this way, at the user's request:
+1. **Track:** `--bed --from 32` starts 1.3 s before Vera's line, so the model begins at rest. The scene's room tone (the police-station loop) fills the gaps, and Ishida's off-screen "In case." comes out of it.
+2. **Clip:** HeyGen, from Vera facing camera over Ishida's shoulder (`s6_picks/55-i-speak-japanese-v1.jpg`), 2,121 credits.
+3. **Install:** `--cut-from 56` drops the lead-in. The cut runs from just before her line to the shot's end, and the shot's own video (the LTX passport clip) plays before it.
+
+So the photo stays on screen while the narration describes it. Then Vera says her line, and looks down as Ishida echoes "In case."
+
 ## Does silence time the lips right? (measured)
 
 Yes. The models make the clip exactly as long as the track, and the mouth rests through the silences. `scripts/mouth_check.py` measured eight HeyGen Avatar 6 whole-shot clips (Nov 2026):
@@ -75,6 +88,8 @@ Yes. The models make the clip exactly as long as the track, and the mouth rests 
 - **Timing:** in six clips the lip movement lined up with the voice within 0–120 ms, the lips slightly ahead as in real speech.
 
 So a line placed at its film time in a silent track plays at that time. The timing needs no prompt.
+
+**Room tone instead of silence works just as well.** The passport cut's track had the scene's own room sound in its gaps instead of silence (`--bed`). The lips moved 40 times more during the line than in the room-tone gaps, the top of the silence range. They lined up with the voice at −120 ms. The model doesn't mouth room tone.
 
 Check each new clip (the setup is in the script's header):
 ```bash
@@ -88,7 +103,7 @@ HeyGen sends the prompt as a *motion* prompt: tone, energy, head movement, gestu
 
 So put the timing in the track (silence where the actor listens), and keep the prompt about the performance: *"She listens quietly, then answers, eyes lowered; small head movements."*
 
-- **Timed cues are untested.** No clip so far had one ("at 6 s, a small nod"). To test it at no extra cost, add one cue to the next real shot and look at the frame at that moment.
+- **A timed cue landed, once.** The passport cut's prompt said *"at about 5 seconds she glances down at the table, then back up at him"*. She looked down from 4.3 to 5.4 s and back up: the eyes-down score went from 0.05 to 0.75, and the head tipped about 10°. That's within half a second of the cue, so HeyGen can place a simple gesture in time. Its own unprompted glances happen too: there was a blink-glance as she started speaking. So give one cue per clip, for a clear gesture, in clip seconds, and check it with `scripts/cue_check.py` (eyes-down and head tilt every quarter second) or by eye.
 - **MiniMax H3 Max takes no prompt at all.**
 - **Timed action without speech:** `ltx-audio-to-video` is documented to follow moments in an audio track ("on the first beat drop…"). Also untested.
 

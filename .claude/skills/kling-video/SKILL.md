@@ -82,6 +82,7 @@ When the film holds one picture over several beats, make one clip for the whole 
 - **Drift:** Vera's other hand came in at about 1 s, so she holds the photo out with both hands. It's natural and in costume, but nobody asked for it. If it matters, write "her other hand stays out of frame".
 - **Sound:** quiet room tone and rain (−49 LUFS), kept in the file.
 - **Score:** waiting for the user's.
+- **Now:** the clip plays up to frame 56 (2.3 s, while the narration describes the photo). Then Vera's lip-sync close-up takes over for her line (see `whole-shot-lipsync`, "The speaker isn't in the picture").
 
 The LTX guide asks for three sentences or fewer in a prompt.
 
