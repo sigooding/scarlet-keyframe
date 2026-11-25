@@ -23,7 +23,8 @@ The passport-shot test settled it. The user found the result good, and better qu
 2. **Model:** HeyGen Avatar 6 Turbo. It's the best quality of every model tried (the user scored it 10/10), and also the cheapest.
 3. **Prompt:** the performance, plus at most one clear gesture timed in clip seconds (*"at about 5 seconds she glances down at the table, then back up"*).
 4. **Speaker not in the picture:** cut to their close-up for the line, and let the shot's own picture or clip play before it.
-5. **Check:** `mouth_check.py` should give a ratio of 5 or more and a lag within ±120 ms. `cue_check.py` shows whether the gesture landed.
+5. **Breath:** never cut away the moment the talking stops; that was the user's note. Hold the speaker about half a second after the line, unless the next person speaks sooner. Build the track and the cut to cover that pause, so the actor rests naturally instead of freezing. After installing a cut, run `scripts/breaths.ts --write`.
+6. **Check:** `mouth_check.py` should give a ratio of 5 or more, with the lips starting and stopping with the voice. `cue_check.py` shows whether the gesture landed.
 
 ## Steps
 
@@ -45,8 +46,8 @@ The passport-shot test settled it. The user found the result good, and better qu
 3. **Give the model the track.** The ElevenLabs connector takes files by https URL (`creative_attach_reference_file`). Copy just the mp3 (not its `.json`) into `lipsync-audio/`, commit, push, and attach `https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/lipsync-audio/<file>.mp3`. Delete the folder again before the PR is merged.
 
 4. **Generate one clip for the whole shot.** Price it first with `estimate_only`, and never call a generation a second time to retry, because it charges again. Pick by what the shot needs:
-   - `heygen-avatar6-turbo`: **the default.** It's the best quality of every model tried, at about 303 credits a second (1080p). It kept the picture's framing in the passport test from a medium close-up; give it one clear face, close or medium. Its prompt directs expression, head movement and one timed gesture.
-   - `creatify-aurora`: keeps the framing exactly; 720p; about 848 credits a second. Use it only for a still that must not change at all.
+   - `heygen-avatar6-turbo`: **the default**, about 303 credits a second (1080p). The user scored it 10/10. It kept the picture's framing in the passport test from a medium close-up; give it one clear face, close or medium. Its prompt directs expression, head movement and one timed gesture.
+   - The other models and their prices are in "Choosing a model" below.
    - `minimax-h3-max-lipsync`: one face only, 5 to 14.8 s of audio, no prompt.
    - `bytedance-seedance-v2.5`: picture plus audio with real action in one pass, but about 2,800 a second.
 
@@ -59,6 +60,36 @@ The passport-shot test settled it. The user found the result good, and better qu
    It checks the clip's voice lines up with the track, conforms it to the shot's length plus 12 held frames (a clip shorter than its shot would loop), writes `public/film/video/festival/lipsync-<slug>.mp4`, and makes it the shot's video (`videoShots` in `src/data/festival-cut.json`). A track made with `--from` goes in as a cut instead (an `inserts` entry). `--cut-from` starts that cut later than the track did, and `--text` sets the cut's caption.
 
 6. **Finish.** Run `npm run build:festival-cut` and `npx vitest run src/core/festival-cut.test.ts`, remove `lipsync-audio/`, then open a PR and merge it. The user has said there's no need to ask before merging.
+
+## Choosing a model (priced Nov 2026, credits per second)
+
+| Model | Res | Per second | Notes |
+|---|---|---|---|
+| `heygen-avatar6-turbo` | 1080p | **303** | The default. 10/10 from the user. Takes a motion prompt. |
+| `heygen-avatar6-turbo` | 2K | 530 | Only resolution gained; the user upscales anyway. |
+| `heygen-avatar6` (standard) | 1080p | 606 | Tested on Vera in the newsroom (b1412). Expressive and natural, framing kept, in sync (lips 125 ms ahead, mouth rest ratio 38). **User's score: pending.** |
+| `heygen-avatar6` (standard) | 2K | 879 | |
+| `heygen-avatar4` | 1080p | 606 | Older generation; untested. |
+| `creatify-aurora` | 720p | 848 | Keeps the framing exactly. Nine clips in the film: Jack ("a man, a debt", "come on"), Mara ("that's him", "the bar, his voice"), Mrs Noda ("my husband"), Okada ("I looked, no", "no"), Vera ("reporting on me", "you knew"). The user remembers it as really good. |
+| `bytedance-omnihuman-v1.5` | 1080p | 970 | Tested on Vera across the office table (b1434). Framing kept (it returned 1920×1088), calm and natural, the best mouth rest measured (ratio 68), in sync. Slow, about 6 minutes. **User's score: pending.** |
+| `minimax-h3-max-lipsync` | 1080p | 970 | Needs at least 5 s of audio; no prompt; one face only. Untested. |
+| `veed-fabric-1-fast` | 720p | 1,212 | Untested; dearest and only 720p. |
+| `bytedance-seedance-v2.5` | | about 2,800 | Acts the scene from picture and audio; untested. |
+
+When comparing models, give each a **different shot** (the user's rule), so every clip goes into the film. Price each with `estimate_only` first.
+
+## A breath after the line
+
+The user's note: no quick cut as soon as someone finishes talking. Leave a reasonable pause.
+
+The earlier lip-sync cutaways each ran exactly the length of their line, so the film cut back the instant the speaker stopped. Of 300 places where a line ends, 31 cut within 0.3 s, and 23 of those were these cutaways. `scripts/breaths.ts --write` now moves each lip-sync cut's end to half a second after the line. It never goes past:
+- the clip's 12 held frames;
+- 120 ms before the next line;
+- the shot's end.
+
+It runs on to the cut rather than leave a sliver of the other picture. The film's timing doesn't change. That fixed 29 cuts. What's left (19, all quick exchanges) cuts on the other person's immediate reply, which is normal rhythm. Four whole shots end right on a line with a gap after it, the barber among them; fixing those would mean moving the cut point itself, and they're left alone.
+
+For new clips, plan the pause in from the start: end the track and the cut about half a second after the line, so the model makes the actor rest instead of the clip freezing on its held frames.
 
 ## Several beats on one picture
 

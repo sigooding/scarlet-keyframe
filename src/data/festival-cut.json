@@ -4388,7 +4388,9 @@
   "nw_b1235": "/film/video/festival/lipsync-vera-why-didnt-you-tell-me.mp4",
   "nw_b141": "/film/video/festival/ltx-passport-photo.mp4",
   "nw_song_b25": "/film/video/festival/lipsync-jack-listening-his-silence.mp4",
-  "nw_b498": "/film/video/festival/lipsync-jack-and-mara-prove-it.mp4"
+  "nw_b498": "/film/video/festival/lipsync-jack-and-mara-prove-it.mp4",
+  "nw_b1412": "/film/video/festival/lipsync-vera-it-isnt-yours-either.mp4",
+  "nw_b1434": "/film/video/festival/lipsync-vera-its-just-a-face.mp4"
  },
  "sfx": [
   {
@@ -5180,7 +5182,7 @@
    "cuts": [
     {
      "from": 0,
-     "to": 268,
+     "to": 280,
      "picture": "video:/film/video/festival/lipsync-vera-it-was-about-dad-it-is-always-about-dad.mp4",
      "text": "Vera: It was about Dad. It is always about Dad."
     },
@@ -5220,7 +5222,7 @@
     },
     {
      "from": 444,
-     "to": 542,
+     "to": 554,
      "picture": "video:/film/video/festival/lipsync-mara-switching-off-lights.mp4",
      "text": "Mara: I watched them shoot two men like they were switching off lights."
     }
@@ -5321,7 +5323,7 @@
    "cuts": [
     {
      "from": 48,
-     "to": 87,
+     "to": 100,
      "picture": "video:/film/video/festival/lipsync-mara-not-tonight.mp4",
      "text": "Mara: Not tonight."
     }
@@ -5332,7 +5334,7 @@
    "cuts": [
     {
      "from": 31,
-     "to": 101,
+     "to": 112,
      "picture": "video:/film/video/festival/lipsync-vera-she-was-four-she-doesn-t-remember-him.mp4",
      "text": "Vera: She was four. She doesn't remember him."
     }
@@ -5343,7 +5345,7 @@
    "cuts": [
     {
      "from": 183,
-     "to": 267,
+     "to": 275,
      "picture": "video:/film/video/festival/lipsync-ishida-did-she-mention-kanda-friends-there-work.mp4",
      "text": "Ishida: Did she mention Kanda? Friends there? Work?"
     }
@@ -5354,7 +5356,7 @@
    "cuts": [
     {
      "from": 0,
-     "to": 54,
+     "to": 67,
      "picture": "video:/film/video/festival/lipsync-jack-twenty-years-ishida.mp4",
      "text": "Jack: Twenty years, Ishida."
     }
@@ -5365,7 +5367,7 @@
    "cuts": [
     {
      "from": 159,
-     "to": 213,
+     "to": 220,
      "picture": "video:/film/video/festival/lipsync-jack-because-nobody-knows-where-you-are.mp4",
      "text": "Jack: Because nobody knows where you are."
     }
@@ -5376,7 +5378,7 @@
    "cuts": [
     {
      "from": 43,
-     "to": 74,
+     "to": 80,
      "picture": "video:/film/video/festival/lipsync-mara-is-she-eating.mp4",
      "text": "Mara: Is she eating?"
     }
@@ -5387,7 +5389,7 @@
    "cuts": [
     {
      "from": 6,
-     "to": 49,
+     "to": 51,
      "picture": "video:/film/video/festival/lipsync-mara-did-he-kill-himself.mp4",
      "text": "Mara: Did he kill himself?"
     }
@@ -5398,7 +5400,7 @@
    "cuts": [
     {
      "from": 65,
-     "to": 135,
+     "to": 141,
      "picture": "video:/film/video/festival/lipsync-vera-i-m-not-going-to-tell-you-it-wasn-t-your.mp4",
      "text": "Vera: I'm not going to tell you it wasn't yours."
     }
@@ -5409,7 +5411,7 @@
    "cuts": [
     {
      "from": 37,
-     "to": 123,
+     "to": 135,
      "picture": "video:/film/video/festival/lipsync-vera-liar-it-was-mine.mp4",
      "text": "Vera: Liar. It was mine."
     }
@@ -5420,13 +5422,13 @@
    "cuts": [
     {
      "from": 123,
-     "to": 158,
+     "to": 167,
      "picture": "video:/film/video/festival/lipsync-vera-is-she-hurt.mp4",
      "text": "Vera: Is she hurt?"
     },
     {
      "from": 241,
-     "to": 303,
+     "to": 307,
      "picture": "video:/film/video/festival/lipsync-vera-that-s-not-the-same-as-saying-she-isn-t.mp4",
      "text": "Vera: That's not the same as saying she isn't."
     }
@@ -5437,7 +5439,7 @@
    "cuts": [
     {
      "from": 0,
-     "to": 35,
+     "to": 41,
      "picture": "video:/film/video/festival/lipsync-vera-so-you-ll-look.mp4",
      "text": "Vera: So you'll look."
     }
@@ -5448,7 +5450,7 @@
    "cuts": [
     {
      "from": 41,
-     "to": 80,
+     "to": 91,
      "picture": "video:/film/video/festival/lipsync-vera-i-brought-food.mp4",
      "text": "Vera: I brought food."
     }
@@ -5459,7 +5461,7 @@
    "cuts": [
     {
      "from": 0,
-     "to": 43,
+     "to": 56,
      "picture": "video:/film/video/festival/lipsync-vera-come-back-safe-anyway.mp4",
      "text": "Vera: Come back safe anyway."
     }
@@ -5470,7 +5472,7 @@
    "cuts": [
     {
      "from": 200,
-     "to": 231,
+     "to": 242,
      "picture": "video:/film/video/festival/lipsync-jack-tomorrow-night.mp4",
      "text": "Jack: Tomorrow night."
     }
@@ -5481,7 +5483,7 @@
    "cuts": [
     {
      "from": 175,
-     "to": 229,
+     "to": 236,
      "picture": "video:/film/video/festival/lipsync-mara-thank-you-for.mp4",
      "text": "Mara: Thank you. For —"
     }
@@ -5492,7 +5494,7 @@
    "cuts": [
     {
      "from": 65,
-     "to": 108,
+     "to": 114,
      "picture": "video:/film/video/festival/lipsync-vera-that-s-me.mp4",
      "text": "Vera: That's me."
     }
@@ -5503,7 +5505,7 @@
    "cuts": [
     {
      "from": 30,
-     "to": 73,
+     "to": 76,
      "picture": "video:/film/video/festival/lipsync-mara-i-have-to-tell-vera.mp4",
      "text": "Mara: I have to tell Vera."
     }
@@ -5514,7 +5516,7 @@
    "cuts": [
     {
      "from": 0,
-     "to": 43,
+     "to": 54,
      "picture": "video:/film/video/festival/lipsync-mrs-noda-don-t-tell-my-husband.mp4",
      "text": "Mrs. noda: Don't tell my husband."
     }
@@ -5525,7 +5527,7 @@
    "cuts": [
     {
      "from": 4,
-     "to": 35,
+     "to": 37,
      "picture": "video:/film/video/festival/lipsync-mara-what-happened.mp4",
      "text": "Mara: What happened?"
     }
@@ -5536,7 +5538,7 @@
    "cuts": [
     {
      "from": 4,
-     "to": 39,
+     "to": 40,
      "picture": "video:/film/video/festival/lipsync-mara-who-killed-him.mp4",
      "text": "Mara: Who killed him?"
     }
@@ -5547,7 +5549,7 @@
    "cuts": [
     {
      "from": 4,
-     "to": 51,
+     "to": 62,
      "picture": "video:/film/video/festival/lipsync-jack-maybe-that-was-a-mistake.mp4",
      "text": "Jack: Maybe that was a mistake."
     }
@@ -5558,7 +5560,7 @@
    "cuts": [
     {
      "from": 177,
-     "to": 235,
+     "to": 237,
      "picture": "video:/film/video/festival/lipsync-jack-in-the-car-we-have-to-move.mp4",
      "text": "Jack: In the car. We have to move."
     }
@@ -5569,7 +5571,7 @@
    "cuts": [
     {
      "from": 35,
-     "to": 85,
+     "to": 95,
      "picture": "video:/film/video/festival/lipsync-jack-last-night-she-had-noodles.mp4",
      "text": "Jack: Last night she had noodles."
     }
@@ -5580,7 +5582,7 @@
    "cuts": [
     {
      "from": 45,
-     "to": 77,
+     "to": 84,
      "picture": "video:/film/video/festival/lipsync-mara-that-s-him.mp4",
      "text": "Mara: That's him."
     },
@@ -5597,7 +5599,7 @@
    "cuts": [
     {
      "from": 39,
-     "to": 67,
+     "to": 72,
      "picture": "video:/film/video/festival/lipsync-okada-no.mp4",
      "text": "Okada: No."
     },
@@ -5620,7 +5622,7 @@
     },
     {
      "from": 188,
-     "to": 270,
+     "to": 282,
      "picture": "video:/film/video/festival/lipsync-jack-i-trusted-him-i-m-so-sorry.mp4",
      "text": "Jack: I trusted him. I'm so sorry."
     }
@@ -6158,12 +6160,34 @@
     }
    ]
   },
+  "/film/video/festival/lipsync-vera-it-isnt-yours-either.mp4": {
+   "shot": "nw_b1412",
+   "lines": [
+    {
+     "voice": "/film/voice/s82a/301-vera-evenly-it-isn-t-yours-either.mp3",
+     "atMs": 0
+    }
+   ]
+  },
   "/film/video/festival/lipsync-vera-it-was-about-dad-it-is-always-about-dad.mp4": {
    "shot": "nw_b346",
    "lines": [
     {
      "voice": "/film/voice/s14/270-vera-voice-breaking-it-was-about-dad.mp3",
      "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-its-just-a-face.mp4": {
+   "shot": "nw_b1434",
+   "lines": [
+    {
+     "voice": "/film/voice/s83/113-vera-firmly-it-s-just-a-face.mp3",
+     "atMs": 0
+    },
+    {
+     "voice": "/film/voice/s83/114-vera-evenly-my-father-kept-notes-he.mp3",
+     "atMs": 4217
     }
    ]
   },

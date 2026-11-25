@@ -15,4 +15,5 @@ prices and the install scripts:
 
 - **Credits.** Generations spend the user's ElevenLabs credits. Price first with `estimate_only`, make one take per shot, and never call a generation again to retry. When testing models, give each a different scene, so every test clip can go into the film.
 - **Sync.** Lip-sync clips play muted over the film's own voice clips, and each clip's line timing is recorded in `lipSyncTimings`. If the festival test "keeps every lip sync in step with its voice" fails, an edit has moved a line under a lip sync. Put the line back, or remake that lip sync.
+- **Pauses.** Never cut away the moment someone finishes talking. Hold about half a second after a line, unless the next person speaks sooner (see "A breath after the line" in the lip-sync skill).
 - **Before a PR.** Run `npm run build:festival-cut` and `npx vitest run`.
