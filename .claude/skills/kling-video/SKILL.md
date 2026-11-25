@@ -71,6 +71,20 @@ Gemini Omni Flash 1.2 (12 s at 720p = 5,109), Wan 2.6 (15 s = 9,089) and Seedanc
 
 The dentist failed because an escape beat is still an action shot. Gemini doesn't make people move with purpose. For escapes use Kling 3 Pro, ideally with an end frame showing where they get to (as with the wardrobe → barber's).
 
+## One clip for a run of beats on one picture
+
+When the film holds one picture over several beats, make one clip for the whole run.
+- **Already one shot.** The Director's Export joins such runs into one shot, so a clip for that shot covers the run.
+- **Still split.** Five runs remain separate shots (listed in the `whole-shot-lipsync` skill). Trim an LTX clip to the run's length, since LTX makes even seconds, then lay it over both shots with `install_transition_clip.py`. With no cut in the clip, it splits in proportion, so the speed stays 1.0. The Hive cut open was done this way.
+
+**The passport photo** (scene 6, nw_b141, b141–b144 joined, 7.9 s). The user's example, made with LTX 2 Fast at 8 s for 1,939 credits, with sound on (free).
+- **Good:** the camera held, and Mara's printed face never moved; the photo stayed flat paper. The prompt said so in as many words.
+- **Drift:** Vera's other hand came in at about 1 s, so she holds the photo out with both hands. It's natural and in costume, but nobody asked for it. If it matters, write "her other hand stays out of frame".
+- **Sound:** quiet room tone and rain (−49 LUFS), kept in the file.
+- **Score:** waiting for the user's.
+
+The LTX guide asks for three sentences or fewer in a prompt.
+
 ## Testing models
 
 When comparing models, give each one a **different** scene, not the same shot twice. Every clip can then go into the film, and no credits are spent on a version that will be thrown away. That's the user's rule.
