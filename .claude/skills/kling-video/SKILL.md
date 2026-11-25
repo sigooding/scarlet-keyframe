@@ -1,6 +1,6 @@
 ---
 name: kling-video
-description: Turn a Nobody's Witness / Scarlet Keyframe still into a real-motion clip with Kling (Kling 4, Kling 3 Pro, Kling 2.6 Pro), Gemini Omni Flash or LTX 2 Fast (long takes) through the ElevenLabs connector, and lay it over its Festival Cut shot. Use this whenever the user wants a shot "alive", "in video", moving or animated, image-to-video, the Hive escape or another action sequence as video, or asks about Kling, video tests or video prompting, even if they never name Kling.
+description: Turn a Nobody's Witness / Scarlet Keyframe still into a real-motion clip with Kling (Kling 4, Kling 3 Pro, Kling 2.6 Pro), Gemini Omni Flash or LTX 2 Fast (long takes) through the ElevenLabs connector, and lay it over its Festival Cut shot. Use this whenever the user wants a shot "alive", "in video", moving or animated, image-to-video, the Hive escape or another action sequence as video, or asks about Kling, video tests, video prompting or a clip's own sound, even if they never name Kling.
 ---
 
 # Kling video for the Festival Cut
@@ -12,7 +12,7 @@ Eight Hive-escape shots (Nov 2026) were made in one batch, one take each, and no
 | Model | Settings | Cost | How it behaves |
 |---|---|---|---|
 | `kling-4` | 720p; 3–30 s in whole seconds; start frame (+ end frame); no negative prompt | 951 credits a second (3 s = 2,854) | The most natural and restrained. Faces hold up even in close-up motion. It softens forceful action: "strikes the pipe three times" came out as a reach and a tap. **Default for quiet, face and atmosphere shots.** |
-| `kling-3-pro` | 1080p; 3–15 s; `generate_audio: false`; negative prompt | about 679 a second (3 s = 2,036) | Real force (full swings), heads turn on cue, and it's 1080p. It's also cheaper than Kling 4 at 720p. Fast moves blur. **Default for action beats.** |
+| `kling-3-pro` | 1080p; 3–15 s; `generate_audio: false` (sound costs 50% more); negative prompt | about 679 a second (3 s = 2,036) | Real force (full swings), heads turn on cue, and it's 1080p. It's also cheaper than Kling 4 at 720p. Fast moves blur. **Default for action beats.** |
 | `kling-o3-pro`, `kling-omni-video` | 1080p (4K option); 3–15 s; start + end frame, reference images | 3,393 per 5 s (about 679 a second) | Untested. Same price as Kling 3 Pro. |
 | `kling-2.6-pro` | 1080p; 5 or 10 s only; negative prompt | 2,121 per 5 s | The most literal and theatrical: big two-handed blows, a burst of steam. Only the cheapest when the shot itself runs about 5 or 10 s. |
 
@@ -40,7 +40,7 @@ Use Gemini for calm shots, small gestures and close-ups. Use Kling 4 for faces i
 
 ## Long takes (12–20 s in one clip)
 
-The cheapest model that can make a 12–15 s take is **LTX 2 Fast (`ltx-v2-fast`)**. It runs 6–20 s in even seconds, at 1080p and 25 fps. It takes a start frame only, no end frame, and `generate_audio: false` turns off its sound. Cost is about 242 credits a second (12 s = 2,909; 14 s = 3,393).
+The cheapest model that can make a 12–15 s take is **LTX 2 Fast (`ltx-v2-fast`)**. It runs 6–20 s in even seconds, at 1080p and 25 fps. It takes a start frame only, no end frame. Its sound (`generate_audio: true`) costs nothing extra, so leave it on. Cost is about 242 credits a second (12 s = 2,909; 14 s = 3,393).
 
 It was tried on the film's last shot before the credits (nw_b1687, "The three of them in the steam", 12.7 s) against MiniMax H3 Max (`minimax-h3-max`, 768p, 13 s = 4,726):
 
@@ -49,7 +49,7 @@ It was tried on the film's last shot before the credits (nw_b1687, "The three of
 | LTX 2 Fast | **7/10** | Better quality; adds small details that make it more real | Drifts: Kaneko wandered half out of frame, Jack moved closer |
 | MiniMax H3 Max | 6/10 | Faithful to the still | A bit pixelated (768p) |
 
-The user also noted that **MiniMax H3 Max made good sound of its own**: worth keeping in mind when a shot's sound matters as much as its picture. LTX's sound was switched off in this test, so it's unjudged.
+The user also noted that **MiniMax H3 Max made good sound of its own**: worth keeping in mind when a shot's sound matters as much as its picture. LTX's sound was switched off in this test, so it's unjudged. Its sound is free, so keep it on next time.
 
 **Use LTX for long takes.** MiniMax won't take `aspect_ratio` with a start frame (it follows the picture). Neither MiniMax nor Kling 3 Pro lets `enhance_prompt` be set.
 
@@ -103,7 +103,7 @@ Not on offer through the ElevenLabs connector (Nov 2026): Kling 4 Flash, the che
    ```bash
    python3 .claude/skills/kling-video/scripts/install_motion_clip.py <beatId> <clip.mp4 or URL> <slug> [--start S]
    ```
-   It conforms the clip to 1920×1080 at 24 fps and to the shot's length plus 12 held frames (a clip shorter than its shot would loop). It drops the clip's sound and makes the clip the shot's video (`videoShots`). Use `--start` to skip into a 5 s clip used on a shorter shot.
+   It conforms the clip to 1920×1080 at 24 fps and to the shot's length plus 12 held frames (a clip shorter than its shot would loop). It keeps the clip's own sound in the file (see Sound) and makes the clip the shot's video (`videoShots`). Use `--start` to skip into a 5 s clip used on a shorter shot.
 
 7. **Finish.** Run `npm run build:festival-cut` and `npx vitest run src/core/festival-cut.test.ts`, then open a PR and merge it. The user has said there's no need to ask before merging.
 
@@ -118,7 +118,41 @@ Not on offer through the ElevenLabs connector (Nov 2026): Kling 4 Flash, the che
 
 ## Sound
 
-Kling 4, Gemini Omni Flash and MiniMax H3 Max always generate sound (they have no setting for it). The user liked Kling 4's (Kaneko's strikes) and MiniMax's. Kling 3 Pro and 2.6 Pro make sound only with `generate_audio: true`. The installer drops a clip's sound. When a clip's own sound is better than the film's, as with Kaneko's strikes, save it as an mp3 under `public/film/sfx/`. Then point the export's sound clip for that shot at it with `clipPatches` in `src/data/festival-cut.json` (`src`, `durationMs`, and a `gain` matched to the old sound's loudness, measured in LUFS with ffmpeg's `ebur128`). Rebuild so the file enters the media index.
+**The user's rule: when sound costs nothing extra, have the model make it.** A model makes its sound with the picture, so it's often more in sync, and a better effect, than the sound the film lays on afterwards. The film can then use it for free, as it already does for Kaneko's strikes.
+
+What sound costs (checked with `estimate_only`, Nov 2026):
+
+| Model | How to get sound | Extra cost | So |
+|---|---|---|---|
+| Kling 4, Gemini Omni Flash, MiniMax H3 Max | Always made; no setting | None | It's always there |
+| LTX 2 Fast | `generate_audio: true` | **None** (6 s at 1080p is 1,454 credits either way) | **Always turn it on** |
+| Kling 3 Pro | `generate_audio: true` | +50% (5 s: 5,090 instead of 3,393) | Leave it off |
+| Kling 2.6 Pro | `generate_audio: true` | Double (5 s: 4,242 instead of 2,121) | Leave it off |
+| Veo 3.1 Lite / Fast | `generate_audio: true` | +67% / +50% (Lite, 4 s at 720p: 1,212 instead of 727) | Leave it off |
+
+For a model not in the table, price one node with sound on and one with sound off (`estimate_only` is free). Turn sound on if the two prices match. When sound is on, say what should be heard. Ask for no music and no speech, because the film has its own score and voices: *"Sound: only the scene's own sounds, rain on the roof and a door latch. No music, no voices."* Gemini wants this line anyway.
+
+**Keeping it.** Both video installers keep a clip's own sound in its file, padded with silence to the clip's length. It's trimmed in step with the picture, and for a transition it's also sped up or slowed with it. The film plays clips muted, so nothing changes until a sound is chosen.
+
+These installed clips have their own sound:
+- the masked men in single file
+- Kaneko's strikes (already in use)
+- the main switch
+- the flashlights
+- the unlit lighter
+- the doors closing
+
+The LTX clips (the Hive cut open, and the three in the steam) were made with sound off, before it was known to be free. The Kling 3 Pro clips (the laundry run, and the wardrobe → barber's) have none.
+
+**Using it.** When the user finds a clip's sound better than the film's, take the sound out of the clip. It starts exactly where the shot starts:
+```bash
+ffmpeg -i public/film/video/festival/<slug>.mp4 -vn -c:a libmp3lame -q:a 2 public/film/sfx/festival/<slug>.mp3
+```
+Then use it in `src/data/festival-cut.json` in one of two ways:
+- **Replace one of the film's sounds** with `clipPatches`, as for Kaneko's strikes. Give `src`, `durationMs`, and a `gain` matched to the old sound's loudness, measured in LUFS with ffmpeg's `ebur128`. Check that the old sound starts with the shot, or trim the mp3 to match.
+- **Add it on the shot** as an `sfx` entry with `anchorId` set to the shot's beat id and `offsetMs: 0`. Put the film's sound it replaces in `removeClips`.
+
+Rebuild so the file enters the media index.
 
 ## Two-shot transitions (start = shot 1, end = shot 2)
 
