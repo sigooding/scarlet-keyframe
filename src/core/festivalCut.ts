@@ -111,6 +111,8 @@ export interface FestivalData {
   titleCards?: Record<string, FestivalTitleCard>;
   /** scenes the festival leaves out of the running order (the end card after the credits) */
   dropScenes?: string[];
+  /** subtitles to take off a shot (beat id -> caption texts), for a line whose voice clip `removeClips` takes out */
+  removeCaptions?: Record<string, string[]>;
   /** a song the export plays low that comes up to full for the credits, and fades out with the last frame */
   musicHandoffs?: FestivalMusicHandoff[];
   /** cards the festival adds to the credits (more of the closing montage, and the film's own credit lines) */
@@ -426,6 +428,13 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
       for (const beat of scene.dialogueBeats ?? []) {
         if (dropped.has(String(beat.afterBeatTargetSceneId))) delete beat.afterBeatTargetSceneId;
       }
+    }
+  }
+  // A line taken out of the mix takes its subtitle with it.
+  for (const scene of story.scenes) {
+    for (const beat of scene.dialogueBeats ?? []) {
+      const gone = DATA.removeCaptions?.[String(beat.id)];
+      if (gone?.length && Array.isArray(beat.captions)) beat.captions = beat.captions.filter((c) => !gone.includes(String(c.text)));
     }
   }
   report.cutawaysAdded = insertCutaways(story);

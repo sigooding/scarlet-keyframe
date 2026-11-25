@@ -28,7 +28,7 @@ const MEDIA_INDEX = join(ROOT, "src/data/media-index.json");
 const exported = JSON.parse(readFileSync(join(ROOT, "src/data/director-export.json"), "utf8"));
 const previous = existsSync(OUT) ? JSON.parse(readFileSync(OUT, "utf8")) : {};
 const pictureReplacements = previous.pictureReplacements ?? {};
-const KEPT = ["practicalByPicture", "videoShots", "sfx", "ambience", "removeClips", "clipPatches", "voiceGainDb", "dialogueLufs", "inserts", "dry", "creditCards", "titleCards", "dropScenes", "musicHandoffs", "lipSyncTimings"];
+const KEPT = ["practicalByPicture", "videoShots", "sfx", "ambience", "removeClips", "clipPatches", "voiceGainDb", "dialogueLufs", "inserts", "dry", "creditCards", "titleCards", "dropScenes", "musicHandoffs", "lipSyncTimings", "removeCaptions"];
 
 const pictures = new Set();
 for (const scene of exported.story.scenes) {

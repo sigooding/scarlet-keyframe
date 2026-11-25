@@ -4847,7 +4847,8 @@
   }
  ],
  "removeClips": [
-  "ac_amb_865"
+  "ac_amb_865",
+  "ac_vox_731"
  ],
  "clipPatches": {
   "ac_sfx_562": {
@@ -6285,5 +6286,10 @@
     }
    ]
   }
+ },
+ "removeCaptions": {
+  "nw_b1617": [
+   "I was."
+  ]
  }
 }
