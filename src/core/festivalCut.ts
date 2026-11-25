@@ -113,6 +113,8 @@ export interface FestivalData {
   dropScenes?: string[];
   /** subtitles to take off a shot (beat id -> caption texts), for a line whose voice clip `removeClips` takes out */
   removeCaptions?: Record<string, string[]>;
+  /** a rewritten line (the user's words): the shot's new text and subtitles; its new voice file goes in clipPatches */
+  textPatches?: Record<string, { text?: string; captions?: AnyRecord[] }>;
   /** a song the export plays low that comes up to full for the credits, and fades out with the last frame */
   musicHandoffs?: FestivalMusicHandoff[];
   /** cards the festival adds to the credits (more of the closing montage, and the film's own credit lines) */
@@ -430,9 +432,12 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
       }
     }
   }
-  // A line taken out of the mix takes its subtitle with it.
+  // A line taken out of the mix takes its subtitle with it; a rewritten line brings its new words.
   for (const scene of story.scenes) {
     for (const beat of scene.dialogueBeats ?? []) {
+      const patch = DATA.textPatches?.[String(beat.id)];
+      if (patch?.text !== undefined) beat.text = patch.text;
+      if (patch?.captions) beat.captions = patch.captions.map((c) => ({ ...c })) as typeof beat.captions;
       const gone = DATA.removeCaptions?.[String(beat.id)];
       if (gone?.length && Array.isArray(beat.captions)) beat.captions = beat.captions.filter((c) => !gone.includes(String(c.text)));
     }
@@ -502,6 +507,10 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
       const video = DATA.videoShots?.[id];
       if (video) {
         beat.background = `video:${video}`;
+        // A motion clip (Kling, LTX, Gemini, Veo) already moves the rain it shows: the app's rain on top would double it.
+        // A lip sync keeps the app's rain, since its background doesn't move.
+        const weather = String(beat.particles ?? scene.particles ?? "");
+        if (!video.includes("/lipsync-") && (weather === "rain" || weather === "drizzle")) beat.particles = "none";
         for (const k of ["depthMap", "depthPlate", "depthCutouts", "depthAmount", "depthMotion", "depthFocus"]) delete cinematic[k];
         cinematic.mode = "static";
         if (beat.animation) {
