@@ -5599,5 +5599,92 @@
     }
    ]
   }
+ ],
+ "dry": [
+  "nw_b1309",
+  "nw_b1310",
+  "nw_b1312",
+  "nw_b1313",
+  "nw_b1563",
+  "nw_b1564",
+  "nw_b1565",
+  "nw_b1566",
+  "nw_b211",
+  "nw_b213",
+  "nw_b218",
+  "nw_b223",
+  "nw_b365",
+  "nw_b379",
+  "nw_b386",
+  "nw_b396",
+  "nw_b404",
+  "nw_b407",
+  "nw_b411",
+  "nw_b415",
+  "nw_b419",
+  "nw_b423",
+  "nw_b430",
+  "nw_b436",
+  "nw_b925",
+  "nw_b930",
+  "nw_b971",
+  "nw_b972",
+  "nw_b973",
+  "nw_b974",
+  "nw_song_b35",
+  "nw_song_b38",
+  "nw_song_service_05:nw_song_b5",
+  "nw_song_service_06:nw_song_b6",
+  "nw_song_service_07:nw_song_b7",
+  "nw_song_service_08:nw_song_b8",
+  "nw_song_service_09:nw_song_b9",
+  "nw_song_service_10:nw_song_b10",
+  "nw_song_service_11:nw_song_b11",
+  "nw_song_service_12:nw_song_b12",
+  "nw_song_service_13:nw_song_b13",
+  "nw_song_service_14:nw_song_b14",
+  "nw_song_service_15:nw_song_b15",
+  "nw_song_service_16:nw_song_b16",
+  "nw_song_service_17:nw_song_b17",
+  "nw_song_service_18:nw_song_b18",
+  "nw_song_service_19:nw_song_b19",
+  "nw_song_service_20:nw_song_b20",
+  "nw_song_service_21:nw_song_b21",
+  "nw_song_service_22:nw_song_b22",
+  "nw_song_service_23:nw_song_b23",
+  "nw_song_service_24:nw_song_b24",
+  "nw_song_service_25:nw_song_b25",
+  "nw_song_service_26:nw_song_b26",
+  "nw_song_service_27:nw_song_b27",
+  "nw_song_service_28:nw_song_b28",
+  "nw_song_service_31:nw_song_b31",
+  "nw_song_service_32:nw_song_b32",
+  "nw_song_service_33:nw_song_b33",
+  "nw_song_service_34:nw_song_b34"
+ ],
+ "titleCards": {
+  "nw_dc_credits_1": {
+   "title": "NOBODY’S WITNESS"
+  },
+  "nw_dc_credits_5": {
+   "kicker": "CAST CREATED BY",
+   "title": "ElevenLabs"
+  },
+  "nw_dc_credits_6": {
+   "kicker": "ORIGINAL MUSIC",
+   "title": "Scott Gooding"
+  }
+ },
+ "dropScenes": [
+  "nw_end"
+ ],
+ "musicHandoffs": [
+  {
+   "clipId": "ac_mus_775",
+   "atAnchorId": "nw_dc_credits_1",
+   "gain": 1,
+   "fadeMs": 4000,
+   "fadeOutMs": 4000
+  }
  ]
 }
