@@ -8,7 +8,9 @@ It tracks the lips with MediaPipe's face landmarker. It measures how much the li
 clip has none. It prints one JSON line:
   ratio   how many times more the lips move in speech than in silence. 5 or more means the mouth rests in the silences.
   lag_ms  where the lip movement best lines up with the speech. Negative means the lips lead, which is natural
-          (they shape a word just before it sounds). Within about +/-120 ms is in step.
+          (they shape a word just before it sounds). Within about +/-120 ms is in step. On a line under about 2 s
+          this estimate is rough (OmniHuman's 1.4 s line read +250 ms while in step), so compare lips_move_s with
+          voice_s instead: the lips should start and stop within a few frames of the voice.
 
 One-time setup, in the scratchpad (not the repo):
   apt-get install -y libegl1 libgles2
@@ -62,8 +64,13 @@ env = np.convolve(np.nan_to_num(art), np.ones(3) / 3, "same")
 env, sp = env - env.mean(), speech - speech.mean()
 lags = range(-10, 11)
 score = [np.sum(sp[max(0, -k):n - max(0, k)] * env[max(0, k):n - max(0, -k)]) for k in lags]
+moving = np.where(np.nan_to_num(art) > 0.004)[0]
+spoken = np.where(speech)[0]
 print(json.dumps({
     "clip": clip.split("/")[-1], "secs": round(n / fps, 1), "face_found": f"{seen.mean():.0%}",
+    # for a short line the lag estimate is rough: compare where the lips start and stop with where the voice does
+    "lips_move_s": [round(moving[0] / fps, 2), round(moving[-1] / fps, 2)] if moving.size else None,
+    "voice_s": [round(spoken[0] / fps, 2), round(spoken[-1] / fps, 2)] if spoken.size else None,
     "speech_s": round(speech.sum() / fps, 1), "silence_s": round((~speech).sum() / fps, 1),
     "ratio": round(float(talk.mean() / max(rest.mean(), 1e-5)), 1) if talk.size and rest.size else None,
     "lag_ms": round(list(lags)[int(np.argmax(score))] * 1000 / fps),
