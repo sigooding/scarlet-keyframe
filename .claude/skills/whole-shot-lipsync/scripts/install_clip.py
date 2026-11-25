@@ -90,3 +90,6 @@ else:
 with open(F, "w", encoding="utf-8") as fh:
     fh.write(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
 print(f"{beat}: clip {dur:.2f}s for a {T:.2f}s shot, voice offset {lag:+d} ms -> {name}.mp4 ({frames} + {extra} frames)")
+# record where its lines fall, so the festival test catches any later edit that would put lips and voice out of step
+subprocess.run(["npx", "vite-node", ".claude/skills/whole-shot-lipsync/scripts/lipsync-timings.ts", "--write",
+                f"/film/video/festival/{name}.mp4"], cwd=ROOT, check=True)

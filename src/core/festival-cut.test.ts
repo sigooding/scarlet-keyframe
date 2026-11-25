@@ -352,6 +352,32 @@ describe("The Festival Cut", () => {
     for (const b of shown) expect(b.cinematic?.depthMap).toBeUndefined();
   });
 
+  it("keeps every lip sync in step with its voice: each line still starts where the clip was made for it", () => {
+    // A lip-sync clip plays muted over the film's own voice clip. They match when the clip goes in; a line or shot
+    // retimed afterwards would leave the lips behind. Fix the edit, or remake the lip sync and record it again
+    // (.claude/skills/whole-shot-lipsync/scripts/lipsync-timings.ts --write <clip>).
+    const timings = data.lipSyncTimings ?? {};
+    const startMs = new Map<string, number>();
+    let at = 0;
+    for (const f of buildKeyframes(festival.story)) {
+      startMs.set(String(f.beat.id), (at / 24) * 1000);
+      at += clipFrames(f);
+    }
+    const shownBy = new Map(beats(festival.story).filter((b) => String(b.background).includes("/lipsync-")).map((b) => [String(b.background).replace(/^video:/, ""), String(b.id)]));
+    expect(Object.keys(timings).length).toBeGreaterThanOrEqual(44);
+    for (const clip of shownBy.keys()) expect(timings[clip], `${clip} has no recorded timing`).toBeDefined();
+    const voices = (festival.audioClips ?? []).filter((c) => c.lane === "voice" && startMs.has(c.anchorId));
+    for (const [clip, rec] of Object.entries(timings)) {
+      expect(shownBy.get(clip), `${clip} moved to another shot`).toBe(rec.shot);
+      const shotStart = startMs.get(rec.shot)!;
+      for (const line of rec.lines) {
+        const wanted = shotStart + line.atMs;
+        const nearest = Math.min(...voices.filter((c) => c.src === line.voice).map((c) => Math.abs(startMs.get(c.anchorId)! + c.offsetMs - wanted)));
+        expect(nearest, `${clip}: ${line.voice} is ${Math.round(nearest)} ms from where the lips say it`).toBeLessThanOrEqual(1000 / 24);
+      }
+    }
+  });
+
   it("lights the practicals: a soft glow that breathes, never on a shot that already has its own lights", () => {
     let lit = 0;
     for (const b of beats(festival.story)) {

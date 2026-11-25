@@ -7,7 +7,7 @@
 //   public/film/depth/, if one exists. A hand-made map wins over a generated one:
 //     /film/depth/<folder>/<stem>-depth.jpg | -depth.png      (made for that picture, e.g. scene 77A)
 //     /film/depth/<folder>/<stem>/depth.png                   (npm run depth, or the film's own)
-// - pictureReplacements, practicalByPicture, videoShots, inserts, sfx, ambience, removeClips, clipPatches, voiceGainDb: kept as they are in
+// - pictureReplacements, practicalByPicture, videoShots, inserts, sfx, ambience, removeClips, clipPatches, voiceGainDb, lipSyncTimings: kept as they are in
 //   the file; edit them by hand (practicalByPicture comes from scripts/festival/find_practicals.py).
 // - cutoutsByPicture: for every picture, the newest people-N folder `npm run cutouts` made for it, if any:
 //     /film/depth/<folder>/<stem>/people-N/{depth.png, plate.jpg, cutout-*.png}, with its result.json (the command's
@@ -28,7 +28,7 @@ const MEDIA_INDEX = join(ROOT, "src/data/media-index.json");
 const exported = JSON.parse(readFileSync(join(ROOT, "src/data/director-export.json"), "utf8"));
 const previous = existsSync(OUT) ? JSON.parse(readFileSync(OUT, "utf8")) : {};
 const pictureReplacements = previous.pictureReplacements ?? {};
-const KEPT = ["practicalByPicture", "videoShots", "sfx", "ambience", "removeClips", "clipPatches", "voiceGainDb", "dialogueLufs", "inserts", "dry", "creditCards", "titleCards", "dropScenes", "musicHandoffs"];
+const KEPT = ["practicalByPicture", "videoShots", "sfx", "ambience", "removeClips", "clipPatches", "voiceGainDb", "dialogueLufs", "inserts", "dry", "creditCards", "titleCards", "dropScenes", "musicHandoffs", "lipSyncTimings"];
 
 const pictures = new Set();
 for (const scene of exported.story.scenes) {

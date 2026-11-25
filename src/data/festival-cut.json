@@ -5831,5 +5831,411 @@
     ]
    }
   }
- ]
+ ],
+ "lipSyncTimings": {
+  "/film/video/festival/lipsync-ishida-did-she-mention-kanda-friends-there-work.mp4": {
+   "shot": "nw_b151~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s6/58-ishida-did-she-ever-mention-kanda-friends.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-ishida-nine-oclock.mp4": {
+   "shot": "nw_b1012",
+   "lines": [
+    {
+     "voice": "/film/voice/s61/230-ishida-nine-o-clock-the-service-road.mp3",
+     "atMs": -200
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-a-man-a-debt.mp4": {
+   "shot": "nw_b725",
+   "lines": [
+    {
+     "voice": "/film/voice/s29/206-jack-someone-who-owes-a-man-a.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-because-nobody-knows-where-you-are.mp4": {
+   "shot": "nw_b622~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s25/258-jack-because-nobody-knows-where-you-are.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-come-on-come-on.mp4": {
+   "shot": "nw_b847",
+   "lines": [
+    {
+     "voice": "/film/voice/s48/216-jack-come-on-come-on.mp3",
+     "atMs": -200
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-i-promised-her.mp4": {
+   "shot": "nw_b1635",
+   "lines": [
+    {
+     "voice": "/film/voice/s98/156-jack-plainly-i-promised-her-i-d.mp3",
+     "atMs": 1633
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-i-told-him.mp4": {
+   "shot": "nw_b1465",
+   "lines": [
+    {
+     "voice": "/film/voice/s84/119-jack-quietly-i-told-him-pause-where.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-i-trusted-him-i-m-so-sorry.mp4": {
+   "shot": "nw_b1465~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s84/119-jack-sadly-i-trusted-him-i-m-so-sorry.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-in-the-car-we-have-to-move.mp4": {
+   "shot": "nw_b1706~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s68/nw_b1710-jack-in-the-car.mp3",
+     "atMs": -16
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-last-night-she-had-noodles.mp4": {
+   "shot": "nw_b629~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s25/258-jack-last-night-she-had-noodles.mp3",
+     "atMs": 8
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-maybe-that-was-a-mistake.mp4": {
+   "shot": "nw_b1301~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s77a/nw_b1301-jack-maybe-a-mistake.mp3",
+     "atMs": -21
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-tomorrow-night.mp4": {
+   "shot": "nw_b1008~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s61/230-jack-tomorrow-night.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-jack-twenty-years-ishida.mp4": {
+   "shot": "nw_b298",
+   "lines": [
+    {
+     "voice": "/film/voice/s11/251-jack-pause-twenty-years-ishida.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-kaneko-fifty-years.mp4": {
+   "shot": "nw_b1497",
+   "lines": [
+    {
+     "voice": "/film/voice/s86/125-kaneko-dryly-i-have-lived-here-fifty.mp3",
+     "atMs": -200
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-did-he-kill-himself.mp4": {
+   "shot": "nw_b1713~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s68/nw_b1713-mara-did-he-kill-himself.mp3",
+     "atMs": 20
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-he-knew-me.mp4": {
+   "shot": "nw_b605",
+   "lines": [
+    {
+     "voice": "/film/voice/s25/202-mara-tearfully-he-knew-me-he-saw.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-i-have-to-tell-vera.mp4": {
+   "shot": "nw_b1719~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s68/nw_b1720-mara-tell-vera.mp3",
+     "atMs": 15
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-is-she-eating.mp4": {
+   "shot": "nw_b625~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s25/258-mara-is-she-eating.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-not-tonight.mp4": {
+   "shot": "nw_b10~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s1/05-mara-tired-not-tonight.mp3",
+     "atMs": 8
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-switching-off-lights.mp4": {
+   "shot": "nw_b523~fc2",
+   "lines": [
+    {
+     "voice": "/film/voice/s20/284-mara-tearfully-i-watched-them-shoot-two.mp3",
+     "atMs": -8
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-thank-you-for.mp4": {
+   "shot": "nw_b1099~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s68/237-mara-thank-you-for.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-that-s-him.mp4": {
+   "shot": "nw_b1131~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s70/239-mara-that-s-him.mp3",
+     "atMs": 8
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-the-bar-his-voice.mp4": {
+   "shot": "nw_b1131~fc3",
+   "lines": [
+    {
+     "voice": "/film/voice/s70/239-mara-the-bar-his-voice.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-what-happened.mp4": {
+   "shot": "nw_b1715~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s68/nw_b1715-mara-what-happened.mp3",
+     "atMs": -3
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mara-who-killed-him.mp4": {
+   "shot": "nw_b1717~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s68/nw_b1717-mara-who-killed-him.mp3",
+     "atMs": -6
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mrs-noda-don-t-tell-my-husband.mp4": {
+   "shot": "nw_b780",
+   "lines": [
+    {
+     "voice": "/film/voice/s37/211-mrsnoda-don-t-tell-my-husband.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-mrs-noda-my-husband.mp4": {
+   "shot": "nw_b818",
+   "lines": [
+    {
+     "voice": "/film/voice/s44/214-mrsnoda-my-husband.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-okada-i-looked-no.mp4": {
+   "shot": "nw_b200~fc3",
+   "lines": [
+    {
+     "voice": "/film/voice/s8/162-okada-i-looked-no--aged.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-okada-no.mp4": {
+   "shot": "nw_b200~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s8/162-okada-pause-no--aged.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-a-story-i-used-to-tell-her.mp4": {
+   "shot": "nw_b355",
+   "lines": [
+    {
+     "voice": "/film/voice/s14/185-vera-since-she-was-little-it-s.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-come-back-safe-anyway.mp4": {
+   "shot": "nw_b774",
+   "lines": [
+    {
+     "voice": "/film/voice/s36/210-vera-come-back-safe-anyway.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-i-brought-food.mp4": {
+   "shot": "nw_b386~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s14a/336-vera-gently-i-brought-food.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-i-m-not-going-to-tell-you-it-wasn-t-your.mp4": {
+   "shot": "nw_b1469~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s84/119-vera-firmly-i-m-not-going-to.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-is-she-hurt.mp4": {
+   "shot": "nw_b157~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s6/58-vera-is-she-hurt.mp3",
+     "atMs": 8
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-it-was-about-dad-it-is-always-about-dad.mp4": {
+   "shot": "nw_b346",
+   "lines": [
+    {
+     "voice": "/film/voice/s14/270-vera-voice-breaking-it-was-about-dad.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-liar-it-was-mine.mp4": {
+   "shot": "nw_b1632~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s98/156-vera-voice-breaking-liar-it-was-mine.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-reporting-on-me.mp4": {
+   "shot": "nw_b641",
+   "lines": [
+    {
+     "voice": "/film/voice/s25a/287-vera-teasing-has-someone-been-reporting-on.mp3",
+     "atMs": 0
+    },
+    {
+     "voice": "/film/voice/s25a/288-vera-you-sound-like-my-sister.mp3",
+     "atMs": 4175
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-she-gave-me-two.mp4": {
+   "shot": "nw_b141~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s6/324-vera-she-gave-me-two-when-she.mp3",
+     "atMs": 300
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-she-was-four-she-doesn-t-remember-him.mp4": {
+   "shot": "nw_b137~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s6/323-vera-evenly-she-was-four-she-doesn.mp3",
+     "atMs": 8
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-so-you-ll-look.mp4": {
+   "shot": "nw_b266",
+   "lines": [
+    {
+     "voice": "/film/voice/s10/168-vera-so-you-ll-look.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-that-s-me.mp4": {
+   "shot": "nw_b1456~fc1",
+   "lines": [
+    {
+     "voice": "/film/voice/s84/118-vera-gently-that-s-me.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-that-s-not-the-same-as-saying-she-isn-t.mp4": {
+   "shot": "nw_b157~fc3",
+   "lines": [
+    {
+     "voice": "/film/voice/s6/58-vera-that-s-not-the-same-as.mp3",
+     "atMs": 0
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-why-didnt-you-tell-me.mp4": {
+   "shot": "nw_b1235",
+   "lines": [
+    {
+     "voice": "/film/voice/s74/75-vera-why-didnt-you.mp3",
+     "atMs": 0
+    },
+    {
+     "voice": "/film/voice/s74/75-vera-waiting-for-me.mp3",
+     "atMs": 3800
+    }
+   ]
+  },
+  "/film/video/festival/lipsync-vera-you-knew.mp4": {
+   "shot": "nw_b1226",
+   "lines": [
+    {
+     "voice": "/film/voice/s74/74-vera-you-knew.mp3",
+     "atMs": 0
+    }
+   ]
+  }
+ }
 }

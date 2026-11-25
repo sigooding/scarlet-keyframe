@@ -125,6 +125,10 @@ export interface FestivalData {
   removeClips?: string[];
   /** clip id -> fields changed in the festival mix */
   clipPatches?: Record<string, Partial<AudioClip>>;
+  /** where each lip-sync clip's lines start in the shot (or piece) that shows it, as recorded when it went in; the
+   * festival test fails if a later edit moves a line, which would put lips and voice out of step
+   * (.claude/skills/whole-shot-lipsync/scripts/lipsync-timings.ts) */
+  lipSyncTimings?: Record<string, { shot: string; lines: { voice: string; atMs: number }[] }>;
   /**
    * Cutaways that break up a long-held shot: within the shot (by id), from frame `from` to frame `to` (relative to
    * the shot's start), the picture cuts to `picture`, then back. The shot's total length and every sound anchored to
