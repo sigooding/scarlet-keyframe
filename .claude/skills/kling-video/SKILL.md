@@ -13,6 +13,7 @@ Eight Hive-escape shots (Nov 2026) were made in one batch, one take each, and no
 |---|---|---|---|
 | `kling-4` | 720p; 3–30 s in whole seconds; start frame (+ end frame); no negative prompt | 951 credits a second (3 s = 2,854) | The most natural and restrained. Faces hold up even in close-up motion. It softens forceful action: "strikes the pipe three times" came out as a reach and a tap. **Default for quiet, face and atmosphere shots.** |
 | `kling-3-pro` | 1080p; 3–15 s; `generate_audio: false`; negative prompt | about 679 a second (3 s = 2,036) | Real force (full swings), heads turn on cue, and it's 1080p. It's also cheaper than Kling 4 at 720p. Fast moves blur. **Default for action beats.** |
+| `kling-o3-pro`, `kling-omni-video` | 1080p (4K option); 3–15 s; start + end frame, reference images | 3,393 per 5 s (about 679 a second) | Untested. Same price as Kling 3 Pro. |
 | `kling-2.6-pro` | 1080p; 5 or 10 s only; negative prompt | 2,121 per 5 s | The most literal and theatrical: big two-handed blows, a burst of steam. Only the cheapest when the shot itself runs about 5 or 10 s. |
 
 **The user's review of that batch:**
@@ -25,6 +26,8 @@ Eight Hive-escape shots (Nov 2026) were made in one batch, one take each, and no
 So: use Kling 3 Pro for anyone moving through space or moving fast, and say "real-time speed" (and put `slow motion` in the negative prompt). Use Kling 4 for stillness, faces and small actions. For movement that has to arrive somewhere, give an end frame.
 
 Every clip held the locked camera, added no one new and kept everyone's identity. A light change ("a moment later every light goes out") and sweeping flashlight beams both worked without silly effects. People can run past the lens: in the laundry run, Jack pulled Vera out of frame and the shot ended on the sheets swinging closed, which was right for that shot.
+
+Not on offer through the ElevenLabs connector (Nov 2026): Kling 4 Flash, the cheaper Kling 4 the guide describes. Kling 4's cheapest setting here is 720p. `kling-2.5-turbo` is the only "turbo", and it's an older generation. The Kling AI plugin (Kling's own connector, which spends Kling credits) may offer more.
 
 ## Steps
 
@@ -86,6 +89,8 @@ It finds the cut, fits each half to its shot with a small speed change (6 s stre
 - The installer found no cut, so it split each clip halfway, and the hidden change spans the edit.
 - With the barber's picture as the end frame, Vera finally pushed forward through the coats, which a start frame alone hadn't managed.
 - Both stretched by under 4%.
+- **The user's verdict:** wardrobe → barber's was good. Door → kitchen was rejected. The man at the table holds a bat in the kitchen picture, and in the clip Jack "produced a baseball bat". Objects held by other people in the end frame can jump to the leads. When the second picture has props, say who holds them ("only the man at the table holds the bat; Vera's and Jack's hands are empty"). Look at the end frame's props before running.
+- **Preference:** the user finds Kling 4 better looking than Kling 3 Pro. Prefer Kling 4 with an end frame for movement that has to arrive somewhere, and keep Kling 3 Pro for speed (the laundry run at real-time speed was good).
 
 A continuous camera move through to shot 2 ("the camera glides forward behind them through the doorway…", no cut) is untested. Don't assume it fails. The Kling 3 Pro node for door → candlelit kitchen is set up, unrun, on the "Hive escape Kling tests" flow.
 
