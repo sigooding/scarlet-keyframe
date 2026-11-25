@@ -169,6 +169,11 @@ It reads as calm listening, not a frozen still (measured with `scripts/idle_chec
 - **Name:** `lipsync-<speaker>-listening-<words>`. The installer skips the voice-offset check and the sync guard records no lines, since there's nothing to keep in step.
 - **Cost:** about 303 credits a second. Bringing a face alive with Kling 4 costs 951 a second, Gemini 439, and LTX 2 Fast 242 (but it drifts on faces).
 
+**A specific gesture only half works** (tested Nov 2026 on Sakai in scene 1, b25: "Then he shakes his head. Barely.", 2 s, 909 credits; HeyGen bills at least 3 s). The prompt asked for one slow, small shake of the head, as if to say "not now", with the mouth closed.
+- **Mouth:** closed throughout.
+- **Gesture:** the head turned slowly one way, 7° over 2 s, and never came back, so there was no side-to-side shake. It reads as a weary turn, which suits "Barely", but not as a clear "no".
+- **Conclusion:** with no speech to drive it, HeyGen follows the mood, not the action. For a gesture that must read (a shake, a nod, a turn to look), use a video model such as Kling 4 or Gemini, which follow actions; see the `kling-video` skill. A longer clip (3 s or more) and a plain description ("shakes his head slowly from side to side, twice") might help HeyGen; that's untested.
+
 ## Keeping it in sync
 
 **The film never plays a lip-sync clip's own sound.** HeyGen returns the clip with the exact track it was given. `install_clip.py` strips that sound, and the film's own voice clip plays at its film time over the muted clip. Nothing is re-voiced or overdubbed with a different take. The clip was made from those same voice clips at those same times, so lips and voice match when it goes in. The installer also measures and corrects any offset (0 ms on the passport cut), and `mouth_check.py` measures the lips.

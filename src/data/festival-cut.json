@@ -4390,7 +4390,8 @@
   "nw_song_b25": "/film/video/festival/lipsync-jack-listening-his-silence.mp4",
   "nw_b498": "/film/video/festival/lipsync-jack-and-mara-prove-it.mp4",
   "nw_b1412": "/film/video/festival/lipsync-vera-it-isnt-yours-either.mp4",
-  "nw_b1434": "/film/video/festival/lipsync-vera-its-just-a-face.mp4"
+  "nw_b1434": "/film/video/festival/lipsync-vera-its-just-a-face.mp4",
+  "nw_b25": "/film/video/festival/lipsync-sakai-listening-shakes-his-head.mp4"
  },
  "sfx": [
   {
@@ -6114,6 +6115,10 @@
      "atMs": 0
     }
    ]
+  },
+  "/film/video/festival/lipsync-sakai-listening-shakes-his-head.mp4": {
+   "shot": "nw_b25",
+   "lines": []
   },
   "/film/video/festival/lipsync-vera-a-story-i-used-to-tell-her.mp4": {
    "shot": "nw_b355",
