@@ -10,7 +10,8 @@ The clip's own sound, if it has any, stays in the file, trimmed in step with the
 plays its clips muted, so this changes nothing you hear. It keeps the sound to hand for when it beats the film's own effects
 (see "Sound" in SKILL.md).
 --start skips the first S seconds of the clip (a model that only makes 5 s clips, used on a 3 s shot).
-A shot already split into pieces is refused: lay a clip over one piece by hand, as an insert cut.
+A shot already split into pieces is refused: lay a clip over one piece by hand, as an insert cut. So is a shot in a
+same-picture run (shot-info's sameRun): the run gets one clip, through install_run_clip.py (--single overrides).
 """
 import json, os, re, subprocess, sys, tempfile
 
@@ -25,6 +26,10 @@ if "error" in info:
     sys.exit(f"{beat}: {info['error']}")
 if info["split"]:
     sys.exit(f"{beat} is split into pieces: lay the clip over one piece as an insert cut instead")
+if len(info.get("sameRun", [])) > 1 and "--single" not in sys.argv:
+    sys.exit(f"{beat} shares its picture with {', '.join(r for r in info['sameRun'] if r != beat)}: make ONE clip for the "
+             f"whole run ({info['runGenerateSeconds']} s) and install it with install_run_clip.py <clip> <slug> "
+             f"{' '.join(info['sameRun'])} (or pass --single to override)")
 frames = int(info["frames"])
 
 if clip.startswith("http"):

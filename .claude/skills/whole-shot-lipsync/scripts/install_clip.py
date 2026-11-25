@@ -30,6 +30,14 @@ skip = (cut_from - track_from) / 24        # lead-in to drop from the clip's sta
 frames -= cut_from - track_from
 text = sys.argv[sys.argv.index("--text") + 1] if "--text" in sys.argv else f"{meta.get('speaker', '').title()}: lip sync"
 
+# a shot in a same-picture run gets one lip sync for the whole run (the user's rule), through install_run_clip.py --lipsync
+if not meta.get("split") and not meta.get("cut") and "--single" not in sys.argv:
+    run = json.loads(subprocess.check_output(["npx", "vite-node", ".claude/skills/kling-video/scripts/shot-info.ts", beat],
+                                             cwd=ROOT).decode())[0].get("sameRun", [])
+    if len(run) > 1:
+        sys.exit(f"{beat} shares its picture with {', '.join(r for r in run if r != beat)}: join the run's tracks, make one "
+                 f"clip, and install it with kling-video's install_run_clip.py --lipsync (or pass --single to override)")
+
 if clip.startswith("http"):
     raw = os.path.join(tempfile.mkdtemp(), "clip.mp4")
     subprocess.run(["curl", "-sfL", "-o", raw, clip], check=True)
