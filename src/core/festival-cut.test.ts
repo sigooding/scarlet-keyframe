@@ -66,6 +66,7 @@ describe("The Festival Cut", () => {
     const retimed = new Set([
       ...(data.musicHandoffs ?? []).flatMap((h) => h.runToEnd?.fill ?? []),
       ...exportCut.story.scenes.filter((sc) => retimedScenes.has(String(sc.id))).flatMap((sc) => (sc.dialogueBeats ?? []).map((b) => String(b.id))),
+      ...Object.keys(data.retimeShots ?? {}),
     ]);
     const droppedBeats = new Set(exportCut.story.scenes.filter((sc) => dropped.has(String(sc.id))).flatMap((sc) => (sc.dialogueBeats ?? []).map((b) => String(b.id))));
     for (const [id, was] of exportBeats) {
@@ -121,7 +122,13 @@ describe("The Festival Cut", () => {
         expect(got.durationMs).toBeLessThan(want.durationMs);
         continue;
       }
-      expect(mine.get(clip.id), clip.id).toEqual(want);
+      const got = mine.get(clip.id);
+      if (got && (clip.lane === "music" || clip.lane === "ambience") && Object.keys(data.retimeShots ?? {}).length && got.durationMs > want.durationMs) {
+        // laid across a lengthened shot: it plays on by the time the shot gained (checked to the millisecond below)
+        expect({ ...got, durationMs: want.durationMs }, clip.id).toEqual(want);
+        continue;
+      }
+      expect(got, clip.id).toEqual(want);
     }
     // no music is ever removed, and no voice unless its subtitle goes with it (a line cut on purpose)
     for (const clip of exportCut.audioClips ?? []) {
@@ -129,6 +136,38 @@ describe("The Festival Cut", () => {
       if ((clip.lane === "voice" && !lineCut) || clip.lane === "music") expect(removed.has(clip.id), clip.id).toBe(false);
     }
     expect(festival.originalStory).toEqual(base.originalStory);
+  });
+
+  it("plays a lengthened shot for its new length, and the music and ambience across it still end on the same picture", () => {
+    const clock = (project: typeof festival) => {
+      const at = new Map<string, number>();
+      let ms = 0;
+      for (const f of buildKeyframes(project.story)) {
+        const id = String(f.beat.id).replace(/~fc\d+$/, "");
+        if (!at.has(id)) at.set(id, ms);
+        ms += (clipFrames(f) / 24) * 1000;
+      }
+      return at;
+    };
+    const was = clock(exportCut);
+    const now = clock(festival);
+    const exportOrder = [...was.keys()];
+    const festivalBeats = new Map(beats(festival.story).map((b) => [String(b.id), b]));
+    for (const [id, frames] of Object.entries(data.retimeShots ?? {})) {
+      expect(festivalBeats.get(id)?.durationFrames, id).toBe(frames);
+      expect((data.inserts ?? []).some((i) => i.beatId === id), `${id} is split: lengthen it before cutting it up`).toBe(false);
+      // a sound running past the shot ends the same distance into whatever comes after it
+      const next = exportOrder[exportOrder.indexOf(id) + 1];
+      for (const clip of exportCut.audioClips ?? []) {
+        if ((clip.lane !== "music" && clip.lane !== "ambience") || data.clipPatches?.[clip.id]?.durationMs) continue;
+        const start = (was.get(clip.anchorId) ?? NaN) + clip.offsetMs;
+        const end = start + clip.durationMs;
+        if (!(start < was.get(next)!) || !(end > was.get(next)!)) continue;
+        const after = (festival.audioClips ?? []).find((c) => c.id === clip.id)!;
+        const afterEnd = now.get(after.anchorId)! + after.offsetMs + after.durationMs;
+        expect(Math.abs(afterEnd - now.get(next)! - (end - was.get(next)!)), `${clip.id} across ${id}`).toBeLessThanOrEqual(1);
+      }
+    }
   });
 
   it("plays every shot that has a depth map in 2.5D, with the depth camera free to move", () => {

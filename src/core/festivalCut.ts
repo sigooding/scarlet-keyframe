@@ -117,6 +117,9 @@ export interface FestivalData {
   textPatches?: Record<string, { text?: string; captions?: AnyRecord[] }>;
   /** scenes played longer or shorter (scene id -> total frames): every shot keeps its share, the last takes the rounding */
   retimeScenes?: Record<string, number>;
+  /** single shots played longer (beat id -> frames), e.g. for a longer video take. Only that shot changes: everything
+   *  after it plays later, and music or ambience laid across it plays on by the added time. Not for a split shot. */
+  retimeShots?: Record<string, number>;
   /** a song the export plays low that comes up to full for the credits, and fades out with the last frame */
   musicHandoffs?: FestivalMusicHandoff[];
   /** cards the festival adds to the credits (more of the closing montage, and the film's own credit lines) */
@@ -457,6 +460,16 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
       left -= frames;
     });
   }
+  // A single shot played longer (a longer video take): only it changes; the sound section below keeps the music and
+  // ambience laid across it running to the same picture.
+  const lengthenedMs = new Map<string, { wasMs: number; addedMs: number }>();
+  for (const scene of story.scenes) for (const beat of scene.dialogueBeats ?? []) {
+    const frames = DATA.retimeShots?.[String(beat.id)];
+    const was = Math.round(Number(beat.durationFrames) || 0);
+    if (!frames || !was || frames === was) continue;
+    lengthenedMs.set(String(beat.id), { wasMs: (was / FPS) * 1000, addedMs: ((frames - was) / FPS) * 1000 });
+    beat.durationFrames = frames;
+  }
   report.cutawaysAdded = insertCutaways(story);
 
   // Credits: the festival's own cards join the scene, after the card each names, in the look of its montage.
@@ -630,6 +643,28 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
     }
   }
 
+  // Each shot's start, on the festival's clock.
+  const startMs = new Map<string, number>();
+  let elapsed = 0;
+  for (const id of order) {
+    startMs.set(id, (elapsed / FPS) * 1000);
+    elapsed += framesOf.get(id) ?? 0;
+  }
+  const filmEndMs = (elapsed / FPS) * 1000;
+  // Music or ambience the export lays across a lengthened shot plays on by the time the shot gained, so it still ends
+  // on the same picture. (Voices and effects belong to their own shots and move with them.)
+  const acrossLengthened = (clip: AudioClip): number => {
+    if (clip.lane !== "music" && clip.lane !== "ambience") return 0;
+    const from = (startMs.get(clip.anchorId) ?? NaN) + clip.offsetMs;
+    let added = 0;
+    for (const id of order) {
+      const shot = lengthenedMs.get(id);
+      if (!shot || !(from >= 0)) continue;
+      const shotWasEnd = (startMs.get(id) ?? 0) + shot.wasMs - from;
+      if (shotWasEnd > 0 && clip.durationMs + added > shotWasEnd) added += shot.addedMs;
+    }
+    return Math.round(added);
+  };
   // Sound: the export's mix, less what the festival replaces, plus its own.
   const removed = new Set(DATA.removeClips ?? []);
   const patches = DATA.clipPatches ?? {};
@@ -639,7 +674,9 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
       report.soundsRemoved += 1;
       continue;
     }
-    const patched = patches[clip.id] ? { ...clip, ...patches[clip.id] } : clip;
+    const patchedOnly = patches[clip.id] ? { ...clip, ...patches[clip.id] } : clip;
+    const longer = acrossLengthened(patchedOnly);
+    const patched = longer ? { ...patchedOnly, durationMs: patchedOnly.durationMs + longer } : patchedOnly;
     // Dialogue at one level: each line is brought toward the film's median loudness, on top of the director's own
     // gain for the clip (a line set quieter on purpose stays quieter).
     const db = clip.lane === "voice" ? DATA.voiceGainDb?.[clip.src] : undefined;
@@ -679,13 +716,6 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
   // Music: a song the export plays low under the last scene comes up to full for the credits. Its clip plays on to the
   // hand-over and crossfades into the same song, in step (so the crossfade is a pure rise in level), which runs to the
   // film's last frame and fades out with it.
-  const startMs = new Map<string, number>();
-  let elapsed = 0;
-  for (const id of order) {
-    startMs.set(id, (elapsed / FPS) * 1000);
-    elapsed += framesOf.get(id) ?? 0;
-  }
-  const filmEndMs = (elapsed / FPS) * 1000;
   for (const handoff of DATA.musicHandoffs ?? []) {
     const index = audioClips.findIndex((c) => c.id === handoff.clipId);
     const from = startMs.get(handoff.atAnchorId);

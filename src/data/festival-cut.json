@@ -4391,7 +4391,8 @@
   "nw_b498": "/film/video/festival/lipsync-jack-and-mara-prove-it.mp4",
   "nw_b1412": "/film/video/festival/lipsync-vera-it-isnt-yours-either.mp4",
   "nw_b1434": "/film/video/festival/lipsync-vera-its-just-a-face.mp4",
-  "nw_b25": "/film/video/festival/lipsync-sakai-listening-shakes-his-head.mp4"
+  "nw_b25": "/film/video/festival/lipsync-sakai-listening-shakes-his-head.mp4",
+  "nw_b9": "/film/video/festival/alive-s1-mara-walks-up-the-street.mp4"
  },
  "sfx": [
   {
@@ -6325,5 +6326,8 @@
  },
  "retimeScenes": {
   "nw_title": 1376
+ },
+ "retimeShots": {
+  "nw_b9": 120
  }
 }
