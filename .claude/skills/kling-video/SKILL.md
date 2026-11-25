@@ -60,6 +60,17 @@ Gemini Omni Flash 1.2 (12 s at 720p = 5,109), Wan 2.6 (15 s = 9,089) and Seedanc
 - LTX ruined "the fortieth floor at dawn": the room faded to black. "A few lights going out" in the prompt probably read as nightfall. Describe the light as growing, and leave out anything that switches off.
 - Gemini refused three of seven Hive escape shots with its safety filter: Vera feeling along the dark corridor, the pipe gallery, and the ladder under the viaduct. In each, Vera and Jack move secretly at night. Gemini passed the dentist and the doors closing, where other people do the main action. Use Kling 4 or LTX for Vera and Jack sneaking.
 
+**The user's scores for that batch:**
+
+| Clip | Model | Score | Notes |
+|---|---|---|---|
+| Vera, "Why didn't you tell me?" | HeyGen Avatar 6 Turbo lip sync | **10/10** | Still the best quality of all the models |
+| The Hive cut open | LTX 2 Fast | 6/10 | OK |
+| Doors close softly | Gemini | 6/10 | Usable, but the man closes his hand in the door |
+| The dentist | Gemini | Bad, taken out | Vera and Jack just walk around and don't head anywhere |
+
+The dentist failed because an escape beat is still an action shot. Gemini doesn't make people move with purpose. For escapes use Kling 3 Pro, ideally with an end frame showing where they get to (as with the wardrobe → barber's).
+
 ## Testing models
 
 When comparing models, give each one a **different** scene, not the same shot twice. Every clip can then go into the film, and no credits are spent on a version that will be thrown away. That's the user's rule.
