@@ -55,6 +55,11 @@ The user also noted that **MiniMax H3 Max made good sound of its own**: worth ke
 
 Gemini Omni Flash 1.2 (12 s at 720p = 5,109), Wan 2.6 (15 s = 9,089) and Seedance 2.0 Mini (12 s = 10,994) also make long takes, at higher cost.
 
+**Last batch (Nov 2026):**
+- LTX made a good 6 s demolition take (the Hive cut open, no people), split over two shots that share one picture.
+- LTX ruined "the fortieth floor at dawn": the room faded to black. "A few lights going out" in the prompt probably read as nightfall. Describe the light as growing, and leave out anything that switches off.
+- Gemini refused three of seven Hive escape shots with its safety filter: Vera feeling along the dark corridor, the pipe gallery, and the ladder under the viaduct. In each, Vera and Jack move secretly at night. Gemini passed the dentist and the doors closing, where other people do the main action. Use Kling 4 or LTX for Vera and Jack sneaking.
+
 ## Testing models
 
 When comparing models, give each one a **different** scene, not the same shot twice. Every clip can then go into the film, and no credits are spent on a version that will be thrown away. That's the user's rule.
