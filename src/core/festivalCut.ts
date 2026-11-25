@@ -29,7 +29,8 @@
 //    cars, the altar room, the hotel lounge, Vera's flat) are dry, and hear the rain outside.
 //  - Credits. The cast is credited to ElevenLabs, who made it; the tagline is gone from the title card and the end
 //    card after the credits is left out, so the film ends on the credits. The closing song comes up from under the
-//    last scene to full as the credits start, and fades out with the last frame.
+//    last scene to full as the credits start and plays to its last note: the credits carry the film's own credit lines
+//    for the pictures and the engine, and a longer closing montage in story order, re-timed so they end as the song does.
 //  - Look. Grain and vignette are made consistent across the film; each scene keeps its grade. No flicker anywhere:
 //    the film-grade overlay's flicker is never switched on, and no light pulses faster than once in two seconds.
 //
@@ -54,9 +55,21 @@ export interface FestivalTitleCard {
   subtitle?: string;
 }
 
+export interface FestivalCreditCard {
+  id: string;
+  picture: string;
+  /** the card it follows (by default, the scene's last) */
+  after?: string;
+  titleCard?: FestivalTitleCard;
+}
+
 export interface FestivalMusicHandoff {
   /** the export's music clip */
   clipId: string;
+  /** the song's full length, ms: with runToEnd, the film plays all of it */
+  songMs?: number;
+  /** re-time this scene so the film ends as the song does: the cards in fill share the time, the rest keep theirs */
+  runToEnd?: { sceneId: string; fill: string[] };
   /** the shot where it comes up */
   atAnchorId: string;
   /** its level from there (1 = full) */
@@ -100,6 +113,8 @@ export interface FestivalData {
   dropScenes?: string[];
   /** a song the export plays low that comes up to full for the credits, and fades out with the last frame */
   musicHandoffs?: FestivalMusicHandoff[];
+  /** cards the festival adds to the credits (more of the closing montage, and the film's own credit lines) */
+  creditCards?: { sceneId: string; cards: FestivalCreditCard[] };
   /** picture path -> the practical light in it (x, y in % of the frame; its colour) */
   practicalByPicture?: Record<string, { x: number; y: number; color: string }>;
   /** beat id -> a real-motion clip made from its picture */
@@ -331,6 +346,54 @@ function insertCutaways(story: StoryLike): number {
 }
 
 /** Applies the festival finish to a copy of the Director's Export project. */
+/** A card for the credits, in the look of the scene's own montage cards (its picture's depth and move come later). */
+function creditBeat(template: BeatLike, card: FestivalCreditCard): BeatLike {
+  const beat = clone(template) as AnyRecord;
+  const cinematic: AnyRecord = { ...(beat.cinematic ?? {}) };
+  for (const k of ["depthMap", "depthPlate", "depthCutouts", "depthAmount", "depthMotion", "depthSeconds", "depthDirection", "depthFocus", "focalPoint", "lights", "lightSource"]) delete cinematic[k];
+  beat.cinematic = cinematic;
+  delete beat.animation;
+  delete beat.titleCard;
+  delete beat.mergedBeatIds;
+  beat.id = card.id;
+  beat.background = card.picture;
+  beat.captions = [];
+  if (card.titleCard) {
+    beat.titleCard = { ...card.titleCard };
+    beat.text = card.titleCard.kicker ? `${card.titleCard.kicker}: ${card.titleCard.title}` : card.titleCard.title;
+  } else {
+    beat.text = "Closing montage";
+  }
+  return beat as BeatLike;
+}
+
+/** Re-times a scene so the film ends on the song's last note: its fill cards share the time the song has left. */
+function runSceneToSongEnd(story: StoryLike, audio: AudioClip[], handoff: FestivalMusicHandoff): boolean {
+  const run = handoff.runToEnd;
+  const clip = audio.find((c) => c.id === handoff.clipId);
+  const scene = story.scenes.find((sc) => sc.id === run?.sceneId);
+  if (!run || !clip || !scene || !handoff.songMs || !scene.dialogueBeats?.length) return false;
+  const start = new Map<string, number>();
+  let at = 0;
+  for (const f of buildKeyframes(story)) {
+    start.set(String(f.beat.id), at);
+    at += clipFrames(f);
+  }
+  const songStart = start.get(clip.anchorId);
+  const sceneStart = start.get(String(scene.dialogueBeats[0].id));
+  if (songStart === undefined || sceneStart === undefined) return false;
+  // the song's last note falls at its start + its offset + what is left of the file after its in-point
+  const left = Math.round(((handoff.songMs - clip.inMs + clip.offsetMs) / 1000) * FPS) - (sceneStart - songStart);
+  const fill = scene.dialogueBeats.filter((b) => run.fill.includes(String(b.id)));
+  const fixed = scene.dialogueBeats.filter((b) => !run.fill.includes(String(b.id))).reduce((t, b) => t + (Number(b.durationFrames) || 0), 0);
+  const each = Math.floor((left - fixed) / Math.max(1, fill.length));
+  if (!fill.length || each < 2 * FPS) return false;
+  fill.forEach((b, i) => {
+    b.durationFrames = i === fill.length - 1 ? left - fixed - each * (fill.length - 1) : each;
+  });
+  return true;
+}
+
 export function applyFestivalFinish(exportProject: ProjectState): { project: ProjectState; report: FestivalReport } {
   const story: StoryLike = clone(exportProject.story);
   const report: FestivalReport = {
@@ -362,6 +425,20 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
     }
   }
   report.cutawaysAdded = insertCutaways(story);
+
+  // Credits: the festival's own cards join the scene, after the card each names, in the look of its montage.
+  const credits = DATA.creditCards;
+  const creditScene = credits ? story.scenes.find((sc) => sc.id === credits.sceneId) : undefined;
+  if (credits && creditScene?.dialogueBeats?.length) {
+    const list = creditScene.dialogueBeats;
+    const template = list[list.length - 1];
+    for (const card of credits.cards) {
+      const at = card.after ? list.findIndex((b) => String(b.id) === card.after) : -1;
+      list.splice(at >= 0 ? at + 1 : list.length, 0, creditBeat(template, card));
+    }
+  }
+  // ...and the closing song plays to its last note: the credits run as long as it has left.
+  for (const handoff of DATA.musicHandoffs ?? []) runSceneToSongEnd(story, exportProject.audioClips ?? [], handoff);
 
   // Every shot's real length (a montage shot has no durationFrames: it runs on its delay), in play order.
   const keyframes = buildKeyframes(story);
@@ -586,7 +663,7 @@ export function applyFestivalFinish(exportProject: ProjectState): { project: Pro
       anchorId: handoff.atAnchorId,
       offsetMs: 0,
       inMs: Math.round(clip.inMs + into),
-      durationMs: Math.round(Math.min(filmEndMs - from, clip.durationMs - into)),
+      durationMs: Math.round(Math.min(filmEndMs - from, (handoff.songMs ? handoff.songMs - clip.inMs : clip.durationMs) - into)),
       gain: handoff.gain,
       fadeInMs: handoff.fadeMs,
       fadeOutMs: handoff.fadeOutMs,

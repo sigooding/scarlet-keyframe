@@ -57,7 +57,12 @@ describe("The Festival Cut", () => {
       expected.push(id);
       for (let n = 1; byId.has(cutawayPieceId(id, n)); n += 1) expected.push(cutawayPieceId(id, n));
     }
-    expect(buildKeyframes(festival.story).map((f) => f.id)).toEqual(expected);
+    // the festival's own credit cards join the credits; everything else is the director's, in the director's order
+    const added = new Set((data.creditCards?.cards ?? []).map((c) => c.id));
+    const order = buildKeyframes(festival.story).map((f) => f.id);
+    expect(order.filter((id) => !added.has(id))).toEqual(expected);
+    for (const id of added) expect(order).toContain(id);
+    const retimed = new Set((data.musicHandoffs ?? []).flatMap((h) => h.runToEnd?.fill ?? []));
     const droppedBeats = new Set(exportCut.story.scenes.filter((sc) => dropped.has(String(sc.id))).flatMap((sc) => (sc.dialogueBeats ?? []).map((b) => String(b.id))));
     for (const [id, was] of exportBeats) {
       if (droppedBeats.has(id)) {
@@ -68,7 +73,8 @@ describe("The Festival Cut", () => {
       for (let n = 1; byId.has(cutawayPieceId(id, n)); n += 1) pieces.push(byId.get(cutawayPieceId(id, n))!);
       expect(pieces.length > 1, id).toBe(inserts.has(id));
       if (pieces.length === 1) {
-        expect(pieces[0].durationFrames, id).toBe(was.durationFrames);
+        // the credits' montage cards are re-timed to the closing song; every other shot keeps its length
+        if (!retimed.has(id)) expect(pieces[0].durationFrames, id).toBe(was.durationFrames);
         expect(pieces[0].captions, id).toEqual(was.captions);
         continue;
       }
@@ -216,6 +222,37 @@ describe("The Festival Cut", () => {
     expect(cards.filter((c) => c?.kicker === "CAST").length).toBe(2);
   });
 
+  it("plays the whole closing song: the credits run until its last note, the cards keep their pace", () => {
+    const handoff = (data.musicHandoffs ?? [])[0];
+    const up = (festival.audioClips ?? []).find((c) => c.id === `${handoff.clipId}~up`)!;
+    expect(handoff.songMs).toBeGreaterThan(200000);
+    // the loud copy plays from where the song is when the credits start to the end of the file
+    expect(Math.abs(up.inMs + up.durationMs - handoff.songMs!)).toBeLessThan(50);
+    // and the film ends with it
+    const frames = buildKeyframes(festival.story);
+    const filmMs = (frames.reduce((t, f) => t + clipFrames(f), 0) / 24) * 1000;
+    let creditsMs = 0;
+    for (const f of frames) if (f.sceneId === "nw_credits") creditsMs += (clipFrames(f) / 24) * 1000;
+    const creditsStartMs = filmMs - creditsMs;
+    expect(Math.abs(creditsStartMs + up.durationMs - filmMs)).toBeLessThan(1000 / 24);
+    expect(creditsMs).toBeGreaterThan(150000);
+    const credits = festival.story.scenes.find((sc) => sc.id === "nw_credits")!.dialogueBeats!;
+    const fill = new Set(handoff.runToEnd!.fill);
+    for (const b of credits) {
+      if (fill.has(String(b.id))) expect(Number(b.durationFrames), String(b.id)).toBeGreaterThanOrEqual(5 * 24);
+      else expect(Number(b.durationFrames), String(b.id)).toBe(126);
+    }
+    // the film's own credit lines for the pictures and the engine are there, and the montage carries its pictures' depth
+    const cards = credits.map((b) => (b as { titleCard?: { kicker?: string } }).titleCard?.kicker);
+    expect(cards).toContain("PICTURES");
+    expect(cards).toContain("ENGINE");
+    for (const card of data.creditCards?.cards ?? []) {
+      const b = credits.find((x) => String(x.id) === card.id)!;
+      expect(String(b.background)).toBe(data.pictureReplacements[card.picture] ?? card.picture);
+      expect(b.captions).toEqual([]);
+    }
+  });
+
   it("brings the closing song up to full for the credits, in step, and fades it out on the last frame", () => {
     const handoff = (data.musicHandoffs ?? [])[0];
     expect(handoff).toBeDefined();
@@ -237,8 +274,8 @@ describe("The Festival Cut", () => {
     }
     expect(Math.abs(up.inMs - (upStart - lowStart - low.offsetMs))).toBeLessThan(2);
     expect(Math.abs(low.durationMs - (upStart - lowStart + handoff.fadeMs))).toBeLessThan(2);
-    // it runs to the last frame and fades out with it
-    expect(Math.abs(upStart + up.durationMs - ms)).toBeLessThan(2);
+    // it runs to the last frame (within a frame: the song's own last note ends the film) and fades out with it
+    expect(Math.abs(upStart + up.durationMs - ms)).toBeLessThan(1000 / 24);
     expect(up.fadeOutMs).toBe(handoff.fadeOutMs);
   });
 
