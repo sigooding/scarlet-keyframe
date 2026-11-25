@@ -4842,6 +4842,11 @@
   },
   "ac_sfx_622": {
    "gain": 0.85
+  },
+  "ac_sfx_696": {
+   "src": "/film/sfx/kaneko-three-strikes-kling.mp3",
+   "durationMs": 3082,
+   "gain": 1.24
   }
  },
  "voiceGainDb": {
