@@ -46,7 +46,8 @@ const lines = (festival.audioClips ?? [])
     const start = startMs.get(c.anchorId)! + c.offsetMs - shotStart;
     return { src: c.src, speaker: who(c.src), inMs: c.inMs, startMs: Math.round(start), endMs: Math.round(start + c.durationMs) };
   })
-  .filter((l) => l.endMs > 0 && l.startMs < shotMs)
+  // a line that only grazes the shot's edges (under a tenth of a second) belongs to the next or last shot
+  .filter((l) => l.endMs > 100 && l.startMs < shotMs - 100)
   .sort((a, b) => a.startMs - b.startMs);
 const kept = lines.filter((l) => l.speaker === speaker.toLowerCase());
 if (!kept.length) throw new Error(`${speaker} says nothing in ${beatId}; voices here: ${[...new Set(lines.map((l) => l.speaker))].join(", ") || "none"}`);
