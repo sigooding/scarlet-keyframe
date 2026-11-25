@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Puts one real-motion clip (no sound) over a whole shot of the Festival Cut.
+"""Puts one real-motion clip over a whole shot of the Festival Cut.
 
     python3 .claude/skills/kling-video/scripts/install_motion_clip.py <beatId> <clip.mp4 or https URL> <slug> [--start S]
 
 Reads the shot's length from shot-info.ts, conforms the clip to 1920x1080 at 24 fps and to the shot's length plus half a
-second held on its last frame (a clip shorter than its shot would loop), drops its sound (the film has its own), writes
-public/film/video/festival/<slug>.mp4 and makes it the shot's video (videoShots in src/data/festival-cut.json).
+second held on its last frame (a clip shorter than its shot would loop), writes public/film/video/festival/<slug>.mp4 and
+makes it the shot's video (videoShots in src/data/festival-cut.json).
+The clip's own sound, if it has any, stays in the file, trimmed in step with the picture and padded with silence. The film
+plays its clips muted, so this changes nothing you hear. It keeps the sound to hand for when it beats the film's own effects
+(see "Sound" in SKILL.md).
 --start skips the first S seconds of the clip (a model that only makes 5 s clips, used on a 3 s shot).
 A shot already split into pieces is refused: lay a clip over one piece by hand, as an insert cut.
 """
-import json, os, subprocess, sys, tempfile
+import json, os, re, subprocess, sys, tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
 args = [a for a in sys.argv[1:] if not a.startswith("--")]
@@ -35,8 +38,20 @@ pad = max(0.0, frames / 24 + extra / 24 - (dur - start)) + 0.1
 out = f"{ROOT}/public/film/video/festival/{slug}.mp4"
 vf = (f"trim=start={start:.3f},setpts=PTS-STARTPTS,scale=1920:1080:force_original_aspect_ratio=increase:flags=lanczos,"
       f"crop=1920:1080,fps=24,tpad=stop_mode=clone:stop_duration={pad:.3f}")
-subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-an", "-vf", vf, "-frames:v", str(frames + extra), "-c:v", "libx264",
-                "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p", "-movflags", "+faststart", out], check=True)
+sound = subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of",
+                                 "csv=p=0", raw]).strip() != b""
+total = (frames + extra) / 24
+audio = (["-af", f"atrim=start={start:.3f},asetpts=PTS-STARTPTS,apad,atrim=0:{total:.4f}", "-c:a", "aac", "-b:a", "160k"]
+         if sound else ["-an"])
+subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-vf", vf, "-frames:v", str(frames + extra), "-c:v", "libx264",
+                "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p", *audio, "-movflags", "+faststart", out], check=True)
+
+
+def loudness(path):
+    log = subprocess.run(["ffmpeg", "-hide_banner", "-i", path, "-vn", "-af", "ebur128=framelog=quiet", "-f", "null", "-"],
+                         capture_output=True, text=True).stderr
+    found = re.findall(r"I:\s+(-?[0-9.]+|-inf) LUFS", log)
+    return found[-1] if found else "?"
 
 F = f"{ROOT}/src/data/festival-cut.json"
 data = json.load(open(F, encoding="utf-8"))
@@ -45,4 +60,5 @@ with open(F, "w", encoding="utf-8") as fh:
     fh.write(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
 held = max(0, frames - round((dur - start) * 24))
 print(f"{beat}: {dur:.2f}s clip (from {start:.2f}s) for a {frames / 24:.2f}s shot -> {slug}.mp4, "
-      f"{frames} + {extra} frames ({held} of them held on screen)")
+      f"{frames} + {extra} frames ({held} of them held on screen); "
+      + (f"its own sound kept in the file ({loudness(out)} LUFS)" if sound else "the clip has no sound"))
