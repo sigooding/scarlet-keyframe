@@ -37,6 +37,11 @@ for (const f of buildKeyframes(festival.story)) {
 }
 if (!frames) throw new Error(`no shot ${beatId} in the Festival Cut`);
 const shotStart = startMs.get(beatId)!;
+// A shot the festival has already split (a cutaway or another lip sync over part of it) plays as pieces: <id>,
+// <id>~fc1, ... The track then covers this piece only, and install_clip.py adds the clip as a cut for it.
+const baseId = beatId.replace(/~fc\d+$/, "");
+const split = startMs.has(`${baseId}~fc1`);
+const offsetFrames = Math.round(((shotStart - (startMs.get(baseId) ?? shotStart)) / 1000) * FPS);
 const shotMs = (frames / FPS) * 1000;
 
 const who = (src: string) => src.split("/").pop()!.split("-")[1] ?? "?";
@@ -46,7 +51,8 @@ const lines = (festival.audioClips ?? [])
     const start = startMs.get(c.anchorId)! + c.offsetMs - shotStart;
     return { src: c.src, speaker: who(c.src), inMs: c.inMs, startMs: Math.round(start), endMs: Math.round(start + c.durationMs) };
   })
-  .filter((l) => l.endMs > 0 && l.startMs < shotMs)
+  // a line that only grazes the shot's edges (under a tenth of a second) belongs to the next or last shot
+  .filter((l) => l.endMs > 100 && l.startMs < shotMs - 100)
   .sort((a, b) => a.startMs - b.startMs);
 const kept = lines.filter((l) => l.speaker === speaker.toLowerCase());
 if (!kept.length) throw new Error(`${speaker} says nothing in ${beatId}; voices here: ${[...new Set(lines.map((l) => l.speaker))].join(", ") || "none"}`);
@@ -66,8 +72,9 @@ execFileSync("ffmpeg", ["-v", "error", "-y", ...inputs, "-filter_complex", filte
 
 const s = (ms: number) => `${(Math.max(0, ms) / 1000).toFixed(1)}s`;
 console.log(`${beatId}: ${frames} frames = ${T.toFixed(2)}s. Track: ${out}`);
+if (split) console.log(`  ${baseId} is split into pieces: this track covers frames ${offsetFrames}-${offsetFrames + frames} of it`);
 for (const l of lines) {
   const mine = l.speaker === speaker.toLowerCase();
   console.log(`  ${s(l.startMs)}-${s(Math.min(l.endMs, shotMs))}  ${l.speaker}${mine ? "" : "  (off the track: the actor listens)"}`);
 }
-writeFileSync(`${out}.json`, JSON.stringify({ beatId, speaker, frames, track: out, lines }, null, 1));
+writeFileSync(`${out}.json`, JSON.stringify({ beatId, baseId, split, offsetFrames, speaker, frames, track: out, lines }, null, 1));

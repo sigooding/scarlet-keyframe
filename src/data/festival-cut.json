@@ -5373,17 +5373,6 @@
    ]
   },
   {
-   "beatId": "nw_b1465",
-   "cuts": [
-    {
-     "from": 188,
-     "to": 270,
-     "picture": "video:/film/video/festival/lipsync-jack-i-trusted-him-i-m-so-sorry.mp4",
-     "text": "Jack: I trusted him. I'm so sorry."
-    }
-   ]
-  },
-  {
    "beatId": "nw_b1469",
    "cuts": [
     {
@@ -5596,6 +5585,23 @@
      "to": 182,
      "picture": "video:/film/video/festival/lipsync-okada-i-looked-no.mp4",
      "text": "Okada: I looked. No."
+    }
+   ]
+  },
+  {
+   "beatId": "nw_b1465",
+   "cuts": [
+    {
+     "from": 0,
+     "to": 188,
+     "picture": "video:/film/video/festival/lipsync-jack-i-told-him.mp4",
+     "text": "Jack: I told him. Where she'd be, and when. He arranged the car."
+    },
+    {
+     "from": 188,
+     "to": 270,
+     "picture": "video:/film/video/festival/lipsync-jack-i-trusted-him-i-m-so-sorry.mp4",
+     "text": "Jack: I trusted him. I'm so sorry."
     }
    ]
   }
